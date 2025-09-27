@@ -32,23 +32,23 @@
     This is the main target for running the code generator.
     It correctly uses Inputs and Outputs for incremental build checks.
   -->
-  <Target Name="RunBravillianTool"
+  <Target Name="RunBravellianTool"
           BeforeTargets="BeforeBuild"
           Condition="'$(MSBuildProjectExtension)' == '.csproj'"
           Inputs="@(TypeDefinitionFiles)"
           Outputs="$(ProjectDir)Generated\__codegen.marker">
 
-    <Message Importance="High" Text="🔄 Running bravillian-gen codegen..." />
+    <Message Importance="High" Text="🔄 Running Bravellian-gen codegen..." />
 
     <MakeDir Directories="$(ProjectDir)Generated" />
     <!--<Delete Files="$(ProjectDir)Generated\**\*.cs" Condition="Exists('$(ProjectDir)Generated\')" />-->
     
     <PropertyGroup>
-      <BravillianResponseFile>$(IntermediateOutputPath)bravillian-gen.rsp</BravillianResponseFile>
+      <BravellianResponseFile>$(IntermediateOutputPath)Bravellian-gen.rsp</BravellianResponseFile>
     </PropertyGroup>
 
     <WriteLinesToFile
-      File="$(BravillianResponseFile)"
+      File="$(BravellianResponseFile)"
       Lines="@(TypeDefinitionFiles)"
       Overwrite="true"
       Encoding="UTF-8" />
@@ -59,7 +59,7 @@
       which is much safer for paths with spaces. Your tool must support multiple -input flags.
       If your tool only supports a single argument with semicolon-separated paths, your original command is fine.
     -->
-    <Exec Command='dotnet tool run bravillian-gen --input @"$(BravillianResponseFile)" --output "$(ProjectDir)Generated"' />
+    <Exec Command='dotnet tool run Bravellian-gen --input @"$(BravellianResponseFile)" --output "$(ProjectDir)Generated"' />
 
     <!--
       STEP 1: After generation, create a new ItemGroup that captures the output files.
@@ -87,7 +87,7 @@
 
   
 	<!-- Keep global Using directives -->
-	<ItemGroup Condition="'$(MSBuildProjectExtension)' != '.dcproj' AND '$(MSBuildProjectExtension)' != '.sqlproj' AND $(MSBuildProjectName.StartsWith('Bravillian.Generators')) == false AND $(MSBuildProjectName.StartsWith('Bravillian.Database')) == false">
+	<ItemGroup Condition="'$(MSBuildProjectExtension)' != '.dcproj' AND '$(MSBuildProjectExtension)' != '.sqlproj' AND $(MSBuildProjectName.StartsWith('Bravellian.Generators')) == false AND $(MSBuildProjectName.StartsWith('Bravellian.Database')) == false">
 		<Using Include="System" />
 		<Using Include="System.Collections.Generic" />
 		<Using Include="System.Diagnostics" />
@@ -103,7 +103,7 @@
 	</ItemGroup>
 
 	<!-- Keep core project references and build tooling -->
-	<ItemGroup Condition="'$(MSBuildProjectExtension)' != '.dcproj' AND '$(MSBuildProjectExtension)' != '.sqlproj' AND $(MSBuildProjectName.StartsWith('Bravillian.Database')) == false">
+	<ItemGroup Condition="'$(MSBuildProjectExtension)' != '.dcproj' AND '$(MSBuildProjectExtension)' != '.sqlproj' AND $(MSBuildProjectName.StartsWith('Bravellian.Database')) == false">
 		<RuntimeHostConfigurationOption Include="System.Runtime.Loader.UseRidGraph" Value="true" />
 
 		<!-- Keep InternalsVisibleTo -->
