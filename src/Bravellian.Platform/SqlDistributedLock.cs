@@ -1,5 +1,18 @@
-﻿namespace Bravellian.Platform;
+﻿// Copyright (c) Bravellian
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
+namespace Bravellian.Platform;
 
 using System;
 using System.Data;
@@ -24,7 +37,7 @@ internal sealed partial class SqlDistributedLock : ISqlDistributedLock
         CancellationToken cancellationToken = default)
     {
         var sanitizedResource = SanitizeResource(resource);
-        return await SqlAppLock.AcquireAsync(connectionString, sanitizedResource, timeout, cancellationToken).ConfigureAwait(false);
+        return await SqlAppLock.AcquireAsync(this.connectionString, sanitizedResource, timeout, cancellationToken).ConfigureAwait(false);
     }
 
     private static string SanitizeResource(string resource)
@@ -34,7 +47,7 @@ internal sealed partial class SqlDistributedLock : ISqlDistributedLock
             throw new ArgumentException("Resource cannot be null or whitespace.", nameof(resource));
         }
 
-        var sanitized = LockRegex().Replace(resource, "");
+        var sanitized = LockRegex().Replace(resource, string.Empty);
         return sanitized.ToLowerInvariant();
     }
 
@@ -64,7 +77,7 @@ internal sealed partial class SqlDistributedLock : ISqlDistributedLock
             {
                 using var cmd = new SqlCommand("sp_getapplock", conn, tx)
                 {
-                    CommandType = CommandType.StoredProcedure
+                    CommandType = CommandType.StoredProcedure,
                 };
                 cmd.Parameters.AddWithValue("@Resource", resource);
                 cmd.Parameters.AddWithValue("@LockMode", "Exclusive");
@@ -83,7 +96,14 @@ internal sealed partial class SqlDistributedLock : ISqlDistributedLock
             }
             catch
             {
-                try { await tx.RollbackAsync(ct).ConfigureAwait(false); } catch { /* ignore */ }
+                try
+                {
+                    await tx.RollbackAsync(ct).ConfigureAwait(false);
+                }
+                catch
+                { /* ignore */
+                }
+
                 await conn.CloseAsync().ConfigureAwait(false);
                 throw;
             }
@@ -104,7 +124,14 @@ internal sealed partial class SqlDistributedLock : ISqlDistributedLock
             }
             catch
             {
-                try { await this.transaction.RollbackAsync().ConfigureAwait(false); } catch { /* ignore */ }
+                try
+                {
+                    await this.transaction.RollbackAsync().ConfigureAwait(false);
+                }
+                catch
+                { /* ignore */
+                }
+
                 throw;
             }
             finally
@@ -118,7 +145,7 @@ internal sealed partial class SqlDistributedLock : ISqlDistributedLock
     private static partial Regex LockRegex();
 }
 
-    public class YourApplicationOptions
-    {
-        public string ConnectionString { get; set; }
-    }
+public class YourApplicationOptions
+{
+    public string ConnectionString { get; set; }
+}

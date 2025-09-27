@@ -1,4 +1,18 @@
-﻿using System;
+﻿// Copyright (c) Bravellian
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,14 +25,12 @@ using System.Data.SqlClient;
 using System.Threading;
 using System.Threading.Tasks;
 
-/*
-
- */
 internal class SqlSchedulerService : IHostedService
 {
     private readonly ISqlDistributedLock distributedLock;
-    private readonly IOutbox _outbox;
+    private readonly IOutbox outbox;
     private readonly string connectionString;
+
     // This is the key tunable parameter.
     private readonly TimeSpan maxWaitTime = TimeSpan.FromSeconds(30);
     private readonly string instanceId = $"{Environment.MachineName}:{Guid.NewGuid()}";
@@ -26,13 +38,14 @@ internal class SqlSchedulerService : IHostedService
     public SqlSchedulerService(ISqlDistributedLock distributedLock, IOutbox outbox, string connectionString)
     {
         this.distributedLock = distributedLock;
-        _outbox = outbox;
+        this.outbox = outbox;
         this.connectionString = connectionString;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        Task.Run(async () =>
+        Task.Run(
+            async () =>
         {
             while (!cancellationToken.IsCancellationRequested)
             {
@@ -56,7 +69,7 @@ internal class SqlSchedulerService : IHostedService
             TimeSpan sleepDuration;
 
             // Use your lock to ensure only one instance acts as the scheduler at a time.
-            var handle = await this.distributedLock.AcquireAsync("SchedulerLock", TimeSpan.Zero, cancellationToken);
+            var handle = await distributedLock.AcquireAsync("SchedulerLock", TimeSpan.Zero, cancellationToken).ConfigureAwait(false);
             await using (handle.ConfigureAwait(false))
             {
                 if (handle == null)
@@ -109,17 +122,18 @@ internal class SqlSchedulerService : IHostedService
     {
         using (var connection = new Microsoft.Data.SqlClient.SqlConnection(this.connectionString))
         {
-            await connection.OpenAsync();
+            await connection.OpenAsync().ConfigureAwait(false);
+
             // 1. Start a single transaction for the entire dispatch operation.
             using (var transaction = connection.BeginTransaction())
             {
                 try
                 {
                     // 2. Process due timers.
-                    await DispatchTimersAsync(transaction);
+                    await DispatchTimersAsync(transaction).ConfigureAwait(false);
 
                     // 3. Process due job runs.
-                    await DispatchJobRunsAsync(transaction);
+                    await DispatchJobRunsAsync(transaction).ConfigureAwait(false);
 
                     // 4. If all operations succeed, commit the transaction.
                     transaction.Commit();
@@ -133,6 +147,7 @@ internal class SqlSchedulerService : IHostedService
             }
         }
     }
+
     private async Task DispatchTimersAsync(Microsoft.Data.SqlClient.SqlTransaction transaction)
     {
         // This SQL query is atomic. It finds pending timers that are due,
@@ -149,17 +164,17 @@ internal class SqlSchedulerService : IHostedService
             );";
 
         var dueTimers = await transaction.Connection.QueryAsync<(Guid Id, string Topic, string Payload)>(
-            claimTimersSql, new { InstanceId = instanceId }, transaction);
+            claimTimersSql, new { InstanceId = instanceId }, transaction).ConfigureAwait(false);
 
         foreach (var timer in dueTimers)
         {
             // For each claimed timer, enqueue it into the outbox for a worker to process.
-            await _outbox.EnqueueAsync(
+            await outbox.EnqueueAsync(
                 topic: timer.Topic,
                 payload: timer.Payload,
                 transaction: transaction,
-                correlationId: timer.Id.ToString()
-            );
+                correlationId: timer.Id.ToString())
+            .ConfigureAwait(false);
         }
     }
 
@@ -179,16 +194,16 @@ internal class SqlSchedulerService : IHostedService
             );";
 
         var dueJobs = await transaction.Connection.QueryAsync<(Guid Id, Guid JobId, string Topic, string Payload)>(
-            claimJobsSql, new { InstanceId = instanceId }, transaction);
+            claimJobsSql, new { InstanceId = instanceId }, transaction).ConfigureAwait(false);
 
         foreach (var job in dueJobs)
         {
-            await _outbox.EnqueueAsync(
+            await outbox.EnqueueAsync(
                 topic: job.Topic,
                 payload: job.Payload, // The payload from the Job definition is passed on.
                 transaction: transaction,
-                correlationId: job.Id.ToString() // Correlation is the JobRun Id
-            );
+                correlationId: job.Id.ToString()) // Correlation is the JobRun Id
+            .ConfigureAwait(false);
         }
     }
 

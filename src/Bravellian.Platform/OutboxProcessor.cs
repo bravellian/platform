@@ -1,4 +1,18 @@
-﻿using System;
+﻿// Copyright (c) Bravellian
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -56,7 +70,8 @@ public class OutboxProcessor : IHostedService // Example for a hosted service in
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        Task.Run(async () =>
+        Task.Run(
+            async () =>
         {
             while (!cancellationToken.IsCancellationRequested)
             {
@@ -77,7 +92,7 @@ public class OutboxProcessor : IHostedService // Example for a hosted service in
     {
         // Use your locking abstraction. We try to acquire the lock for a very short
         // time (0s) because we don't want to wait if another instance is already running.
-        var handle = await this.distributedLock.AcquireAsync("OutboxProcessorLock", TimeSpan.Zero);
+        var handle = await distributedLock.AcquireAsync("OutboxProcessorLock", TimeSpan.Zero).ConfigureAwait(false);
 
         await using (handle.ConfigureAwait(false))
         {
@@ -94,8 +109,8 @@ public class OutboxProcessor : IHostedService // Example for a hosted service in
 
                 // Fetch messages that are ready to be processed
                 var messages = await connection.QueryAsync<OutboxMessage>(
-                    "SELECT TOP 10 * FROM Outbox WHERE IsProcessed = 0 AND NextAttemptAt <= SYSDATETIMEOFFSET() ORDER BY CreatedAt;"
-                ).ConfigureAwait(false);
+                    "SELECT TOP 10 * FROM Outbox WHERE IsProcessed = 0 AND NextAttemptAt <= SYSDATETIMEOFFSET() ORDER BY CreatedAt;")
+                .ConfigureAwait(false);
 
                 foreach (var message in messages)
                 {
@@ -126,7 +141,7 @@ public class OutboxProcessor : IHostedService // Example for a hosted service in
                             message.Id,
                             RetryCount = retryCount,
                             Error = ex.Message,
-                            NextAttempt = nextAttempt
+                            NextAttempt = nextAttempt,
                         }).ConfigureAwait(false);
                     }
                 }
@@ -147,16 +162,26 @@ public class OutboxProcessor : IHostedService // Example for a hosted service in
 public class OutboxMessage
 {
     public Guid Id { get; set; }
+
     public string Payload { get; set; }
+
     public string Topic { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; }
+
     public bool IsProcessed { get; set; }
+
     public DateTimeOffset? ProcessedAt { get; set; }
+
     public string? ProcessedBy { get; set; }
+
     public int RetryCount { get; set; }
+
     public string? LastError { get; set; }
+
     public DateTimeOffset NextAttemptAt { get; set; }
+
     public Guid MessageId { get; set; }
+
     public Guid? CorrelationId { get; set; }
 }
