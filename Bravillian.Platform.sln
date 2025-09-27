@@ -1,0 +1,33 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bravellian.Platform", "src\Bravellian.Platform\Bravellian.Platform.csproj", "{BF1676DE-C74B-4595-803C-85F2CBE3E9B9}"
+EndProject
+Project("{00D1A9C2-B5F0-4AF3-8072-F6C62B433612}") = "Bravellian.Platform.Database", "src\Bravellian.Platform.Database\Bravellian.Platform.Database.sqlproj", "{497A6D4D-1BB4-4855-A64B-174FF6A29B7B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BF1676DE-C74B-4595-803C-85F2CBE3E9B9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BF1676DE-C74B-4595-803C-85F2CBE3E9B9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BF1676DE-C74B-4595-803C-85F2CBE3E9B9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BF1676DE-C74B-4595-803C-85F2CBE3E9B9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{497A6D4D-1BB4-4855-A64B-174FF6A29B7B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{497A6D4D-1BB4-4855-A64B-174FF6A29B7B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{497A6D4D-1BB4-4855-A64B-174FF6A29B7B}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{497A6D4D-1BB4-4855-A64B-174FF6A29B7B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{497A6D4D-1BB4-4855-A64B-174FF6A29B7B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{497A6D4D-1BB4-4855-A64B-174FF6A29B7B}.Release|Any CPU.Deploy.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {821BA00A-FC1B-4F79-9E73-D04C819CE7DE}
+	EndGlobalSection
+EndGlobal

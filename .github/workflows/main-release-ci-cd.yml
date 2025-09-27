@@ -1,0 +1,93 @@
+name: 'Main/Release CI/CD'
+on:
+  push:
+    branches:
+      - main
+jobs:
+  build:
+    name: Main/Release - Build, Test, and Scan
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+      cancel-in-progress: true
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 
+
+    - name: Set-up dotnet
+      uses: actions/setup-dotnet@v4
+      with:
+        global-json-file: global.json
+
+    - name: Cache NuGet
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
+        restore-keys: |
+          nuget-${{ runner.os }}-
+
+    - name: Install PowerShell
+      uses: PSModule/install-powershell@v1
+
+    - name: Determine Version
+      id: git_version
+      shell: pwsh
+      run: |
+        $now = [System.DateTime]::UtcNow
+        $revision = $now.Hour * 60 + $now.Minute
+        $baseVersion = "$($now.Year).$($now.Month).$($now.Day).$revision"
+        $version = $baseVersion
+
+        try {
+          $branchName = (git rev-parse --abbrev-ref HEAD).Trim()
+          Write-Host "Branch name: $branchName"
+          $mainBranches = @("main", "master")
+
+          if ($branchName -and ($mainBranches -notcontains $branchName.ToLowerInvariant())) {
+            # Sanitize branch name for pre-release tag
+            $safeBranch = $branchName -replace '[^A-Za-z0-9-]', '-'
+            $version = "$baseVersion-$safeBranch"
+          }
+        } catch {
+          Write-Warning "Could not determine git branch. Using base version."
+        }
+
+        Write-Host "Calculated Version: $version"
+        echo "semVer=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+    - name: Restore dependencies
+      run: dotnet restore Bravellian.Platform.sln
+
+    - name: Restore tools
+      run: dotnet tool restore
+          
+    - name: Build solution
+      run: dotnet build Bravellian.Platform.sln --no-restore --configuration Release -p:Version=${{ steps.git_version.outputs.semVer }}
+
+    - name: Run Tests
+      run: dotnet test Bravellian.Platform.sln --no-build --configuration Release
+  
+    - name: Pack NuGet packages
+      run: dotnet pack src/Bravellian.Platform.Cli/Bravellian.Platform.Cli.csproj --configuration Release --output ./nupkgs -p:PackageVersion=${{ steps.git_version.outputs.semVer }}
+
+    - name: Upload package artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: nupkgs
+        path: ./nupkgs/*.nupkg
+
+  publish-nuget-org:
+    needs: build
+    runs-on: ubuntu-latest
+    # Stable = no hyphen in version (e.g., 1.2.3)
+    if: ${{ !contains(github.ref_name, '-') }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: nupkgs
+          path: out
+      - name: Push to nuget.org
+        run: dotnet nuget push "out/*.nupkg" --api-key "${{ secrets.NUGET_API_KEY }}" --source "https://api.nuget.org/v3/index.json" --skip-duplicate

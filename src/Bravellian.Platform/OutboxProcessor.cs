@@ -1,0 +1,162 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Bravellian.Platform;
+
+using System.Data.SqlClient;
+using Dapper;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Hosting;
+
+/*
+ CREATE TABLE dbo.Outbox (
+    -- Core Fields
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    Payload NVARCHAR(MAX) NOT NULL,
+    Topic NVARCHAR(255) NOT NULL,
+    CreatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(),
+
+    -- Processing Status & Auditing (Your suggestions)
+    IsProcessed BIT NOT NULL DEFAULT 0,
+    ProcessedAt DATETIMEOFFSET NULL,
+    ProcessedBy NVARCHAR(100) NULL, -- e.g., machine name or instance ID
+
+    -- For Robustness & Error Handling
+    RetryCount INT NOT NULL DEFAULT 0,
+    LastError NVARCHAR(MAX) NULL,
+    NextAttemptAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(), -- For backoff strategies
+
+    -- For Idempotency & Tracing
+    MessageId UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(), -- A stable ID for the message consumer
+    CorrelationId UNIQUEIDENTIFIER NULL -- To trace a message through multiple systems
+);
+GO
+
+-- An index to efficiently query for unprocessed messages, now including the next attempt time.
+CREATE INDEX IX_Outbox_GetNext ON dbo.Outbox(IsProcessed, NextAttemptAt)
+    INCLUDE(Id, Payload, Topic, RetryCount) -- Include columns needed for processing
+    WHERE IsProcessed = 0;
+GO
+ */
+public class OutboxProcessor : IHostedService // Example for a hosted service in ASP.NET Core
+{
+    private readonly string connectionString;
+    private readonly ISqlDistributedLock distributedLock;
+    private readonly string instanceId = $"{Environment.MachineName}:{Guid.NewGuid()}"; // Unique ID for this processor instance
+
+    public OutboxProcessor(string connectionString, ISqlDistributedLock distributedLock)
+    {
+        this.connectionString = connectionString;
+        this.distributedLock = distributedLock;
+    }
+
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        Task.Run(async () =>
+        {
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                await this.ProcessOutboxMessagesAsync().ConfigureAwait(false);
+                await Task.Delay(5000, cancellationToken).ConfigureAwait(false); // Poll every 5 seconds
+            }
+        }, cancellationToken);
+
+        return Task.CompletedTask;
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        return Task.CompletedTask;
+    }
+
+    private async Task ProcessOutboxMessagesAsync()
+    {
+        // Use your locking abstraction. We try to acquire the lock for a very short
+        // time (0s) because we don't want to wait if another instance is already running.
+        var handle = await this.distributedLock.AcquireAsync("OutboxProcessorLock", TimeSpan.Zero);
+
+        await using (handle.ConfigureAwait(false))
+        {
+            if (handle == null)
+            {
+                // Lock not acquired, another instance is processing.
+                return;
+            }
+
+            // Lock acquired, proceed with processing.
+            using (var connection = new Microsoft.Data.SqlClient.SqlConnection(this.connectionString))
+            {
+                await connection.OpenAsync().ConfigureAwait(false);
+
+                // Fetch messages that are ready to be processed
+                var messages = await connection.QueryAsync<OutboxMessage>(
+                    "SELECT TOP 10 * FROM Outbox WHERE IsProcessed = 0 AND NextAttemptAt <= SYSDATETIMEOFFSET() ORDER BY CreatedAt;"
+                ).ConfigureAwait(false);
+
+                foreach (var message in messages)
+                {
+                    try
+                    {
+                        // 1. Attempt to send the message
+                        await this.SendMessageToBrokerAsync(message).ConfigureAwait(false);
+
+                        // 2. If successful, mark as processed
+                        var successSql = @"
+                            UPDATE Outbox
+                            SET IsProcessed = 1, ProcessedAt = SYSDATETIMEOFFSET(), ProcessedBy = @InstanceId
+                            WHERE Id = @Id;";
+                        await connection.ExecuteAsync(successSql, new { message.Id, InstanceId = this.instanceId }).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        // 3. If it fails, update for a later retry
+                        var retryCount = message.RetryCount + 1;
+                        var nextAttempt = DateTimeOffset.UtcNow.AddSeconds(Math.Pow(2, retryCount)); // Exponential backoff
+
+                        var failureSql = @"
+                            UPDATE Outbox
+                            SET RetryCount = @RetryCount, LastError = @Error, NextAttemptAt = @NextAttempt
+                            WHERE Id = @Id;";
+                        await connection.ExecuteAsync(failureSql, new
+                        {
+                            message.Id,
+                            RetryCount = retryCount,
+                            Error = ex.Message,
+                            NextAttempt = nextAttempt
+                        }).ConfigureAwait(false);
+                    }
+                }
+            }
+        } // The lock is released here when 'handle' is disposed.
+    }
+
+    private async Task<bool> SendMessageToBrokerAsync(OutboxMessage message)
+    {
+        // Simulate sending the message
+        // In a real implementation, you would have your message broker client code here.
+        System.Console.WriteLine($"Sending message {message.Id} to topic {message.Topic}");
+        await Task.Delay(100).ConfigureAwait(false); // Simulate network latency
+        return true; // Assume it was sent successfully
+    }
+}
+
+public class OutboxMessage
+{
+    public Guid Id { get; set; }
+    public string Payload { get; set; }
+    public string Topic { get; set; }
+
+    public DateTimeOffset CreatedAt { get; set; }
+    public bool IsProcessed { get; set; }
+    public DateTimeOffset? ProcessedAt { get; set; }
+    public string? ProcessedBy { get; set; }
+    public int RetryCount { get; set; }
+    public string? LastError { get; set; }
+    public DateTimeOffset NextAttemptAt { get; set; }
+    public Guid MessageId { get; set; }
+    public Guid? CorrelationId { get; set; }
+}
