@@ -12,15 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 namespace Bravellian.Platform;
 
-using System.Data.SqlClient;
 using Dapper;
 using System.Threading;
 using System.Threading.Tasks;
@@ -56,7 +49,7 @@ CREATE INDEX IX_Outbox_GetNext ON dbo.Outbox(IsProcessed, NextAttemptAt)
     WHERE IsProcessed = 0;
 GO
  */
-public class OutboxProcessor : IHostedService // Example for a hosted service in ASP.NET Core
+internal class OutboxProcessor : IHostedService // Example for a hosted service in ASP.NET Core
 {
     private readonly string connectionString;
     private readonly ISqlDistributedLock distributedLock;
@@ -70,7 +63,7 @@ public class OutboxProcessor : IHostedService // Example for a hosted service in
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        Task.Run(
+        _ = Task.Run(
             async () =>
         {
             while (!cancellationToken.IsCancellationRequested)
@@ -92,7 +85,7 @@ public class OutboxProcessor : IHostedService // Example for a hosted service in
     {
         // Use your locking abstraction. We try to acquire the lock for a very short
         // time (0s) because we don't want to wait if another instance is already running.
-        var handle = await distributedLock.AcquireAsync("OutboxProcessorLock", TimeSpan.Zero).ConfigureAwait(false);
+        var handle = await this.distributedLock.AcquireAsync("OutboxProcessorLock", TimeSpan.Zero).ConfigureAwait(false);
 
         await using (handle.ConfigureAwait(false))
         {
@@ -157,31 +150,4 @@ public class OutboxProcessor : IHostedService // Example for a hosted service in
         await Task.Delay(100).ConfigureAwait(false); // Simulate network latency
         return true; // Assume it was sent successfully
     }
-}
-
-public class OutboxMessage
-{
-    public Guid Id { get; set; }
-
-    public string Payload { get; set; }
-
-    public string Topic { get; set; }
-
-    public DateTimeOffset CreatedAt { get; set; }
-
-    public bool IsProcessed { get; set; }
-
-    public DateTimeOffset? ProcessedAt { get; set; }
-
-    public string? ProcessedBy { get; set; }
-
-    public int RetryCount { get; set; }
-
-    public string? LastError { get; set; }
-
-    public DateTimeOffset NextAttemptAt { get; set; }
-
-    public Guid MessageId { get; set; }
-
-    public Guid? CorrelationId { get; set; }
 }
