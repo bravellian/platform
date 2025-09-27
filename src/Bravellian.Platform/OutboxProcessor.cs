@@ -110,7 +110,22 @@ internal class OutboxProcessor : IHostedService // Example for a hosted service 
                     try
                     {
                         // 1. Attempt to send the message
-                        await this.SendMessageToBrokerAsync(message).ConfigureAwait(false);
+                        var stopwatch = Stopwatch.StartNew();
+                        try
+                        {
+                            await this.SendMessageToBrokerAsync(message).ConfigureAwait(false);
+                            SchedulerMetrics.OutboxMessagesSent.Add(1);
+                        }
+                        catch
+                        {
+                            SchedulerMetrics.OutboxMessagesFailed.Add(1);
+                            throw;
+                        }
+                        finally
+                        {
+                            stopwatch.Stop();
+                            SchedulerMetrics.OutboxSendDuration.Record(stopwatch.Elapsed.TotalMilliseconds);
+                        }
 
                         // 2. If successful, mark as processed
                         var successSql = @"

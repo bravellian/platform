@@ -159,6 +159,8 @@ internal class SqlSchedulerService : IHostedService
 
         var dueTimers = await transaction.Connection.QueryAsync<(Guid Id, string Topic, string Payload)>(
             claimTimersSql, new { InstanceId = instanceId }, transaction).ConfigureAwait(false);
+        
+        SchedulerMetrics.TimersDispatched.Add(dueTimers.Count());
 
         foreach (var timer in dueTimers)
         {
@@ -189,6 +191,8 @@ internal class SqlSchedulerService : IHostedService
 
         var dueJobs = await transaction.Connection.QueryAsync<(Guid Id, Guid JobId, string Topic, string Payload)>(
             claimJobsSql, new { InstanceId = instanceId }, transaction).ConfigureAwait(false);
+        
+        SchedulerMetrics.JobsDispatched.Add(dueJobs.Count());
 
         foreach (var job in dueJobs)
         {
