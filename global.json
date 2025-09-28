@@ -1,0 +1,12 @@
+{
+  "sdk": {
+    "version": "9.0.301",
+    "rollForward": "patch",
+    "allowPrerelease": false
+  },
+  "msbuild-sdks": {
+    "Microsoft.Build.Sql": "1.0.0",
+    "MSBuild.Sdk.SqlProj": "3.1.2",
+    "Aspire.AppHost.Sdk": "9.2.0"
+  }
+}
