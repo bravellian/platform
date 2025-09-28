@@ -1,5 +1,11 @@
 ﻿Bravellian.Platform.IOutbox
 Bravellian.Platform.IOutbox.EnqueueAsync(string! topic, string! payload, System.Data.IDbTransaction! transaction, string? correlationId = null) -> System.Threading.Tasks.Task!
+Bravellian.Platform.ISchedulerClient
+Bravellian.Platform.ISchedulerClient.CancelTimerAsync(string! timerId) -> System.Threading.Tasks.Task<bool>!
+Bravellian.Platform.ISchedulerClient.CreateOrUpdateJobAsync(string! jobName, string! topic, string! cronSchedule, string? payload = null) -> System.Threading.Tasks.Task!
+Bravellian.Platform.ISchedulerClient.DeleteJobAsync(string! jobName) -> System.Threading.Tasks.Task!
+Bravellian.Platform.ISchedulerClient.ScheduleTimerAsync(string! topic, string! payload, System.DateTimeOffset dueTime) -> System.Threading.Tasks.Task<string!>!
+Bravellian.Platform.ISchedulerClient.TriggerJobAsync(string! jobName) -> System.Threading.Tasks.Task!
 Bravellian.Platform.ISqlDistributedLock
 Bravellian.Platform.ISqlDistributedLock.AcquireAsync(string resource, System.TimeSpan timeout, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.IAsyncDisposable>
 Bravellian.Platform.OutboxMessage
@@ -17,11 +23,26 @@ Bravellian.Platform.OutboxMessage.ProcessedAt.get -> System.DateTimeOffset?
 Bravellian.Platform.OutboxMessage.ProcessedBy.get -> string
 Bravellian.Platform.OutboxMessage.RetryCount.get -> int
 Bravellian.Platform.OutboxMessage.Topic.get -> string
+Bravellian.Platform.SchedulerServiceCollectionExtensions
+Bravellian.Platform.SqlSchedulerOptions
+Bravellian.Platform.SqlSchedulerOptions.ConnectionString.get -> string!
+Bravellian.Platform.SqlSchedulerOptions.ConnectionString.set -> void
+Bravellian.Platform.SqlSchedulerOptions.EnableBackgroundWorkers.get -> bool
+Bravellian.Platform.SqlSchedulerOptions.EnableBackgroundWorkers.set -> void
+Bravellian.Platform.SqlSchedulerOptions.MaxPollingInterval.get -> System.TimeSpan
+Bravellian.Platform.SqlSchedulerOptions.MaxPollingInterval.set -> void
+Bravellian.Platform.SqlSchedulerOptions.SqlSchedulerOptions() -> void
+Bravellian.Platform.YourApplicationOptions
+Bravellian.Platform.YourApplicationOptions.ConnectionString.get -> string!
+Bravellian.Platform.YourApplicationOptions.ConnectionString.set -> void
+Bravellian.Platform.YourApplicationOptions.YourApplicationOptions() -> void
+const Bravellian.Platform.SqlSchedulerOptions.SectionName = "SqlScheduler" -> string!
 override Bravellian.Platform.OutboxMessage.Equals(object obj) -> bool
 override Bravellian.Platform.OutboxMessage.GetHashCode() -> int
 override Bravellian.Platform.OutboxMessage.ToString() -> string
 static Bravellian.Platform.OutboxMessage.operator !=(Bravellian.Platform.OutboxMessage left, Bravellian.Platform.OutboxMessage right) -> bool
 static Bravellian.Platform.OutboxMessage.operator ==(Bravellian.Platform.OutboxMessage left, Bravellian.Platform.OutboxMessage right) -> bool
+static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddSqlScheduler(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 virtual Bravellian.Platform.OutboxMessage.<Clone>$() -> Bravellian.Platform.OutboxMessage
 virtual Bravellian.Platform.OutboxMessage.EqualityContract.get -> System.Type
 virtual Bravellian.Platform.OutboxMessage.Equals(Bravellian.Platform.OutboxMessage other) -> bool

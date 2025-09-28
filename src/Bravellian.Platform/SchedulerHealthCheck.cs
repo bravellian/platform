@@ -1,4 +1,18 @@
-﻿using System;
+﻿// Copyright (c) Bravellian
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,11 +27,11 @@ using System.Threading.Tasks;
 
 internal class SchedulerHealthCheck : IHealthCheck
 {
-    private readonly string _connectionString;
+    private readonly string connectionString;
 
     public SchedulerHealthCheck(string connectionString)
     {
-        _connectionString = connectionString;
+        this.connectionString = connectionString;
     }
 
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
@@ -31,10 +45,10 @@ internal class SchedulerHealthCheck : IHealthCheck
                     (SELECT MIN(DueTime) FROM dbo.Timers WITH(NOLOCK) WHERE Status = 'Pending') AS OldestTimer,
                     (SELECT MIN(ScheduledTime) FROM dbo.JobRuns WITH(NOLOCK) WHERE Status = 'Pending') AS OldestJobRun;";
 
-            using (var connection = new SqlConnection(_connectionString))
+            using (var connection = new SqlConnection(this.connectionString))
             {
-                var result = await connection.QuerySingleAsync(sql);
-                DateTimeOffset? oldestItem = Min(result.OldestOutbox, result.OldestTimer, result.OldestJobRun);
+                var result = await connection.QuerySingleAsync(sql).ConfigureAwait(false);
+                DateTimeOffset? oldestItem = this.Min(result.OldestOutbox, result.OldestTimer, result.OldestJobRun);
 
                 if (oldestItem == null)
                 {
@@ -48,6 +62,7 @@ internal class SchedulerHealthCheck : IHealthCheck
                 {
                     return HealthCheckResult.Unhealthy($"Processing is stalled. Oldest pending item is {age.TotalMinutes:F0} minutes old.");
                 }
+
                 if (age > TimeSpan.FromMinutes(10))
                 {
                     return HealthCheckResult.Degraded($"Processing is delayed. Oldest pending item is {age.TotalMinutes:F0} minutes old.");
@@ -72,6 +87,7 @@ internal class SchedulerHealthCheck : IHealthCheck
                 minDate = date.Value;
             }
         }
+
         return minDate;
     }
 }

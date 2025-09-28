@@ -63,7 +63,7 @@ internal class SqlSchedulerService : IHostedService
             TimeSpan sleepDuration;
 
             // Use your lock to ensure only one instance acts as the scheduler at a time.
-            var handle = await distributedLock.AcquireAsync("SchedulerLock", TimeSpan.Zero, cancellationToken).ConfigureAwait(false);
+            var handle = await this.distributedLock.AcquireAsync("SchedulerLock", TimeSpan.Zero, cancellationToken).ConfigureAwait(false);
             await using (handle.ConfigureAwait(false))
             {
                 if (handle == null)
@@ -124,10 +124,10 @@ internal class SqlSchedulerService : IHostedService
                 try
                 {
                     // 2. Process due timers.
-                    await DispatchTimersAsync(transaction).ConfigureAwait(false);
+                    await this.DispatchTimersAsync(transaction).ConfigureAwait(false);
 
                     // 3. Process due job runs.
-                    await DispatchJobRunsAsync(transaction).ConfigureAwait(false);
+                    await this.DispatchJobRunsAsync(transaction).ConfigureAwait(false);
 
                     // 4. If all operations succeed, commit the transaction.
                     transaction.Commit();
@@ -158,14 +158,14 @@ internal class SqlSchedulerService : IHostedService
             );";
 
         var dueTimers = await transaction.Connection.QueryAsync<(Guid Id, string Topic, string Payload)>(
-            claimTimersSql, new { InstanceId = instanceId }, transaction).ConfigureAwait(false);
-        
+            claimTimersSql, new { InstanceId = this.instanceId }, transaction).ConfigureAwait(false);
+
         SchedulerMetrics.TimersDispatched.Add(dueTimers.Count());
 
         foreach (var timer in dueTimers)
         {
             // For each claimed timer, enqueue it into the outbox for a worker to process.
-            await outbox.EnqueueAsync(
+            await this.outbox.EnqueueAsync(
                 topic: timer.Topic,
                 payload: timer.Payload,
                 transaction: transaction,
@@ -190,13 +190,13 @@ internal class SqlSchedulerService : IHostedService
             );";
 
         var dueJobs = await transaction.Connection.QueryAsync<(Guid Id, Guid JobId, string Topic, string Payload)>(
-            claimJobsSql, new { InstanceId = instanceId }, transaction).ConfigureAwait(false);
-        
+            claimJobsSql, new { InstanceId = this.instanceId }, transaction).ConfigureAwait(false);
+
         SchedulerMetrics.JobsDispatched.Add(dueJobs.Count());
 
         foreach (var job in dueJobs)
         {
-            await outbox.EnqueueAsync(
+            await this.outbox.EnqueueAsync(
                 topic: job.Topic,
                 payload: job.Payload, // The payload from the Job definition is passed on.
                 transaction: transaction,
