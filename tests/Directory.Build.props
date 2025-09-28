@@ -1,0 +1,4 @@
+﻿<Project>
+  <!-- Import main Directory.Build.props -->
+  <Import Project="$(MSBuildThisFileDirectory)../Directory.Build.props" />
+</Project>
