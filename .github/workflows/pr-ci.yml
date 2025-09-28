@@ -65,7 +65,7 @@ jobs:
 
     - name: Restore tools
       run: dotnet tool restore
-          
+
     - name: Build solution
       run: dotnet build Bravellian.Platform.CI.sln --no-restore --configuration Release -p:Version=${{ steps.git_version.outputs.semVer }}
 
@@ -74,6 +74,3 @@ jobs:
   
     - name: Pack NuGet packages
       run: dotnet pack Bravellian.Platform.CI.sln --configuration Release --output ./nupkgs -p:PackageVersion=${{ steps.git_version.outputs.semVer }}
-
-    - name: Publish
-      run: dotnet nuget push **\*.nupkg --source Bravellian --api-key az --skip-duplicate
