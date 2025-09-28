@@ -14,29 +14,29 @@
 
 namespace Bravellian.Platform;
 
-public sealed class OutboxMessage
+public sealed record OutboxMessage
 {
-    public Guid Id { get; internal set; }
+    public Guid Id { get; internal init; }
 
-    public string Payload { get; internal set; }
+    public string Payload { get; internal init; }
 
-    public string Topic { get; internal set; }
+    public string Topic { get; internal init; }
 
-    public DateTimeOffset CreatedAt { get; internal set; }
+    public DateTimeOffset CreatedAt { get; internal init; }
 
-    public bool IsProcessed { get; internal set; }
+    public bool IsProcessed { get; internal init; }
 
-    public DateTimeOffset? ProcessedAt { get; internal set; }
+    public DateTimeOffset? ProcessedAt { get; internal init; }
 
-    public string? ProcessedBy { get; internal set; }
+    public string? ProcessedBy { get; internal init; }
 
-    public int RetryCount { get; internal set; }
+    public int RetryCount { get; internal init; }
 
-    public string? LastError { get; internal set; }
+    public string? LastError { get; internal init; }
 
-    public DateTimeOffset NextAttemptAt { get; internal set; }
+    public DateTimeOffset NextAttemptAt { get; internal init; }
 
-    public Guid MessageId { get; internal set; }
+    public Guid MessageId { get; internal init; }
 
-    public Guid? CorrelationId { get; internal set; }
+    public Guid? CorrelationId { get; internal init; }
 }
