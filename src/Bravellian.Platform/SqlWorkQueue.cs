@@ -27,7 +27,7 @@ using Microsoft.Data.SqlClient;
 /// SQL Server implementation of work queue operations.
 /// </summary>
 /// <typeparam name="T">The type of item identifiers.</typeparam>
-internal abstract class SqlWorkQueueBase<T> : IWorkQueue<T>
+public abstract class SqlWorkQueueBase<T> : IWorkQueue<T>
 {
     private readonly string connectionString;
     protected readonly string schemaName;
@@ -162,7 +162,7 @@ internal abstract class SqlWorkQueueBase<T> : IWorkQueue<T>
 /// <summary>
 /// Work queue implementation for UNIQUEIDENTIFIER primary keys.
 /// </summary>
-internal class SqlGuidWorkQueue : SqlWorkQueueBase<Guid>
+public class SqlGuidWorkQueue : SqlWorkQueueBase<Guid>
 {
     private readonly bool isScheduled;
 
@@ -189,7 +189,7 @@ internal class SqlGuidWorkQueue : SqlWorkQueueBase<Guid>
 /// <summary>
 /// Work queue implementation for BIGINT primary keys.
 /// </summary>
-internal class SqlBigIntWorkQueue : SqlWorkQueueBase<long>
+public class SqlBigIntWorkQueue : SqlWorkQueueBase<long>
 {
     private readonly bool isScheduled;
 

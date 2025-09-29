@@ -31,7 +31,7 @@ public interface ITimerWorkQueue : IWorkQueue<Guid>
 /// <summary>
 /// SQL Server implementation of Outbox work queue.
 /// </summary>
-internal class SqlOutboxWorkQueue : SqlGuidWorkQueue, IOutboxWorkQueue
+public class SqlOutboxWorkQueue : SqlGuidWorkQueue, IOutboxWorkQueue
 {
     public SqlOutboxWorkQueue(SqlOutboxOptions options)
         : base(options.ConnectionString, options.SchemaName, options.TableName, isScheduled: false)
@@ -42,7 +42,7 @@ internal class SqlOutboxWorkQueue : SqlGuidWorkQueue, IOutboxWorkQueue
 /// <summary>
 /// SQL Server implementation of Timer work queue.
 /// </summary>
-internal class SqlTimerWorkQueue : SqlGuidWorkQueue, ITimerWorkQueue
+public class SqlTimerWorkQueue : SqlGuidWorkQueue, ITimerWorkQueue
 {
     public SqlTimerWorkQueue(string connectionString, string schemaName = "dbo", string tableName = "Timers")
         : base(connectionString, schemaName, tableName, isScheduled: true)

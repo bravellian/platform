@@ -26,7 +26,7 @@ using Microsoft.Data.SqlClient;
 /// <summary>
 /// Manages database schema creation and verification for the Platform components.
 /// </summary>
-internal static class DatabaseSchemaManager
+public static class DatabaseSchemaManager
 {
     /// <summary>
     /// Ensures that the required database schema exists for the outbox functionality.
