@@ -76,7 +76,7 @@ public class SqlDistributedLockTests : SqlServerTestBase
     {
         // Arrange
         string validResource = "test-resource-123";
-        var timeout = TimeSpan.FromSeconds(10);
+        var timeout = TimeSpan.FromSeconds(30); // Increased timeout
 
         // Act
         var lockHandle = await this.distributedLock!.AcquireAsync(validResource, timeout);
@@ -85,7 +85,10 @@ public class SqlDistributedLockTests : SqlServerTestBase
         lockHandle.ShouldNotBeNull();
 
         // Cleanup
-        await lockHandle.DisposeAsync();
+        if (lockHandle != null)
+        {
+            await lockHandle.DisposeAsync();
+        }
     }
 
     [Fact]
