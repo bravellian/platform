@@ -272,19 +272,92 @@ CREATE INDEX IX_{tableName}_GetNext ON [{schemaName}].[{tableName}](Status, Sche
         using var connection = new SqlConnection(connectionString);
         await connection.OpenAsync().ConfigureAwait(false);
 
-        // Apply work queue migration
-        var migrationScript = GetWorkQueueMigrationScript();
+        // Apply work queue migration (columns and types)
+        var migrationScript = GetWorkQueueMigrationInlineScript();
         await ExecuteScriptAsync(connection, migrationScript).ConfigureAwait(false);
 
-        // Create stored procedures for each table
-        var outboxProcs = GetOutboxWorkQueueProcsScript();
-        await ExecuteScriptAsync(connection, outboxProcs).ConfigureAwait(false);
+        // Create each stored procedure individually to avoid batch issues
+        await CreateOutboxProceduresAsync(connection).ConfigureAwait(false);
+    }
 
-        var timersProcs = GetTimersWorkQueueProcsScript();
-        await ExecuteScriptAsync(connection, timersProcs).ConfigureAwait(false);
+    /// <summary>
+    /// Creates the Outbox work queue stored procedures individually.
+    /// </summary>
+    /// <param name="connection">The SQL connection.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    private static async Task CreateOutboxProceduresAsync(SqlConnection connection)
+    {
+        // Create procedures one by one to avoid batch execution issues
+        var procedures = new[]
+        {
+            @"CREATE OR ALTER PROCEDURE dbo.Outbox_Claim
+                @OwnerToken UNIQUEIDENTIFIER,
+                @LeaseSeconds INT,
+                @BatchSize INT = 50
+              AS
+              BEGIN
+                SET NOCOUNT ON;
+                DECLARE @now DATETIME2(3) = SYSUTCDATETIME();
+                DECLARE @until DATETIME2(3) = DATEADD(SECOND, @LeaseSeconds, @now);
 
-        var jobRunsProcs = GetJobRunsWorkQueueProcsScript();
-        await ExecuteScriptAsync(connection, jobRunsProcs).ConfigureAwait(false);
+                WITH cte AS (
+                    SELECT TOP (@BatchSize) Id
+                    FROM dbo.Outbox WITH (READPAST, UPDLOCK, ROWLOCK)
+                    WHERE Status = 0 AND (LockedUntil IS NULL OR LockedUntil <= @now)
+                    ORDER BY CreatedAt
+                )
+                UPDATE o SET Status = 1, OwnerToken = @OwnerToken, LockedUntil = @until
+                OUTPUT inserted.Id
+                FROM dbo.Outbox o JOIN cte ON cte.Id = o.Id;
+              END",
+
+            @"CREATE OR ALTER PROCEDURE dbo.Outbox_Ack
+                @OwnerToken UNIQUEIDENTIFIER,
+                @Ids dbo.GuidIdList READONLY
+              AS
+              BEGIN
+                SET NOCOUNT ON;
+                UPDATE o SET Status = 2, OwnerToken = NULL, LockedUntil = NULL, IsProcessed = 1, ProcessedAt = SYSUTCDATETIME()
+                FROM dbo.Outbox o JOIN @Ids i ON i.Id = o.Id
+                WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
+              END",
+
+            @"CREATE OR ALTER PROCEDURE dbo.Outbox_Abandon
+                @OwnerToken UNIQUEIDENTIFIER,
+                @Ids dbo.GuidIdList READONLY
+              AS
+              BEGIN
+                SET NOCOUNT ON;
+                UPDATE o SET Status = 0, OwnerToken = NULL, LockedUntil = NULL
+                FROM dbo.Outbox o JOIN @Ids i ON i.Id = o.Id
+                WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
+              END",
+
+            @"CREATE OR ALTER PROCEDURE dbo.Outbox_Fail
+                @OwnerToken UNIQUEIDENTIFIER,
+                @Ids dbo.GuidIdList READONLY
+              AS
+              BEGIN
+                SET NOCOUNT ON;
+                UPDATE o SET Status = 3, OwnerToken = NULL, LockedUntil = NULL
+                FROM dbo.Outbox o JOIN @Ids i ON i.Id = o.Id
+                WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
+              END",
+
+            @"CREATE OR ALTER PROCEDURE dbo.Outbox_ReapExpired
+              AS
+              BEGIN
+                SET NOCOUNT ON;
+                UPDATE dbo.Outbox SET Status = 0, OwnerToken = NULL, LockedUntil = NULL
+                WHERE Status = 1 AND LockedUntil IS NOT NULL AND LockedUntil <= SYSUTCDATETIME();
+                SELECT @@ROWCOUNT AS ReapedCount;
+              END"
+        };
+
+        foreach (var procedure in procedures)
+        {
+            await connection.ExecuteAsync(procedure).ConfigureAwait(false);
+        }
     }
 
     /// <summary>
@@ -293,74 +366,7 @@ CREATE INDEX IX_{tableName}_GetNext ON [{schemaName}].[{tableName}](Status, Sche
     /// <returns>The SQL migration script.</returns>
     private static string GetWorkQueueMigrationScript()
     {
-        return GetEmbeddedResource("WorkQueueMigration.sql");
-    }
-
-    /// <summary>
-    /// Gets the Outbox work queue stored procedures script.
-    /// </summary>
-    /// <returns>The SQL script for Outbox procedures.</returns>
-    private static string GetOutboxWorkQueueProcsScript()
-    {
-        return GetEmbeddedResource("OutboxWorkQueueProcs.sql");
-    }
-
-    /// <summary>
-    /// Gets the Timers work queue stored procedures script.
-    /// </summary>
-    /// <returns>The SQL script for Timers procedures.</returns>
-    private static string GetTimersWorkQueueProcsScript()
-    {
-        return GetEmbeddedResource("TimersWorkQueueProcs.sql");
-    }
-
-    /// <summary>
-    /// Gets the JobRuns work queue stored procedures script.
-    /// </summary>
-    /// <returns>The SQL script for JobRuns procedures.</returns>
-    private static string GetJobRunsWorkQueueProcsScript()
-    {
-        return GetEmbeddedResource("JobRunsWorkQueueProcs.sql");
-    }
-
-    /// <summary>
-    /// Gets an embedded resource as a string.
-    /// </summary>
-    /// <param name="resourceName">The name of the embedded resource.</param>
-    /// <returns>The content of the embedded resource.</returns>
-    private static string GetEmbeddedResource(string resourceName)
-    {
-        var assembly = Assembly.GetExecutingAssembly();
-        var fullResourceName = $"Bravellian.Platform.Database.{resourceName}";
-        
-        using var stream = assembly.GetManifestResourceStream(fullResourceName);
-        if (stream == null)
-        {
-            // If not found as embedded resource, return a placeholder
-            // In a real implementation, you would load from file system or other source
-            return GetResourceFromFileSystem(resourceName);
-        }
-        
-        using var reader = new StreamReader(stream);
-        return reader.ReadToEnd();
-    }
-
-    /// <summary>
-    /// Gets a SQL script from the file system (fallback when not embedded).
-    /// </summary>
-    /// <param name="resourceName">The name of the SQL file.</param>
-    /// <returns>The content of the SQL file.</returns>
-    private static string GetResourceFromFileSystem(string resourceName)
-    {
-        // This is a fallback - in a real implementation these would be embedded resources
-        return resourceName switch
-        {
-            "WorkQueueMigration.sql" => GetWorkQueueMigrationInlineScript(),
-            "OutboxWorkQueueProcs.sql" => GetOutboxWorkQueueProcsInlineScript(),
-            "TimersWorkQueueProcs.sql" => GetTimersWorkQueueProcsInlineScript(),
-            "JobRunsWorkQueueProcs.sql" => GetJobRunsWorkQueueProcsInlineScript(),
-            _ => throw new ArgumentException($"Unknown resource: {resourceName}", nameof(resourceName))
-        };
+        return GetWorkQueueMigrationInlineScript();
     }
 
     private static string GetWorkQueueMigrationInlineScript()
@@ -383,206 +389,5 @@ IF COL_LENGTH('dbo.Outbox', 'LockedUntil') IS NULL
 
 IF COL_LENGTH('dbo.Outbox', 'OwnerToken') IS NULL
     ALTER TABLE dbo.Outbox ADD OwnerToken UNIQUEIDENTIFIER NULL;";
-    }
-
-    private static string GetOutboxWorkQueueProcsInlineScript()
-    {
-        return @"
-CREATE OR ALTER PROCEDURE dbo.Outbox_Claim
-    @OwnerToken UNIQUEIDENTIFIER,
-    @LeaseSeconds INT,
-    @BatchSize INT = 50
-AS
-BEGIN
-    SET NOCOUNT ON;
-    DECLARE @now DATETIME2(3) = SYSUTCDATETIME();
-    DECLARE @until DATETIME2(3) = DATEADD(SECOND, @LeaseSeconds, @now);
-
-    WITH cte AS (
-        SELECT TOP (@BatchSize) Id
-        FROM dbo.Outbox WITH (READPAST, UPDLOCK, ROWLOCK)
-        WHERE Status = 0 AND (LockedUntil IS NULL OR LockedUntil <= @now)
-        ORDER BY CreatedAt
-    )
-    UPDATE o SET Status = 1, OwnerToken = @OwnerToken, LockedUntil = @until
-    OUTPUT inserted.Id
-    FROM dbo.Outbox o JOIN cte ON cte.Id = o.Id;
-END;
-
-CREATE OR ALTER PROCEDURE dbo.Outbox_Ack
-    @OwnerToken UNIQUEIDENTIFIER,
-    @Ids dbo.GuidIdList READONLY
-AS
-BEGIN
-    SET NOCOUNT ON;
-    UPDATE o SET Status = 2, OwnerToken = NULL, LockedUntil = NULL, IsProcessed = 1, ProcessedAt = SYSUTCDATETIME()
-    FROM dbo.Outbox o JOIN @Ids i ON i.Id = o.Id
-    WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
-END;
-
-CREATE OR ALTER PROCEDURE dbo.Outbox_Abandon
-    @OwnerToken UNIQUEIDENTIFIER,
-    @Ids dbo.GuidIdList READONLY
-AS
-BEGIN
-    SET NOCOUNT ON;
-    UPDATE o SET Status = 0, OwnerToken = NULL, LockedUntil = NULL
-    FROM dbo.Outbox o JOIN @Ids i ON i.Id = o.Id
-    WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
-END;
-
-CREATE OR ALTER PROCEDURE dbo.Outbox_Fail
-    @OwnerToken UNIQUEIDENTIFIER,
-    @Ids dbo.GuidIdList READONLY
-AS
-BEGIN
-    SET NOCOUNT ON;
-    UPDATE o SET Status = 3, OwnerToken = NULL, LockedUntil = NULL
-    FROM dbo.Outbox o JOIN @Ids i ON i.Id = o.Id
-    WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
-END;
-
-CREATE OR ALTER PROCEDURE dbo.Outbox_ReapExpired
-AS
-BEGIN
-    SET NOCOUNT ON;
-    UPDATE dbo.Outbox SET Status = 0, OwnerToken = NULL, LockedUntil = NULL
-    WHERE Status = 1 AND LockedUntil IS NOT NULL AND LockedUntil <= SYSUTCDATETIME();
-    SELECT @@ROWCOUNT AS ReapedCount;
-END;";
-    }
-
-    private static string GetTimersWorkQueueProcsInlineScript()
-    {
-        return @"
-CREATE OR ALTER PROCEDURE dbo.Timers_Claim
-    @OwnerToken UNIQUEIDENTIFIER,
-    @LeaseSeconds INT,
-    @BatchSize INT = 50
-AS
-BEGIN
-    SET NOCOUNT ON;
-    DECLARE @now DATETIME2(3) = SYSUTCDATETIME();
-    DECLARE @until DATETIME2(3) = DATEADD(SECOND, @LeaseSeconds, @now);
-
-    WITH cte AS (
-        SELECT TOP (@BatchSize) Id
-        FROM dbo.Timers WITH (READPAST, UPDLOCK, ROWLOCK)
-        WHERE StatusCode = 0 AND DueTime <= @now AND (LockedUntil IS NULL OR LockedUntil <= @now)
-        ORDER BY DueTime
-    )
-    UPDATE t SET StatusCode = 1, OwnerToken = @OwnerToken, LockedUntil = @until
-    OUTPUT inserted.Id
-    FROM dbo.Timers t JOIN cte ON cte.Id = t.Id;
-END;
-
-CREATE OR ALTER PROCEDURE dbo.Timers_Ack
-    @OwnerToken UNIQUEIDENTIFIER,
-    @Ids dbo.GuidIdList READONLY
-AS
-BEGIN
-    SET NOCOUNT ON;
-    UPDATE t SET StatusCode = 2, OwnerToken = NULL, LockedUntil = NULL, Status = 'Processed', ProcessedAt = SYSUTCDATETIME()
-    FROM dbo.Timers t JOIN @Ids i ON i.Id = t.Id
-    WHERE t.OwnerToken = @OwnerToken AND t.StatusCode = 1;
-END;
-
-CREATE OR ALTER PROCEDURE dbo.Timers_Abandon
-    @OwnerToken UNIQUEIDENTIFIER,
-    @Ids dbo.GuidIdList READONLY
-AS
-BEGIN
-    SET NOCOUNT ON;
-    UPDATE t SET StatusCode = 0, OwnerToken = NULL, LockedUntil = NULL, Status = 'Pending'
-    FROM dbo.Timers t JOIN @Ids i ON i.Id = t.Id
-    WHERE t.OwnerToken = @OwnerToken AND t.StatusCode = 1;
-END;
-
-CREATE OR ALTER PROCEDURE dbo.Timers_Fail
-    @OwnerToken UNIQUEIDENTIFIER,
-    @Ids dbo.GuidIdList READONLY
-AS
-BEGIN
-    SET NOCOUNT ON;
-    UPDATE t SET StatusCode = 3, OwnerToken = NULL, LockedUntil = NULL, Status = 'Failed'
-    FROM dbo.Timers t JOIN @Ids i ON i.Id = t.Id
-    WHERE t.OwnerToken = @OwnerToken AND t.StatusCode = 1;
-END;
-
-CREATE OR ALTER PROCEDURE dbo.Timers_ReapExpired
-AS
-BEGIN
-    SET NOCOUNT ON;
-    UPDATE dbo.Timers SET StatusCode = 0, OwnerToken = NULL, LockedUntil = NULL, Status = 'Pending'
-    WHERE StatusCode = 1 AND LockedUntil IS NOT NULL AND LockedUntil <= SYSUTCDATETIME();
-    SELECT @@ROWCOUNT AS ReapedCount;
-END;";
-    }
-
-    private static string GetJobRunsWorkQueueProcsInlineScript()
-    {
-        return @"
-CREATE OR ALTER PROCEDURE dbo.JobRuns_Claim
-    @OwnerToken UNIQUEIDENTIFIER,
-    @LeaseSeconds INT,
-    @BatchSize INT = 50
-AS
-BEGIN
-    SET NOCOUNT ON;
-    DECLARE @now DATETIME2(3) = SYSUTCDATETIME();
-    DECLARE @until DATETIME2(3) = DATEADD(SECOND, @LeaseSeconds, @now);
-
-    WITH cte AS (
-        SELECT TOP (@BatchSize) Id
-        FROM dbo.JobRuns WITH (READPAST, UPDLOCK, ROWLOCK)
-        WHERE StatusCode = 0 AND ScheduledTime <= @now AND (LockedUntil IS NULL OR LockedUntil <= @now)
-        ORDER BY ScheduledTime
-    )
-    UPDATE jr SET StatusCode = 1, OwnerToken = @OwnerToken, LockedUntil = @until
-    OUTPUT inserted.Id
-    FROM dbo.JobRuns jr JOIN cte ON cte.Id = jr.Id;
-END;
-
-CREATE OR ALTER PROCEDURE dbo.JobRuns_Ack
-    @OwnerToken UNIQUEIDENTIFIER,
-    @Ids dbo.GuidIdList READONLY
-AS
-BEGIN
-    SET NOCOUNT ON;
-    UPDATE jr SET StatusCode = 2, OwnerToken = NULL, LockedUntil = NULL, Status = 'Succeeded', EndTime = SYSUTCDATETIME()
-    FROM dbo.JobRuns jr JOIN @Ids i ON i.Id = jr.Id
-    WHERE jr.OwnerToken = @OwnerToken AND jr.StatusCode = 1;
-END;
-
-CREATE OR ALTER PROCEDURE dbo.JobRuns_Abandon
-    @OwnerToken UNIQUEIDENTIFIER,
-    @Ids dbo.GuidIdList READONLY
-AS
-BEGIN
-    SET NOCOUNT ON;
-    UPDATE jr SET StatusCode = 0, OwnerToken = NULL, LockedUntil = NULL, Status = 'Pending'
-    FROM dbo.JobRuns jr JOIN @Ids i ON i.Id = jr.Id
-    WHERE jr.OwnerToken = @OwnerToken AND jr.StatusCode = 1;
-END;
-
-CREATE OR ALTER PROCEDURE dbo.JobRuns_Fail
-    @OwnerToken UNIQUEIDENTIFIER,
-    @Ids dbo.GuidIdList READONLY
-AS
-BEGIN
-    SET NOCOUNT ON;
-    UPDATE jr SET StatusCode = 3, OwnerToken = NULL, LockedUntil = NULL, Status = 'Failed', EndTime = SYSUTCDATETIME()
-    FROM dbo.JobRuns jr JOIN @Ids i ON i.Id = jr.Id
-    WHERE jr.OwnerToken = @OwnerToken AND jr.StatusCode = 1;
-END;
-
-CREATE OR ALTER PROCEDURE dbo.JobRuns_ReapExpired
-AS
-BEGIN
-    SET NOCOUNT ON;
-    UPDATE dbo.JobRuns SET StatusCode = 0, OwnerToken = NULL, LockedUntil = NULL, Status = 'Pending'
-    WHERE StatusCode = 1 AND LockedUntil IS NOT NULL AND LockedUntil <= SYSUTCDATETIME();
-    SELECT @@ROWCOUNT AS ReapedCount;
-END;";
     }
 }
