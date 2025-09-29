@@ -1,20 +1,24 @@
 namespace Bravellian.Platform.Tests;
 
 using Microsoft.Extensions.Options;
-using NSubstitute;
 
-public class SqlDistributedLockTests
+public class SqlDistributedLockTests : SqlServerTestBase
 {
-    private const string TestConnectionString = "Server=localhost;Database=Test;Integrated Security=true;TrustServerCertificate=true";
-    private readonly YourApplicationOptions options;
-    private readonly IOptions<YourApplicationOptions> mockOptions;
-    private readonly SqlDistributedLock distributedLock;
+    private YourApplicationOptions? options;
+    private IOptions<YourApplicationOptions>? mockOptions;
+    private SqlDistributedLock? distributedLock;
 
-    public SqlDistributedLockTests()
+    public SqlDistributedLockTests(ITestOutputHelper testOutputHelper) : base(testOutputHelper)
     {
-        this.options = new YourApplicationOptions { ConnectionString = TestConnectionString };
-        this.mockOptions = Substitute.For<IOptions<YourApplicationOptions>>();
-        this.mockOptions.Value.Returns(this.options);
+    }
+
+    public override async ValueTask InitializeAsync()
+    {
+        await base.InitializeAsync();
+        
+        // Now that the container is started, we can set up the lock
+        this.options = new YourApplicationOptions { ConnectionString = this.ConnectionString };
+        this.mockOptions = Options.Create(this.options);
         this.distributedLock = new SqlDistributedLock(this.mockOptions);
     }
 
@@ -22,8 +26,7 @@ public class SqlDistributedLockTests
     public void Constructor_WithValidOptions_CreatesInstance()
     {
         // Arrange
-        var testOptions = Substitute.For<IOptions<YourApplicationOptions>>();
-        testOptions.Value.Returns(new YourApplicationOptions { ConnectionString = TestConnectionString });
+        var testOptions = Options.Create(new YourApplicationOptions { ConnectionString = this.ConnectionString });
 
         // Act
         var lockInstance = new SqlDistributedLock(testOptions);
@@ -39,7 +42,7 @@ public class SqlDistributedLockTests
         string nullResource = null!;
 
         // Act & Assert
-        var exception = Should.Throw<ArgumentException>(() => this.distributedLock.AcquireAsync(nullResource, TimeSpan.FromSeconds(10)));
+        var exception = Should.Throw<ArgumentException>(() => this.distributedLock!.AcquireAsync(nullResource, TimeSpan.FromSeconds(10)));
         exception.ParamName.ShouldBe("resource");
         exception.Message.ShouldContain("Resource cannot be null or whitespace");
     }
@@ -51,7 +54,7 @@ public class SqlDistributedLockTests
         string emptyResource = string.Empty;
 
         // Act & Assert
-        var exception = Should.Throw<ArgumentException>(() => this.distributedLock.AcquireAsync(emptyResource, TimeSpan.FromSeconds(10)));
+        var exception = Should.Throw<ArgumentException>(() => this.distributedLock!.AcquireAsync(emptyResource, TimeSpan.FromSeconds(10)));
         exception.ParamName.ShouldBe("resource");
         exception.Message.ShouldContain("Resource cannot be null or whitespace");
     }
@@ -63,46 +66,87 @@ public class SqlDistributedLockTests
         string whitespaceResource = "   ";
 
         // Act & Assert
-        var exception = Should.Throw<ArgumentException>(() => this.distributedLock.AcquireAsync(whitespaceResource, TimeSpan.FromSeconds(10)));
+        var exception = Should.Throw<ArgumentException>(() => this.distributedLock!.AcquireAsync(whitespaceResource, TimeSpan.FromSeconds(10)));
         exception.ParamName.ShouldBe("resource");
         exception.Message.ShouldContain("Resource cannot be null or whitespace");
     }
 
     [Fact]
-    public void SanitizeResource_WithValidInput_MethodExists()
+    public async Task AcquireAsync_WithValidResource_CanAcquireLock()
     {
-        // This test verifies the method exists and can be called
-        // Since we don't have a database connection, we expect it to fail with a connection error
-        // but the method should exist and be callable
-        
         // Arrange
-        string validInput = "valid-resource-123";
+        string validResource = "test-resource-123";
+        var timeout = TimeSpan.FromSeconds(10);
 
-        // Act & Assert - The method should exist and be callable
-        // We expect a database connection exception, not a method not found exception
-        var method = typeof(SqlDistributedLock).GetMethod("AcquireAsync");
-        method.ShouldNotBeNull();
-        
-        // Verify we can call it (though it will fail due to no database)
-        var task = this.distributedLock.AcquireAsync(validInput, TimeSpan.FromSeconds(1));
-        task.ShouldNotBeNull();
+        // Act
+        var lockHandle = await this.distributedLock!.AcquireAsync(validResource, timeout);
+
+        // Assert
+        lockHandle.ShouldNotBeNull();
+
+        // Cleanup
+        await lockHandle.DisposeAsync();
     }
 
     [Fact]
-    public async Task AcquireAsync_WithValidParameters_DoesNotThrowImmediately()
+    public async Task AcquireAsync_SameResourceTwice_SecondCallReturnsNull()
     {
-        // Note: This test will fail in practice because we don't have a real database connection
-        // But it verifies the basic method signature and parameter validation
-        
         // Arrange
-        var validResource = "test-resource";
-        var validTimeout = TimeSpan.FromSeconds(10);
+        string validResource = "test-resource-456";
+        var timeout = TimeSpan.FromSeconds(1);
 
-        // Act & Assert - The method should not throw due to parameter validation
-        // It may throw due to connection issues, which is expected in unit tests
-        var exception = await Should.ThrowAsync<Exception>(() => this.distributedLock.AcquireAsync(validResource, validTimeout));
-        
-        // We expect some kind of database-related exception, which indicates the parameters were accepted
-        exception.ShouldNotBeNull();
+        // Act
+        var firstLock = await this.distributedLock!.AcquireAsync(validResource, timeout);
+        var secondLock = await this.distributedLock.AcquireAsync(validResource, timeout);
+
+        // Assert
+        firstLock.ShouldNotBeNull();
+        secondLock.ShouldBeNull(); // Should be null because first lock is still held
+
+        // Cleanup
+        await firstLock.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task AcquireAsync_AfterLockReleased_CanAcquireAgain()
+    {
+        // Arrange
+        string validResource = "test-resource-789";
+        var timeout = TimeSpan.FromSeconds(10);
+
+        // Act & Assert - First acquisition
+        var firstLock = await this.distributedLock!.AcquireAsync(validResource, timeout);
+        firstLock.ShouldNotBeNull();
+
+        // Release the first lock
+        await firstLock.DisposeAsync();
+
+        // Second acquisition should succeed
+        var secondLock = await this.distributedLock.AcquireAsync(validResource, timeout);
+        secondLock.ShouldNotBeNull();
+
+        // Cleanup
+        await secondLock.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task AcquireAsync_WithDifferentResources_BothSucceed()
+    {
+        // Arrange
+        string resource1 = "test-resource-1";
+        string resource2 = "test-resource-2";
+        var timeout = TimeSpan.FromSeconds(10);
+
+        // Act
+        var lock1 = await this.distributedLock!.AcquireAsync(resource1, timeout);
+        var lock2 = await this.distributedLock.AcquireAsync(resource2, timeout);
+
+        // Assert
+        lock1.ShouldNotBeNull();
+        lock2.ShouldNotBeNull();
+
+        // Cleanup
+        await lock1.DisposeAsync();
+        await lock2.DisposeAsync();
     }
 }

@@ -1,14 +1,19 @@
 namespace Bravellian.Platform.Tests;
 
 using System.Data;
-using NSubstitute;
+using Microsoft.Data.SqlClient;
 
-public class SqlOutboxServiceTests
+public class SqlOutboxServiceTests : SqlServerTestBase
 {
-    private readonly SqlOutboxService outboxService;
+    private SqlOutboxService? outboxService;
 
-    public SqlOutboxServiceTests()
+    public SqlOutboxServiceTests(ITestOutputHelper testOutputHelper) : base(testOutputHelper)
     {
+    }
+
+    public override async ValueTask InitializeAsync()
+    {
+        await base.InitializeAsync();
         this.outboxService = new SqlOutboxService();
     }
 
@@ -24,53 +29,123 @@ public class SqlOutboxServiceTests
     }
 
     [Fact]
-    public async Task EnqueueAsync_WithNullTopic_CallsDatabase()
+    public async Task EnqueueAsync_WithValidParameters_InsertsMessageToDatabase()
     {
         // Arrange
-        var mockTransaction = Substitute.For<IDbTransaction>();
-        string nullTopic = null!;
-        string validPayload = "test payload";
+        await using var connection = new SqlConnection(this.ConnectionString);
+        await connection.OpenAsync();
+        await using var transaction = connection.BeginTransaction();
 
-        // Act & Assert
-        // The implementation doesn't validate parameters, it just calls the database
-        // So we expect a database-related exception, not an ArgumentException
-        var exception = await Should.ThrowAsync<Exception>(
-            () => this.outboxService.EnqueueAsync(nullTopic, validPayload, mockTransaction));
+        string topic = "test-topic";
+        string payload = "test payload";
+        string correlationId = "test-correlation-123";
+
+        // Act
+        await this.outboxService!.EnqueueAsync(topic, payload, transaction, correlationId);
+
+        // Verify the message was inserted
+        var sql = "SELECT COUNT(*) FROM dbo.Outbox WHERE Topic = @Topic AND Payload = @Payload";
+        await using var command = new SqlCommand(sql, connection, transaction);
+        command.Parameters.AddWithValue("@Topic", topic);
+        command.Parameters.AddWithValue("@Payload", payload);
         
-        // It should not be an ArgumentException since the implementation doesn't validate
-        exception.ShouldNotBeOfType<ArgumentException>();
+        var count = (int)await command.ExecuteScalarAsync();
+
+        // Assert
+        count.ShouldBe(1);
+
+        // Rollback to keep the test isolated
+        transaction.Rollback();
     }
 
     [Fact]
-    public async Task EnqueueAsync_WithEmptyTopic_CallsDatabase()
+    public async Task EnqueueAsync_WithNullCorrelationId_InsertsMessageSuccessfully()
     {
         // Arrange
-        var mockTransaction = Substitute.For<IDbTransaction>();
-        string emptyTopic = string.Empty;
-        string validPayload = "test payload";
+        await using var connection = new SqlConnection(this.ConnectionString);
+        await connection.OpenAsync();
+        await using var transaction = connection.BeginTransaction();
 
-        // Act & Assert
-        // The implementation doesn't validate parameters, it just calls the database
-        var exception = await Should.ThrowAsync<Exception>(
-            () => this.outboxService.EnqueueAsync(emptyTopic, validPayload, mockTransaction));
+        string topic = "test-topic-null-correlation";
+        string payload = "test payload with null correlation";
+
+        // Act
+        await this.outboxService!.EnqueueAsync(topic, payload, transaction, correlationId: null);
+
+        // Verify the message was inserted
+        var sql = "SELECT COUNT(*) FROM dbo.Outbox WHERE Topic = @Topic AND Payload = @Payload";
+        await using var command = new SqlCommand(sql, connection, transaction);
+        command.Parameters.AddWithValue("@Topic", topic);
+        command.Parameters.AddWithValue("@Payload", payload);
         
-        exception.ShouldNotBeOfType<ArgumentException>();
+        var count = (int)await command.ExecuteScalarAsync();
+
+        // Assert
+        count.ShouldBe(1);
+
+        // Rollback to keep the test isolated
+        transaction.Rollback();
     }
 
     [Fact]
-    public async Task EnqueueAsync_WithNullPayload_CallsDatabase()
+    public async Task EnqueueAsync_WithValidParameters_SetsDefaultValues()
     {
         // Arrange
-        var mockTransaction = Substitute.For<IDbTransaction>();
-        string validTopic = "test-topic";
-        string nullPayload = null!;
+        await using var connection = new SqlConnection(this.ConnectionString);
+        await connection.OpenAsync();
+        await using var transaction = connection.BeginTransaction();
 
-        // Act & Assert
-        // The implementation doesn't validate parameters, it just calls the database
-        var exception = await Should.ThrowAsync<Exception>(
-            () => this.outboxService.EnqueueAsync(validTopic, nullPayload, mockTransaction));
+        string topic = "test-topic-defaults";
+        string payload = "test payload for defaults";
+
+        // Act
+        await this.outboxService!.EnqueueAsync(topic, payload, transaction);
+
+        // Verify the message has correct default values
+        var sql = @"SELECT IsProcessed, ProcessedAt, RetryCount, CreatedAt, MessageId 
+                   FROM dbo.Outbox 
+                   WHERE Topic = @Topic AND Payload = @Payload";
+        await using var command = new SqlCommand(sql, connection, transaction);
+        command.Parameters.AddWithValue("@Topic", topic);
+        command.Parameters.AddWithValue("@Payload", payload);
         
-        exception.ShouldNotBeOfType<ArgumentException>();
+        await using var reader = await command.ExecuteReaderAsync();
+        reader.Read().ShouldBeTrue();
+
+        // Assert default values
+        reader.GetBoolean(0).ShouldBe(false); // IsProcessed
+        reader.IsDBNull(1).ShouldBeTrue(); // ProcessedAt
+        reader.GetInt32(2).ShouldBe(0); // RetryCount
+        reader.GetDateTimeOffset(3).ShouldBeGreaterThan(DateTimeOffset.Now.AddMinutes(-1)); // CreatedAt
+        reader.GetGuid(4).ShouldNotBe(Guid.Empty); // MessageId
+
+        // Rollback to keep the test isolated
+        transaction.Rollback();
+    }
+
+    [Fact]
+    public async Task EnqueueAsync_MultipleMessages_AllInsertedSuccessfully()
+    {
+        // Arrange
+        await using var connection = new SqlConnection(this.ConnectionString);
+        await connection.OpenAsync();
+        await using var transaction = connection.BeginTransaction();
+
+        // Act - Insert multiple messages
+        await this.outboxService!.EnqueueAsync("topic-1", "payload-1", transaction);
+        await this.outboxService.EnqueueAsync("topic-2", "payload-2", transaction);
+        await this.outboxService.EnqueueAsync("topic-3", "payload-3", transaction);
+
+        // Verify all messages were inserted
+        var sql = "SELECT COUNT(*) FROM dbo.Outbox";
+        await using var command = new SqlCommand(sql, connection, transaction);
+        var count = (int)await command.ExecuteScalarAsync();
+
+        // Assert
+        count.ShouldBe(3);
+
+        // Rollback to keep the test isolated
+        transaction.Rollback();
     }
 
     [Fact]
@@ -83,30 +158,9 @@ public class SqlOutboxServiceTests
 
         // Act & Assert
         // The implementation tries to access transaction.Connection without checking null
-        // So we expect a NullReferenceException
         var exception = await Should.ThrowAsync<NullReferenceException>(
-            () => this.outboxService.EnqueueAsync(validTopic, validPayload, nullTransaction));
+            () => this.outboxService!.EnqueueAsync(validTopic, validPayload, nullTransaction));
         
         exception.ShouldNotBeNull();
-    }
-
-    [Fact]
-    public async Task EnqueueAsync_WithValidParameters_DoesNotThrowFromValidation()
-    {
-        // Arrange
-        var mockTransaction = Substitute.For<IDbTransaction>();
-        string validTopic = "test-topic";
-        string validPayload = "test payload";
-        string? correlationId = "test-correlation-id";
-
-        // Act & Assert
-        // We expect this to fail with a database-related exception since we're using mocked transactions
-        // but it should pass parameter validation
-        var exception = await Should.ThrowAsync<Exception>(
-            () => this.outboxService.EnqueueAsync(validTopic, validPayload, mockTransaction, correlationId));
-        
-        // The exception should not be an ArgumentException since parameters are valid
-        exception.ShouldNotBeOfType<ArgumentException>();
-        exception.ShouldNotBeOfType<ArgumentNullException>();
     }
 }
