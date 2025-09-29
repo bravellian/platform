@@ -83,6 +83,14 @@ public static class SchedulerServiceCollectionExtensions
     /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
     public static IServiceCollection AddSqlOutbox(this IServiceCollection services, SqlOutboxOptions options)
     {
+        // Add lease system for outbox processing coordination
+        services.AddSystemLeases(new SystemLeaseOptions
+        {
+            ConnectionString = options.ConnectionString,
+            SchemaName = "pw", // Use pw schema for distributed locks
+        });
+
+        // Keep old distributed lock for backward compatibility
         services.AddSqlDistributedLock(new SqlDistributedLockOptions
         {
             ConnectionString = options.ConnectionString,
@@ -130,6 +138,13 @@ public static class SchedulerServiceCollectionExtensions
             ConnectionString = options.ConnectionString,
             SchemaName = options.SchemaName,
             TableName = "Outbox" // Keep Outbox table name consistent
+        });
+
+        // Add lease system for scheduler processing coordination
+        services.AddSystemLeases(new SystemLeaseOptions
+        {
+            ConnectionString = options.ConnectionString,
+            SchemaName = "pw", // Use pw schema for distributed locks
         });
 
         services.Configure<SqlSchedulerOptions>(o =>

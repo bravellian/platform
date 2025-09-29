@@ -47,6 +47,14 @@ internal static class DatabaseSchemaManager
             var createScript = GetOutboxCreateScript(schemaName, tableName);
             await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
         }
+
+        // Check if OutboxState table exists for fencing token management
+        var stateTableExists = await TableExistsAsync(connection, schemaName, "OutboxState").ConfigureAwait(false);
+        if (!stateTableExists)
+        {
+            var createStateScript = GetOutboxStateCreateScript(schemaName);
+            await ExecuteScriptAsync(connection, createStateScript).ConfigureAwait(false);
+        }
     }
 
     /// <summary>
@@ -112,6 +120,14 @@ internal static class DatabaseSchemaManager
         {
             var createScript = GetJobRunsCreateScript(schemaName, jobRunsTableName, jobsTableName);
             await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
+        }
+
+        // Check if SchedulerState table exists for fencing token management
+        var schedulerStateExists = await TableExistsAsync(connection, schemaName, "SchedulerState").ConfigureAwait(false);
+        if (!schedulerStateExists)
+        {
+            var createStateScript = GetSchedulerStateCreateScript(schemaName);
+            await ExecuteScriptAsync(connection, createStateScript).ConfigureAwait(false);
         }
     }
 
@@ -516,5 +532,43 @@ BEGIN
        SET OwnerToken = NULL, LeaseUntil = NULL, ContextJson = NULL
      WHERE LeaseUntil IS NOT NULL AND LeaseUntil <= SYSUTCDATETIME();
 END";
+    }
+
+    /// <summary>
+    /// Gets the SQL script to create the OutboxState table for fencing token management.
+    /// </summary>
+    /// <param name="schemaName">The schema name.</param>
+    /// <returns>The SQL create script.</returns>
+    private static string GetOutboxStateCreateScript(string schemaName)
+    {
+        return $@"
+CREATE TABLE [{schemaName}].[OutboxState] (
+    Id INT NOT NULL CONSTRAINT PK_OutboxState PRIMARY KEY,
+    CurrentFencingToken BIGINT NOT NULL DEFAULT(0),
+    LastDispatchAt DATETIME2(3) NULL
+);
+
+-- Insert initial state row
+INSERT [{schemaName}].[OutboxState] (Id, CurrentFencingToken, LastDispatchAt) 
+VALUES (1, 0, NULL);";
+    }
+
+    /// <summary>
+    /// Gets the SQL script to create the SchedulerState table for fencing token management.
+    /// </summary>
+    /// <param name="schemaName">The schema name.</param>
+    /// <returns>The SQL create script.</returns>
+    private static string GetSchedulerStateCreateScript(string schemaName)
+    {
+        return $@"
+CREATE TABLE [{schemaName}].[SchedulerState] (
+    Id INT NOT NULL CONSTRAINT PK_SchedulerState PRIMARY KEY,
+    CurrentFencingToken BIGINT NOT NULL DEFAULT(0),
+    LastRunAt DATETIME2(3) NULL
+);
+
+-- Insert initial state row
+INSERT [{schemaName}].[SchedulerState] (Id, CurrentFencingToken, LastRunAt) 
+VALUES (1, 0, NULL);";
     }
 }
