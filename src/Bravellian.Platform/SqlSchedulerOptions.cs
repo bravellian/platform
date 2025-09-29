@@ -40,4 +40,28 @@ public class SqlSchedulerOptions
     /// want to schedule jobs (e.g., in a web API) but not execute them.
     /// </summary>
     public bool EnableBackgroundWorkers { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets the database schema name for all scheduler tables.
+    /// Defaults to "dbo".
+    /// </summary>
+    public string SchemaName { get; set; } = "dbo";
+
+    /// <summary>
+    /// Gets or sets the table name for jobs.
+    /// Defaults to "Jobs".
+    /// </summary>
+    public string JobsTableName { get; set; } = "Jobs";
+
+    /// <summary>
+    /// Gets or sets the table name for job runs.
+    /// Defaults to "JobRuns".
+    /// </summary>
+    public string JobRunsTableName { get; set; } = "JobRuns";
+
+    /// <summary>
+    /// Gets or sets the table name for timers.
+    /// Defaults to "Timers".
+    /// </summary>
+    public string TimersTableName { get; set; } = "Timers";
 }

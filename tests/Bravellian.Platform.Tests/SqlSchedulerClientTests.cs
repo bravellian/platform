@@ -1,10 +1,13 @@
 namespace Bravellian.Platform.Tests;
 
+using Dapper;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Options;
 
 public class SqlSchedulerClientTests : SqlServerTestBase
 {
     private SqlSchedulerClient? schedulerClient;
+    private readonly SqlSchedulerOptions defaultOptions = new() { ConnectionString = "", SchemaName = "dbo", JobsTableName = "Jobs", JobRunsTableName = "JobRuns", TimersTableName = "Timers" };
 
     public SqlSchedulerClientTests(ITestOutputHelper testOutputHelper) : base(testOutputHelper)
     {
@@ -13,14 +16,15 @@ public class SqlSchedulerClientTests : SqlServerTestBase
     public override async ValueTask InitializeAsync()
     {
         await base.InitializeAsync();
-        this.schedulerClient = new SqlSchedulerClient(this.ConnectionString);
+        this.defaultOptions.ConnectionString = this.ConnectionString;
+        this.schedulerClient = new SqlSchedulerClient(Options.Create(this.defaultOptions));
     }
 
     [Fact]
     public void Constructor_WithValidConnectionString_CreatesInstance()
     {
         // Arrange & Act
-        var client = new SqlSchedulerClient(this.ConnectionString);
+        var client = new SqlSchedulerClient(Options.Create(this.defaultOptions));
 
         // Assert
         client.ShouldNotBeNull();
@@ -47,6 +51,54 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         await using var connection = new SqlConnection(this.ConnectionString);
         await connection.OpenAsync();
         var sql = "SELECT COUNT(*) FROM dbo.Timers WHERE Id = @Id AND Topic = @Topic";
+        await using var command = new SqlCommand(sql, connection);
+        command.Parameters.AddWithValue("@Id", timerGuid);
+        command.Parameters.AddWithValue("@Topic", topic);
+        
+        var count = (int)await command.ExecuteScalarAsync();
+        count.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task ScheduleTimerAsync_WithCustomTableNames_InsertsToCorrectTable()
+    {
+        // Arrange - Use custom table names
+        var customOptions = new SqlSchedulerOptions 
+        { 
+            ConnectionString = this.ConnectionString, 
+            SchemaName = "custom", 
+            TimersTableName = "CustomTimers",
+            JobsTableName = "CustomJobs",
+            JobRunsTableName = "CustomJobRuns"
+        };
+        
+        // Create the custom schema and tables for this test
+        await using var setupConnection = new SqlConnection(this.ConnectionString);
+        await setupConnection.OpenAsync();
+        
+        // Create custom schema if it doesn't exist
+        await setupConnection.ExecuteAsync("IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'custom') EXEC('CREATE SCHEMA custom')");
+        
+        // Create custom tables using DatabaseSchemaManager
+        await DatabaseSchemaManager.EnsureSchedulerSchemaAsync(this.ConnectionString, "custom", "CustomJobs", "CustomJobRuns", "CustomTimers");
+        
+        var customSchedulerClient = new SqlSchedulerClient(Options.Create(customOptions));
+
+        string topic = "test-timer-custom";
+        string payload = "test timer custom payload";
+        DateTimeOffset dueTime = DateTimeOffset.UtcNow.AddMinutes(5);
+
+        // Act
+        var timerId = await customSchedulerClient.ScheduleTimerAsync(topic, payload, dueTime);
+
+        // Assert
+        timerId.ShouldNotBeNull();
+        Guid.TryParse(timerId, out var timerGuid).ShouldBeTrue();
+
+        // Verify the timer was inserted into the custom table
+        await using var connection = new SqlConnection(this.ConnectionString);
+        await connection.OpenAsync();
+        var sql = "SELECT COUNT(*) FROM custom.CustomTimers WHERE Id = @Id AND Topic = @Topic";
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.AddWithValue("@Id", timerGuid);
         command.Parameters.AddWithValue("@Topic", topic);

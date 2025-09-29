@@ -91,10 +91,29 @@ public static class SchedulerServiceCollectionExtensions
         services.Configure<SqlOutboxOptions>(o =>
         {
             o.ConnectionString = options.ConnectionString;
+            o.SchemaName = options.SchemaName;
+            o.TableName = options.TableName;
         });
 
         services.AddSingleton<IOutbox, SqlOutboxService>();
         services.AddHostedService<OutboxProcessor>();
+
+        // Ensure database schema exists
+        Task.Run(async () =>
+        {
+            try
+            {
+                await DatabaseSchemaManager.EnsureOutboxSchemaAsync(
+                    options.ConnectionString, 
+                    options.SchemaName, 
+                    options.TableName).ConfigureAwait(false);
+            }
+            catch
+            {
+                // Schema creation errors will be handled during actual operations
+                // This is just a best-effort attempt during service registration
+            }
+        });
 
         return services;
     }
@@ -109,16 +128,43 @@ public static class SchedulerServiceCollectionExtensions
         services.AddSqlOutbox(new SqlOutboxOptions
         {
             ConnectionString = options.ConnectionString,
+            SchemaName = options.SchemaName,
+            TableName = "Outbox" // Keep Outbox table name consistent
         });
 
         services.Configure<SqlSchedulerOptions>(o =>
         {
             o.ConnectionString = options.ConnectionString;
+            o.SchemaName = options.SchemaName;
+            o.JobsTableName = options.JobsTableName;
+            o.JobRunsTableName = options.JobRunsTableName;
+            o.TimersTableName = options.TimersTableName;
+            o.MaxPollingInterval = options.MaxPollingInterval;
+            o.EnableBackgroundWorkers = options.EnableBackgroundWorkers;
         });
 
         services.AddSingleton<ISchedulerClient, SqlSchedulerClient>();
         services.AddSingleton<SchedulerHealthCheck>();
         services.AddHostedService<SqlSchedulerService>();
+
+        // Ensure database schema exists
+        Task.Run(async () =>
+        {
+            try
+            {
+                await DatabaseSchemaManager.EnsureSchedulerSchemaAsync(
+                    options.ConnectionString,
+                    options.SchemaName,
+                    options.JobsTableName,
+                    options.JobRunsTableName,
+                    options.TimersTableName).ConfigureAwait(false);
+            }
+            catch
+            {
+                // Schema creation errors will be handled during actual operations
+                // This is just a best-effort attempt during service registration
+            }
+        });
 
         return services;
     }
@@ -140,5 +186,59 @@ public static class SchedulerServiceCollectionExtensions
         // The health check system will resolve SchedulerHealthCheck from the DI container
         // where we registered it in AddSqlScheduler.
         return builder.AddCheck<SchedulerHealthCheck>(name, failureStatus, tags ?? new[] { "database", "scheduler" });
+    }
+
+    /// <summary>
+    /// Adds SQL outbox functionality with custom schema and table names.
+    /// </summary>
+    /// <param name="services">The IServiceCollection to add services to.</param>
+    /// <param name="connectionString">The database connection string.</param>
+    /// <param name="schemaName">The database schema name (default: "dbo").</param>
+    /// <param name="tableName">The outbox table name (default: "Outbox").</param>
+    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
+    public static IServiceCollection AddSqlOutbox(this IServiceCollection services, string connectionString, string schemaName = "dbo", string tableName = "Outbox")
+    {
+        return services.AddSqlOutbox(new SqlOutboxOptions
+        {
+            ConnectionString = connectionString,
+            SchemaName = schemaName,
+            TableName = tableName
+        });
+    }
+
+    /// <summary>
+    /// Adds SQL scheduler functionality with custom schema and table names.
+    /// </summary>
+    /// <param name="services">The IServiceCollection to add services to.</param>
+    /// <param name="connectionString">The database connection string.</param>
+    /// <param name="schemaName">The database schema name (default: "dbo").</param>
+    /// <param name="jobsTableName">The jobs table name (default: "Jobs").</param>
+    /// <param name="jobRunsTableName">The job runs table name (default: "JobRuns").</param>
+    /// <param name="timersTableName">The timers table name (default: "Timers").</param>
+    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
+    public static IServiceCollection AddSqlScheduler(this IServiceCollection services, string connectionString, string schemaName = "dbo", string jobsTableName = "Jobs", string jobRunsTableName = "JobRuns", string timersTableName = "Timers")
+    {
+        return services.AddSqlScheduler(new SqlSchedulerOptions
+        {
+            ConnectionString = connectionString,
+            SchemaName = schemaName,
+            JobsTableName = jobsTableName,
+            JobRunsTableName = jobRunsTableName,
+            TimersTableName = timersTableName
+        });
+    }
+
+    /// <summary>
+    /// Adds SQL distributed lock functionality.
+    /// </summary>
+    /// <param name="services">The IServiceCollection to add services to.</param>
+    /// <param name="connectionString">The database connection string.</param>
+    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
+    public static IServiceCollection AddSqlDistributedLock(this IServiceCollection services, string connectionString)
+    {
+        return services.AddSqlDistributedLock(new SqlDistributedLockOptions
+        {
+            ConnectionString = connectionString
+        });
     }
 }

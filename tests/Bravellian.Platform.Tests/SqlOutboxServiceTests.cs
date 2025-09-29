@@ -1,11 +1,14 @@
 namespace Bravellian.Platform.Tests;
 
 using System.Data;
+using Dapper;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Options;
 
 public class SqlOutboxServiceTests : SqlServerTestBase
 {
     private SqlOutboxService? outboxService;
+    private readonly SqlOutboxOptions defaultOptions = new() { ConnectionString = "", SchemaName = "dbo", TableName = "Outbox" };
 
     public SqlOutboxServiceTests(ITestOutputHelper testOutputHelper) : base(testOutputHelper)
     {
@@ -14,14 +17,15 @@ public class SqlOutboxServiceTests : SqlServerTestBase
     public override async ValueTask InitializeAsync()
     {
         await base.InitializeAsync();
-        this.outboxService = new SqlOutboxService();
+        this.defaultOptions.ConnectionString = this.ConnectionString;
+        this.outboxService = new SqlOutboxService(Options.Create(this.defaultOptions));
     }
 
     [Fact]
     public void Constructor_CreatesInstance()
     {
         // Arrange & Act
-        var service = new SqlOutboxService();
+        var service = new SqlOutboxService(Options.Create(this.defaultOptions));
 
         // Assert
         service.ShouldNotBeNull();
@@ -45,6 +49,54 @@ public class SqlOutboxServiceTests : SqlServerTestBase
 
         // Verify the message was inserted
         var sql = "SELECT COUNT(*) FROM dbo.Outbox WHERE Topic = @Topic AND Payload = @Payload";
+        await using var command = new SqlCommand(sql, connection, transaction);
+        command.Parameters.AddWithValue("@Topic", topic);
+        command.Parameters.AddWithValue("@Payload", payload);
+        
+        var count = (int)await command.ExecuteScalarAsync();
+
+        // Assert
+        count.ShouldBe(1);
+
+        // Rollback to keep the test isolated
+        transaction.Rollback();
+    }
+
+    [Fact]
+    public async Task EnqueueAsync_WithCustomSchemaAndTable_InsertsMessageToCorrectTable()
+    {
+        // Arrange - Use custom schema and table name
+        var customOptions = new SqlOutboxOptions 
+        { 
+            ConnectionString = this.ConnectionString, 
+            SchemaName = "custom", 
+            TableName = "CustomOutbox" 
+        };
+        
+        // Create the custom table for this test
+        await using var setupConnection = new SqlConnection(this.ConnectionString);
+        await setupConnection.OpenAsync();
+        
+        // Create custom schema if it doesn't exist
+        await setupConnection.ExecuteAsync("IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'custom') EXEC('CREATE SCHEMA custom')");
+        
+        // Create custom table using DatabaseSchemaManager
+        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(this.ConnectionString, "custom", "CustomOutbox");
+        
+        var customOutboxService = new SqlOutboxService(Options.Create(customOptions));
+
+        await using var connection = new SqlConnection(this.ConnectionString);
+        await connection.OpenAsync();
+        await using var transaction = connection.BeginTransaction();
+
+        string topic = "test-topic-custom";
+        string payload = "test payload custom";
+
+        // Act
+        await customOutboxService.EnqueueAsync(topic, payload, transaction);
+
+        // Verify the message was inserted into the custom table
+        var sql = "SELECT COUNT(*) FROM custom.CustomOutbox WHERE Topic = @Topic AND Payload = @Payload";
         await using var command = new SqlCommand(sql, connection, transaction);
         command.Parameters.AddWithValue("@Topic", topic);
         command.Parameters.AddWithValue("@Payload", payload);

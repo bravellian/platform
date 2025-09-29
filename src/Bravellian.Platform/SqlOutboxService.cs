@@ -15,15 +15,24 @@
 namespace Bravellian.Platform;
 
 using Dapper;
+using Microsoft.Extensions.Options;
 using System.Data;
 using System.Threading.Tasks;
 
 internal class SqlOutboxService : IOutbox
 {
-    // The SQL uses the table schema we defined previously.
-    private const string EnqueueSql = @"
-            INSERT INTO dbo.Outbox (Topic, Payload, CorrelationId, MessageId)
+    private readonly SqlOutboxOptions options;
+    private readonly string enqueueSql;
+
+    public SqlOutboxService(IOptions<SqlOutboxOptions> options)
+    {
+        this.options = options.Value;
+        
+        // Build the SQL query using configured schema and table names
+        this.enqueueSql = $@"
+            INSERT INTO [{this.options.SchemaName}].[{this.options.TableName}] (Topic, Payload, CorrelationId, MessageId)
             VALUES (@Topic, @Payload, @CorrelationId, NEWID());";
+    }
 
     public async Task EnqueueAsync(
         string topic,
@@ -32,7 +41,7 @@ internal class SqlOutboxService : IOutbox
         string? correlationId = null)
     {
         // Note: We use the connection from the provided transaction.
-        await transaction.Connection.ExecuteAsync(EnqueueSql, new
+        await transaction.Connection.ExecuteAsync(this.enqueueSql, new
         {
             Topic = topic,
             Payload = payload,
