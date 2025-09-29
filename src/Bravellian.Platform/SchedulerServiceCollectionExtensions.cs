@@ -66,9 +66,9 @@ public static class SchedulerServiceCollectionExtensions
     /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
     public static IServiceCollection AddSqlDistributedLock(this IServiceCollection services, SqlDistributedLockOptions options)
     {
-        services.Configure<SqlDistributedLockOptions>(options =>
+        services.Configure<SqlDistributedLockOptions>(o =>
         {
-            options.ConnectionString = options.ConnectionString;
+            o.ConnectionString = options.ConnectionString;
         });
 
         services.AddSingleton<ISqlDistributedLock, SqlDistributedLock>();
@@ -88,9 +88,9 @@ public static class SchedulerServiceCollectionExtensions
             ConnectionString = options.ConnectionString,
         });
 
-        services.Configure<SqlOutboxOptions>(options =>
+        services.Configure<SqlOutboxOptions>(o =>
         {
-            options.ConnectionString = options.ConnectionString;
+            o.ConnectionString = options.ConnectionString;
         });
 
         services.AddSingleton<IOutbox, SqlOutboxService>();
@@ -111,9 +111,9 @@ public static class SchedulerServiceCollectionExtensions
             ConnectionString = options.ConnectionString,
         });
 
-        services.Configure<SqlSchedulerOptions>(options =>
+        services.Configure<SqlSchedulerOptions>(o =>
         {
-            options.ConnectionString = options.ConnectionString;
+            o.ConnectionString = options.ConnectionString;
         });
 
         services.AddSingleton<ISchedulerClient, SqlSchedulerClient>();
