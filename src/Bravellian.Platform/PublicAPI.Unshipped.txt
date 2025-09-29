@@ -9,8 +9,10 @@ Bravellian.Platform.ISchedulerClient.TriggerJobAsync(string! jobName) -> System.
 Bravellian.Platform.ISqlDistributedLock
 Bravellian.Platform.ISqlDistributedLock.AcquireAsync(string resource, System.TimeSpan timeout, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.IAsyncDisposable>
 Bravellian.Platform.OutboxMessage
+Bravellian.Platform.OutboxMessage.<Clone>$() -> Bravellian.Platform.OutboxMessage!
 Bravellian.Platform.OutboxMessage.CorrelationId.get -> System.Guid?
 Bravellian.Platform.OutboxMessage.CreatedAt.get -> System.DateTimeOffset
+Bravellian.Platform.OutboxMessage.Equals(Bravellian.Platform.OutboxMessage? other) -> bool
 Bravellian.Platform.OutboxMessage.Id.get -> System.Guid
 Bravellian.Platform.OutboxMessage.IsProcessed.get -> bool
 Bravellian.Platform.OutboxMessage.LastError.get -> string
@@ -34,13 +36,4 @@ Bravellian.Platform.SqlSchedulerOptions.MaxPollingInterval.get -> System.TimeSpa
 Bravellian.Platform.SqlSchedulerOptions.MaxPollingInterval.set -> void
 Bravellian.Platform.SqlSchedulerOptions.SqlSchedulerOptions() -> void
 const Bravellian.Platform.SqlSchedulerOptions.SectionName = "SqlScheduler" -> string!
-override Bravellian.Platform.OutboxMessage.Equals(object obj) -> bool
-override Bravellian.Platform.OutboxMessage.GetHashCode() -> int
-override Bravellian.Platform.OutboxMessage.ToString() -> string
-static Bravellian.Platform.OutboxMessage.operator !=(Bravellian.Platform.OutboxMessage left, Bravellian.Platform.OutboxMessage right) -> bool
-static Bravellian.Platform.OutboxMessage.operator ==(Bravellian.Platform.OutboxMessage left, Bravellian.Platform.OutboxMessage right) -> bool
 static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddSqlScheduler(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
-virtual Bravellian.Platform.OutboxMessage.<Clone>$() -> Bravellian.Platform.OutboxMessage
-virtual Bravellian.Platform.OutboxMessage.EqualityContract.get -> System.Type
-virtual Bravellian.Platform.OutboxMessage.Equals(Bravellian.Platform.OutboxMessage other) -> bool
-virtual Bravellian.Platform.OutboxMessage.PrintMembers(System.Text.StringBuilder builder) -> bool
