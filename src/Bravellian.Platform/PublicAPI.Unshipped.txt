@@ -1,4 +1,5 @@
-﻿Bravellian.Platform.IOutbox
+﻿Bravellian.Platform.DatabaseSchemaManager
+Bravellian.Platform.IOutbox
 Bravellian.Platform.IOutbox.EnqueueAsync(string! topic, string! payload, System.Data.IDbTransaction! transaction, string? correlationId = null) -> System.Threading.Tasks.Task!
 Bravellian.Platform.IOutboxWorkQueue
 Bravellian.Platform.ISchedulerClient
@@ -35,7 +36,13 @@ Bravellian.Platform.OutboxMessage.Topic.get -> string!
 Bravellian.Platform.OutboxWorker
 Bravellian.Platform.OutboxWorker.OutboxWorker(Bravellian.Platform.IOutboxWorkQueue! workQueue, Microsoft.Extensions.Logging.ILogger<Bravellian.Platform.OutboxWorker>! logger) -> void
 Bravellian.Platform.SchedulerServiceCollectionExtensions
+Bravellian.Platform.SqlBigIntWorkQueue
+Bravellian.Platform.SqlBigIntWorkQueue.SqlBigIntWorkQueue(string! connectionString, string! schemaName, string! tableName, bool isScheduled = false) -> void
 Bravellian.Platform.SqlDistributedLockOptions
+Bravellian.Platform.SqlGuidWorkQueue
+Bravellian.Platform.SqlGuidWorkQueue.SqlGuidWorkQueue(string! connectionString, string! schemaName, string! tableName, bool isScheduled = false) -> void
+Bravellian.Platform.SqlOutboxWorkQueue
+Bravellian.Platform.SqlOutboxWorkQueue.SqlOutboxWorkQueue(Bravellian.Platform.SqlOutboxOptions! options) -> void
 Bravellian.Platform.SqlSchedulerOptions
 Bravellian.Platform.SqlSchedulerOptions.ConnectionString.get -> string!
 Bravellian.Platform.SqlSchedulerOptions.ConnectionString.set -> void
@@ -44,6 +51,15 @@ Bravellian.Platform.SqlSchedulerOptions.EnableBackgroundWorkers.set -> void
 Bravellian.Platform.SqlSchedulerOptions.MaxPollingInterval.get -> System.TimeSpan
 Bravellian.Platform.SqlSchedulerOptions.MaxPollingInterval.set -> void
 Bravellian.Platform.SqlSchedulerOptions.SqlSchedulerOptions() -> void
+Bravellian.Platform.SqlTimerWorkQueue
+Bravellian.Platform.SqlTimerWorkQueue.SqlTimerWorkQueue(string! connectionString, string schemaName = "dbo", string tableName = "Timers") -> void
+Bravellian.Platform.SqlWorkQueueBase<T>
+Bravellian.Platform.SqlWorkQueueBase<T>.AbandonAsync(System.Guid ownerToken, System.Collections.Generic.IEnumerable<T>! ids, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Bravellian.Platform.SqlWorkQueueBase<T>.AckAsync(System.Guid ownerToken, System.Collections.Generic.IEnumerable<T>! ids, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Bravellian.Platform.SqlWorkQueueBase<T>.ClaimAsync(System.Guid ownerToken, int leaseSeconds, int batchSize, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<T>!>!
+Bravellian.Platform.SqlWorkQueueBase<T>.FailAsync(System.Guid ownerToken, System.Collections.Generic.IEnumerable<T>! ids, string? errorMessage = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Bravellian.Platform.SqlWorkQueueBase<T>.ReapExpiredAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+Bravellian.Platform.SqlWorkQueueBase<T>.SqlWorkQueueBase(string! connectionString, string! schemaName, string! tableName, string! tvpTypeName) -> void
 Bravellian.Platform.TimerWorker
 Bravellian.Platform.TimerWorker.TimerWorker(Bravellian.Platform.ITimerWorkQueue! workQueue, Microsoft.Extensions.Logging.ILogger<Bravellian.Platform.TimerWorker>! logger) -> void
 Bravellian.Platform.WorkQueueStatus
@@ -52,6 +68,8 @@ const Bravellian.Platform.WorkQueueStatus.Done = 2 -> byte
 const Bravellian.Platform.WorkQueueStatus.Failed = 3 -> byte
 const Bravellian.Platform.WorkQueueStatus.InProgress = 1 -> byte
 const Bravellian.Platform.WorkQueueStatus.Ready = 0 -> byte
+static Bravellian.Platform.DatabaseSchemaManager.EnsureOutboxSchemaAsync(string! connectionString, string schemaName = "dbo", string tableName = "Outbox") -> System.Threading.Tasks.Task!
+static Bravellian.Platform.DatabaseSchemaManager.EnsureSchedulerSchemaAsync(string! connectionString, string schemaName = "dbo", string jobsTableName = "Jobs", string jobRunsTableName = "JobRuns", string timersTableName = "Timers") -> System.Threading.Tasks.Task!
 static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddSqlScheduler(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddSqlOutbox(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! connectionString, string schemaName = "dbo", string tableName = "Outbox") -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddSqlScheduler(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! connectionString, string schemaName = "dbo", string jobsTableName = "Jobs", string jobRunsTableName = "JobRuns", string timersTableName = "Timers") -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
