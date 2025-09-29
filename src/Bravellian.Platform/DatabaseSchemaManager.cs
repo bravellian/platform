@@ -50,6 +50,33 @@ internal static class DatabaseSchemaManager
     }
 
     /// <summary>
+    /// Ensures that the required database schema exists for the distributed lock functionality.
+    /// </summary>
+    /// <param name="connectionString">The database connection string.</param>
+    /// <param name="schemaName">The schema name (default: "pw").</param>
+    /// <param name="tableName">The table name (default: "DistributedLock").</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public static async Task EnsureDistributedLockSchemaAsync(string connectionString, string schemaName = "pw", string tableName = "DistributedLock")
+    {
+        using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync().ConfigureAwait(false);
+
+        // Ensure schema exists
+        await EnsureSchemaExistsAsync(connection, schemaName).ConfigureAwait(false);
+
+        // Check if table exists
+        var tableExists = await TableExistsAsync(connection, schemaName, tableName).ConfigureAwait(false);
+        if (!tableExists)
+        {
+            var createScript = GetDistributedLockCreateScript(schemaName, tableName);
+            await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
+        }
+
+        // Ensure stored procedures exist
+        await EnsureDistributedLockStoredProceduresAsync(connection, schemaName).ConfigureAwait(false);
+    }
+
+    /// <summary>
     /// Ensures that the required database schema exists for the scheduler functionality.
     /// </summary>
     /// <param name="connectionString">The database connection string.</param>
@@ -86,6 +113,23 @@ internal static class DatabaseSchemaManager
             var createScript = GetJobRunsCreateScript(schemaName, jobRunsTableName, jobsTableName);
             await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
         }
+    }
+
+    /// <summary>
+    /// Ensures that a schema exists in the database.
+    /// </summary>
+    /// <param name="connection">The database connection.</param>
+    /// <param name="schemaName">The schema name.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    private static async Task EnsureSchemaExistsAsync(SqlConnection connection, string schemaName)
+    {
+        const string sql = @"
+            IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = @SchemaName)
+            BEGIN
+                EXEC('CREATE SCHEMA [' + @SchemaName + ']')
+            END";
+
+        await connection.ExecuteAsync(sql, new { SchemaName = schemaName }).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -259,5 +303,218 @@ CREATE TABLE [{schemaName}].[{tableName}] (
 -- Index to find pending job runs that are due
 CREATE INDEX IX_{tableName}_GetNext ON [{schemaName}].[{tableName}](Status, ScheduledTime)
     WHERE Status = 'Pending';";
+    }
+
+    /// <summary>
+    /// Gets the SQL script to create the DistributedLock table.
+    /// </summary>
+    /// <param name="schemaName">The schema name.</param>
+    /// <param name="tableName">The table name.</param>
+    /// <returns>The SQL create script.</returns>
+    private static string GetDistributedLockCreateScript(string schemaName, string tableName)
+    {
+        return $@"
+CREATE TABLE [{schemaName}].[{tableName}](
+    [ResourceName] SYSNAME NOT NULL CONSTRAINT PK_{tableName} PRIMARY KEY,
+    [OwnerToken] UNIQUEIDENTIFIER NULL,
+    [LeaseUntil] DATETIME2(3) NULL,
+    [FencingToken] BIGINT NOT NULL CONSTRAINT DF_{tableName}_Fence DEFAULT(0),
+    [ContextJson] NVARCHAR(MAX) NULL,
+    [Version] ROWVERSION NOT NULL
+);
+
+CREATE INDEX IX_{tableName}_OwnerToken ON [{schemaName}].[{tableName}]([OwnerToken])
+    WHERE [OwnerToken] IS NOT NULL;";
+    }
+
+    /// <summary>
+    /// Ensures distributed lock stored procedures exist.
+    /// </summary>
+    /// <param name="connection">The database connection.</param>
+    /// <param name="schemaName">The schema name.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    private static async Task EnsureDistributedLockStoredProceduresAsync(SqlConnection connection, string schemaName)
+    {
+        var acquireProc = GetLockAcquireStoredProcedure(schemaName);
+        var renewProc = GetLockRenewStoredProcedure(schemaName);
+        var releaseProc = GetLockReleaseStoredProcedure(schemaName);
+        var cleanupProc = GetLockCleanupStoredProcedure(schemaName);
+
+        await ExecuteScriptAsync(connection, acquireProc).ConfigureAwait(false);
+        await ExecuteScriptAsync(connection, renewProc).ConfigureAwait(false);
+        await ExecuteScriptAsync(connection, releaseProc).ConfigureAwait(false);
+        await ExecuteScriptAsync(connection, cleanupProc).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Gets the Lock_Acquire stored procedure script.
+    /// </summary>
+    /// <param name="schemaName">The schema name.</param>
+    /// <returns>The stored procedure script.</returns>
+    private static string GetLockAcquireStoredProcedure(string schemaName)
+    {
+        return $@"
+CREATE OR ALTER PROCEDURE [{schemaName}].[Lock_Acquire]
+    @ResourceName SYSNAME,
+    @OwnerToken UNIQUEIDENTIFIER,
+    @LeaseSeconds INT,
+    @ContextJson NVARCHAR(MAX) = NULL,
+    @UseGate BIT = 0,
+    @GateTimeoutMs INT = 200,
+    @Acquired BIT OUTPUT,
+    @FencingToken BIGINT OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON; SET XACT_ABORT ON;
+
+    DECLARE @now DATETIME2(3) = SYSUTCDATETIME();
+    DECLARE @newLease DATETIME2(3) = DATEADD(SECOND, @LeaseSeconds, @now);
+    DECLARE @rc INT;
+
+    -- Optional micro critical section to serialize row upsert under high contention
+    IF (@UseGate = 1)
+    BEGIN
+        EXEC @rc = sp_getapplock
+            @Resource    = CONCAT('lease:', @ResourceName),
+            @LockMode    = 'Exclusive',
+            @LockOwner   = 'Session',
+            @LockTimeout = @GateTimeoutMs,
+            @DbPrincipal = 'public';
+        IF (@rc < 0)
+        BEGIN
+            SET @Acquired = 0; SET @FencingToken = NULL;
+            RETURN;
+        END
+    END
+
+    BEGIN TRAN;
+
+    -- Ensure row exists, holding a key-range lock to avoid races on insert
+    IF NOT EXISTS (SELECT 1 FROM [{schemaName}].[DistributedLock] WITH (UPDLOCK, HOLDLOCK)
+                   WHERE ResourceName = @ResourceName)
+    BEGIN
+        INSERT [{schemaName}].[DistributedLock] (ResourceName, OwnerToken, LeaseUntil, ContextJson)
+        VALUES (@ResourceName, NULL, NULL, NULL);
+    END
+
+    -- Take or re-take the lease (re-entrant allowed)
+    UPDATE dl WITH (UPDLOCK, ROWLOCK)
+       SET OwnerToken =
+             CASE WHEN dl.OwnerToken = @OwnerToken THEN dl.OwnerToken ELSE @OwnerToken END,
+           LeaseUntil = @newLease,
+           ContextJson = @ContextJson,
+           FencingToken =
+             CASE WHEN dl.OwnerToken = @OwnerToken
+                  THEN dl.FencingToken + 1         -- re-entrant renew-on-acquire bumps too
+                  ELSE dl.FencingToken + 1         -- new owner bumps
+             END
+      FROM [{schemaName}].[DistributedLock] dl
+     WHERE dl.ResourceName = @ResourceName
+       AND (dl.OwnerToken IS NULL OR dl.LeaseUntil IS NULL OR dl.LeaseUntil <= @now OR dl.OwnerToken = @OwnerToken);
+
+    IF @@ROWCOUNT = 1
+    BEGIN
+        SELECT @FencingToken = FencingToken
+          FROM [{schemaName}].[DistributedLock]
+         WHERE ResourceName = @ResourceName;
+        SET @Acquired = 1;
+    END
+    ELSE
+    BEGIN
+        SET @Acquired = 0; SET @FencingToken = NULL;
+    END
+
+    COMMIT TRAN;
+
+    IF (@UseGate = 1)
+        EXEC sp_releaseapplock
+             @Resource  = CONCAT('lease:', @ResourceName),
+             @LockOwner = 'Session';
+END";
+    }
+
+    /// <summary>
+    /// Gets the Lock_Renew stored procedure script.
+    /// </summary>
+    /// <param name="schemaName">The schema name.</param>
+    /// <returns>The stored procedure script.</returns>
+    private static string GetLockRenewStoredProcedure(string schemaName)
+    {
+        return $@"
+CREATE OR ALTER PROCEDURE [{schemaName}].[Lock_Renew]
+    @ResourceName SYSNAME,
+    @OwnerToken UNIQUEIDENTIFIER,
+    @LeaseSeconds INT,
+    @Renewed BIT OUTPUT,
+    @FencingToken BIGINT OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @now DATETIME2(3) = SYSUTCDATETIME();
+    DECLARE @newLease DATETIME2(3) = DATEADD(SECOND, @LeaseSeconds, @now);
+
+    UPDATE dl WITH (UPDLOCK, ROWLOCK)
+       SET LeaseUntil = @newLease,
+           FencingToken = dl.FencingToken + 1
+      FROM [{schemaName}].[DistributedLock] dl
+     WHERE dl.ResourceName = @ResourceName
+       AND dl.OwnerToken   = @OwnerToken
+       AND dl.LeaseUntil   > @now;
+
+    IF @@ROWCOUNT = 1
+    BEGIN
+        SELECT @FencingToken = FencingToken
+          FROM [{schemaName}].[DistributedLock]
+         WHERE ResourceName = @ResourceName;
+        SET @Renewed = 1;
+    END
+    ELSE
+    BEGIN
+        SET @Renewed = 0; SET @FencingToken = NULL;
+    END
+END";
+    }
+
+    /// <summary>
+    /// Gets the Lock_Release stored procedure script.
+    /// </summary>
+    /// <param name="schemaName">The schema name.</param>
+    /// <returns>The stored procedure script.</returns>
+    private static string GetLockReleaseStoredProcedure(string schemaName)
+    {
+        return $@"
+CREATE OR ALTER PROCEDURE [{schemaName}].[Lock_Release]
+    @ResourceName SYSNAME,
+    @OwnerToken UNIQUEIDENTIFIER
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE [{schemaName}].[DistributedLock] WITH (UPDLOCK, ROWLOCK)
+       SET OwnerToken = NULL,
+           LeaseUntil = NULL,
+           ContextJson = NULL
+     WHERE ResourceName = @ResourceName
+       AND OwnerToken   = @OwnerToken;
+END";
+    }
+
+    /// <summary>
+    /// Gets the Lock_CleanupExpired stored procedure script.
+    /// </summary>
+    /// <param name="schemaName">The schema name.</param>
+    /// <returns>The stored procedure script.</returns>
+    private static string GetLockCleanupStoredProcedure(string schemaName)
+    {
+        return $@"
+CREATE OR ALTER PROCEDURE [{schemaName}].[Lock_CleanupExpired]
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE [{schemaName}].[DistributedLock]
+       SET OwnerToken = NULL, LeaseUntil = NULL, ContextJson = NULL
+     WHERE LeaseUntil IS NOT NULL AND LeaseUntil <= SYSUTCDATETIME();
+END";
     }
 }

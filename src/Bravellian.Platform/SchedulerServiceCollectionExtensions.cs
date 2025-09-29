@@ -241,4 +241,58 @@ public static class SchedulerServiceCollectionExtensions
             ConnectionString = connectionString
         });
     }
+
+    /// <summary>
+    /// Adds system lease functionality with SQL Server backend.
+    /// </summary>
+    /// <param name="services">The IServiceCollection to add services to.</param>
+    /// <param name="options">The configuration options.</param>
+    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
+    public static IServiceCollection AddSystemLeases(this IServiceCollection services, SystemLeaseOptions options)
+    {
+        services.Configure<SystemLeaseOptions>(o =>
+        {
+            o.ConnectionString = options.ConnectionString;
+            o.SchemaName = options.SchemaName;
+            o.DefaultLeaseDuration = options.DefaultLeaseDuration;
+            o.RenewPercent = options.RenewPercent;
+            o.UseGate = options.UseGate;
+            o.GateTimeoutMs = options.GateTimeoutMs;
+        });
+
+        services.AddSingleton<ISystemLeaseFactory, SqlLeaseFactory>();
+
+        // Ensure database schema exists
+        Task.Run(async () =>
+        {
+            try
+            {
+                await DatabaseSchemaManager.EnsureDistributedLockSchemaAsync(
+                    options.ConnectionString,
+                    options.SchemaName).ConfigureAwait(false);
+            }
+            catch
+            {
+                // Schema creation failed - this will be retried when the service actually tries to use it
+            }
+        });
+
+        return services;
+    }
+
+    /// <summary>
+    /// Adds system lease functionality with SQL Server backend.
+    /// </summary>
+    /// <param name="services">The IServiceCollection to add services to.</param>
+    /// <param name="connectionString">The database connection string.</param>
+    /// <param name="schemaName">The schema name (default: "pw").</param>
+    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
+    public static IServiceCollection AddSystemLeases(this IServiceCollection services, string connectionString, string schemaName = "pw")
+    {
+        return services.AddSystemLeases(new SystemLeaseOptions
+        {
+            ConnectionString = connectionString,
+            SchemaName = schemaName
+        });
+    }
 }
