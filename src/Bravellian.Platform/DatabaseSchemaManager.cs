@@ -261,3 +261,4 @@ CREATE INDEX IX_{tableName}_GetNext ON [{schemaName}].[{tableName}](Status, Sche
     WHERE Status = 'Pending';";
     }
 }
+}
