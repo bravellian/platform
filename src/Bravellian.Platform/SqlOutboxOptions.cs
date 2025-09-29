@@ -17,4 +17,16 @@ namespace Bravellian.Platform;
 public class SqlOutboxOptions
 {
     public string ConnectionString { get; set; }
+
+    /// <summary>
+    /// Gets or sets the database schema name for the outbox table.
+    /// Defaults to "dbo".
+    /// </summary>
+    public string SchemaName { get; set; } = "dbo";
+
+    /// <summary>
+    /// Gets or sets the table name for the outbox.
+    /// Defaults to "Outbox".
+    /// </summary>
+    public string TableName { get; set; } = "Outbox";
 }

@@ -16,6 +16,7 @@ namespace Bravellian.Platform;
 
 using Dapper;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -24,16 +25,54 @@ internal class SqlSchedulerService : IHostedService
     private readonly ISqlDistributedLock distributedLock;
     private readonly IOutbox outbox;
     private readonly string connectionString;
+    private readonly SqlSchedulerOptions options;
 
     // This is the key tunable parameter.
     private readonly TimeSpan maxWaitTime = TimeSpan.FromSeconds(30);
     private readonly string instanceId = $"{Environment.MachineName}:{Guid.NewGuid()}";
 
-    public SqlSchedulerService(ISqlDistributedLock distributedLock, IOutbox outbox, string connectionString)
+    // Pre-built SQL queries using configured table names
+    private readonly string claimTimersSql;
+    private readonly string claimJobsSql;
+    private readonly string getNextEventTimeSql;
+
+    public SqlSchedulerService(ISqlDistributedLock distributedLock, IOutbox outbox, IOptions<SqlSchedulerOptions> options)
     {
         this.distributedLock = distributedLock;
         this.outbox = outbox;
-        this.connectionString = connectionString;
+        this.options = options.Value;
+        this.connectionString = this.options.ConnectionString;
+
+        // Build SQL queries using configured schema and table names
+        this.claimTimersSql = $@"
+            UPDATE [{this.options.SchemaName}].[{this.options.TimersTableName}]
+            SET Status = 'Claimed', ClaimedBy = @InstanceId, ClaimedAt = SYSDATETIMEOFFSET()
+            OUTPUT INSERTED.Id, INSERTED.Topic, INSERTED.Payload
+            WHERE Id IN (
+                SELECT TOP 10 Id FROM [{this.options.SchemaName}].[{this.options.TimersTableName}]
+                WHERE Status = 'Pending' AND DueTime <= SYSDATETIMEOFFSET()
+                ORDER BY DueTime
+            );";
+
+        this.claimJobsSql = $@"
+            UPDATE [{this.options.SchemaName}].[{this.options.JobRunsTableName}]
+            SET Status = 'Claimed', ClaimedBy = @InstanceId, ClaimedAt = SYSDATETIMEOFFSET()
+            OUTPUT INSERTED.Id, INSERTED.JobId, j.Topic, j.Payload
+            FROM [{this.options.SchemaName}].[{this.options.JobRunsTableName}] jr
+            INNER JOIN [{this.options.SchemaName}].[{this.options.JobsTableName}] j ON jr.JobId = j.Id
+            WHERE jr.Id IN (
+                SELECT TOP 10 Id FROM [{this.options.SchemaName}].[{this.options.JobRunsTableName}]
+                WHERE Status = 'Pending' AND ScheduledTime <= SYSDATETIMEOFFSET()
+                ORDER BY ScheduledTime
+            );";
+
+        this.getNextEventTimeSql = $@"
+            SELECT MIN(NextDue)
+            FROM (
+                SELECT MIN(DueTime) AS NextDue FROM [{this.options.SchemaName}].[{this.options.TimersTableName}] WHERE Status = 'Pending'
+                UNION ALL
+                SELECT MIN(ScheduledTime) AS NextDue FROM [{this.options.SchemaName}].[{this.options.JobRunsTableName}] WHERE Status = 'Pending'
+            ) AS NextEvents;";
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
@@ -147,18 +186,8 @@ internal class SqlSchedulerService : IHostedService
         // This SQL query is atomic. It finds pending timers that are due,
         // updates their status to 'Claimed', and immediately returns the data
         // of the rows that it successfully updated. This prevents any race conditions.
-        var claimTimersSql = @"
-            UPDATE dbo.Timers
-            SET Status = 'Claimed', ClaimedBy = @InstanceId, ClaimedAt = SYSDATETIMEOFFSET()
-            OUTPUT INSERTED.Id, INSERTED.Topic, INSERTED.Payload
-            WHERE Id IN (
-                SELECT TOP 10 Id FROM dbo.Timers
-                WHERE Status = 'Pending' AND DueTime <= SYSDATETIMEOFFSET()
-                ORDER BY DueTime
-            );";
-
         var dueTimers = await transaction.Connection.QueryAsync<(Guid Id, string Topic, string Payload)>(
-            claimTimersSql, new { InstanceId = this.instanceId }, transaction).ConfigureAwait(false);
+            this.claimTimersSql, new { InstanceId = this.instanceId }, transaction).ConfigureAwait(false);
 
         SchedulerMetrics.TimersDispatched.Add(dueTimers.Count());
 
@@ -177,20 +206,8 @@ internal class SqlSchedulerService : IHostedService
     private async Task DispatchJobRunsAsync(Microsoft.Data.SqlClient.SqlTransaction transaction)
     {
         // The logic is identical to timers, just operating on the JobRuns table.
-        var claimJobsSql = @"
-            UPDATE dbo.JobRuns
-            SET Status = 'Claimed', ClaimedBy = @InstanceId, ClaimedAt = SYSDATETIMEOFFSET()
-            OUTPUT INSERTED.Id, INSERTED.JobId, j.Topic, j.Payload
-            FROM dbo.JobRuns jr
-            INNER JOIN dbo.Jobs j ON jr.JobId = j.Id
-            WHERE jr.Id IN (
-                SELECT TOP 10 Id FROM dbo.JobRuns
-                WHERE Status = 'Pending' AND ScheduledTime <= SYSDATETIMEOFFSET()
-                ORDER BY ScheduledTime
-            );";
-
         var dueJobs = await transaction.Connection.QueryAsync<(Guid Id, Guid JobId, string Topic, string Payload)>(
-            claimJobsSql, new { InstanceId = this.instanceId }, transaction).ConfigureAwait(false);
+            this.claimJobsSql, new { InstanceId = this.instanceId }, transaction).ConfigureAwait(false);
 
         SchedulerMetrics.JobsDispatched.Add(dueJobs.Count());
 
@@ -209,14 +226,7 @@ internal class SqlSchedulerService : IHostedService
     {
         using (var connection = new Microsoft.Data.SqlClient.SqlConnection(this.connectionString))
         {
-            var sql = @"
-                SELECT MIN(NextDue)
-                FROM (
-                    SELECT MIN(DueTime) AS NextDue FROM dbo.Timers WHERE Status = 'Pending'
-                    UNION ALL
-                    SELECT MIN(ScheduledTime) AS NextDue FROM dbo.JobRuns WHERE Status = 'Pending'
-                ) AS NextEvents;";
-            return await connection.ExecuteScalarAsync<DateTimeOffset?>(sql).ConfigureAwait(false);
+            return await connection.ExecuteScalarAsync<DateTimeOffset?>(this.getNextEventTimeSql).ConfigureAwait(false);
         }
     }
 }

@@ -21,46 +21,34 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
-/*
- CREATE TABLE dbo.Outbox (
-    -- Core Fields
-    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    Payload NVARCHAR(MAX) NOT NULL,
-    Topic NVARCHAR(255) NOT NULL,
-    CreatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-
-    -- Processing Status & Auditing (Your suggestions)
-    IsProcessed BIT NOT NULL DEFAULT 0,
-    ProcessedAt DATETIMEOFFSET NULL,
-    ProcessedBy NVARCHAR(100) NULL, -- e.g., machine name or instance ID
-
-    -- For Robustness & Error Handling
-    RetryCount INT NOT NULL DEFAULT 0,
-    LastError NVARCHAR(MAX) NULL,
-    NextAttemptAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(), -- For backoff strategies
-
-    -- For Idempotency & Tracing
-    MessageId UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(), -- A stable ID for the message consumer
-    CorrelationId UNIQUEIDENTIFIER NULL -- To trace a message through multiple systems
-);
-GO
-
--- An index to efficiently query for unprocessed messages, now including the next attempt time.
-CREATE INDEX IX_Outbox_GetNext ON dbo.Outbox(IsProcessed, NextAttemptAt)
-    INCLUDE(Id, Payload, Topic, RetryCount) -- Include columns needed for processing
-    WHERE IsProcessed = 0;
-GO
- */
-internal class OutboxProcessor : IHostedService // Example for a hosted service in ASP.NET Core
+internal class OutboxProcessor : IHostedService
 {
     private readonly string connectionString;
+    private readonly SqlOutboxOptions options;
     private readonly ISqlDistributedLock distributedLock;
     private readonly string instanceId = $"{Environment.MachineName}:{Guid.NewGuid()}"; // Unique ID for this processor instance
+    private readonly string selectSql;
+    private readonly string successSql;
+    private readonly string failureSql;
 
     public OutboxProcessor(IOptions<SqlOutboxOptions> options, ISqlDistributedLock distributedLock)
     {
-        this.connectionString = options.Value.ConnectionString;
+        this.options = options.Value;
+        this.connectionString = this.options.ConnectionString;
         this.distributedLock = distributedLock;
+
+        // Build SQL queries using configured schema and table names
+        this.selectSql = $"SELECT TOP 10 * FROM [{this.options.SchemaName}].[{this.options.TableName}] WHERE IsProcessed = 0 AND NextAttemptAt <= SYSDATETIMEOFFSET() ORDER BY CreatedAt;";
+        
+        this.successSql = $@"
+            UPDATE [{this.options.SchemaName}].[{this.options.TableName}]
+            SET IsProcessed = 1, ProcessedAt = SYSDATETIMEOFFSET(), ProcessedBy = @InstanceId
+            WHERE Id = @Id;";
+        
+        this.failureSql = $@"
+            UPDATE [{this.options.SchemaName}].[{this.options.TableName}]
+            SET RetryCount = @RetryCount, LastError = @Error, NextAttemptAt = @NextAttempt
+            WHERE Id = @Id;";
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
@@ -103,8 +91,7 @@ internal class OutboxProcessor : IHostedService // Example for a hosted service 
                 await connection.OpenAsync().ConfigureAwait(false);
 
                 // Fetch messages that are ready to be processed
-                var messages = await connection.QueryAsync<OutboxMessage>(
-                    "SELECT TOP 10 * FROM Outbox WHERE IsProcessed = 0 AND NextAttemptAt <= SYSDATETIMEOFFSET() ORDER BY CreatedAt;")
+                var messages = await connection.QueryAsync<OutboxMessage>(this.selectSql)
                 .ConfigureAwait(false);
 
                 foreach (var message in messages)
@@ -130,11 +117,7 @@ internal class OutboxProcessor : IHostedService // Example for a hosted service 
                         }
 
                         // 2. If successful, mark as processed
-                        var successSql = @"
-                            UPDATE Outbox
-                            SET IsProcessed = 1, ProcessedAt = SYSDATETIMEOFFSET(), ProcessedBy = @InstanceId
-                            WHERE Id = @Id;";
-                        await connection.ExecuteAsync(successSql, new { message.Id, InstanceId = this.instanceId }).ConfigureAwait(false);
+                        await connection.ExecuteAsync(this.successSql, new { message.Id, InstanceId = this.instanceId }).ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {
@@ -142,11 +125,7 @@ internal class OutboxProcessor : IHostedService // Example for a hosted service 
                         var retryCount = message.RetryCount + 1;
                         var nextAttempt = DateTimeOffset.UtcNow.AddSeconds(Math.Pow(2, retryCount)); // Exponential backoff
 
-                        var failureSql = @"
-                            UPDATE Outbox
-                            SET RetryCount = @RetryCount, LastError = @Error, NextAttemptAt = @NextAttempt
-                            WHERE Id = @Id;";
-                        await connection.ExecuteAsync(failureSql, new
+                        await connection.ExecuteAsync(this.failureSql, new
                         {
                             message.Id,
                             RetryCount = retryCount,
