@@ -38,5 +38,5 @@ public sealed record OutboxMessage
 
     public Guid MessageId { get; internal init; }
 
-    public Guid? CorrelationId { get; internal init; }
+    public string? CorrelationId { get; internal init; }
 }

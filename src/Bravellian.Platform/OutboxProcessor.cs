@@ -15,10 +15,11 @@
 namespace Bravellian.Platform;
 
 using Dapper;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Hosting;
 
 /*
  CREATE TABLE dbo.Outbox (
@@ -56,9 +57,9 @@ internal class OutboxProcessor : IHostedService // Example for a hosted service 
     private readonly ISqlDistributedLock distributedLock;
     private readonly string instanceId = $"{Environment.MachineName}:{Guid.NewGuid()}"; // Unique ID for this processor instance
 
-    public OutboxProcessor(string connectionString, ISqlDistributedLock distributedLock)
+    public OutboxProcessor(IOptions<SqlOutboxOptions> options, ISqlDistributedLock distributedLock)
     {
-        this.connectionString = connectionString;
+        this.connectionString = options.Value.ConnectionString;
         this.distributedLock = distributedLock;
     }
 

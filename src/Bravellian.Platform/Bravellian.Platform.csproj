@@ -1,17 +1,55 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<Deterministic>true</Deterministic>
 
-  <ItemGroup>
-    <PackageReference Include="Cronos" Version="0.11.1" />
-    <PackageReference Include="Dapper" Version="2.1.66" />
-    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.1" />
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions" Version="9.0.9" />
-    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.9" />
-    <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.9" />
-  </ItemGroup>
+		<!-- Package metadata -->
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+		<PackageId>Bravellian.Platform</PackageId>
+		<Version>1.0.0</Version>
+		<Authors>Bravellian</Authors>
+		<Owners>Bravellian</Owners>
+		<Description>Basic platform features on top of SQL Server.</Description>
+		<PackageProjectUrl>https://github.com/bravellian/platform</PackageProjectUrl>
+		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+		<RepositoryUrl>https://github.com/bravellian/platform</RepositoryUrl>
+		<PackageIcon>nuget_logo.png</PackageIcon>
+		<PackageReleaseNotes>For support, contact oss@bravellian.com</PackageReleaseNotes>
+		<NuspecProperties>id=$(PackageId);version=$(Version);authors=$(Authors)</NuspecProperties>
+		<EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+			<_Parameter1>Bravellian.Platform.Tests</_Parameter1>
+		</AssemblyAttribute>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Include="..\..\assets\nuget_logo.png">
+	    <Pack>True</Pack>
+	    <PackagePath>\</PackagePath>
+	  </None>
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Cronos" Version="0.11.1" />
+		<PackageReference Include="Dapper" Version="2.1.66" />
+		<PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.1" />
+		<PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="9.0.9" />
+		<PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions" Version="9.0.9" />
+		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.9" />
+		<PackageReference Include="Microsoft.Extensions.Options" Version="9.0.9" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <PackageReference Update="Meziantou.Analyzer" Version="2.0.221" />
+	  <PackageReference Update="Roslynator.Analyzers" Version="4.14.0" />
+	  <PackageReference Update="Roslynator.CodeAnalysis.Analyzers" Version="4.14.0" />
+	  <PackageReference Update="Roslynator.Formatting.Analyzers" Version="4.14.0" />
+	</ItemGroup>
 
 </Project>
