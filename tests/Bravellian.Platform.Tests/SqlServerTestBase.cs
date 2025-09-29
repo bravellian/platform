@@ -97,7 +97,7 @@ CREATE TABLE dbo.Outbox (
 
     -- For Idempotency & Tracing
     MessageId UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(), -- A stable ID for the message consumer
-    CorrelationId UNIQUEIDENTIFIER NULL -- To trace a message through multiple systems
+    CorrelationId NVARCHAR(255) NULL -- To trace a message through multiple systems
 );
 GO
 

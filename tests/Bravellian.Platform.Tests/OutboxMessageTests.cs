@@ -31,7 +31,7 @@ public class OutboxMessageTests
         
         var correlationIdProperty = messageType.GetProperty(nameof(OutboxMessage.CorrelationId));
         correlationIdProperty.ShouldNotBeNull();
-        correlationIdProperty.PropertyType.ShouldBe(typeof(Guid?));
+        correlationIdProperty.PropertyType.ShouldBe(typeof(string));
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public class OutboxMessageTests
         messageType.GetProperty(nameof(OutboxMessage.LastError))?.PropertyType.ShouldBe(typeof(string));
         messageType.GetProperty(nameof(OutboxMessage.NextAttemptAt))?.PropertyType.ShouldBe(typeof(DateTimeOffset));
         messageType.GetProperty(nameof(OutboxMessage.MessageId))?.PropertyType.ShouldBe(typeof(Guid));
-        messageType.GetProperty(nameof(OutboxMessage.CorrelationId))?.PropertyType.ShouldBe(typeof(Guid?));
+        messageType.GetProperty(nameof(OutboxMessage.CorrelationId))?.PropertyType.ShouldBe(typeof(string));
     }
 
     [Fact]  
