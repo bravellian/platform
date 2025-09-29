@@ -96,6 +96,7 @@ public static class SchedulerServiceCollectionExtensions
         });
 
         services.AddSingleton<IOutbox, SqlOutboxService>();
+        services.AddSingleton<IOutboxWorkQueue, SqlOutboxWorkQueue>();
         services.AddHostedService<OutboxProcessor>();
 
         // Ensure database schema exists
@@ -144,6 +145,11 @@ public static class SchedulerServiceCollectionExtensions
         });
 
         services.AddSingleton<ISchedulerClient, SqlSchedulerClient>();
+        services.AddSingleton<ITimerWorkQueue>(provider =>
+        {
+            var schedulerOptions = provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<SqlSchedulerOptions>>().Value;
+            return new SqlTimerWorkQueue(schedulerOptions.ConnectionString, schedulerOptions.SchemaName, schedulerOptions.TimersTableName);
+        });
         services.AddSingleton<SchedulerHealthCheck>();
         services.AddHostedService<SqlSchedulerService>();
 

@@ -47,6 +47,10 @@ internal static class DatabaseSchemaManager
             var createScript = GetOutboxCreateScript(schemaName, tableName);
             await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
         }
+
+        // Ensure work queue schema for outbox
+        await WorkQueueSchemaManager.EnsureWorkQueueSchemaAsync(
+            connectionString, schemaName, tableName, "Id", "UNIQUEIDENTIFIER", "CreatedAt").ConfigureAwait(false);
     }
 
     /// <summary>
@@ -78,6 +82,10 @@ internal static class DatabaseSchemaManager
             var createScript = GetTimersCreateScript(schemaName, timersTableName);
             await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
         }
+
+        // Ensure work queue schema for timers (scheduled queue)
+        await WorkQueueSchemaManager.EnsureScheduledWorkQueueSchemaAsync(
+            connectionString, schemaName, timersTableName, "Id", "UNIQUEIDENTIFIER", "DueTime").ConfigureAwait(false);
 
         // Create JobRuns table (has FK to Jobs)
         var jobRunsExists = await TableExistsAsync(connection, schemaName, jobRunsTableName).ConfigureAwait(false);
