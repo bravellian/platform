@@ -84,8 +84,12 @@ internal sealed partial class SqlDistributedLock : ISqlDistributedLock
                 cmd.Parameters.AddWithValue("@LockOwner", "Transaction");
                 cmd.Parameters.AddWithValue("@LockTimeout", (int)Math.Min(int.MaxValue, timeout.TotalMilliseconds));
 
-                var result = (int)(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false) ?? -99);
-                if (result >= 0)
+                var returnValue = new SqlParameter { Direction = ParameterDirection.ReturnValue };
+                cmd.Parameters.Add(returnValue);
+
+                await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+
+                if (returnValue.Value is int result && result >= 0)
                 {
                     return new SqlAppLock(conn, tx);
                 }

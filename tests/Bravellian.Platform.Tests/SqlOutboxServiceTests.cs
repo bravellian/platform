@@ -98,29 +98,34 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         string topic = "test-topic-defaults";
         string payload = "test payload for defaults";
 
-        // Act
-        await this.outboxService!.EnqueueAsync(topic, payload, transaction);
+        try
+        {
+            // Act
+            await this.outboxService!.EnqueueAsync(topic, payload, transaction);
 
-        // Verify the message has correct default values
-        var sql = @"SELECT IsProcessed, ProcessedAt, RetryCount, CreatedAt, MessageId 
+            // Verify the message has correct default values
+            var sql = @"SELECT IsProcessed, ProcessedAt, RetryCount, CreatedAt, MessageId 
                    FROM dbo.Outbox 
                    WHERE Topic = @Topic AND Payload = @Payload";
-        await using var command = new SqlCommand(sql, connection, transaction);
-        command.Parameters.AddWithValue("@Topic", topic);
-        command.Parameters.AddWithValue("@Payload", payload);
-        
-        await using var reader = await command.ExecuteReaderAsync();
-        reader.Read().ShouldBeTrue();
+            await using var command = new SqlCommand(sql, connection, transaction);
+            command.Parameters.AddWithValue("@Topic", topic);
+            command.Parameters.AddWithValue("@Payload", payload);
 
-        // Assert default values
-        reader.GetBoolean(0).ShouldBe(false); // IsProcessed
-        reader.IsDBNull(1).ShouldBeTrue(); // ProcessedAt
-        reader.GetInt32(2).ShouldBe(0); // RetryCount
-        reader.GetDateTimeOffset(3).ShouldBeGreaterThan(DateTimeOffset.Now.AddMinutes(-1)); // CreatedAt
-        reader.GetGuid(4).ShouldNotBe(Guid.Empty); // MessageId
+            await using var reader = await command.ExecuteReaderAsync();
+            reader.Read().ShouldBeTrue();
 
-        // Rollback to keep the test isolated
-        transaction.Rollback();
+            // Assert default values
+            reader.GetBoolean(0).ShouldBe(false); // IsProcessed
+            reader.IsDBNull(1).ShouldBeTrue(); // ProcessedAt
+            reader.GetInt32(2).ShouldBe(0); // RetryCount
+            reader.GetDateTimeOffset(3).ShouldBeGreaterThan(DateTimeOffset.Now.AddMinutes(-1)); // CreatedAt
+            reader.GetGuid(4).ShouldNotBe(Guid.Empty); // MessageId
+        }
+        finally
+        {
+            // Rollback to keep the test isolated
+            transaction.Rollback();
+        }
     }
 
     [Fact]

@@ -114,7 +114,7 @@ public class SqlDistributedLockTests : SqlServerTestBase
     public async Task AcquireAsync_AfterLockReleased_CanAcquireAgain()
     {
         // Arrange
-        string validResource = "test-resource-789";
+        string validResource = $"test-resource-{Guid.NewGuid():N}";
         var timeout = TimeSpan.FromSeconds(10);
 
         // Act & Assert - First acquisition
