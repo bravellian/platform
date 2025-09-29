@@ -14,11 +14,6 @@
 
 namespace Bravellian.Platform.Tests;
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Shouldly;
@@ -32,9 +27,13 @@ public class WorkQueueTests : SqlServerTestBase
     private IOutboxWorkQueue? outboxWorkQueue;
     private ITimerWorkQueue? timerWorkQueue;
 
-    protected override async Task SetupAsync()
+    public WorkQueueTests(ITestOutputHelper testOutputHelper) : base(testOutputHelper)
     {
-        await base.SetupAsync();
+    }
+
+    public override async ValueTask InitializeAsync()
+    {
+        await base.InitializeAsync();
         
         // Setup work queue schemas
         await WorkQueueSchemaManager.EnsureWorkQueueSchemaAsync(
