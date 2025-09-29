@@ -24,6 +24,7 @@ Bravellian.Platform.OutboxMessage.ProcessedBy.get -> string
 Bravellian.Platform.OutboxMessage.RetryCount.get -> int
 Bravellian.Platform.OutboxMessage.Topic.get -> string
 Bravellian.Platform.SchedulerServiceCollectionExtensions
+Bravellian.Platform.SqlDistributedLockOptions
 Bravellian.Platform.SqlSchedulerOptions
 Bravellian.Platform.SqlSchedulerOptions.ConnectionString.get -> string!
 Bravellian.Platform.SqlSchedulerOptions.ConnectionString.set -> void
@@ -32,10 +33,6 @@ Bravellian.Platform.SqlSchedulerOptions.EnableBackgroundWorkers.set -> void
 Bravellian.Platform.SqlSchedulerOptions.MaxPollingInterval.get -> System.TimeSpan
 Bravellian.Platform.SqlSchedulerOptions.MaxPollingInterval.set -> void
 Bravellian.Platform.SqlSchedulerOptions.SqlSchedulerOptions() -> void
-Bravellian.Platform.YourApplicationOptions
-Bravellian.Platform.YourApplicationOptions.ConnectionString.get -> string!
-Bravellian.Platform.YourApplicationOptions.ConnectionString.set -> void
-Bravellian.Platform.YourApplicationOptions.YourApplicationOptions() -> void
 const Bravellian.Platform.SqlSchedulerOptions.SectionName = "SqlScheduler" -> string!
 override Bravellian.Platform.OutboxMessage.Equals(object obj) -> bool
 override Bravellian.Platform.OutboxMessage.GetHashCode() -> int

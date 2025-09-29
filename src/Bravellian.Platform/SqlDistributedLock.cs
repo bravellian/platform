@@ -26,7 +26,7 @@ internal sealed partial class SqlDistributedLock : ISqlDistributedLock
 {
     private readonly string connectionString;
 
-    public SqlDistributedLock(IOptions<YourApplicationOptions> options)
+    public SqlDistributedLock(IOptions<SqlDistributedLockOptions> options)
     {
         this.connectionString = options.Value.ConnectionString;
     }
@@ -143,9 +143,4 @@ internal sealed partial class SqlDistributedLock : ISqlDistributedLock
 
     [GeneratedRegex(@"[^a-zA-Z0-9_-]")]
     private static partial Regex LockRegex();
-}
-
-public class YourApplicationOptions
-{
-    public string ConnectionString { get; set; }
 }

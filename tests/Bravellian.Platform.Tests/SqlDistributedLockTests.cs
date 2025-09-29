@@ -4,8 +4,8 @@ using Microsoft.Extensions.Options;
 
 public class SqlDistributedLockTests : SqlServerTestBase
 {
-    private YourApplicationOptions? options;
-    private IOptions<YourApplicationOptions>? mockOptions;
+    private SqlDistributedLockOptions? options;
+    private IOptions<SqlDistributedLockOptions>? mockOptions;
     private SqlDistributedLock? distributedLock;
 
     public SqlDistributedLockTests(ITestOutputHelper testOutputHelper) : base(testOutputHelper)
@@ -17,7 +17,7 @@ public class SqlDistributedLockTests : SqlServerTestBase
         await base.InitializeAsync();
         
         // Now that the container is started, we can set up the lock
-        this.options = new YourApplicationOptions { ConnectionString = this.ConnectionString };
+        this.options = new SqlDistributedLockOptions { ConnectionString = this.ConnectionString };
         this.mockOptions = Options.Create(this.options);
         this.distributedLock = new SqlDistributedLock(this.mockOptions);
     }
@@ -26,7 +26,7 @@ public class SqlDistributedLockTests : SqlServerTestBase
     public void Constructor_WithValidOptions_CreatesInstance()
     {
         // Arrange
-        var testOptions = Options.Create(new YourApplicationOptions { ConnectionString = this.ConnectionString });
+        var testOptions = Options.Create(new SqlDistributedLockOptions { ConnectionString = this.ConnectionString });
 
         // Act
         var lockInstance = new SqlDistributedLock(testOptions);
