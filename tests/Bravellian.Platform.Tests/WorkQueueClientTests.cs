@@ -1,0 +1,258 @@
+namespace Bravellian.Platform.Tests;
+
+using Dapper;
+using Microsoft.Data.SqlClient;
+using Shouldly;
+
+public class WorkQueueClientTests : SqlServerTestBase
+{
+    private OutboxWorkQueueClient? outboxClient;
+    private TimersWorkQueueClient? timersClient;
+
+    public WorkQueueClientTests(ITestOutputHelper testOutputHelper) : base(testOutputHelper)
+    {
+    }
+
+    public override async ValueTask InitializeAsync()
+    {
+        await base.InitializeAsync();
+        
+        // Ensure work queue schema is set up
+        await DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(this.ConnectionString);
+        
+        this.outboxClient = new OutboxWorkQueueClient(this.ConnectionString);
+        this.timersClient = new TimersWorkQueueClient(this.ConnectionString);
+    }
+
+    [Fact]
+    public async Task OutboxClaim_WithReadyItems_ReturnsClaimedIds()
+    {
+        // Arrange
+        var testIds = await this.CreateTestOutboxItemsAsync(3);
+        var ownerToken = Guid.NewGuid();
+
+        // Act
+        var claimedIds = await this.outboxClient!.ClaimAsync(ownerToken, 30, 10);
+
+        // Assert
+        claimedIds.ShouldNotBeEmpty();
+        claimedIds.Count.ShouldBe(3);
+        claimedIds.ShouldBeSubsetOf(testIds);
+    }
+
+    [Fact]
+    public async Task OutboxClaim_WithBatchSize_RespectsLimit()
+    {
+        // Arrange
+        await this.CreateTestOutboxItemsAsync(5);
+        var ownerToken = Guid.NewGuid();
+
+        // Act
+        var claimedIds = await this.outboxClient!.ClaimAsync(ownerToken, 30, 2);
+
+        // Assert
+        claimedIds.Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task OutboxAck_WithValidOwner_MarksDoneAndProcessed()
+    {
+        // Arrange
+        var testIds = await this.CreateTestOutboxItemsAsync(2);
+        var ownerToken = Guid.NewGuid();
+        var claimedIds = await this.outboxClient!.ClaimAsync(ownerToken, 30, 10);
+
+        // Act
+        await this.outboxClient.AckAsync(ownerToken, claimedIds);
+
+        // Assert
+        await this.VerifyOutboxStatusAsync(claimedIds, 2); // Status = Done
+        await this.VerifyOutboxProcessedAsync(claimedIds, true);
+    }
+
+    [Fact]
+    public async Task OutboxAbandon_WithValidOwner_ReturnsToReady()
+    {
+        // Arrange
+        var testIds = await this.CreateTestOutboxItemsAsync(2);
+        var ownerToken = Guid.NewGuid();
+        var claimedIds = await this.outboxClient!.ClaimAsync(ownerToken, 30, 10);
+
+        // Act
+        await this.outboxClient.AbandonAsync(ownerToken, claimedIds);
+
+        // Assert
+        await this.VerifyOutboxStatusAsync(claimedIds, 0); // Status = Ready
+    }
+
+    [Fact]
+    public async Task OutboxFail_WithValidOwner_MarksAsFailed()
+    {
+        // Arrange
+        var testIds = await this.CreateTestOutboxItemsAsync(1);
+        var ownerToken = Guid.NewGuid();
+        var claimedIds = await this.outboxClient!.ClaimAsync(ownerToken, 30, 10);
+
+        // Act
+        await this.outboxClient.FailAsync(ownerToken, claimedIds);
+
+        // Assert
+        await this.VerifyOutboxStatusAsync(claimedIds, 3); // Status = Failed
+    }
+
+    [Fact]
+    public async Task OutboxReapExpired_WithExpiredItems_ReturnsToReady()
+    {
+        // Arrange
+        var testIds = await this.CreateTestOutboxItemsAsync(1);
+        var ownerToken = Guid.NewGuid();
+        await this.outboxClient!.ClaimAsync(ownerToken, 1, 10); // 1 second lease
+        
+        // Wait for lease to expire
+        await Task.Delay(1500);
+
+        // Act
+        await this.outboxClient.ReapExpiredAsync();
+
+        // Assert
+        await this.VerifyOutboxStatusAsync(testIds, 0); // Status = Ready
+    }
+
+    [Fact]
+    public async Task TimersClaim_WithDueItems_ReturnsClaimedIds()
+    {
+        // Arrange
+        var testIds = await this.CreateTestTimerItemsAsync(2, DateTime.UtcNow.AddMinutes(-1)); // Due in past
+        var ownerToken = Guid.NewGuid();
+
+        // Act
+        var claimedIds = await this.timersClient!.ClaimAsync(ownerToken, 30, 10);
+
+        // Assert
+        claimedIds.ShouldNotBeEmpty();
+        claimedIds.Count.ShouldBe(2);
+        claimedIds.ShouldBeSubsetOf(testIds);
+    }
+
+    [Fact]
+    public async Task TimersClaim_WithFutureItems_ReturnsEmpty()
+    {
+        // Arrange
+        await this.CreateTestTimerItemsAsync(2, DateTime.UtcNow.AddMinutes(10)); // Due in future
+        var ownerToken = Guid.NewGuid();
+
+        // Act
+        var claimedIds = await this.timersClient!.ClaimAsync(ownerToken, 30, 10);
+
+        // Assert
+        claimedIds.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task ConcurrentClaim_MultipleWorkers_NoOverlap()
+    {
+        // Arrange
+        var testIds = await this.CreateTestOutboxItemsAsync(10);
+        var worker1Token = Guid.NewGuid();
+        var worker2Token = Guid.NewGuid();
+
+        // Act - simulate concurrent claims
+        var claimTask1 = this.outboxClient!.ClaimAsync(worker1Token, 30, 5);
+        var claimTask2 = this.outboxClient.ClaimAsync(worker2Token, 30, 5);
+        
+        var results = await Task.WhenAll(claimTask1, claimTask2);
+        var claimed1 = results[0];
+        var claimed2 = results[1];
+
+        // Assert
+        var totalClaimed = claimed1.Count + claimed2.Count;
+        totalClaimed.ShouldBeLessThanOrEqualTo(10);
+        
+        // No overlap between the two claims
+        claimed1.Intersect(claimed2).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task InvalidOwnerOperations_DoNotAffectItems()
+    {
+        // Arrange
+        var testIds = await this.CreateTestOutboxItemsAsync(1);
+        var ownerToken = Guid.NewGuid();
+        var invalidToken = Guid.NewGuid();
+        var claimedIds = await this.outboxClient!.ClaimAsync(ownerToken, 30, 10);
+
+        // Act - try to ack with wrong owner
+        await this.outboxClient.AckAsync(invalidToken, claimedIds);
+
+        // Assert - items should still be in claimed state
+        await this.VerifyOutboxStatusAsync(claimedIds, 1); // Status = InProgress
+    }
+
+    private async Task<List<Guid>> CreateTestOutboxItemsAsync(int count)
+    {
+        var ids = new List<Guid>();
+        
+        await using var connection = new SqlConnection(this.ConnectionString);
+        await connection.OpenAsync();
+
+        for (int i = 0; i < count; i++)
+        {
+            var id = Guid.NewGuid();
+            ids.Add(id);
+            
+            await connection.ExecuteAsync(@"
+                INSERT INTO dbo.Outbox (Id, Topic, Payload, Status, CreatedAt)
+                VALUES (@Id, @Topic, @Payload, 0, SYSUTCDATETIME())",
+                new { Id = id, Topic = "test", Payload = $"payload{i}" });
+        }
+
+        return ids;
+    }
+
+    private async Task<List<Guid>> CreateTestTimerItemsAsync(int count, DateTime dueTime)
+    {
+        var ids = new List<Guid>();
+        
+        await using var connection = new SqlConnection(this.ConnectionString);
+        await connection.OpenAsync();
+
+        for (int i = 0; i < count; i++)
+        {
+            var id = Guid.NewGuid();
+            ids.Add(id);
+            
+            await connection.ExecuteAsync(@"
+                INSERT INTO dbo.Timers (Id, Topic, Payload, DueTime, StatusCode, Status)
+                VALUES (@Id, @Topic, @Payload, @DueTime, 0, 'Pending')",
+                new { Id = id, Topic = "test", Payload = $"payload{i}", DueTime = dueTime });
+        }
+
+        return ids;
+    }
+
+    private async Task VerifyOutboxStatusAsync(IEnumerable<Guid> ids, int expectedStatus)
+    {
+        await using var connection = new SqlConnection(this.ConnectionString);
+        await connection.OpenAsync();
+
+        foreach (var id in ids)
+        {
+            var status = await connection.ExecuteScalarAsync<int>(
+                "SELECT Status FROM dbo.Outbox WHERE Id = @Id", new { Id = id });
+            status.ShouldBe(expectedStatus);
+        }
+    }
+
+    private async Task VerifyOutboxProcessedAsync(IEnumerable<Guid> ids, bool expectedProcessed)
+    {
+        await using var connection = new SqlConnection(this.ConnectionString);
+        await connection.OpenAsync();
+
+        foreach (var id in ids)
+        {
+            var isProcessed = await connection.ExecuteScalarAsync<bool>(
+                "SELECT IsProcessed FROM dbo.Outbox WHERE Id = @Id", new { Id = id });
+            isProcessed.ShouldBe(expectedProcessed);
+        }
+    }
+}
