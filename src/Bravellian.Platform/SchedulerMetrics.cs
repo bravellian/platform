@@ -13,13 +13,32 @@
 // limitations under the License.
 
 namespace Bravellian.Platform;
+using System.Diagnostics;
 using System.Diagnostics.Metrics;
 
 internal static class SchedulerMetrics
 {
-    private static readonly Meter Meter = new ("YourApplication.Scheduler", "1.0.0");
+    private static readonly Meter Meter = new("Bravellian.Platform", "1.0.0");
+    private static readonly ActivitySource ActivitySource = new("Bravellian.Platform");
 
-    // Counters: Things that only go up
+    // Work Queue Counters
+    public static readonly Counter<long> OutboxItemsClaimed = Meter.CreateCounter<long>("outbox.items.claimed", "items", "Number of outbox items claimed.");
+    public static readonly Counter<long> OutboxItemsAcknowledged = Meter.CreateCounter<long>("outbox.items.acknowledged", "items", "Number of outbox items acknowledged.");
+    public static readonly Counter<long> OutboxItemsAbandoned = Meter.CreateCounter<long>("outbox.items.abandoned", "items", "Number of outbox items abandoned.");
+    public static readonly Counter<long> OutboxItemsFailed = Meter.CreateCounter<long>("outbox.items.failed", "items", "Number of outbox items marked as failed.");
+    public static readonly Counter<long> OutboxItemsReaped = Meter.CreateCounter<long>("outbox.items.reaped", "items", "Number of expired outbox items reaped.");
+
+    public static readonly Counter<long> TimerItemsClaimed = Meter.CreateCounter<long>("timers.items.claimed", "items", "Number of timer items claimed.");
+    public static readonly Counter<long> TimerItemsAcknowledged = Meter.CreateCounter<long>("timers.items.acknowledged", "items", "Number of timer items acknowledged.");
+    public static readonly Counter<long> TimerItemsAbandoned = Meter.CreateCounter<long>("timers.items.abandoned", "items", "Number of timer items abandoned.");
+    public static readonly Counter<long> TimerItemsReaped = Meter.CreateCounter<long>("timers.items.reaped", "items", "Number of expired timer items reaped.");
+
+    public static readonly Counter<long> JobRunItemsClaimed = Meter.CreateCounter<long>("jobruns.items.claimed", "items", "Number of job run items claimed.");
+    public static readonly Counter<long> JobRunItemsAcknowledged = Meter.CreateCounter<long>("jobruns.items.acknowledged", "items", "Number of job run items acknowledged.");
+    public static readonly Counter<long> JobRunItemsAbandoned = Meter.CreateCounter<long>("jobruns.items.abandoned", "items", "Number of job run items abandoned.");
+    public static readonly Counter<long> JobRunItemsReaped = Meter.CreateCounter<long>("jobruns.items.reaped", "items", "Number of expired job run items reaped.");
+
+    // Legacy Counters
     public static readonly Counter<long> TimersDispatched = Meter.CreateCounter<long>("scheduler.timers.dispatched.count", "timers", "Number of timers dispatched for execution.");
     public static readonly Counter<long> JobsDispatched = Meter.CreateCounter<long>("scheduler.jobs.dispatched.count", "jobs", "Number of jobs dispatched for execution.");
     public static readonly Counter<long> OutboxMessagesSent = Meter.CreateCounter<long>("scheduler.outbox.sent.count", "messages", "Number of outbox messages successfully sent.");
@@ -31,12 +50,33 @@ internal static class SchedulerMetrics
     public static readonly Histogram<double> OutboxSendDuration = Meter.CreateHistogram<double>("scheduler.outbox.send.duration", "ms", "Duration of sending a message from the outbox.");
     public static readonly Histogram<double> LeaseRenewDuration = Meter.CreateHistogram<double>("scheduler.lease.renew.duration", "ms", "Duration of lease renewal operations.");
 
+    // Work Queue Operation Durations
+    public static readonly Histogram<double> WorkQueueClaimDuration = Meter.CreateHistogram<double>("workqueue.claim.duration", "ms", "Duration of work queue claim operations.");
+    public static readonly Histogram<double> WorkQueueAckDuration = Meter.CreateHistogram<double>("workqueue.ack.duration", "ms", "Duration of work queue acknowledge operations.");
+    public static readonly Histogram<double> WorkQueueAbandonDuration = Meter.CreateHistogram<double>("workqueue.abandon.duration", "ms", "Duration of work queue abandon operations.");
+
     // Gauges: To report current state
     static SchedulerMetrics()
     {
         Meter.CreateObservableGauge("scheduler.outbox.pending.gauge", () => GetPendingCount("dbo.Outbox", "IsProcessed = 0"), "messages", "Number of pending messages in the outbox.");
         Meter.CreateObservableGauge("scheduler.timers.pending.gauge", () => GetPendingCount("dbo.Timers", "Status = 'Pending'"), "timers", "Number of pending timers.");
         Meter.CreateObservableGauge("scheduler.jobs.pending.gauge", () => GetPendingCount("dbo.JobRuns", "Status = 'Pending'"), "jobs", "Number of pending job runs.");
+        
+        // Work queue status gauges
+        Meter.CreateObservableGauge("outbox.ready.gauge", () => GetPendingCount("dbo.Outbox", "Status = 0"), "items", "Number of ready outbox items.");
+        Meter.CreateObservableGauge("outbox.inprogress.gauge", () => GetPendingCount("dbo.Outbox", "Status = 1"), "items", "Number of in-progress outbox items.");
+        Meter.CreateObservableGauge("timers.ready.gauge", () => GetPendingCount("dbo.Timers", "StatusCode = 0"), "items", "Number of ready timer items.");
+        Meter.CreateObservableGauge("timers.inprogress.gauge", () => GetPendingCount("dbo.Timers", "StatusCode = 1"), "items", "Number of in-progress timer items.");
+    }
+
+    /// <summary>
+    /// Starts a new activity for tracing work queue operations.
+    /// </summary>
+    /// <param name="operationName">The name of the operation.</param>
+    /// <returns>The started activity, or null if not enabled.</returns>
+    public static Activity? StartActivity(string operationName)
+    {
+        return ActivitySource.StartActivity(operationName);
     }
 
     private static long GetPendingCount(string table, string whereClause)

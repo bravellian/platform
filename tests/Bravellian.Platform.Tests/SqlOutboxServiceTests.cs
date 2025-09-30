@@ -3,6 +3,8 @@ namespace Bravellian.Platform.Tests;
 using System.Data;
 using Dapper;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
 public class SqlOutboxServiceTests : SqlServerTestBase
@@ -18,14 +20,14 @@ public class SqlOutboxServiceTests : SqlServerTestBase
     {
         await base.InitializeAsync();
         this.defaultOptions.ConnectionString = this.ConnectionString;
-        this.outboxService = new SqlOutboxService(Options.Create(this.defaultOptions));
+        this.outboxService = new SqlOutboxService(Options.Create(this.defaultOptions), NullLogger<SqlOutboxService>.Instance);
     }
 
     [Fact]
     public void Constructor_CreatesInstance()
     {
         // Arrange & Act
-        var service = new SqlOutboxService(Options.Create(this.defaultOptions));
+        var service = new SqlOutboxService(Options.Create(this.defaultOptions), NullLogger<SqlOutboxService>.Instance);
 
         // Assert
         service.ShouldNotBeNull();
@@ -83,7 +85,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         // Create custom table using DatabaseSchemaManager
         await DatabaseSchemaManager.EnsureOutboxSchemaAsync(this.ConnectionString, "custom", "CustomOutbox");
         
-        var customOutboxService = new SqlOutboxService(Options.Create(customOptions));
+        var customOutboxService = new SqlOutboxService(Options.Create(customOptions), NullLogger<SqlOutboxService>.Instance);
 
         await using var connection = new SqlConnection(this.ConnectionString);
         await connection.OpenAsync();
