@@ -24,9 +24,12 @@ internal static class SchedulerMetrics
     public static readonly Counter<long> JobsDispatched = Meter.CreateCounter<long>("scheduler.jobs.dispatched.count", "jobs", "Number of jobs dispatched for execution.");
     public static readonly Counter<long> OutboxMessagesSent = Meter.CreateCounter<long>("scheduler.outbox.sent.count", "messages", "Number of outbox messages successfully sent.");
     public static readonly Counter<long> OutboxMessagesFailed = Meter.CreateCounter<long>("scheduler.outbox.failed.count", "messages", "Number of outbox messages that failed to send.");
+    public static readonly Counter<long> LeasesAcquired = Meter.CreateCounter<long>("scheduler.leases.acquired.count", "leases", "Number of leases successfully acquired.");
+    public static readonly Counter<long> LeasesLost = Meter.CreateCounter<long>("scheduler.leases.lost.count", "leases", "Number of leases that were lost.");
 
     // Histograms: To measure duration
     public static readonly Histogram<double> OutboxSendDuration = Meter.CreateHistogram<double>("scheduler.outbox.send.duration", "ms", "Duration of sending a message from the outbox.");
+    public static readonly Histogram<double> LeaseRenewDuration = Meter.CreateHistogram<double>("scheduler.lease.renew.duration", "ms", "Duration of lease renewal operations.");
 
     // Gauges: To report current state
     static SchedulerMetrics()
