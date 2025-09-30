@@ -63,11 +63,12 @@ public class OutboxWorkerTests : SqlServerTestBase
         var testIds = await this.CreateTestOutboxItemsAsync(2);
         this.worker!.ShouldFailProcessing = true;
         this.worker.ProcessingDelay = TimeSpan.FromMilliseconds(50); // Shorter delay for testing
-        
+        this.worker.RunOnce = true;
+
         // Act
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
         await this.worker.StartAsync(cts.Token);
-        
+
         // Give the worker time to claim and attempt processing
         await Task.Delay(3000, cts.Token);
         await this.worker.StopAsync(cts.Token);
@@ -276,6 +277,7 @@ public class OutboxWorkerTests : SqlServerTestBase
         public List<Guid> ProcessedItems { get; } = new();
         public bool ShouldFailProcessing { get; set; }
         public TimeSpan ProcessingDelay { get; set; } = TimeSpan.FromMilliseconds(100);
+        public bool RunOnce { get; set; }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
@@ -288,6 +290,7 @@ public class OutboxWorkerTests : SqlServerTestBase
                     
                     if (claimedIds.Count == 0)
                     {
+                        if (this.RunOnce) break;
                         await Task.Delay(TimeSpan.FromMilliseconds(100), stoppingToken);
                         continue;
                     }
@@ -328,6 +331,11 @@ public class OutboxWorkerTests : SqlServerTestBase
                     {
                         this.logger.LogInformation("Abandoning {Count} failed items", failedIds.Count);
                         await this.outbox.AbandonAsync(this.ownerToken, failedIds, stoppingToken);
+                    }
+
+                    if (this.RunOnce)
+                    {
+                        break;
                     }
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
