@@ -18,7 +18,8 @@ using System.Threading.Tasks;
 
 /// <summary>
 /// Provides a mechanism to enqueue messages for later processing
-/// as part of a transactional operation.
+/// as part of a transactional operation, and to claim and process
+/// messages using a reliable work queue pattern.
 /// </summary>
 public interface IOutbox
 {
@@ -36,4 +37,57 @@ public interface IOutbox
         string payload,
         IDbTransaction transaction,
         string? correlationId = null);
+
+    /// <summary>
+    /// Claims ready outbox messages atomically with a lease for processing.
+    /// </summary>
+    /// <param name="ownerToken">The unique token identifying the claiming process.</param>
+    /// <param name="leaseSeconds">The duration in seconds to hold the lease.</param>
+    /// <param name="batchSize">The maximum number of items to claim.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>A list of claimed message identifiers.</returns>
+    Task<IReadOnlyList<Guid>> ClaimAsync(
+        Guid ownerToken,
+        int leaseSeconds,
+        int batchSize,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Acknowledges outbox messages as successfully processed.
+    /// </summary>
+    /// <param name="ownerToken">The unique token identifying the owning process.</param>
+    /// <param name="ids">The identifiers of messages to acknowledge.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    Task AckAsync(
+        Guid ownerToken,
+        IEnumerable<Guid> ids,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Abandons outbox messages, returning them to the ready state for retry.
+    /// </summary>
+    /// <param name="ownerToken">The unique token identifying the owning process.</param>
+    /// <param name="ids">The identifiers of messages to abandon.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    Task AbandonAsync(
+        Guid ownerToken,
+        IEnumerable<Guid> ids,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Marks outbox messages as failed with error information.
+    /// </summary>
+    /// <param name="ownerToken">The unique token identifying the owning process.</param>
+    /// <param name="ids">The identifiers of messages to fail.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    Task FailAsync(
+        Guid ownerToken,
+        IEnumerable<Guid> ids,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Reaps expired outbox messages, returning them to ready state.
+    /// </summary>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    Task ReapExpiredAsync(CancellationToken cancellationToken = default);
 }

@@ -19,6 +19,7 @@ using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Options;
 using System;
+using System.Data;
 using System.Threading.Tasks;
 
 internal class SqlSchedulerClient : ISchedulerClient
@@ -119,5 +120,156 @@ internal class SqlSchedulerClient : ISchedulerClient
         {
             await connection.ExecuteAsync(this.triggerJobSql, new { JobName = jobName }).ConfigureAwait(false);
         }
+    }
+
+    public async Task<IReadOnlyList<Guid>> ClaimTimersAsync(
+        Guid ownerToken,
+        int leaseSeconds,
+        int batchSize,
+        CancellationToken cancellationToken = default)
+    {
+        var result = new List<Guid>(batchSize);
+        
+        await using var connection = new SqlConnection(this.connectionString);
+        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        
+        await using var command = new SqlCommand("dbo.Timers_Claim", connection)
+        {
+            CommandType = CommandType.StoredProcedure,
+        };
+        
+        command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+        command.Parameters.AddWithValue("@LeaseSeconds", leaseSeconds);
+        command.Parameters.AddWithValue("@BatchSize", batchSize);
+
+        using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            result.Add((Guid)reader.GetValue(0));
+        }
+
+        return result;
+    }
+
+    public async Task<IReadOnlyList<Guid>> ClaimJobRunsAsync(
+        Guid ownerToken,
+        int leaseSeconds,
+        int batchSize,
+        CancellationToken cancellationToken = default)
+    {
+        var result = new List<Guid>(batchSize);
+        
+        await using var connection = new SqlConnection(this.connectionString);
+        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        
+        await using var command = new SqlCommand("dbo.JobRuns_Claim", connection)
+        {
+            CommandType = CommandType.StoredProcedure,
+        };
+        
+        command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+        command.Parameters.AddWithValue("@LeaseSeconds", leaseSeconds);
+        command.Parameters.AddWithValue("@BatchSize", batchSize);
+
+        using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            result.Add((Guid)reader.GetValue(0));
+        }
+
+        return result;
+    }
+
+    public async Task AckTimersAsync(
+        Guid ownerToken,
+        IEnumerable<Guid> ids,
+        CancellationToken cancellationToken = default)
+    {
+        await this.ExecuteWithIdsAsync("dbo.Timers_Ack", ownerToken, ids, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task AckJobRunsAsync(
+        Guid ownerToken,
+        IEnumerable<Guid> ids,
+        CancellationToken cancellationToken = default)
+    {
+        await this.ExecuteWithIdsAsync("dbo.JobRuns_Ack", ownerToken, ids, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task AbandonTimersAsync(
+        Guid ownerToken,
+        IEnumerable<Guid> ids,
+        CancellationToken cancellationToken = default)
+    {
+        await this.ExecuteWithIdsAsync("dbo.Timers_Abandon", ownerToken, ids, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task AbandonJobRunsAsync(
+        Guid ownerToken,
+        IEnumerable<Guid> ids,
+        CancellationToken cancellationToken = default)
+    {
+        await this.ExecuteWithIdsAsync("dbo.JobRuns_Abandon", ownerToken, ids, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task ReapExpiredTimersAsync(CancellationToken cancellationToken = default)
+    {
+        await using var connection = new SqlConnection(this.connectionString);
+        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        
+        await using var command = new SqlCommand("dbo.Timers_ReapExpired", connection)
+        {
+            CommandType = CommandType.StoredProcedure,
+        };
+
+        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task ReapExpiredJobRunsAsync(CancellationToken cancellationToken = default)
+    {
+        await using var connection = new SqlConnection(this.connectionString);
+        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        
+        await using var command = new SqlCommand("dbo.JobRuns_ReapExpired", connection)
+        {
+            CommandType = CommandType.StoredProcedure,
+        };
+
+        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task ExecuteWithIdsAsync(
+        string procedure,
+        Guid ownerToken,
+        IEnumerable<Guid> ids,
+        CancellationToken cancellationToken)
+    {
+        var idList = ids.ToList();
+        if (idList.Count == 0)
+        {
+            return; // Nothing to do
+        }
+
+        var tvp = new DataTable();
+        tvp.Columns.Add("Id", typeof(Guid));
+        foreach (var id in idList)
+        {
+            tvp.Rows.Add(id);
+        }
+
+        await using var connection = new SqlConnection(this.connectionString);
+        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        
+        await using var command = new SqlCommand(procedure, connection)
+        {
+            CommandType = CommandType.StoredProcedure,
+        };
+        
+        command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+        var parameter = command.Parameters.AddWithValue("@Ids", tvp);
+        parameter.SqlDbType = SqlDbType.Structured;
+        parameter.TypeName = "dbo.GuidIdList";
+
+        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 }

@@ -1,17 +1,19 @@
 namespace Bravellian.Platform.Tests;
 
 using Dapper;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Microsoft.Data.SqlClient;
 using Shouldly;
 
-public class WorkQueueWorkerTests : SqlServerTestBase
+public class OutboxWorkerTests : SqlServerTestBase
 {
-    private OutboxWorkQueueClient? outboxClient;
+    private SqlOutboxService? outboxService;
     private TestOutboxWorker? worker;
 
-    public WorkQueueWorkerTests(ITestOutputHelper testOutputHelper) : base(testOutputHelper)
+    public OutboxWorkerTests(ITestOutputHelper testOutputHelper) : base(testOutputHelper)
     {
     }
 
@@ -22,8 +24,14 @@ public class WorkQueueWorkerTests : SqlServerTestBase
         // Ensure work queue schema is set up
         await DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(this.ConnectionString);
         
-        this.outboxClient = new OutboxWorkQueueClient(this.ConnectionString);
-        this.worker = new TestOutboxWorker(this.outboxClient, NullLogger<TestOutboxWorker>.Instance);
+        var options = Options.Create(new SqlOutboxOptions 
+        { 
+            ConnectionString = this.ConnectionString,
+            SchemaName = "dbo",
+            TableName = "Outbox"
+        });
+        this.outboxService = new SqlOutboxService(options);
+        this.worker = new TestOutboxWorker(this.outboxService, NullLogger<TestOutboxWorker>.Instance);
     }
 
     [Fact]
@@ -122,30 +130,75 @@ public class WorkQueueWorkerTests : SqlServerTestBase
         }
     }
 
-    private class TestOutboxWorker : WorkQueueWorkerBase<Guid>
+    private class TestOutboxWorker : BackgroundService
     {
-        public TestOutboxWorker(IWorkQueueClient<Guid> workQueueClient, ILogger<TestOutboxWorker> logger)
-            : base(workQueueClient, logger)
+        private readonly IOutbox outbox;
+        private readonly ILogger<TestOutboxWorker> logger;
+        private readonly Guid ownerToken = Guid.NewGuid();
+
+        public TestOutboxWorker(IOutbox outbox, ILogger<TestOutboxWorker> logger)
         {
+            this.outbox = outbox;
+            this.logger = logger;
         }
 
         public List<Guid> ProcessedItems { get; } = new();
         public bool ShouldFailProcessing { get; set; }
         public TimeSpan ProcessingDelay { get; set; } = TimeSpan.FromMilliseconds(100);
 
-        protected override int BatchSize => 10;
-        protected override TimeSpan PollingDelay => TimeSpan.FromMilliseconds(100);
-
-        protected override async Task ProcessWorkItemAsync(Guid id, CancellationToken cancellationToken)
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            await Task.Delay(this.ProcessingDelay, cancellationToken);
-            
-            if (this.ShouldFailProcessing)
+            while (!stoppingToken.IsCancellationRequested)
             {
-                throw new InvalidOperationException("Simulated processing failure");
-            }
+                try
+                {
+                    var claimedIds = await this.outbox.ClaimAsync(this.ownerToken, 30, 10, stoppingToken);
+                    if (claimedIds.Count == 0)
+                    {
+                        await Task.Delay(TimeSpan.FromMilliseconds(100), stoppingToken);
+                        continue;
+                    }
 
-            this.ProcessedItems.Add(id);
+                    var succeededIds = new List<Guid>();
+                    var failedIds = new List<Guid>();
+
+                    foreach (var id in claimedIds)
+                    {
+                        try
+                        {
+                            await Task.Delay(this.ProcessingDelay, stoppingToken);
+                            
+                            if (this.ShouldFailProcessing)
+                            {
+                                throw new InvalidOperationException("Simulated processing failure");
+                            }
+
+                            this.ProcessedItems.Add(id);
+                            succeededIds.Add(id);
+                        }
+                        catch (Exception ex)
+                        {
+                            this.logger.LogWarning(ex, "Failed to process outbox item {Id}", id);
+                            failedIds.Add(id);
+                        }
+                    }
+
+                    if (succeededIds.Count > 0)
+                        await this.outbox.AckAsync(this.ownerToken, succeededIds, stoppingToken);
+
+                    if (failedIds.Count > 0)
+                        await this.outbox.AbandonAsync(this.ownerToken, failedIds, stoppingToken);
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    this.logger.LogError(ex, "Error in outbox processing loop");
+                    await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
+                }
+            }
         }
     }
 }

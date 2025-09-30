@@ -15,6 +15,7 @@
 namespace Bravellian.Platform;
 
 using Dapper;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Options;
 using System.Data;
 using System.Threading.Tasks;
@@ -22,11 +23,13 @@ using System.Threading.Tasks;
 internal class SqlOutboxService : IOutbox
 {
     private readonly SqlOutboxOptions options;
+    private readonly string connectionString;
     private readonly string enqueueSql;
 
     public SqlOutboxService(IOptions<SqlOutboxOptions> options)
     {
         this.options = options.Value;
+        this.connectionString = this.options.ConnectionString;
         
         // Build the SQL query using configured schema and table names
         this.enqueueSql = $@"
@@ -47,5 +50,106 @@ internal class SqlOutboxService : IOutbox
             Payload = payload,
             CorrelationId = correlationId,
         }, transaction: transaction).ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<Guid>> ClaimAsync(
+        Guid ownerToken,
+        int leaseSeconds,
+        int batchSize,
+        CancellationToken cancellationToken = default)
+    {
+        var result = new List<Guid>(batchSize);
+        
+        await using var connection = new SqlConnection(this.connectionString);
+        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        
+        await using var command = new SqlCommand("dbo.Outbox_Claim", connection)
+        {
+            CommandType = CommandType.StoredProcedure,
+        };
+        
+        command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+        command.Parameters.AddWithValue("@LeaseSeconds", leaseSeconds);
+        command.Parameters.AddWithValue("@BatchSize", batchSize);
+
+        using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            result.Add((Guid)reader.GetValue(0));
+        }
+
+        return result;
+    }
+
+    public async Task AckAsync(
+        Guid ownerToken,
+        IEnumerable<Guid> ids,
+        CancellationToken cancellationToken = default)
+    {
+        await this.ExecuteWithIdsAsync("dbo.Outbox_Ack", ownerToken, ids, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task AbandonAsync(
+        Guid ownerToken,
+        IEnumerable<Guid> ids,
+        CancellationToken cancellationToken = default)
+    {
+        await this.ExecuteWithIdsAsync("dbo.Outbox_Abandon", ownerToken, ids, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task FailAsync(
+        Guid ownerToken,
+        IEnumerable<Guid> ids,
+        CancellationToken cancellationToken = default)
+    {
+        await this.ExecuteWithIdsAsync("dbo.Outbox_Fail", ownerToken, ids, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task ReapExpiredAsync(CancellationToken cancellationToken = default)
+    {
+        await using var connection = new SqlConnection(this.connectionString);
+        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        
+        await using var command = new SqlCommand("dbo.Outbox_ReapExpired", connection)
+        {
+            CommandType = CommandType.StoredProcedure,
+        };
+
+        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task ExecuteWithIdsAsync(
+        string procedure,
+        Guid ownerToken,
+        IEnumerable<Guid> ids,
+        CancellationToken cancellationToken)
+    {
+        var idList = ids.ToList();
+        if (idList.Count == 0)
+        {
+            return; // Nothing to do
+        }
+
+        var tvp = new DataTable();
+        tvp.Columns.Add("Id", typeof(Guid));
+        foreach (var id in idList)
+        {
+            tvp.Rows.Add(id);
+        }
+
+        await using var connection = new SqlConnection(this.connectionString);
+        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        
+        await using var command = new SqlCommand(procedure, connection)
+        {
+            CommandType = CommandType.StoredProcedure,
+        };
+        
+        command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+        var parameter = command.Parameters.AddWithValue("@Ids", tvp);
+        parameter.SqlDbType = SqlDbType.Structured;
+        parameter.TypeName = "dbo.GuidIdList";
+
+        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 }

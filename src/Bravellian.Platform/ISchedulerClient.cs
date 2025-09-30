@@ -18,7 +18,8 @@ using System;
 using System.Threading.Tasks;
 
 /// <summary>
-/// A client for scheduling and managing durable timers and recurring jobs.
+/// A client for scheduling and managing durable timers and recurring jobs,
+/// with support for claiming and processing scheduled work items.
 /// </summary>
 public interface ISchedulerClient
 {
@@ -58,4 +59,88 @@ public interface ISchedulerClient
     /// </summary>
     /// <param name="jobName">The unique name of the job to trigger.</param>
     Task TriggerJobAsync(string jobName);
+
+    /// <summary>
+    /// Claims ready timer items atomically with a lease for processing.
+    /// </summary>
+    /// <param name="ownerToken">The unique token identifying the claiming process.</param>
+    /// <param name="leaseSeconds">The duration in seconds to hold the lease.</param>
+    /// <param name="batchSize">The maximum number of items to claim.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>A list of claimed timer identifiers.</returns>
+    Task<IReadOnlyList<Guid>> ClaimTimersAsync(
+        Guid ownerToken,
+        int leaseSeconds,
+        int batchSize,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Claims ready job run items atomically with a lease for processing.
+    /// </summary>
+    /// <param name="ownerToken">The unique token identifying the claiming process.</param>
+    /// <param name="leaseSeconds">The duration in seconds to hold the lease.</param>
+    /// <param name="batchSize">The maximum number of items to claim.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>A list of claimed job run identifiers.</returns>
+    Task<IReadOnlyList<Guid>> ClaimJobRunsAsync(
+        Guid ownerToken,
+        int leaseSeconds,
+        int batchSize,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Acknowledges timer items as successfully processed.
+    /// </summary>
+    /// <param name="ownerToken">The unique token identifying the owning process.</param>
+    /// <param name="ids">The identifiers of timers to acknowledge.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    Task AckTimersAsync(
+        Guid ownerToken,
+        IEnumerable<Guid> ids,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Acknowledges job run items as successfully processed.
+    /// </summary>
+    /// <param name="ownerToken">The unique token identifying the owning process.</param>
+    /// <param name="ids">The identifiers of job runs to acknowledge.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    Task AckJobRunsAsync(
+        Guid ownerToken,
+        IEnumerable<Guid> ids,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Abandons timer items, returning them to the ready state for retry.
+    /// </summary>
+    /// <param name="ownerToken">The unique token identifying the owning process.</param>
+    /// <param name="ids">The identifiers of timers to abandon.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    Task AbandonTimersAsync(
+        Guid ownerToken,
+        IEnumerable<Guid> ids,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Abandons job run items, returning them to the ready state for retry.
+    /// </summary>
+    /// <param name="ownerToken">The unique token identifying the owning process.</param>
+    /// <param name="ids">The identifiers of job runs to abandon.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    Task AbandonJobRunsAsync(
+        Guid ownerToken,
+        IEnumerable<Guid> ids,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Reaps expired timer items, returning them to ready state.
+    /// </summary>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    Task ReapExpiredTimersAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Reaps expired job run items, returning them to ready state.
+    /// </summary>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    Task ReapExpiredJobRunsAsync(CancellationToken cancellationToken = default);
 }
