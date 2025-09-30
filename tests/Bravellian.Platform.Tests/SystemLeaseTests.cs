@@ -14,7 +14,6 @@
 
 namespace Bravellian.Platform.Tests;
 
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Shouldly;
@@ -37,7 +36,7 @@ public class SystemLeaseTests : SqlServerTestBase
         this.options = new SystemLeaseOptions
         {
             ConnectionString = this.ConnectionString,
-            SchemaName = "pw",
+            SchemaName = "dbo",
             DefaultLeaseDuration = TimeSpan.FromSeconds(30),
             RenewPercent = 0.6,
             UseGate = false,

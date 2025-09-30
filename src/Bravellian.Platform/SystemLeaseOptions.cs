@@ -28,9 +28,9 @@ public class SystemLeaseOptions
 
     /// <summary>
     /// Gets or sets the schema name for the distributed lock table.
-    /// Default is "pw".
+    /// Default is "dbo".
     /// </summary>
-    public string SchemaName { get; set; } = "pw";
+    public string SchemaName { get; set; } = "dbo";
 
     /// <summary>
     /// Gets or sets the default lease duration for new leases.

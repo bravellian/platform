@@ -12,14 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Bravellian.Platform;
@@ -43,7 +37,6 @@ public static class SchedulerServiceCollectionExtensions
         // 2. Register the public-facing client and internal services as singletons
         services.AddSingleton<ISchedulerClient, SqlSchedulerClient>();
         services.AddSingleton<IOutbox, SqlOutboxService>();
-        services.AddSingleton<ISqlDistributedLock, SqlDistributedLock>();
 
         // 3. Register the health check
         services.AddSingleton<SchedulerHealthCheck>();
@@ -64,36 +57,13 @@ public static class SchedulerServiceCollectionExtensions
     /// <param name="services">The IServiceCollection to add services to.</param>
     /// <param name="options">The configuration, used to set the options.</param>
     /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
-    public static IServiceCollection AddSqlDistributedLock(this IServiceCollection services, SqlDistributedLockOptions options)
-    {
-        services.Configure<SqlDistributedLockOptions>(o =>
-        {
-            o.ConnectionString = options.ConnectionString;
-        });
-
-        services.AddSingleton<ISqlDistributedLock, SqlDistributedLock>();
-
-        return services;
-    }
-
-    /// <summary>
-    /// </summary>
-    /// <param name="services">The IServiceCollection to add services to.</param>
-    /// <param name="options">The configuration, used to set the options.</param>
-    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
     public static IServiceCollection AddSqlOutbox(this IServiceCollection services, SqlOutboxOptions options)
     {
         // Add lease system for outbox processing coordination
         services.AddSystemLeases(new SystemLeaseOptions
         {
             ConnectionString = options.ConnectionString,
-            SchemaName = "pw", // Use pw schema for distributed locks
-        });
-
-        // Keep old distributed lock for backward compatibility
-        services.AddSqlDistributedLock(new SqlDistributedLockOptions
-        {
-            ConnectionString = options.ConnectionString,
+            SchemaName = "dbo", // Use dbo schema for distributed locks
         });
 
         services.Configure<SqlOutboxOptions>(o =>
@@ -144,7 +114,7 @@ public static class SchedulerServiceCollectionExtensions
         services.AddSystemLeases(new SystemLeaseOptions
         {
             ConnectionString = options.ConnectionString,
-            SchemaName = "pw", // Use pw schema for distributed locks
+            SchemaName = "dbo", // Use dbo schema for distributed locks
         });
 
         services.Configure<SqlSchedulerOptions>(o =>
@@ -244,20 +214,6 @@ public static class SchedulerServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Adds SQL distributed lock functionality.
-    /// </summary>
-    /// <param name="services">The IServiceCollection to add services to.</param>
-    /// <param name="connectionString">The database connection string.</param>
-    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
-    public static IServiceCollection AddSqlDistributedLock(this IServiceCollection services, string connectionString)
-    {
-        return services.AddSqlDistributedLock(new SqlDistributedLockOptions
-        {
-            ConnectionString = connectionString
-        });
-    }
-
-    /// <summary>
     /// Adds system lease functionality with SQL Server backend.
     /// </summary>
     /// <param name="services">The IServiceCollection to add services to.</param>
@@ -300,9 +256,9 @@ public static class SchedulerServiceCollectionExtensions
     /// </summary>
     /// <param name="services">The IServiceCollection to add services to.</param>
     /// <param name="connectionString">The database connection string.</param>
-    /// <param name="schemaName">The schema name (default: "pw").</param>
+    /// <param name="schemaName">The schema name (default: "dbo").</param>
     /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
-    public static IServiceCollection AddSystemLeases(this IServiceCollection services, string connectionString, string schemaName = "pw")
+    public static IServiceCollection AddSystemLeases(this IServiceCollection services, string connectionString, string schemaName = "dbo")
     {
         return services.AddSystemLeases(new SystemLeaseOptions
         {

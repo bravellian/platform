@@ -15,10 +15,6 @@
 namespace Bravellian.Platform;
 
 using System;
-using System.Data;
-using System.IO;
-using System.Reflection;
-using System.Text;
 using System.Threading.Tasks;
 using Dapper;
 using Microsoft.Data.SqlClient;
@@ -61,10 +57,10 @@ internal static class DatabaseSchemaManager
     /// Ensures that the required database schema exists for the distributed lock functionality.
     /// </summary>
     /// <param name="connectionString">The database connection string.</param>
-    /// <param name="schemaName">The schema name (default: "pw").</param>
+    /// <param name="schemaName">The schema name (default: "dbo").</param>
     /// <param name="tableName">The table name (default: "DistributedLock").</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public static async Task EnsureDistributedLockSchemaAsync(string connectionString, string schemaName = "pw", string tableName = "DistributedLock")
+    public static async Task EnsureDistributedLockSchemaAsync(string connectionString, string schemaName = "dbo", string tableName = "DistributedLock")
     {
         using var connection = new SqlConnection(connectionString);
         await connection.OpenAsync().ConfigureAwait(false);
@@ -386,12 +382,13 @@ BEGIN
     DECLARE @now DATETIME2(3) = SYSUTCDATETIME();
     DECLARE @newLease DATETIME2(3) = DATEADD(SECOND, @LeaseSeconds, @now);
     DECLARE @rc INT;
+    DECLARE @LockResourceName NVARCHAR(255) = CONCAT('lease:', @ResourceName);
 
     -- Optional micro critical section to serialize row upsert under high contention
     IF (@UseGate = 1)
     BEGIN
         EXEC @rc = sp_getapplock
-            @Resource    = CONCAT('lease:', @ResourceName),
+            @Resource    = @LockResourceName,
             @LockMode    = 'Exclusive',
             @LockOwner   = 'Session',
             @LockTimeout = @GateTimeoutMs,
@@ -444,7 +441,7 @@ BEGIN
 
     IF (@UseGate = 1)
         EXEC sp_releaseapplock
-             @Resource  = CONCAT('lease:', @ResourceName),
+             @Resource  = @LockResourceName,
              @LockOwner = 'Session';
 END";
     }
