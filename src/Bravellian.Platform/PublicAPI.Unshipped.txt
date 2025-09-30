@@ -8,9 +8,21 @@ Bravellian.Platform.ISchedulerClient.ScheduleTimerAsync(string! topic, string! p
 Bravellian.Platform.ISchedulerClient.TriggerJobAsync(string! jobName) -> System.Threading.Tasks.Task!
 Bravellian.Platform.ISqlDistributedLock
 Bravellian.Platform.ISqlDistributedLock.AcquireAsync(string resource, System.TimeSpan timeout, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.IAsyncDisposable>
+Bravellian.Platform.ISystemLease
+Bravellian.Platform.ISystemLease.CancellationToken.get -> System.Threading.CancellationToken
+Bravellian.Platform.ISystemLease.FencingToken.get -> long
+Bravellian.Platform.ISystemLease.OwnerToken.get -> System.Guid
+Bravellian.Platform.ISystemLease.ResourceName.get -> string!
+Bravellian.Platform.ISystemLease.ThrowIfLost() -> void
+Bravellian.Platform.ISystemLease.TryRenewNowAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Bravellian.Platform.ISystemLeaseFactory
+Bravellian.Platform.ISystemLeaseFactory.AcquireAsync(string! resourceName, System.TimeSpan leaseDuration, string? contextJson = null, System.Guid? ownerToken = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Bravellian.Platform.ISystemLease?>!
+Bravellian.Platform.LostLeaseException
+Bravellian.Platform.LostLeaseException.LostLeaseException(string! resourceName, System.Guid ownerToken) -> void
+Bravellian.Platform.LostLeaseException.OwnerToken.get -> System.Guid
+Bravellian.Platform.LostLeaseException.ResourceName.get -> string!
 Bravellian.Platform.OutboxMessage
 Bravellian.Platform.OutboxMessage.<Clone>$() -> Bravellian.Platform.OutboxMessage!
-Bravellian.Platform.OutboxMessage.CorrelationId.get -> System.Guid?
 Bravellian.Platform.OutboxMessage.CreatedAt.get -> System.DateTimeOffset
 Bravellian.Platform.OutboxMessage.Equals(Bravellian.Platform.OutboxMessage? other) -> bool
 Bravellian.Platform.OutboxMessage.Id.get -> System.Guid
@@ -19,7 +31,6 @@ Bravellian.Platform.OutboxMessage.LastError.get -> string
 Bravellian.Platform.OutboxMessage.MessageId.get -> System.Guid
 Bravellian.Platform.OutboxMessage.NextAttemptAt.get -> System.DateTimeOffset
 Bravellian.Platform.OutboxMessage.OutboxMessage() -> void
-Bravellian.Platform.OutboxMessage.OutboxMessage(Bravellian.Platform.OutboxMessage original) -> void
 Bravellian.Platform.OutboxMessage.Payload.get -> string
 Bravellian.Platform.OutboxMessage.ProcessedAt.get -> System.DateTimeOffset?
 Bravellian.Platform.OutboxMessage.ProcessedBy.get -> string
@@ -35,5 +46,21 @@ Bravellian.Platform.SqlSchedulerOptions.EnableBackgroundWorkers.set -> void
 Bravellian.Platform.SqlSchedulerOptions.MaxPollingInterval.get -> System.TimeSpan
 Bravellian.Platform.SqlSchedulerOptions.MaxPollingInterval.set -> void
 Bravellian.Platform.SqlSchedulerOptions.SqlSchedulerOptions() -> void
+Bravellian.Platform.SystemLeaseOptions
+Bravellian.Platform.SystemLeaseOptions.ConnectionString.get -> string!
+Bravellian.Platform.SystemLeaseOptions.ConnectionString.set -> void
+Bravellian.Platform.SystemLeaseOptions.DefaultLeaseDuration.get -> System.TimeSpan
+Bravellian.Platform.SystemLeaseOptions.DefaultLeaseDuration.set -> void
+Bravellian.Platform.SystemLeaseOptions.GateTimeoutMs.get -> int
+Bravellian.Platform.SystemLeaseOptions.GateTimeoutMs.set -> void
+Bravellian.Platform.SystemLeaseOptions.RenewPercent.get -> double
+Bravellian.Platform.SystemLeaseOptions.RenewPercent.set -> void
+Bravellian.Platform.SystemLeaseOptions.SchemaName.get -> string!
+Bravellian.Platform.SystemLeaseOptions.SchemaName.set -> void
+Bravellian.Platform.SystemLeaseOptions.SystemLeaseOptions() -> void
+Bravellian.Platform.SystemLeaseOptions.UseGate.get -> bool
+Bravellian.Platform.SystemLeaseOptions.UseGate.set -> void
 const Bravellian.Platform.SqlSchedulerOptions.SectionName = "SqlScheduler" -> string!
 static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddSqlScheduler(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddSystemLeases(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Bravellian.Platform.SystemLeaseOptions! options) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddSystemLeases(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! connectionString, string! schemaName = "dbo") -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

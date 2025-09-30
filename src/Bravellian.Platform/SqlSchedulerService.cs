@@ -22,7 +22,7 @@ using System.Threading.Tasks;
 
 internal class SqlSchedulerService : IHostedService
 {
-    private readonly ISqlDistributedLock distributedLock;
+    private readonly ISystemLeaseFactory leaseFactory;
     private readonly IOutbox outbox;
     private readonly string connectionString;
     private readonly SqlSchedulerOptions options;
@@ -35,10 +35,11 @@ internal class SqlSchedulerService : IHostedService
     private readonly string claimTimersSql;
     private readonly string claimJobsSql;
     private readonly string getNextEventTimeSql;
+    private readonly string schedulerStateUpdateSql;
 
-    public SqlSchedulerService(ISqlDistributedLock distributedLock, IOutbox outbox, IOptions<SqlSchedulerOptions> options)
+    public SqlSchedulerService(ISystemLeaseFactory leaseFactory, IOutbox outbox, IOptions<SqlSchedulerOptions> options)
     {
-        this.distributedLock = distributedLock;
+        this.leaseFactory = leaseFactory;
         this.outbox = outbox;
         this.options = options.Value;
         this.connectionString = this.options.ConnectionString;
@@ -51,6 +52,7 @@ internal class SqlSchedulerService : IHostedService
             WHERE Id IN (
                 SELECT TOP 10 Id FROM [{this.options.SchemaName}].[{this.options.TimersTableName}]
                 WHERE Status = 'Pending' AND DueTime <= SYSDATETIMEOFFSET()
+                  AND @FencingToken >= (SELECT ISNULL(CurrentFencingToken, 0) FROM [{this.options.SchemaName}].[SchedulerState] WHERE Id = 1)
                 ORDER BY DueTime
             );";
 
@@ -63,6 +65,7 @@ internal class SqlSchedulerService : IHostedService
             WHERE jr.Id IN (
                 SELECT TOP 10 Id FROM [{this.options.SchemaName}].[{this.options.JobRunsTableName}]
                 WHERE Status = 'Pending' AND ScheduledTime <= SYSDATETIMEOFFSET()
+                  AND @FencingToken >= (SELECT ISNULL(CurrentFencingToken, 0) FROM [{this.options.SchemaName}].[SchedulerState] WHERE Id = 1)
                 ORDER BY ScheduledTime
             );";
 
@@ -73,6 +76,16 @@ internal class SqlSchedulerService : IHostedService
                 UNION ALL
                 SELECT MIN(ScheduledTime) AS NextDue FROM [{this.options.SchemaName}].[{this.options.JobRunsTableName}] WHERE Status = 'Pending'
             ) AS NextEvents;";
+
+        // SQL to update the fencing token state for scheduler operations
+        this.schedulerStateUpdateSql = $@"
+            MERGE [{this.options.SchemaName}].[SchedulerState] AS target
+            USING (VALUES (1, @FencingToken, @LastRunAt)) AS source (Id, FencingToken, LastRunAt)
+            ON target.Id = source.Id
+            WHEN MATCHED AND @FencingToken >= target.CurrentFencingToken THEN
+                UPDATE SET CurrentFencingToken = @FencingToken, LastRunAt = @LastRunAt
+            WHEN NOT MATCHED THEN
+                INSERT (Id, CurrentFencingToken, LastRunAt) VALUES (1, @FencingToken, @LastRunAt);";
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
@@ -101,47 +114,69 @@ internal class SqlSchedulerService : IHostedService
         {
             TimeSpan sleepDuration;
 
-            // Use your lock to ensure only one instance acts as the scheduler at a time.
-            var handle = await this.distributedLock.AcquireAsync("SchedulerLock", TimeSpan.Zero, cancellationToken).ConfigureAwait(false);
-            await using (handle.ConfigureAwait(false))
+            // Try to acquire a lease for scheduler processing
+            var lease = await this.leaseFactory.AcquireAsync(
+                "scheduler:run", 
+                TimeSpan.FromSeconds(30), 
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+
+            if (lease == null)
             {
-                if (handle == null)
+                // Could not get the lease. Another instance is running.
+                // We'll wait a bit before trying again to avoid hammering the DB for the lock.
+                await Task.Delay(this.maxWaitTime, cancellationToken).ConfigureAwait(false);
+                continue;
+            }
+
+            await using (lease.ConfigureAwait(false))
+            {
+                try
                 {
-                    // Could not get the lock. Another instance is running.
-                    // We'll wait a bit before trying again to avoid hammering the DB for the lock.
-                    await Task.Delay(this.maxWaitTime, cancellationToken).ConfigureAwait(false);
-                    continue;
-                }
+                    // LEASE ACQUIRED: We are the active scheduler instance.
 
-                // LOCK ACQUIRED: We are the active scheduler instance.
+                    // Update the fencing state to indicate we're the current scheduler
+                    using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.connectionString);
+                    await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+                    
+                    await connection.ExecuteAsync(this.schedulerStateUpdateSql, new 
+                    { 
+                        FencingToken = lease.FencingToken, 
+                        LastRunAt = DateTimeOffset.UtcNow 
+                    }).ConfigureAwait(false);
 
-                // 1. Process any work that is currently due.
-                await this.DispatchDueWorkAsync().ConfigureAwait(false);
+                    // 1. Process any work that is currently due.
+                    await this.DispatchDueWorkAsync(lease).ConfigureAwait(false);
 
-                // 2. Find the time of the next scheduled event.
-                var nextEventTime = await this.GetNextEventTimeAsync().ConfigureAwait(false);
+                    // 2. Find the time of the next scheduled event.
+                    var nextEventTime = await this.GetNextEventTimeAsync().ConfigureAwait(false);
 
-                // 3. Calculate the hybrid sleep duration.
-                if (nextEventTime == null)
-                {
-                    // No work is scheduled at all. Sleep for the max wait time.
-                    sleepDuration = this.maxWaitTime;
-                }
-                else
-                {
-                    var timeUntilNextEvent = nextEventTime.Value - DateTimeOffset.UtcNow;
-                    if (timeUntilNextEvent <= TimeSpan.Zero)
+                    // 3. Calculate the hybrid sleep duration.
+                    if (nextEventTime == null)
                     {
-                        // Work is already due or overdue. Don't sleep.
-                        sleepDuration = TimeSpan.Zero;
+                        // No work is scheduled at all. Sleep for the max wait time.
+                        sleepDuration = this.maxWaitTime;
                     }
                     else
                     {
-                        // Sleep until the next event OR max wait time, whichever is shorter.
-                        sleepDuration = timeUntilNextEvent < this.maxWaitTime ? timeUntilNextEvent : this.maxWaitTime;
+                        var timeUntilNextEvent = nextEventTime.Value - DateTimeOffset.UtcNow;
+                        if (timeUntilNextEvent <= TimeSpan.Zero)
+                        {
+                            // Work is already due or overdue. Don't sleep.
+                            sleepDuration = TimeSpan.Zero;
+                        }
+                        else
+                        {
+                            // Sleep until the next event OR max wait time, whichever is shorter.
+                            sleepDuration = timeUntilNextEvent < this.maxWaitTime ? timeUntilNextEvent : this.maxWaitTime;
+                        }
                     }
                 }
-            } // LOCK IS RELEASED HERE
+                catch (LostLeaseException)
+                {
+                    // Lease was lost during processing - stop immediately
+                    return;
+                }
+            } // LEASE IS RELEASED HERE
 
             // 4. Sleep for the calculated duration.
             if (sleepDuration > TimeSpan.Zero)
@@ -151,48 +186,55 @@ internal class SqlSchedulerService : IHostedService
         }
     }
 
-    private async Task DispatchDueWorkAsync()
+    private async Task DispatchDueWorkAsync(ISystemLease lease)
     {
-        using (var connection = new Microsoft.Data.SqlClient.SqlConnection(this.connectionString))
+        using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.connectionString);
+        await connection.OpenAsync().ConfigureAwait(false);
+
+        // 1. Start a single transaction for the entire dispatch operation.
+        using var transaction = connection.BeginTransaction();
+        try
         {
-            await connection.OpenAsync().ConfigureAwait(false);
+            // Check that we still hold the lease before proceeding
+            lease.ThrowIfLost();
 
-            // 1. Start a single transaction for the entire dispatch operation.
-            using (var transaction = connection.BeginTransaction())
-            {
-                try
-                {
-                    // 2. Process due timers.
-                    await this.DispatchTimersAsync(transaction).ConfigureAwait(false);
+            // 2. Process due timers.
+            await this.DispatchTimersAsync(transaction, lease).ConfigureAwait(false);
 
-                    // 3. Process due job runs.
-                    await this.DispatchJobRunsAsync(transaction).ConfigureAwait(false);
+            // 3. Process due job runs.
+            await this.DispatchJobRunsAsync(transaction, lease).ConfigureAwait(false);
 
-                    // 4. If all operations succeed, commit the transaction.
-                    transaction.Commit();
-                }
-                catch
-                {
-                    // If anything fails, the entire operation is rolled back.
-                    transaction.Rollback();
-                    throw; // Re-throw the exception to be logged by the host.
-                }
-            }
+            // 4. If all operations succeed, commit the transaction.
+            transaction.Commit();
+        }
+        catch (LostLeaseException)
+        {
+            transaction.Rollback();
+            throw; // Re-throw lease lost exceptions
+        }
+        catch
+        {
+            // If anything fails, the entire operation is rolled back.
+            transaction.Rollback();
+            throw; // Re-throw the exception to be logged by the host.
         }
     }
 
-    private async Task DispatchTimersAsync(Microsoft.Data.SqlClient.SqlTransaction transaction)
+    private async Task DispatchTimersAsync(Microsoft.Data.SqlClient.SqlTransaction transaction, ISystemLease lease)
     {
         // This SQL query is atomic. It finds pending timers that are due,
         // updates their status to 'Claimed', and immediately returns the data
         // of the rows that it successfully updated. This prevents any race conditions.
         var dueTimers = await transaction.Connection.QueryAsync<(Guid Id, string Topic, string Payload)>(
-            this.claimTimersSql, new { InstanceId = this.instanceId }, transaction).ConfigureAwait(false);
+            this.claimTimersSql, new { InstanceId = this.instanceId, FencingToken = lease.FencingToken }, transaction).ConfigureAwait(false);
 
         SchedulerMetrics.TimersDispatched.Add(dueTimers.Count());
 
         foreach (var timer in dueTimers)
         {
+            // Check that we still hold the lease before processing each timer
+            lease.ThrowIfLost();
+
             // For each claimed timer, enqueue it into the outbox for a worker to process.
             await this.outbox.EnqueueAsync(
                 topic: timer.Topic,
@@ -203,16 +245,19 @@ internal class SqlSchedulerService : IHostedService
         }
     }
 
-    private async Task DispatchJobRunsAsync(Microsoft.Data.SqlClient.SqlTransaction transaction)
+    private async Task DispatchJobRunsAsync(Microsoft.Data.SqlClient.SqlTransaction transaction, ISystemLease lease)
     {
         // The logic is identical to timers, just operating on the JobRuns table.
         var dueJobs = await transaction.Connection.QueryAsync<(Guid Id, Guid JobId, string Topic, string Payload)>(
-            this.claimJobsSql, new { InstanceId = this.instanceId }, transaction).ConfigureAwait(false);
+            this.claimJobsSql, new { InstanceId = this.instanceId, FencingToken = lease.FencingToken }, transaction).ConfigureAwait(false);
 
         SchedulerMetrics.JobsDispatched.Add(dueJobs.Count());
 
         foreach (var job in dueJobs)
         {
+            // Check that we still hold the lease before processing each job
+            lease.ThrowIfLost();
+
             await this.outbox.EnqueueAsync(
                 topic: job.Topic,
                 payload: job.Payload, // The payload from the Job definition is passed on.
@@ -224,9 +269,7 @@ internal class SqlSchedulerService : IHostedService
 
     private async Task<DateTimeOffset?> GetNextEventTimeAsync()
     {
-        using (var connection = new Microsoft.Data.SqlClient.SqlConnection(this.connectionString))
-        {
-            return await connection.ExecuteScalarAsync<DateTimeOffset?>(this.getNextEventTimeSql).ConfigureAwait(false);
-        }
+        using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.connectionString);
+        return await connection.ExecuteScalarAsync<DateTimeOffset?>(this.getNextEventTimeSql).ConfigureAwait(false);
     }
 }
