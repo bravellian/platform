@@ -1,0 +1,137 @@
+﻿/*
+
+* The outbox is a **durable intent** log. It is **transport-agnostic**.
+* The dispatcher resolves a handler **by Topic** and calls it. Handlers may:
+  (a) perform local work (email/report/etc.), or
+  (b) forward to a broker. The dispatcher does not care.
+* DB time (`SYSUTCDATETIME()`) decides if a row is **due**. The polling loop uses a **monotonic** clock for sleeps to avoid NTP/OS time jumps skewing intervals.
+* Keep payloads modest; store big blobs elsewhere and pass references.
+* Handlers must be **idempotent** (use DedupKey or internal unique constraints).
+
+*/
+
+// Copyright (c) Bravellian
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+namespace Bravellian.Platform;
+
+using System.Diagnostics;
+
+/// <summary>
+/// Dispatches outbox messages to their appropriate handlers.
+/// This is the core processing engine that claims messages, resolves handlers, and manages retries.
+/// </summary>
+public sealed class OutboxDispatcher
+{
+    private readonly IOutboxStore _store;
+    private readonly IOutboxHandlerResolver _resolver;
+    private readonly Func<int, TimeSpan> _backoffPolicy;
+
+    public OutboxDispatcher(
+        IOutboxStore store, 
+        IOutboxHandlerResolver resolver,
+        Func<int, TimeSpan>? backoffPolicy = null)
+    {
+        _store = store;
+        _resolver = resolver;
+        _backoffPolicy = backoffPolicy ?? DefaultBackoff;
+    }
+
+    /// <summary>
+    /// Processes a single batch of outbox messages.
+    /// </summary>
+    /// <param name="batchSize">Maximum number of messages to process in this batch.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Number of messages processed.</returns>
+    public async Task<int> RunOnceAsync(int batchSize, CancellationToken cancellationToken)
+    {
+        var messages = await _store.ClaimDueAsync(batchSize, cancellationToken).ConfigureAwait(false);
+        
+        if (messages.Count == 0)
+            return 0;
+
+        var processedCount = 0;
+        
+        foreach (var message in messages)
+        {
+            try
+            {
+                await ProcessSingleMessageAsync(message, cancellationToken).ConfigureAwait(false);
+                processedCount++;
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                // Stop processing if cancellation is requested
+                break;
+            }
+            catch (Exception ex)
+            {
+                // Log unexpected errors but continue processing other messages
+                System.Diagnostics.Debug.WriteLine($"Unexpected error processing outbox message {message.Id}: {ex}");
+            }
+        }
+
+        return processedCount;
+    }
+
+    private async Task ProcessSingleMessageAsync(OutboxMessage message, CancellationToken cancellationToken)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        
+        try
+        {
+            // Try to resolve handler for this topic
+            if (!_resolver.TryGet(message.Topic, out var handler))
+            {
+                await _store.FailAsync(message.Id, $"No handler registered for topic '{message.Topic}'", cancellationToken).ConfigureAwait(false);
+                SchedulerMetrics.OutboxMessagesFailed.Add(1);
+                return;
+            }
+
+            // Execute the handler
+            await handler.HandleAsync(message, cancellationToken).ConfigureAwait(false);
+
+            // Mark as successfully dispatched
+            await _store.MarkDispatchedAsync(message.Id, cancellationToken).ConfigureAwait(false);
+            SchedulerMetrics.OutboxMessagesSent.Add(1);
+        }
+        catch (Exception ex)
+        {
+            // Handler threw an exception - reschedule with backoff
+            var nextAttempt = message.RetryCount + 1;
+            var delay = _backoffPolicy(nextAttempt);
+            
+            await _store.RescheduleAsync(message.Id, delay, ex.Message, cancellationToken).ConfigureAwait(false);
+            SchedulerMetrics.OutboxMessagesFailed.Add(1);
+        }
+        finally
+        {
+            stopwatch.Stop();
+            SchedulerMetrics.OutboxSendDuration.Record(stopwatch.Elapsed.TotalMilliseconds);
+        }
+    }
+
+    /// <summary>
+    /// Default exponential backoff policy with jitter.
+    /// </summary>
+    /// <param name="attempt">1-based attempt number.</param>
+    /// <returns>Delay before next attempt.</returns>
+    public static TimeSpan DefaultBackoff(int attempt)
+    {
+        // Exponential w/ cap + jitter
+        var baseMs = Math.Min(60_000, (int)(Math.Pow(2, Math.Min(10, attempt)) * 250)); // 250ms, 500ms, 1s, ...
+        var jitter = Random.Shared.Next(0, 250);
+        return TimeSpan.FromMilliseconds(baseMs + jitter);
+    }
+}
