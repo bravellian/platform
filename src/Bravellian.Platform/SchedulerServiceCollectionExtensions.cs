@@ -266,4 +266,59 @@ public static class SchedulerServiceCollectionExtensions
             SchemaName = schemaName
         });
     }
+
+    /// <summary>
+    /// Adds SQL inbox functionality for at-most-once message processing.
+    /// </summary>
+    /// <param name="services">The IServiceCollection to add services to.</param>
+    /// <param name="options">The configuration, used to set the options.</param>
+    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
+    public static IServiceCollection AddSqlInbox(this IServiceCollection services, SqlInboxOptions options)
+    {
+        services.Configure<SqlInboxOptions>(o =>
+        {
+            o.ConnectionString = options.ConnectionString;
+            o.SchemaName = options.SchemaName;
+            o.TableName = options.TableName;
+        });
+
+        services.AddSingleton<IInbox, SqlInboxService>();
+
+        // Ensure database schema exists
+        Task.Run(async () =>
+        {
+            try
+            {
+                await DatabaseSchemaManager.EnsureInboxSchemaAsync(
+                    options.ConnectionString,
+                    options.SchemaName,
+                    options.TableName).ConfigureAwait(false);
+            }
+            catch
+            {
+                // Schema creation errors will be handled during actual operations
+                // This is just a best-effort attempt during service registration
+            }
+        });
+
+        return services;
+    }
+
+    /// <summary>
+    /// Adds SQL inbox functionality with custom schema and table names.
+    /// </summary>
+    /// <param name="services">The IServiceCollection to add services to.</param>
+    /// <param name="connectionString">The database connection string.</param>
+    /// <param name="schemaName">The database schema name (default: "dbo").</param>
+    /// <param name="tableName">The inbox table name (default: "Inbox").</param>
+    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
+    public static IServiceCollection AddSqlInbox(this IServiceCollection services, string connectionString, string schemaName = "dbo", string tableName = "Inbox")
+    {
+        return services.AddSqlInbox(new SqlInboxOptions
+        {
+            ConnectionString = connectionString,
+            SchemaName = schemaName,
+            TableName = tableName
+        });
+    }
 }
