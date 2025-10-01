@@ -14,6 +14,7 @@
 
 namespace Bravellian.Platform.Tests;
 
+using Microsoft.Extensions.Time.Testing;
 using Shouldly;
 using Xunit;
 
@@ -121,24 +122,6 @@ public class TimeAbstractionTests
         public void Advance(TimeSpan timeSpan)
         {
             this.currentSeconds += timeSpan.TotalSeconds;
-        }
-    }
-
-    // Simple fake TimeProvider for testing wall clock functionality
-    private class FakeTimeProvider : TimeProvider
-    {
-        private DateTimeOffset currentTime;
-
-        public FakeTimeProvider(DateTimeOffset startTime)
-        {
-            this.currentTime = startTime;
-        }
-
-        public override DateTimeOffset GetUtcNow() => this.currentTime;
-
-        public void Advance(TimeSpan timeSpan)
-        {
-            this.currentTime = this.currentTime.Add(timeSpan);
         }
     }
 }
