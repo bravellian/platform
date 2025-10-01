@@ -24,6 +24,11 @@ using Microsoft.Extensions.Logging;
 /// </summary>
 public sealed class LeaseRunner : IAsyncDisposable
 {
+    /// <summary>
+    /// Maximum jitter in milliseconds to add to renewal timing to prevent herd behavior.
+    /// </summary>
+    private const int MaxJitterMilliseconds = 1000;
+
     private readonly LeaseApi leaseApi;
     private readonly IMonotonicClock monotonicClock;
     private readonly TimeProvider timeProvider;
@@ -73,11 +78,11 @@ public sealed class LeaseRunner : IAsyncDisposable
 
         // Calculate initial renewal time with jitter
         var renewInterval = TimeSpan.FromMilliseconds(leaseDuration.TotalMilliseconds * renewPercent);
-        var jitter = TimeSpan.FromMilliseconds(Random.Shared.Next(0, 1000)); // Small jitter to avoid herd behavior
+        var jitter = TimeSpan.FromMilliseconds(Random.Shared.Next(0, MaxJitterMilliseconds)); // Small jitter to avoid herd behavior
         var initialDelay = renewInterval + jitter;
 
         // Start the renewal timer
-        this.renewTimer = new Timer(this.RenewTimerCallback, null, initialDelay, initialDelay);
+        this.renewTimer = new Timer(this.RenewTimerCallback, null, initialDelay, renewInterval);
 
         this.logger.LogInformation("Lease runner started for '{LeaseName}' with owner '{Owner}', renew at {RenewPercent:P1}",
             leaseName, owner, renewPercent);
