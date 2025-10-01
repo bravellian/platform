@@ -141,7 +141,7 @@ internal sealed class SqlLease : ISystemLease
 
         using var command = new SqlCommand($"[{schemaName}].[Lock_Acquire]", connection)
         {
-            CommandType = CommandType.StoredProcedure
+            CommandType = CommandType.StoredProcedure,
         };
 
         command.Parameters.AddWithValue("@ResourceName", resourceName);
@@ -275,7 +275,7 @@ internal sealed class SqlLease : ISystemLease
 
             using var command = new SqlCommand($"[{this.schemaName}].[Lock_Renew]", connection)
             {
-                CommandType = CommandType.StoredProcedure
+                CommandType = CommandType.StoredProcedure,
             };
 
             command.Parameters.AddWithValue("@ResourceName", this.ResourceName);
@@ -322,7 +322,7 @@ internal sealed class SqlLease : ISystemLease
 
         using var command = new SqlCommand($"[{this.schemaName}].[Lock_Release]", connection)
         {
-            CommandType = CommandType.StoredProcedure
+            CommandType = CommandType.StoredProcedure,
         };
 
         command.Parameters.AddWithValue("@ResourceName", this.ResourceName);

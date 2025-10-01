@@ -115,7 +115,7 @@ public static class SchedulerServiceCollectionExtensions
         {
             ConnectionString = options.ConnectionString,
             SchemaName = options.SchemaName,
-            TableName = "Outbox" // Keep Outbox table name consistent
+            TableName = "Outbox", // Keep Outbox table name consistent
         });
 
         // Add lease system for scheduler processing coordination
@@ -195,7 +195,7 @@ public static class SchedulerServiceCollectionExtensions
         {
             ConnectionString = connectionString,
             SchemaName = schemaName,
-            TableName = tableName
+            TableName = tableName,
         });
     }
 
@@ -217,7 +217,7 @@ public static class SchedulerServiceCollectionExtensions
             SchemaName = schemaName,
             JobsTableName = jobsTableName,
             JobRunsTableName = jobRunsTableName,
-            TimersTableName = timersTableName
+            TimersTableName = timersTableName,
         });
     }
 
@@ -274,7 +274,7 @@ public static class SchedulerServiceCollectionExtensions
         return services.AddSystemLeases(new SystemLeaseOptions
         {
             ConnectionString = connectionString,
-            SchemaName = schemaName
+            SchemaName = schemaName,
         });
     }
 

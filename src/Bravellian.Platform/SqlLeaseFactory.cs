@@ -82,7 +82,7 @@ internal sealed class SqlLeaseFactory : ISystemLeaseFactory
             ProcessId = Environment.ProcessId,
             AppVersion = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "Unknown",
             InstanceId = Guid.NewGuid().ToString(),
-            AcquiredAt = DateTimeOffset.UtcNow
+            AcquiredAt = DateTimeOffset.UtcNow,
         };
 
         return JsonSerializer.Serialize(context);

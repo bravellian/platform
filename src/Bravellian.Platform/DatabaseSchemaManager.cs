@@ -670,7 +670,7 @@ VALUES (1, 0, NULL);";
                 UPDATE dbo.Outbox SET Status = 0, OwnerToken = NULL, LockedUntil = NULL
                 WHERE Status = 1 AND LockedUntil IS NOT NULL AND LockedUntil <= SYSUTCDATETIME();
                 SELECT @@ROWCOUNT AS ReapedCount;
-              END"
+              END",
         };
 
         foreach (var procedure in procedures)

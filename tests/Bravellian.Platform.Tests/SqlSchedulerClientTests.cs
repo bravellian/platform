@@ -70,7 +70,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
             SchemaName = "custom", 
             TimersTableName = "CustomTimers",
             JobsTableName = "CustomJobs",
-            JobRunsTableName = "CustomJobRuns"
+            JobRunsTableName = "CustomJobRuns",
         };
         
         // Create the custom schema and tables for this test

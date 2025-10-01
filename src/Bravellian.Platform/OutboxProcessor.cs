@@ -126,7 +126,7 @@ internal class OutboxProcessor : IHostedService
         await connection.ExecuteAsync(this.fencingStateUpdateSql, new
         {
             FencingToken = lease.FencingToken,
-            LastDispatchAt = this.timeProvider.GetUtcNow()
+            LastDispatchAt = this.timeProvider.GetUtcNow(),
         }).ConfigureAwait(false);
 
         // Fetch messages that are ready to be processed
@@ -163,7 +163,7 @@ internal class OutboxProcessor : IHostedService
                 {
                     message.Id,
                     InstanceId = this.instanceId,
-                    FencingToken = lease.FencingToken
+                    FencingToken = lease.FencingToken,
                 }).ConfigureAwait(false);
 
                 if (rowsAffected == 0)

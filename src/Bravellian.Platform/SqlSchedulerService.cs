@@ -143,7 +143,7 @@ internal class SqlSchedulerService : IHostedService
                     await connection.ExecuteAsync(this.schedulerStateUpdateSql, new
                     {
                         FencingToken = lease.FencingToken,
-                        LastRunAt = this.timeProvider.GetUtcNow()
+                        LastRunAt = this.timeProvider.GetUtcNow(),
                     }).ConfigureAwait(false);
 
                     // 1. Process any work that is currently due.
