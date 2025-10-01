@@ -159,11 +159,17 @@ public class OutboxHandlerTests : SqlServerTestBase
         var delay10 = OutboxDispatcher.DefaultBackoff(10);
 
         // Assert
-        delay1.ShouldBeGreaterThan(TimeSpan.FromMilliseconds(200));
-        delay1.ShouldBeLessThan(TimeSpan.FromMilliseconds(600));
+        // For attempt 1: base = 500ms, jitter = 0-249ms, so range is 500-749ms
+        delay1.ShouldBeGreaterThanOrEqualTo(TimeSpan.FromMilliseconds(500));
+        delay1.ShouldBeLessThan(TimeSpan.FromMilliseconds(750));
 
-        delay2.ShouldBeGreaterThan(delay1);
-        delay3.ShouldBeGreaterThan(delay2);
+        // For attempt 2: base = 1000ms, jitter = 0-249ms, so range is 1000-1249ms
+        delay2.ShouldBeGreaterThanOrEqualTo(TimeSpan.FromMilliseconds(1000));
+        delay2.ShouldBeLessThan(TimeSpan.FromMilliseconds(1250));
+        
+        // For attempt 3: base = 2000ms, jitter = 0-249ms, so range is 2000-2249ms  
+        delay3.ShouldBeGreaterThanOrEqualTo(TimeSpan.FromMilliseconds(2000));
+        delay3.ShouldBeLessThan(TimeSpan.FromMilliseconds(2250));
 
         // Should cap at some reasonable maximum
         delay10.ShouldBeLessThan(TimeSpan.FromMinutes(2));
