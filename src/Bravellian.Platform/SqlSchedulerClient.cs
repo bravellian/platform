@@ -26,6 +26,7 @@ internal class SqlSchedulerClient : ISchedulerClient
 {
     private readonly string connectionString;
     private readonly SqlSchedulerOptions options;
+    private readonly TimeProvider timeProvider;
 
     // Pre-built SQL queries using configured table names
     private readonly string insertTimerSql;
@@ -35,10 +36,11 @@ internal class SqlSchedulerClient : ISchedulerClient
     private readonly string deleteJobSql;
     private readonly string triggerJobSql;
 
-    public SqlSchedulerClient(IOptions<SqlSchedulerOptions> options)
+    public SqlSchedulerClient(IOptions<SqlSchedulerOptions> options, TimeProvider timeProvider)
     {
         this.options = options.Value;
         this.connectionString = this.options.ConnectionString;
+        this.timeProvider = timeProvider;
 
         // Build SQL queries using configured schema and table names
         this.insertTimerSql = $"INSERT INTO [{this.options.SchemaName}].[{this.options.TimersTableName}] (Id, Topic, Payload, DueTime) VALUES (@Id, @Topic, @Payload, @DueTime);";
@@ -87,7 +89,7 @@ internal class SqlSchedulerClient : ISchedulerClient
     public async Task CreateOrUpdateJobAsync(string jobName, string topic, string cronSchedule, string? payload = null)
     {
         var cronExpression = CronExpression.Parse(cronSchedule, CronFormat.IncludeSeconds);
-        var nextDueTime = cronExpression.GetNextOccurrence(DateTime.UtcNow);
+        var nextDueTime = cronExpression.GetNextOccurrence(this.timeProvider.GetUtcNow().DateTime);
 
         // MERGE is a great way to handle "UPSERT" logic atomically in SQL Server.
         using (var connection = new SqlConnection(this.connectionString))

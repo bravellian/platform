@@ -26,17 +26,19 @@ internal class OutboxProcessor : IHostedService
     private readonly string connectionString;
     private readonly SqlOutboxOptions options;
     private readonly ISystemLeaseFactory leaseFactory;
+    private readonly TimeProvider timeProvider;
     private readonly string instanceId = $"{Environment.MachineName}:{Guid.NewGuid()}"; // Unique ID for this processor instance
     private readonly string selectSql;
     private readonly string successSql;
     private readonly string failureSql;
     private readonly string fencingStateUpdateSql;
 
-    public OutboxProcessor(IOptions<SqlOutboxOptions> options, ISystemLeaseFactory leaseFactory)
+    public OutboxProcessor(IOptions<SqlOutboxOptions> options, ISystemLeaseFactory leaseFactory, TimeProvider timeProvider)
     {
         this.options = options.Value;
         this.connectionString = this.options.ConnectionString;
         this.leaseFactory = leaseFactory;
+        this.timeProvider = timeProvider;
 
         // Build SQL queries using configured schema and table names
         this.selectSql = $"SELECT TOP 10 * FROM [{this.options.SchemaName}].[{this.options.TableName}] WHERE IsProcessed = 0 AND NextAttemptAt <= SYSDATETIMEOFFSET() ORDER BY CreatedAt;";
@@ -124,7 +126,7 @@ internal class OutboxProcessor : IHostedService
         await connection.ExecuteAsync(this.fencingStateUpdateSql, new 
         { 
             FencingToken = lease.FencingToken, 
-            LastDispatchAt = DateTimeOffset.UtcNow 
+            LastDispatchAt = this.timeProvider.GetUtcNow() 
         }).ConfigureAwait(false);
 
         // Fetch messages that are ready to be processed
@@ -178,7 +180,7 @@ internal class OutboxProcessor : IHostedService
             {
                 // 3. If it fails, update for a later retry
                 var retryCount = message.RetryCount + 1;
-                var nextAttempt = DateTimeOffset.UtcNow.AddSeconds(Math.Pow(2, retryCount)); // Exponential backoff
+                var nextAttempt = this.timeProvider.GetUtcNow().AddSeconds(Math.Pow(2, retryCount)); // Exponential backoff
 
                 await connection.ExecuteAsync(this.failureSql, new
                 {

@@ -26,6 +26,7 @@ internal class SqlSchedulerService : IHostedService
     private readonly IOutbox outbox;
     private readonly string connectionString;
     private readonly SqlSchedulerOptions options;
+    private readonly TimeProvider timeProvider;
 
     // This is the key tunable parameter.
     private readonly TimeSpan maxWaitTime = TimeSpan.FromSeconds(30);
@@ -37,12 +38,13 @@ internal class SqlSchedulerService : IHostedService
     private readonly string getNextEventTimeSql;
     private readonly string schedulerStateUpdateSql;
 
-    public SqlSchedulerService(ISystemLeaseFactory leaseFactory, IOutbox outbox, IOptions<SqlSchedulerOptions> options)
+    public SqlSchedulerService(ISystemLeaseFactory leaseFactory, IOutbox outbox, IOptions<SqlSchedulerOptions> options, TimeProvider timeProvider)
     {
         this.leaseFactory = leaseFactory;
         this.outbox = outbox;
         this.options = options.Value;
         this.connectionString = this.options.ConnectionString;
+        this.timeProvider = timeProvider;
 
         // Build SQL queries using configured schema and table names
         this.claimTimersSql = $@"
@@ -141,7 +143,7 @@ internal class SqlSchedulerService : IHostedService
                     await connection.ExecuteAsync(this.schedulerStateUpdateSql, new 
                     { 
                         FencingToken = lease.FencingToken, 
-                        LastRunAt = DateTimeOffset.UtcNow 
+                        LastRunAt = this.timeProvider.GetUtcNow() 
                     }).ConfigureAwait(false);
 
                     // 1. Process any work that is currently due.
@@ -158,7 +160,7 @@ internal class SqlSchedulerService : IHostedService
                     }
                     else
                     {
-                        var timeUntilNextEvent = nextEventTime.Value - DateTimeOffset.UtcNow;
+                        var timeUntilNextEvent = nextEventTime.Value - this.timeProvider.GetUtcNow();
                         if (timeUntilNextEvent <= TimeSpan.Zero)
                         {
                             // Work is already due or overdue. Don't sleep.

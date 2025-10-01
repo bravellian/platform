@@ -39,7 +39,9 @@ public static class SchedulerServiceCollectionExtensions
         services.AddSingleton<IOutbox, SqlOutboxService>();
 
         // 3. Register the health check
-        services.AddSingleton<SchedulerHealthCheck>();
+        // Note: This method requires configuration to be properly set up
+        // Use AddSqlScheduler(SqlSchedulerOptions) overload instead
+        // services.AddSingleton<SchedulerHealthCheck>();
 
         // 4. Conditionally register the background workers
         // var options = configuration.GetSection(SqlSchedulerOptions.SectionName).Get<SqlSchedulerOptions>() ?? new SqlSchedulerOptions();
@@ -59,6 +61,9 @@ public static class SchedulerServiceCollectionExtensions
     /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
     public static IServiceCollection AddSqlOutbox(this IServiceCollection services, SqlOutboxOptions options)
     {
+        // Add time abstractions
+        services.AddTimeAbstractions();
+        
         // Add lease system for outbox processing coordination
         services.AddSystemLeases(new SystemLeaseOptions
         {
@@ -103,6 +108,9 @@ public static class SchedulerServiceCollectionExtensions
     /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
     public static IServiceCollection AddSqlScheduler(this IServiceCollection services, SqlSchedulerOptions options)
     {
+        // Add time abstractions
+        services.AddTimeAbstractions();
+        
         services.AddSqlOutbox(new SqlOutboxOptions
         {
             ConnectionString = options.ConnectionString,
@@ -129,7 +137,8 @@ public static class SchedulerServiceCollectionExtensions
         });
 
         services.AddSingleton<ISchedulerClient, SqlSchedulerClient>();
-        services.AddSingleton<SchedulerHealthCheck>();
+        services.AddSingleton<SchedulerHealthCheck>(serviceProvider => 
+            new SchedulerHealthCheck(options.ConnectionString, serviceProvider.GetRequiredService<TimeProvider>()));
         services.AddHostedService<SqlSchedulerService>();
 
         // Ensure database schema exists
@@ -221,6 +230,9 @@ public static class SchedulerServiceCollectionExtensions
     /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
     public static IServiceCollection AddSystemLeases(this IServiceCollection services, SystemLeaseOptions options)
     {
+        // Add time abstractions
+        services.AddTimeAbstractions();
+        
         services.Configure<SystemLeaseOptions>(o =>
         {
             o.ConnectionString = options.ConnectionString;
@@ -265,5 +277,19 @@ public static class SchedulerServiceCollectionExtensions
             ConnectionString = connectionString,
             SchemaName = schemaName
         });
+    }
+
+    /// <summary>
+    /// Adds time abstractions including TimeProvider and monotonic clock for the platform.
+    /// </summary>
+    /// <param name="services">The IServiceCollection to add services to.</param>
+    /// <param name="timeProvider">Optional custom TimeProvider. If null, TimeProvider.System is used.</param>
+    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
+    public static IServiceCollection AddTimeAbstractions(this IServiceCollection services, TimeProvider? timeProvider = null)
+    {
+        services.AddSingleton(timeProvider ?? TimeProvider.System);
+        services.AddSingleton<IMonotonicClock, MonotonicClock>();
+        
+        return services;
     }
 }
