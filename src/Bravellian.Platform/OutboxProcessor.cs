@@ -195,7 +195,6 @@ internal class OutboxProcessor : IHostedService
 
     private async Task<bool> SendMessageToBrokerAsync(OutboxMessage message)
     {
-        // Simulate sending the message
         // In a real implementation, you would have your message broker client code here.
         System.Console.WriteLine($"Sending message {message.Id} to topic {message.Topic}");
         await Task.Delay(100).ConfigureAwait(false); // Simulate network latency
