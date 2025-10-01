@@ -37,7 +37,6 @@ public static class SchedulerServiceCollectionExtensions
         // 2. Register the public-facing client and internal services as singletons
         services.AddSingleton<ISchedulerClient, SqlSchedulerClient>();
         services.AddSingleton<IOutbox, SqlOutboxService>();
-        services.AddSingleton<IMessageBroker, ConsoleMessageBroker>();
 
         // 3. Register the health check
         // Note: This method requires configuration to be properly set up
@@ -49,7 +48,6 @@ public static class SchedulerServiceCollectionExtensions
         // if (options.EnableBackgroundWorkers)
         {
             services.AddHostedService<SqlSchedulerService>();
-            services.AddHostedService<OutboxProcessor>();
         }
 
         return services;
@@ -65,13 +63,6 @@ public static class SchedulerServiceCollectionExtensions
         // Add time abstractions
         services.AddTimeAbstractions();
 
-        // Add lease system for outbox processing coordination
-        services.AddSystemLeases(new SystemLeaseOptions
-        {
-            ConnectionString = options.ConnectionString,
-            SchemaName = "dbo", // Use dbo schema for distributed locks
-        });
-
         services.Configure<SqlOutboxOptions>(o =>
         {
             o.ConnectionString = options.ConnectionString;
@@ -80,8 +71,10 @@ public static class SchedulerServiceCollectionExtensions
         });
 
         services.AddSingleton<IOutbox, SqlOutboxService>();
-        services.AddSingleton<IMessageBroker, ConsoleMessageBroker>();
-        services.AddHostedService<OutboxProcessor>();
+        services.AddSingleton<IOutboxStore, SqlOutboxStore>();
+        services.AddSingleton<IOutboxHandlerResolver, OutboxHandlerResolver>();
+        services.AddSingleton<OutboxDispatcher>();
+        services.AddHostedService<OutboxPollingService>();
 
         // Ensure database schema exists
         Task.Run(async () =>
@@ -295,27 +288,25 @@ public static class SchedulerServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Registers a custom message broker implementation to replace the default console broker.
-    /// This must be called after AddSqlOutbox to override the default registration.
+    /// Registers an outbox handler for a specific topic.
     /// </summary>
-    /// <typeparam name="TMessageBroker">The custom message broker implementation type.</typeparam>
+    /// <typeparam name="THandler">The outbox handler implementation type.</typeparam>
     /// <param name="services">The IServiceCollection to add services to.</param>
     /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
-    public static IServiceCollection AddMessageBroker<TMessageBroker>(this IServiceCollection services)
-        where TMessageBroker : class, IMessageBroker
+    public static IServiceCollection AddOutboxHandler<THandler>(this IServiceCollection services)
+        where THandler : class, IOutboxHandler
     {
-        services.AddSingleton<IMessageBroker, TMessageBroker>();
+        services.AddSingleton<IOutboxHandler, THandler>();
         return services;
     }
 
     /// <summary>
-    /// Registers a custom message broker implementation using a factory.
-    /// This must be called after AddSqlOutbox to override the default registration.
+    /// Registers an outbox handler using a factory function.
     /// </summary>
     /// <param name="services">The IServiceCollection to add services to.</param>
-    /// <param name="factory">Factory function to create the message broker instance.</param>
+    /// <param name="factory">Factory function to create the handler instance.</param>
     /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
-    public static IServiceCollection AddMessageBroker(this IServiceCollection services, Func<IServiceProvider, IMessageBroker> factory)
+    public static IServiceCollection AddOutboxHandler(this IServiceCollection services, Func<IServiceProvider, IOutboxHandler> factory)
     {
         services.AddSingleton(factory);
         return services;

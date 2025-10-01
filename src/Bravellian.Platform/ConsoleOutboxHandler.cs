@@ -15,31 +15,34 @@
 namespace Bravellian.Platform;
 
 /// <summary>
-/// A simple message broker implementation that writes messages to the console.
-/// This is intended for development, testing, and as a default fallback when
-/// no specific message broker implementation is configured.
+/// A simple console-based outbox handler for development and testing.
+/// Writes message details to the console with timestamp information.
 /// </summary>
-internal class ConsoleMessageBroker : IMessageBroker
+internal class ConsoleOutboxHandler : IOutboxHandler
 {
     private readonly TimeProvider timeProvider;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ConsoleMessageBroker"/> class.
+    /// Initializes a new instance of the <see cref="ConsoleOutboxHandler"/> class.
     /// </summary>
+    /// <param name="topic">The topic this handler serves.</param>
     /// <param name="timeProvider">The time provider for adding timestamp information.</param>
-    public ConsoleMessageBroker(TimeProvider timeProvider)
+    public ConsoleOutboxHandler(string topic, TimeProvider timeProvider)
     {
+        Topic = topic;
         this.timeProvider = timeProvider;
     }
 
     /// <inheritdoc />
-    public async Task<bool> SendMessageAsync(OutboxMessage message, CancellationToken cancellationToken = default)
-    {
-        // In a real implementation, you would have your message broker client code here.
-        var timestamp = this.timeProvider.GetUtcNow();
-        System.Console.WriteLine($"[{timestamp:yyyy-MM-dd HH:mm:ss.fff}] Sending message {message.Id} to topic {message.Topic}");
+    public string Topic { get; }
 
-        await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate network latency
-        return true; // Assume it was sent successfully
+    /// <inheritdoc />
+    public async Task HandleAsync(OutboxMessage message, CancellationToken cancellationToken)
+    {
+        var timestamp = this.timeProvider.GetUtcNow();
+        System.Console.WriteLine($"[{timestamp:yyyy-MM-dd HH:mm:ss.fff}] Handling message {message.Id} for topic '{message.Topic}': {message.Payload}");
+        
+        // Simulate some processing time
+        await Task.Delay(50, cancellationToken).ConfigureAwait(false);
     }
 }
