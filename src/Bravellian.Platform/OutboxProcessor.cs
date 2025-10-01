@@ -146,7 +146,12 @@ internal class OutboxProcessor : IHostedService
                 var stopwatch = Stopwatch.StartNew();
                 try
                 {
-                    await this.messageBroker.SendMessageAsync(message, combinedToken).ConfigureAwait(false);
+                    var sendResult = await this.messageBroker.SendMessageAsync(message, combinedToken).ConfigureAwait(false);
+                    if (!sendResult)
+                    {
+                        SchedulerMetrics.OutboxMessagesFailed.Add(1);
+                        throw new Exception("SendMessageAsync returned false, indicating a failed send.");
+                    }
                     SchedulerMetrics.OutboxMessagesSent.Add(1);
                 }
                 catch
