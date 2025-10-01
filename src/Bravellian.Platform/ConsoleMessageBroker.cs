@@ -38,7 +38,7 @@ internal class ConsoleMessageBroker : IMessageBroker
         // In a real implementation, you would have your message broker client code here.
         var timestamp = this.timeProvider.GetUtcNow();
         System.Console.WriteLine($"[{timestamp:yyyy-MM-dd HH:mm:ss.fff}] Sending message {message.Id} to topic {message.Topic}");
-        
+
         await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate network latency
         return true; // Assume it was sent successfully
     }
