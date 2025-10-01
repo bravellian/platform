@@ -7,6 +7,7 @@ Bravellian.Platform.IInbox.MarkDeadAsync(string! messageId, System.Threading.Can
 Bravellian.Platform.IInbox.MarkProcessedAsync(string! messageId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Bravellian.Platform.IInbox.MarkProcessingAsync(string! messageId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Bravellian.Platform.IOutbox
+Bravellian.Platform.IOutbox.EnqueueAsync(string! topic, string! payload, string? correlationId = null) -> System.Threading.Tasks.Task!
 Bravellian.Platform.IOutbox.EnqueueAsync(string! topic, string! payload, System.Data.IDbTransaction! transaction, string? correlationId = null) -> System.Threading.Tasks.Task!
 Bravellian.Platform.ISchedulerClient
 Bravellian.Platform.ISchedulerClient.CancelTimerAsync(string! timerId) -> System.Threading.Tasks.Task<bool>!

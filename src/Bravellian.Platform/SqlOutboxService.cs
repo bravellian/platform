@@ -43,6 +43,40 @@ internal class SqlOutboxService : IOutbox
     public async Task EnqueueAsync(
         string topic,
         string payload,
+        string? correlationId = null)
+    {
+        // Ensure outbox table exists before attempting to enqueue
+        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(
+            this.connectionString,
+            this.options.SchemaName,
+            this.options.TableName).ConfigureAwait(false);
+
+        // Create our own connection and transaction for reliability
+        await using var connection = new SqlConnection(this.connectionString);
+        await connection.OpenAsync().ConfigureAwait(false);
+        
+        await using var transaction = connection.BeginTransaction();
+        try
+        {
+            await connection.ExecuteAsync(this.enqueueSql, new
+            {
+                Topic = topic,
+                Payload = payload,
+                CorrelationId = correlationId,
+            }, transaction: transaction).ConfigureAwait(false);
+
+            transaction.Commit();
+        }
+        catch
+        {
+            transaction.Rollback();
+            throw;
+        }
+    }
+
+    public async Task EnqueueAsync(
+        string topic,
+        string payload,
         IDbTransaction transaction,
         string? correlationId = null)
     {
