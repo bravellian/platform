@@ -1,5 +1,6 @@
 namespace Bravellian.Platform.Tests;
 
+using Bravellian.Platform.Tests.TestUtilities;
 using Dapper;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;

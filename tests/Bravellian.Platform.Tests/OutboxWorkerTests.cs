@@ -1,5 +1,6 @@
 namespace Bravellian.Platform.Tests;
 
+using Bravellian.Platform.Tests.TestUtilities;
 using Dapper;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -33,8 +34,8 @@ public class OutboxWorkerTests : SqlServerTestBase
             SchemaName = "dbo",
             TableName = "Outbox",
         });
-        this.outboxService = new SqlOutboxService(options, new TestLogger(this.TestOutputHelper));
-        this.worker = new TestOutboxWorker(this.outboxService, new TestLogger(this.TestOutputHelper));
+        this.outboxService = new SqlOutboxService(options, new TestLogger<SqlOutboxService>(this.TestOutputHelper));
+        this.worker = new TestOutboxWorker(this.outboxService, new TestLogger<TestOutboxWorker>(this.TestOutputHelper));
     }
 
     private async Task WaitForDatabaseReadyAsync(string connectionString)
@@ -380,26 +381,4 @@ public class OutboxWorkerTests : SqlServerTestBase
         }
     }
 
-    private class TestLogger : ILogger<TestOutboxWorker>, ILogger<SqlOutboxService>
-    {
-        private readonly ITestOutputHelper output;
-
-        public TestLogger(ITestOutputHelper output)
-        {
-            this.output = output;
-        }
-
-        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
-
-        public bool IsEnabled(LogLevel logLevel) => true;
-
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
-        {
-            this.output.WriteLine($"[{logLevel}] {formatter(state, exception)}");
-            if (exception != null)
-            {
-                this.output.WriteLine($"Exception: {exception}");
-            }
-        }
-    }
 }

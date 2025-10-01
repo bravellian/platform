@@ -1,5 +1,6 @@
 namespace Bravellian.Platform.Tests;
 
+using Bravellian.Platform.Tests.TestUtilities;
 using Dapper;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -233,26 +234,3 @@ public class SqlInboxServiceTests : SqlServerTestBase
     }
 }
 
-// Simple test logger implementation
-public class TestLogger<T> : ILogger<T>
-{
-    private readonly ITestOutputHelper testOutputHelper;
-
-    public TestLogger(ITestOutputHelper testOutputHelper)
-    {
-        this.testOutputHelper = testOutputHelper;
-    }
-
-    public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
-
-    public bool IsEnabled(LogLevel logLevel) => true;
-
-    public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
-    {
-        this.testOutputHelper.WriteLine($"[{logLevel}] {formatter(state, exception)}");
-        if (exception != null)
-        {
-            this.testOutputHelper.WriteLine(exception.ToString());
-        }
-    }
-}
