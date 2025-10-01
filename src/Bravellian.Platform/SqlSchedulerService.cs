@@ -20,7 +20,7 @@ using Microsoft.Extensions.Options;
 using System.Threading;
 using System.Threading.Tasks;
 
-internal class SqlSchedulerService : IHostedService
+internal class SqlSchedulerService : BackgroundService
 {
     private readonly ISystemLeaseFactory leaseFactory;
     private readonly IOutbox outbox;
@@ -92,115 +92,101 @@ internal class SqlSchedulerService : IHostedService
                 INSERT (Id, CurrentFencingToken, LastRunAt) VALUES (1, @FencingToken, @LastRunAt);";
     }
 
-    public Task StartAsync(CancellationToken cancellationToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        Task.Run(
-            async () =>
+        // Wait for schema deployment to complete if available
+        if (this.schemaCompletion != null)
         {
-            // Wait for schema deployment to complete if available
-            if (this.schemaCompletion != null)
+            try
             {
-                try
-                {
-                    await this.schemaCompletion.SchemaDeploymentCompleted.ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    // Log and continue - schema deployment errors should not prevent scheduler from starting
-                    System.Diagnostics.Debug.WriteLine($"Schema deployment failed, but continuing with scheduler: {ex}");
-                }
+                await this.schemaCompletion.SchemaDeploymentCompleted.ConfigureAwait(false);
             }
-
-            while (!cancellationToken.IsCancellationRequested)
+            catch (Exception ex)
             {
-                await this.SchedulerLoopAsync(cancellationToken).ConfigureAwait(false);
-                await Task.Delay(30_000, cancellationToken).ConfigureAwait(false); // Poll every 30 seconds
+                // Log and continue - schema deployment errors should not prevent scheduler from starting
+                System.Diagnostics.Debug.WriteLine($"Schema deployment failed, but continuing with scheduler: {ex}");
             }
-        }, cancellationToken);
+        }
 
-        return Task.CompletedTask;
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken)
-    {
-        return Task.CompletedTask;
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            await this.SchedulerLoopAsync(stoppingToken).ConfigureAwait(false);
+            await Task.Delay(30_000, stoppingToken).ConfigureAwait(false); // Poll every 30 seconds
+        }
     }
 
     private async Task SchedulerLoopAsync(CancellationToken cancellationToken)
     {
-        while (!cancellationToken.IsCancellationRequested)
+        TimeSpan sleepDuration;
+
+        // Try to acquire a lease for scheduler processing
+        var lease = await this.leaseFactory.AcquireAsync(
+            "scheduler:run",
+            TimeSpan.FromSeconds(30),
+            cancellationToken: cancellationToken).ConfigureAwait(false);
+
+        if (lease == null)
         {
-            TimeSpan sleepDuration;
+            // Could not get the lease. Another instance is running.
+            // We'll wait a bit before trying again to avoid hammering the DB for the lock.
+            await Task.Delay(this.maxWaitTime, cancellationToken).ConfigureAwait(false);
+            return;
+        }
 
-            // Try to acquire a lease for scheduler processing
-            var lease = await this.leaseFactory.AcquireAsync(
-                "scheduler:run",
-                TimeSpan.FromSeconds(30),
-                cancellationToken: cancellationToken).ConfigureAwait(false);
-
-            if (lease == null)
+        await using (lease.ConfigureAwait(false))
+        {
+            try
             {
-                // Could not get the lease. Another instance is running.
-                // We'll wait a bit before trying again to avoid hammering the DB for the lock.
-                await Task.Delay(this.maxWaitTime, cancellationToken).ConfigureAwait(false);
-                continue;
-            }
+                // LEASE ACQUIRED: We are the active scheduler instance.
 
-            await using (lease.ConfigureAwait(false))
-            {
-                try
+                // Update the fencing state to indicate we're the current scheduler
+                using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.connectionString);
+                await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+
+                await connection.ExecuteAsync(this.schedulerStateUpdateSql, new
                 {
-                    // LEASE ACQUIRED: We are the active scheduler instance.
+                    FencingToken = lease.FencingToken,
+                    LastRunAt = this.timeProvider.GetUtcNow(),
+                }).ConfigureAwait(false);
 
-                    // Update the fencing state to indicate we're the current scheduler
-                    using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.connectionString);
-                    await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+                // 1. Process any work that is currently due.
+                await this.DispatchDueWorkAsync(lease).ConfigureAwait(false);
 
-                    await connection.ExecuteAsync(this.schedulerStateUpdateSql, new
+                // 2. Find the time of the next scheduled event.
+                var nextEventTime = await this.GetNextEventTimeAsync().ConfigureAwait(false);
+
+                // 3. Calculate the hybrid sleep duration.
+                if (nextEventTime == null)
+                {
+                    // No work is scheduled at all. Sleep for the max wait time.
+                    sleepDuration = this.maxWaitTime;
+                }
+                else
+                {
+                    var timeUntilNextEvent = nextEventTime.Value - this.timeProvider.GetUtcNow();
+                    if (timeUntilNextEvent <= TimeSpan.Zero)
                     {
-                        FencingToken = lease.FencingToken,
-                        LastRunAt = this.timeProvider.GetUtcNow(),
-                    }).ConfigureAwait(false);
-
-                    // 1. Process any work that is currently due.
-                    await this.DispatchDueWorkAsync(lease).ConfigureAwait(false);
-
-                    // 2. Find the time of the next scheduled event.
-                    var nextEventTime = await this.GetNextEventTimeAsync().ConfigureAwait(false);
-
-                    // 3. Calculate the hybrid sleep duration.
-                    if (nextEventTime == null)
-                    {
-                        // No work is scheduled at all. Sleep for the max wait time.
-                        sleepDuration = this.maxWaitTime;
+                        // Work is already due or overdue. Don't sleep.
+                        sleepDuration = TimeSpan.Zero;
                     }
                     else
                     {
-                        var timeUntilNextEvent = nextEventTime.Value - this.timeProvider.GetUtcNow();
-                        if (timeUntilNextEvent <= TimeSpan.Zero)
-                        {
-                            // Work is already due or overdue. Don't sleep.
-                            sleepDuration = TimeSpan.Zero;
-                        }
-                        else
-                        {
-                            // Sleep until the next event OR max wait time, whichever is shorter.
-                            sleepDuration = timeUntilNextEvent < this.maxWaitTime ? timeUntilNextEvent : this.maxWaitTime;
-                        }
+                        // Sleep until the next event OR max wait time, whichever is shorter.
+                        sleepDuration = timeUntilNextEvent < this.maxWaitTime ? timeUntilNextEvent : this.maxWaitTime;
                     }
                 }
-                catch (LostLeaseException)
-                {
-                    // Lease was lost during processing - stop immediately
-                    return;
-                }
-            } // LEASE IS RELEASED HERE
-
-            // 4. Sleep for the calculated duration.
-            if (sleepDuration > TimeSpan.Zero)
-            {
-                await Task.Delay(sleepDuration, cancellationToken).ConfigureAwait(false);
             }
+            catch (LostLeaseException)
+            {
+                // Lease was lost during processing - stop immediately
+                return;
+            }
+        } // LEASE IS RELEASED HERE
+
+        // 4. Sleep for the calculated duration.
+        if (sleepDuration > TimeSpan.Zero)
+        {
+            await Task.Delay(sleepDuration, cancellationToken).ConfigureAwait(false);
         }
     }
 
