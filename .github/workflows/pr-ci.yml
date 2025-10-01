@@ -66,11 +66,23 @@ jobs:
     - name: Restore tools
       run: dotnet tool restore
 
+    - name: Verify Docker is available for TestContainers
+      run: |
+        docker --version
+        docker info
+        docker ps
+        # Pull the SQL Server image to ensure it's available
+        docker pull mcr.microsoft.com/mssql/server:2022-CU10-ubuntu-22.04
+
     - name: Build solution
       run: dotnet build Bravellian.Platform.CI.sln --no-restore --configuration Release -p:Version=${{ steps.git_version.outputs.semVer }}
 
     - name: Run Tests
       run: dotnet test Bravellian.Platform.CI.sln --no-build --configuration Release
+      env:
+        # Ensure TestContainers can access Docker in CI
+        DOCKER_HOST: unix:///var/run/docker.sock
+        TESTCONTAINERS_RYUK_DISABLED: true
   
     - name: Pack NuGet packages
       run: dotnet pack Bravellian.Platform.CI.sln --configuration Release --output ./nupkgs -p:PackageVersion=${{ steps.git_version.outputs.semVer }}

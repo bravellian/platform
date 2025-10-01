@@ -21,6 +21,9 @@ public class OutboxWorkerTests : SqlServerTestBase
     {
         await base.InitializeAsync();
         
+        // Test connection with retry logic for CI stability
+        await WaitForDatabaseReadyAsync(this.ConnectionString);
+        
         // Ensure work queue schema is set up
         await DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(this.ConnectionString);
         
@@ -32,6 +35,31 @@ public class OutboxWorkerTests : SqlServerTestBase
         });
         this.outboxService = new SqlOutboxService(options, new TestLogger(this.TestOutputHelper));
         this.worker = new TestOutboxWorker(this.outboxService, new TestLogger(this.TestOutputHelper));
+    }
+
+    private async Task WaitForDatabaseReadyAsync(string connectionString)
+    {
+        const int maxRetries = 10;
+        const int delayMs = 1000;
+        
+        for (int i = 0; i < maxRetries; i++)
+        {
+            try
+            {
+                await using var connection = new SqlConnection(connectionString);
+                await connection.OpenAsync();
+                await using var command = new SqlCommand("SELECT 1", connection);
+                await command.ExecuteScalarAsync();
+                return; // Success
+            }
+            catch (Exception ex)
+            {
+                this.TestOutputHelper.WriteLine($"Database connection attempt {i + 1} failed: {ex.Message}");
+                if (i == maxRetries - 1)
+                    throw new InvalidOperationException($"Database not ready after {maxRetries} attempts", ex);
+                await Task.Delay(delayMs);
+            }
+        }
     }
 
     [Fact]

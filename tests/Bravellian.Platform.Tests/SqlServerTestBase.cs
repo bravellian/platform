@@ -31,9 +31,23 @@ public abstract class SqlServerTestBase : IAsyncLifetime
 
     public virtual async ValueTask InitializeAsync()
     {
-        await this.msSqlContainer.StartAsync();
-        this.connectionString = this.msSqlContainer.GetConnectionString();
-        await this.SetupDatabaseSchema();
+        try
+        {
+            this.TestOutputHelper.WriteLine("Starting SQL Server container...");
+            await this.msSqlContainer.StartAsync();
+            this.connectionString = this.msSqlContainer.GetConnectionString();
+            this.TestOutputHelper.WriteLine($"SQL Server container started. Connection string: {this.connectionString}");
+            
+            // Wait a moment for SQL Server to fully initialize
+            await Task.Delay(TimeSpan.FromSeconds(5));
+            
+            await this.SetupDatabaseSchema();
+        }
+        catch (Exception ex)
+        {
+            this.TestOutputHelper.WriteLine($"Failed to initialize SQL Server container: {ex}");
+            throw;
+        }
     }
 
     public virtual async ValueTask DisposeAsync()

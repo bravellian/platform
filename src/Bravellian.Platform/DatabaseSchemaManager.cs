@@ -577,15 +577,26 @@ VALUES (1, 0, NULL);";
     /// <returns>A task representing the asynchronous operation.</returns>
     public static async Task EnsureWorkQueueSchemaAsync(string connectionString, string schemaName = "dbo")
     {
-        using var connection = new SqlConnection(connectionString);
-        await connection.OpenAsync().ConfigureAwait(false);
+        try
+        {
+            using var connection = new SqlConnection(connectionString);
+            await connection.OpenAsync().ConfigureAwait(false);
 
-        // Apply work queue migration (columns and types)
-        var migrationScript = GetWorkQueueMigrationInlineScript();
-        await ExecuteScriptAsync(connection, migrationScript).ConfigureAwait(false);
+            // Apply work queue migration (columns and types)
+            var migrationScript = GetWorkQueueMigrationInlineScript();
+            await ExecuteScriptAsync(connection, migrationScript).ConfigureAwait(false);
 
-        // Create each stored procedure individually to avoid batch issues
-        await CreateOutboxProceduresAsync(connection).ConfigureAwait(false);
+            // Create each stored procedure individually to avoid batch issues
+            await CreateOutboxProceduresAsync(connection).ConfigureAwait(false);
+        }
+        catch (SqlException sqlEx)
+        {
+            throw new InvalidOperationException($"Failed to ensure work queue schema. SQL Error: {sqlEx.Message} (Error Number: {sqlEx.Number}, Severity: {sqlEx.Class}, State: {sqlEx.State})", sqlEx);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Failed to ensure work queue schema: {ex.Message}", ex);
+        }
     }
 
     /// <summary>
