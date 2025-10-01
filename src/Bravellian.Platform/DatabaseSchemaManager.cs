@@ -640,13 +640,13 @@ BEGIN
 
     BEGIN TRAN;
 
-    -- Ensure row exists
-    IF NOT EXISTS (SELECT 1 FROM [{schemaName}].[Lease] WITH (UPDLOCK, HOLDLOCK)
-                   WHERE Name = @Name)
-    BEGIN
-        INSERT [{schemaName}].[Lease] (Name, Owner, LeaseUntilUtc, LastGrantedUtc)
-        VALUES (@Name, NULL, NULL, NULL);
-    END
+    -- Ensure row exists atomically
+    MERGE [{schemaName}].[Lease] AS target
+    USING (SELECT @Name AS Name) AS source
+    ON (target.Name = source.Name)
+    WHEN NOT MATCHED THEN
+        INSERT (Name, Owner, LeaseUntilUtc, LastGrantedUtc)
+        VALUES (source.Name, NULL, NULL, NULL);
 
     -- Try to acquire lease if free or expired
     UPDATE l WITH (UPDLOCK, ROWLOCK)
