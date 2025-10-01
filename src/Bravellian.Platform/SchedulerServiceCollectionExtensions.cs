@@ -137,8 +137,7 @@ public static class SchedulerServiceCollectionExtensions
         });
 
         services.AddSingleton<ISchedulerClient, SqlSchedulerClient>();
-        services.AddSingleton<SchedulerHealthCheck>(serviceProvider => 
-            new SchedulerHealthCheck(options.ConnectionString, serviceProvider.GetRequiredService<TimeProvider>()));
+        services.AddSingleton<SchedulerHealthCheck>();
         services.AddHostedService<SqlSchedulerService>();
 
         // Ensure database schema exists
