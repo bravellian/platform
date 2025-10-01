@@ -24,6 +24,19 @@ using System.Threading.Tasks;
 public interface IOutbox
 {
     /// <summary>
+    /// Enqueues a message into the outbox table using the configured connection string.
+    /// This method creates its own connection and transaction for reliability.
+    /// </summary>
+    /// <param name="topic">The topic or type of the message, used for routing.</param>
+    /// <param name="payload">The message content, typically serialized as a string (e.g., JSON).</param>
+    /// <param name="correlationId">An optional ID to trace the message back to its source.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    Task EnqueueAsync(
+        string topic,
+        string payload,
+        string? correlationId = null);
+
+    /// <summary>
     /// Enqueues a message into the outbox table within the context
     /// of an existing database transaction.
     /// </summary>

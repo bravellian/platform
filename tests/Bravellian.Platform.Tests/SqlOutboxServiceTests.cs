@@ -221,4 +221,150 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         
         exception.ShouldNotBeNull();
     }
+
+    [Fact]
+    public async Task EnqueueAsync_Standalone_WithValidParameters_InsertsMessageToDatabase()
+    {
+        // Arrange
+        string topic = "test-topic-standalone";
+        string payload = "test payload standalone";
+        string correlationId = "test-correlation-standalone";
+
+        // Act
+        await this.outboxService!.EnqueueAsync(topic, payload, correlationId);
+
+        // Verify the message was inserted by querying the database directly
+        await using var connection = new SqlConnection(this.ConnectionString);
+        await connection.OpenAsync();
+        var sql = "SELECT COUNT(*) FROM dbo.Outbox WHERE Topic = @Topic AND Payload = @Payload AND CorrelationId = @CorrelationId";
+        await using var command = new SqlCommand(sql, connection);
+        command.Parameters.AddWithValue("@Topic", topic);
+        command.Parameters.AddWithValue("@Payload", payload);
+        command.Parameters.AddWithValue("@CorrelationId", correlationId);
+        
+        var count = (int)await command.ExecuteScalarAsync();
+
+        // Assert
+        count.ShouldBe(1);
+
+        // Clean up
+        var deleteSql = "DELETE FROM dbo.Outbox WHERE Topic = @Topic AND Payload = @Payload";
+        await using var deleteCommand = new SqlCommand(deleteSql, connection);
+        deleteCommand.Parameters.AddWithValue("@Topic", topic);
+        deleteCommand.Parameters.AddWithValue("@Payload", payload);
+        await deleteCommand.ExecuteNonQueryAsync();
+    }
+
+    [Fact]
+    public async Task EnqueueAsync_Standalone_WithNullCorrelationId_InsertsMessageSuccessfully()
+    {
+        // Arrange
+        string topic = "test-topic-standalone-null";
+        string payload = "test payload standalone null";
+
+        // Act
+        await this.outboxService!.EnqueueAsync(topic, payload, correlationId: null);
+
+        // Verify the message was inserted
+        await using var connection = new SqlConnection(this.ConnectionString);
+        await connection.OpenAsync();
+        var sql = "SELECT COUNT(*) FROM dbo.Outbox WHERE Topic = @Topic AND Payload = @Payload";
+        await using var command = new SqlCommand(sql, connection);
+        command.Parameters.AddWithValue("@Topic", topic);
+        command.Parameters.AddWithValue("@Payload", payload);
+        
+        var count = (int)await command.ExecuteScalarAsync();
+
+        // Assert
+        count.ShouldBe(1);
+
+        // Clean up
+        var deleteSql = "DELETE FROM dbo.Outbox WHERE Topic = @Topic AND Payload = @Payload";
+        await using var deleteCommand = new SqlCommand(deleteSql, connection);
+        deleteCommand.Parameters.AddWithValue("@Topic", topic);
+        deleteCommand.Parameters.AddWithValue("@Payload", payload);
+        await deleteCommand.ExecuteNonQueryAsync();
+    }
+
+    [Fact]
+    public async Task EnqueueAsync_Standalone_MultipleMessages_AllInsertedSuccessfully()
+    {
+        // Arrange
+        var testId = Guid.NewGuid().ToString("N");
+        var topics = new[] { $"topic-1-{testId}", $"topic-2-{testId}", $"topic-3-{testId}" };
+        var payloads = new[] { $"payload-1-{testId}", $"payload-2-{testId}", $"payload-3-{testId}" };
+
+        try
+        {
+            // Act - Insert multiple messages using standalone method
+            await this.outboxService!.EnqueueAsync(topics[0], payloads[0]);
+            await this.outboxService.EnqueueAsync(topics[1], payloads[1]);
+            await this.outboxService.EnqueueAsync(topics[2], payloads[2]);
+
+            // Verify all messages were inserted
+            await using var connection = new SqlConnection(this.ConnectionString);
+            await connection.OpenAsync();
+            var sql = "SELECT COUNT(*) FROM dbo.Outbox WHERE Topic LIKE @TopicPattern";
+            await using var command = new SqlCommand(sql, connection);
+            command.Parameters.AddWithValue("@TopicPattern", $"%-{testId}");
+            var count = (int)await command.ExecuteScalarAsync();
+
+            // Assert
+            count.ShouldBe(3);
+        }
+        finally
+        {
+            // Clean up
+            await using var connection = new SqlConnection(this.ConnectionString);
+            await connection.OpenAsync();
+            var deleteSql = "DELETE FROM dbo.Outbox WHERE Topic LIKE @TopicPattern";
+            await using var deleteCommand = new SqlCommand(deleteSql, connection);
+            deleteCommand.Parameters.AddWithValue("@TopicPattern", $"%-{testId}");
+            await deleteCommand.ExecuteNonQueryAsync();
+        }
+    }
+
+    [Fact]
+    public async Task EnqueueAsync_Standalone_EnsuresTableExists()
+    {
+        // Arrange - Create a custom outbox service with a different table name
+        var customOptions = new SqlOutboxOptions 
+        { 
+            ConnectionString = this.ConnectionString, 
+            SchemaName = "dbo", 
+            TableName = "TestOutbox_StandaloneEnsure", 
+        };
+        
+        var customOutboxService = new SqlOutboxService(Options.Create(customOptions), NullLogger<SqlOutboxService>.Instance);
+
+        // First, ensure the custom table doesn't exist
+        await using var setupConnection = new SqlConnection(this.ConnectionString);
+        await setupConnection.OpenAsync();
+        await setupConnection.ExecuteAsync("IF OBJECT_ID('dbo.TestOutbox_StandaloneEnsure', 'U') IS NOT NULL DROP TABLE dbo.TestOutbox_StandaloneEnsure");
+
+        string topic = "test-topic-ensure";
+        string payload = "test payload ensure";
+
+        try
+        {
+            // Act - This should create the table and insert the message
+            await customOutboxService.EnqueueAsync(topic, payload);
+
+            // Verify the table was created and message was inserted
+            var sql = "SELECT COUNT(*) FROM dbo.TestOutbox_StandaloneEnsure WHERE Topic = @Topic AND Payload = @Payload";
+            await using var command = new SqlCommand(sql, setupConnection);
+            command.Parameters.AddWithValue("@Topic", topic);
+            command.Parameters.AddWithValue("@Payload", payload);
+            
+            var count = (int)await command.ExecuteScalarAsync();
+
+            // Assert
+            count.ShouldBe(1);
+        }
+        finally
+        {
+            // Clean up - Drop the test table
+            await setupConnection.ExecuteAsync("IF OBJECT_ID('dbo.TestOutbox_StandaloneEnsure', 'U') IS NOT NULL DROP TABLE dbo.TestOutbox_StandaloneEnsure");
+        }
+    }
 }

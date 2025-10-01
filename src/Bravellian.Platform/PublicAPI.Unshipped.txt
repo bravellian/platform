@@ -17,6 +17,7 @@ Bravellian.Platform.IOutboxStore.FailAsync(System.Guid id, string! lastError, Sy
 Bravellian.Platform.IOutboxStore.MarkDispatchedAsync(System.Guid id, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
 Bravellian.Platform.IOutboxStore.RescheduleAsync(System.Guid id, System.TimeSpan delay, string! lastError, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
 Bravellian.Platform.IOutbox
+Bravellian.Platform.IOutbox.EnqueueAsync(string! topic, string! payload, string? correlationId = null) -> System.Threading.Tasks.Task!
 Bravellian.Platform.IOutbox.EnqueueAsync(string! topic, string! payload, System.Data.IDbTransaction! transaction, string? correlationId = null) -> System.Threading.Tasks.Task!
 Bravellian.Platform.ISchedulerClient
 Bravellian.Platform.ISchedulerClient.CancelTimerAsync(string! timerId) -> System.Threading.Tasks.Task<bool>!
