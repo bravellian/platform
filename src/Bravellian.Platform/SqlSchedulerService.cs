@@ -24,6 +24,7 @@ internal class SqlSchedulerService : IHostedService
 {
     private readonly ISystemLeaseFactory leaseFactory;
     private readonly IOutbox outbox;
+    private readonly IDatabaseSchemaCompletion? schemaCompletion;
     private readonly string connectionString;
     private readonly SqlSchedulerOptions options;
     private readonly TimeProvider timeProvider;
@@ -38,10 +39,11 @@ internal class SqlSchedulerService : IHostedService
     private readonly string getNextEventTimeSql;
     private readonly string schedulerStateUpdateSql;
 
-    public SqlSchedulerService(ISystemLeaseFactory leaseFactory, IOutbox outbox, IOptions<SqlSchedulerOptions> options, TimeProvider timeProvider)
+    public SqlSchedulerService(ISystemLeaseFactory leaseFactory, IOutbox outbox, IOptions<SqlSchedulerOptions> options, TimeProvider timeProvider, IDatabaseSchemaCompletion? schemaCompletion = null)
     {
         this.leaseFactory = leaseFactory;
         this.outbox = outbox;
+        this.schemaCompletion = schemaCompletion;
         this.options = options.Value;
         this.connectionString = this.options.ConnectionString;
         this.timeProvider = timeProvider;
@@ -95,6 +97,20 @@ internal class SqlSchedulerService : IHostedService
         Task.Run(
             async () =>
         {
+            // Wait for schema deployment to complete if available
+            if (this.schemaCompletion != null)
+            {
+                try
+                {
+                    await this.schemaCompletion.SchemaDeploymentCompleted.ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    // Log and continue - schema deployment errors should not prevent scheduler from starting
+                    System.Diagnostics.Debug.WriteLine($"Schema deployment failed, but continuing with scheduler: {ex}");
+                }
+            }
+
             while (!cancellationToken.IsCancellationRequested)
             {
                 await this.SchedulerLoopAsync(cancellationToken).ConfigureAwait(false);
