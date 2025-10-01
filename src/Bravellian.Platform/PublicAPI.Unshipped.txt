@@ -6,6 +6,8 @@ Bravellian.Platform.IInbox.AlreadyProcessedAsync(string! messageId, string! sour
 Bravellian.Platform.IInbox.MarkDeadAsync(string! messageId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Bravellian.Platform.IInbox.MarkProcessedAsync(string! messageId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Bravellian.Platform.IInbox.MarkProcessingAsync(string! messageId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Bravellian.Platform.IMessageBroker
+Bravellian.Platform.IMessageBroker.SendMessageAsync(Bravellian.Platform.OutboxMessage! message, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 Bravellian.Platform.IOutbox
 Bravellian.Platform.IOutbox.EnqueueAsync(string! topic, string! payload, System.Data.IDbTransaction! transaction, string? correlationId = null) -> System.Threading.Tasks.Task!
 Bravellian.Platform.ISchedulerClient
@@ -81,6 +83,8 @@ Bravellian.Platform.SystemLeaseOptions.SystemLeaseOptions() -> void
 Bravellian.Platform.SystemLeaseOptions.UseGate.get -> bool
 Bravellian.Platform.SystemLeaseOptions.UseGate.set -> void
 const Bravellian.Platform.SqlSchedulerOptions.SectionName = "SqlScheduler" -> string!
+static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddMessageBroker(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Func<System.IServiceProvider!, Bravellian.Platform.IMessageBroker!>! factory) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddMessageBroker<TMessageBroker>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddSqlInbox(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Bravellian.Platform.SqlInboxOptions! options) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddSqlInbox(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! connectionString, string! schemaName = "dbo", string! tableName = "Inbox") -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddSqlOutbox(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Bravellian.Platform.SqlOutboxOptions! options) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

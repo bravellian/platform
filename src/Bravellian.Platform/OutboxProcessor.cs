@@ -27,18 +27,20 @@ internal class OutboxProcessor : IHostedService
     private readonly SqlOutboxOptions options;
     private readonly ISystemLeaseFactory leaseFactory;
     private readonly TimeProvider timeProvider;
+    private readonly IMessageBroker messageBroker;
     private readonly string instanceId = $"{Environment.MachineName}:{Guid.NewGuid()}"; // Unique ID for this processor instance
     private readonly string selectSql;
     private readonly string successSql;
     private readonly string failureSql;
     private readonly string fencingStateUpdateSql;
 
-    public OutboxProcessor(IOptions<SqlOutboxOptions> options, ISystemLeaseFactory leaseFactory, TimeProvider timeProvider)
+    public OutboxProcessor(IOptions<SqlOutboxOptions> options, ISystemLeaseFactory leaseFactory, TimeProvider timeProvider, IMessageBroker messageBroker)
     {
         this.options = options.Value;
         this.connectionString = this.options.ConnectionString;
         this.leaseFactory = leaseFactory;
         this.timeProvider = timeProvider;
+        this.messageBroker = messageBroker;
 
         // Build SQL queries using configured schema and table names
         this.selectSql = $"SELECT TOP 10 * FROM [{this.options.SchemaName}].[{this.options.TableName}] WHERE IsProcessed = 0 AND NextAttemptAt <= SYSDATETIMEOFFSET() ORDER BY CreatedAt;";
@@ -144,7 +146,7 @@ internal class OutboxProcessor : IHostedService
                 var stopwatch = Stopwatch.StartNew();
                 try
                 {
-                    await this.SendMessageToBrokerAsync(message).ConfigureAwait(false);
+                    await this.messageBroker.SendMessageAsync(message, combinedToken).ConfigureAwait(false);
                     SchedulerMetrics.OutboxMessagesSent.Add(1);
                 }
                 catch
@@ -191,13 +193,5 @@ internal class OutboxProcessor : IHostedService
                 }).ConfigureAwait(false);
             }
         }
-    }
-
-    private async Task<bool> SendMessageToBrokerAsync(OutboxMessage message)
-    {
-        // In a real implementation, you would have your message broker client code here.
-        System.Console.WriteLine($"Sending message {message.Id} to topic {message.Topic}");
-        await Task.Delay(100).ConfigureAwait(false); // Simulate network latency
-        return true; // Assume it was sent successfully
     }
 }

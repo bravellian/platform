@@ -37,6 +37,7 @@ public static class SchedulerServiceCollectionExtensions
         // 2. Register the public-facing client and internal services as singletons
         services.AddSingleton<ISchedulerClient, SqlSchedulerClient>();
         services.AddSingleton<IOutbox, SqlOutboxService>();
+        services.AddSingleton<IMessageBroker, ConsoleMessageBroker>();
 
         // 3. Register the health check
         // Note: This method requires configuration to be properly set up
@@ -79,6 +80,7 @@ public static class SchedulerServiceCollectionExtensions
         });
 
         services.AddSingleton<IOutbox, SqlOutboxService>();
+        services.AddSingleton<IMessageBroker, ConsoleMessageBroker>();
         services.AddHostedService<OutboxProcessor>();
 
         // Ensure database schema exists
@@ -289,6 +291,33 @@ public static class SchedulerServiceCollectionExtensions
         services.AddSingleton(timeProvider ?? TimeProvider.System);
         services.AddSingleton<IMonotonicClock, MonotonicClock>();
 
+        return services;
+    }
+
+    /// <summary>
+    /// Registers a custom message broker implementation to replace the default console broker.
+    /// This must be called after AddSqlOutbox to override the default registration.
+    /// </summary>
+    /// <typeparam name="TMessageBroker">The custom message broker implementation type.</typeparam>
+    /// <param name="services">The IServiceCollection to add services to.</param>
+    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
+    public static IServiceCollection AddMessageBroker<TMessageBroker>(this IServiceCollection services)
+        where TMessageBroker : class, IMessageBroker
+    {
+        services.AddSingleton<IMessageBroker, TMessageBroker>();
+        return services;
+    }
+
+    /// <summary>
+    /// Registers a custom message broker implementation using a factory.
+    /// This must be called after AddSqlOutbox to override the default registration.
+    /// </summary>
+    /// <param name="services">The IServiceCollection to add services to.</param>
+    /// <param name="factory">Factory function to create the message broker instance.</param>
+    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
+    public static IServiceCollection AddMessageBroker(this IServiceCollection services, Func<IServiceProvider, IMessageBroker> factory)
+    {
+        services.AddSingleton(factory);
         return services;
     }
 
