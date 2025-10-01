@@ -34,6 +34,18 @@ public class LostLeaseException : InvalidOperationException
     }
 
     /// <summary>
+    /// Initializes a new instance of the <see cref="LostLeaseException"/> class.
+    /// </summary>
+    /// <param name="leaseName">The name of the lease that was lost.</param>
+    /// <param name="owner">The owner identifier of the lost lease.</param>
+    public LostLeaseException(string leaseName, string owner)
+        : base($"Lease '{leaseName}' with owner '{owner}' has been lost.")
+    {
+        this.ResourceName = leaseName;
+        this.Owner = owner;
+    }
+
+    /// <summary>
     /// Gets the name of the resource whose lease was lost.
     /// </summary>
     public string ResourceName { get; }
@@ -42,4 +54,9 @@ public class LostLeaseException : InvalidOperationException
     /// Gets the owner token of the lost lease.
     /// </summary>
     public Guid OwnerToken { get; }
+
+    /// <summary>
+    /// Gets the owner identifier of the lost lease.
+    /// </summary>
+    public string? Owner { get; }
 }

@@ -81,6 +81,33 @@ internal static class DatabaseSchemaManager
     }
 
     /// <summary>
+    /// Ensures that the required database schema exists for the lease functionality.
+    /// </summary>
+    /// <param name="connectionString">The database connection string.</param>
+    /// <param name="schemaName">The schema name (default: "dbo").</param>
+    /// <param name="tableName">The table name (default: "Lease").</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public static async Task EnsureLeaseSchemaAsync(string connectionString, string schemaName = "dbo", string tableName = "Lease")
+    {
+        using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync().ConfigureAwait(false);
+
+        // Ensure schema exists
+        await EnsureSchemaExistsAsync(connection, schemaName).ConfigureAwait(false);
+
+        // Check if table exists
+        var tableExists = await TableExistsAsync(connection, schemaName, tableName).ConfigureAwait(false);
+        if (!tableExists)
+        {
+            var createScript = GetLeaseCreateScript(schemaName, tableName);
+            await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
+        }
+
+        // Ensure stored procedures exist
+        await EnsureLeaseStoredProceduresAsync(connection, schemaName).ConfigureAwait(false);
+    }
+
+    /// <summary>
     /// Ensures that the required database schema exists for the inbox functionality.
     /// </summary>
     /// <param name="connectionString">The database connection string.</param>
@@ -361,6 +388,24 @@ CREATE INDEX IX_{tableName}_OwnerToken ON [{schemaName}].[{tableName}]([OwnerTok
     }
 
     /// <summary>
+    /// Gets the SQL script to create the Lease table.
+    /// </summary>
+    /// <param name="schemaName">The schema name.</param>
+    /// <param name="tableName">The table name.</param>
+    /// <returns>The SQL create script.</returns>
+    private static string GetLeaseCreateScript(string schemaName, string tableName)
+    {
+        return $@"
+CREATE TABLE [{schemaName}].[{tableName}](
+    [Name] SYSNAME NOT NULL CONSTRAINT PK_{tableName} PRIMARY KEY,
+    [Owner] SYSNAME NULL,
+    [LeaseUntilUtc] DATETIME2(3) NULL,
+    [LastGrantedUtc] DATETIME2(3) NULL,
+    [Version] ROWVERSION NOT NULL
+);";
+    }
+
+    /// <summary>
     /// Ensures distributed lock stored procedures exist.
     /// </summary>
     /// <param name="connection">The database connection.</param>
@@ -377,6 +422,21 @@ CREATE INDEX IX_{tableName}_OwnerToken ON [{schemaName}].[{tableName}]([OwnerTok
         await ExecuteScriptAsync(connection, renewProc).ConfigureAwait(false);
         await ExecuteScriptAsync(connection, releaseProc).ConfigureAwait(false);
         await ExecuteScriptAsync(connection, cleanupProc).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Ensures lease stored procedures exist.
+    /// </summary>
+    /// <param name="connection">The database connection.</param>
+    /// <param name="schemaName">The schema name.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    private static async Task EnsureLeaseStoredProceduresAsync(SqlConnection connection, string schemaName)
+    {
+        var acquireProc = GetLeaseAcquireStoredProcedure(schemaName);
+        var renewProc = GetLeaseRenewStoredProcedure(schemaName);
+
+        await ExecuteScriptAsync(connection, acquireProc).ConfigureAwait(false);
+        await ExecuteScriptAsync(connection, renewProc).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -549,6 +609,103 @@ BEGIN
     UPDATE [{schemaName}].[DistributedLock]
        SET OwnerToken = NULL, LeaseUntil = NULL, ContextJson = NULL
      WHERE LeaseUntil IS NOT NULL AND LeaseUntil <= SYSUTCDATETIME();
+END";
+    }
+
+    /// <summary>
+    /// Gets the Lease_Acquire stored procedure script.
+    /// </summary>
+    /// <param name="schemaName">The schema name.</param>
+    /// <returns>The stored procedure script.</returns>
+    private static string GetLeaseAcquireStoredProcedure(string schemaName)
+    {
+        return $@"
+CREATE OR ALTER PROCEDURE [{schemaName}].[Lease_Acquire]
+    @Name SYSNAME,
+    @Owner SYSNAME,
+    @LeaseSeconds INT,
+    @Acquired BIT OUTPUT,
+    @ServerUtcNow DATETIME2(3) OUTPUT,
+    @LeaseUntilUtc DATETIME2(3) OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON; SET XACT_ABORT ON;
+
+    DECLARE @now DATETIME2(3) = SYSUTCDATETIME();
+    DECLARE @newLease DATETIME2(3) = DATEADD(SECOND, @LeaseSeconds, @now);
+    
+    SET @ServerUtcNow = @now;
+    SET @Acquired = 0;
+    SET @LeaseUntilUtc = NULL;
+
+    BEGIN TRAN;
+
+    -- Ensure row exists
+    IF NOT EXISTS (SELECT 1 FROM [{schemaName}].[Lease] WITH (UPDLOCK, HOLDLOCK)
+                   WHERE Name = @Name)
+    BEGIN
+        INSERT [{schemaName}].[Lease] (Name, Owner, LeaseUntilUtc, LastGrantedUtc)
+        VALUES (@Name, NULL, NULL, NULL);
+    END
+
+    -- Try to acquire lease if free or expired
+    UPDATE l WITH (UPDLOCK, ROWLOCK)
+       SET Owner = @Owner,
+           LeaseUntilUtc = @newLease,
+           LastGrantedUtc = @now
+      FROM [{schemaName}].[Lease] l
+     WHERE l.Name = @Name
+       AND (l.Owner IS NULL OR l.LeaseUntilUtc IS NULL OR l.LeaseUntilUtc <= @now);
+
+    IF @@ROWCOUNT = 1
+    BEGIN
+        SET @Acquired = 1;
+        SET @LeaseUntilUtc = @newLease;
+    END
+
+    COMMIT TRAN;
+END";
+    }
+
+    /// <summary>
+    /// Gets the Lease_Renew stored procedure script.
+    /// </summary>
+    /// <param name="schemaName">The schema name.</param>
+    /// <returns>The stored procedure script.</returns>
+    private static string GetLeaseRenewStoredProcedure(string schemaName)
+    {
+        return $@"
+CREATE OR ALTER PROCEDURE [{schemaName}].[Lease_Renew]
+    @Name SYSNAME,
+    @Owner SYSNAME,
+    @LeaseSeconds INT,
+    @Renewed BIT OUTPUT,
+    @ServerUtcNow DATETIME2(3) OUTPUT,
+    @LeaseUntilUtc DATETIME2(3) OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @now DATETIME2(3) = SYSUTCDATETIME();
+    DECLARE @newLease DATETIME2(3) = DATEADD(SECOND, @LeaseSeconds, @now);
+    
+    SET @ServerUtcNow = @now;
+    SET @Renewed = 0;
+    SET @LeaseUntilUtc = NULL;
+
+    UPDATE l WITH (UPDLOCK, ROWLOCK)
+       SET LeaseUntilUtc = @newLease,
+           LastGrantedUtc = @now
+      FROM [{schemaName}].[Lease] l
+     WHERE l.Name = @Name
+       AND l.Owner = @Owner
+       AND l.LeaseUntilUtc > @now;
+
+    IF @@ROWCOUNT = 1
+    BEGIN
+        SET @Renewed = 1;
+        SET @LeaseUntilUtc = @newLease;
+    END
 END";
     }
 
