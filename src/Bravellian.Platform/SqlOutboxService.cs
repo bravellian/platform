@@ -65,7 +65,7 @@ internal class SqlOutboxService : IOutbox
                 CorrelationId = correlationId,
             }, transaction: transaction).ConfigureAwait(false);
 
-            transaction.Commit();
+            await transaction.CommitAsync().ConfigureAwait(false);
         }
         catch
         {
