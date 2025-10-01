@@ -61,7 +61,7 @@ internal static class SchedulerMetrics
         Meter.CreateObservableGauge("scheduler.outbox.pending.gauge", () => GetPendingCount("dbo.Outbox", "IsProcessed = 0"), "messages", "Number of pending messages in the outbox.");
         Meter.CreateObservableGauge("scheduler.timers.pending.gauge", () => GetPendingCount("dbo.Timers", "Status = 'Pending'"), "timers", "Number of pending timers.");
         Meter.CreateObservableGauge("scheduler.jobs.pending.gauge", () => GetPendingCount("dbo.JobRuns", "Status = 'Pending'"), "jobs", "Number of pending job runs.");
-        
+
         // Work queue status gauges
         Meter.CreateObservableGauge("outbox.ready.gauge", () => GetPendingCount("dbo.Outbox", "Status = 0"), "items", "Number of ready outbox items.");
         Meter.CreateObservableGauge("outbox.inprogress.gauge", () => GetPendingCount("dbo.Outbox", "Status = 1"), "items", "Number of in-progress outbox items.");

@@ -63,7 +63,7 @@ public static class SchedulerServiceCollectionExtensions
     {
         // Add time abstractions
         services.AddTimeAbstractions();
-        
+
         // Add lease system for outbox processing coordination
         services.AddSystemLeases(new SystemLeaseOptions
         {
@@ -87,8 +87,8 @@ public static class SchedulerServiceCollectionExtensions
             try
             {
                 await DatabaseSchemaManager.EnsureOutboxSchemaAsync(
-                    options.ConnectionString, 
-                    options.SchemaName, 
+                    options.ConnectionString,
+                    options.SchemaName,
                     options.TableName).ConfigureAwait(false);
             }
             catch
@@ -110,7 +110,7 @@ public static class SchedulerServiceCollectionExtensions
     {
         // Add time abstractions
         services.AddTimeAbstractions();
-        
+
         services.AddSqlOutbox(new SqlOutboxOptions
         {
             ConnectionString = options.ConnectionString,
@@ -231,7 +231,7 @@ public static class SchedulerServiceCollectionExtensions
     {
         // Add time abstractions
         services.AddTimeAbstractions();
-        
+
         services.Configure<SystemLeaseOptions>(o =>
         {
             o.ConnectionString = options.ConnectionString;
@@ -288,7 +288,7 @@ public static class SchedulerServiceCollectionExtensions
     {
         services.AddSingleton(timeProvider ?? TimeProvider.System);
         services.AddSingleton<IMonotonicClock, MonotonicClock>();
-        
+
         return services;
     }
 }

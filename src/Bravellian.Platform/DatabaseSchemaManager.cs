@@ -172,7 +172,7 @@ internal static class DatabaseSchemaManager
     {
         // Split by GO statements and execute each batch separately
         var batches = script.Split(new[] { "\nGO\n", "\nGO\r\n", "\rGO\r", "GO" }, StringSplitOptions.RemoveEmptyEntries);
-        
+
         foreach (var batch in batches)
         {
             var trimmedBatch = batch.Trim();

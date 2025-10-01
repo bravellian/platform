@@ -44,9 +44,9 @@ internal class SqlSchedulerClient : ISchedulerClient
 
         // Build SQL queries using configured schema and table names
         this.insertTimerSql = $"INSERT INTO [{this.options.SchemaName}].[{this.options.TimersTableName}] (Id, Topic, Payload, DueTime) VALUES (@Id, @Topic, @Payload, @DueTime);";
-        
+
         this.cancelTimerSql = $"UPDATE [{this.options.SchemaName}].[{this.options.TimersTableName}] SET Status = 'Cancelled' WHERE Id = @TimerId AND Status = 'Pending';";
-        
+
         this.mergeJobSql = $@"
             MERGE [{this.options.SchemaName}].[{this.options.JobsTableName}] AS target
             USING (SELECT @JobName AS JobName) AS source
@@ -56,11 +56,11 @@ internal class SqlSchedulerClient : ISchedulerClient
             WHEN NOT MATCHED THEN
                 INSERT (Id, JobName, Topic, CronSchedule, Payload, NextDueTime)
                 VALUES (NEWID(), @JobName, @Topic, @CronSchedule, @Payload, @NextDueTime);";
-        
+
         this.deleteJobRunsSql = $"DELETE FROM [{this.options.SchemaName}].[{this.options.JobRunsTableName}] WHERE JobId = (SELECT Id FROM [{this.options.SchemaName}].[{this.options.JobsTableName}] WHERE JobName = @JobName);";
-        
+
         this.deleteJobSql = $"DELETE FROM [{this.options.SchemaName}].[{this.options.JobsTableName}] WHERE JobName = @JobName;";
-        
+
         this.triggerJobSql = $@"
             INSERT INTO [{this.options.SchemaName}].[{this.options.JobRunsTableName}] (Id, JobId, ScheduledTime)
             SELECT NEWID(), Id, SYSDATETIMEOFFSET() FROM [{this.options.SchemaName}].[{this.options.JobsTableName}] WHERE JobName = @JobName;";
@@ -131,15 +131,15 @@ internal class SqlSchedulerClient : ISchedulerClient
         CancellationToken cancellationToken = default)
     {
         var result = new List<Guid>(batchSize);
-        
+
         await using var connection = new SqlConnection(this.connectionString);
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-        
+
         await using var command = new SqlCommand("dbo.Timers_Claim", connection)
         {
             CommandType = CommandType.StoredProcedure,
         };
-        
+
         command.Parameters.AddWithValue("@OwnerToken", ownerToken);
         command.Parameters.AddWithValue("@LeaseSeconds", leaseSeconds);
         command.Parameters.AddWithValue("@BatchSize", batchSize);
@@ -160,15 +160,15 @@ internal class SqlSchedulerClient : ISchedulerClient
         CancellationToken cancellationToken = default)
     {
         var result = new List<Guid>(batchSize);
-        
+
         await using var connection = new SqlConnection(this.connectionString);
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-        
+
         await using var command = new SqlCommand("dbo.JobRuns_Claim", connection)
         {
             CommandType = CommandType.StoredProcedure,
         };
-        
+
         command.Parameters.AddWithValue("@OwnerToken", ownerToken);
         command.Parameters.AddWithValue("@LeaseSeconds", leaseSeconds);
         command.Parameters.AddWithValue("@BatchSize", batchSize);
@@ -218,7 +218,7 @@ internal class SqlSchedulerClient : ISchedulerClient
     {
         await using var connection = new SqlConnection(this.connectionString);
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-        
+
         await using var command = new SqlCommand("dbo.Timers_ReapExpired", connection)
         {
             CommandType = CommandType.StoredProcedure,
@@ -231,7 +231,7 @@ internal class SqlSchedulerClient : ISchedulerClient
     {
         await using var connection = new SqlConnection(this.connectionString);
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-        
+
         await using var command = new SqlCommand("dbo.JobRuns_ReapExpired", connection)
         {
             CommandType = CommandType.StoredProcedure,
@@ -261,12 +261,12 @@ internal class SqlSchedulerClient : ISchedulerClient
 
         await using var connection = new SqlConnection(this.connectionString);
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-        
+
         await using var command = new SqlCommand(procedure, connection)
         {
             CommandType = CommandType.StoredProcedure,
         };
-        
+
         command.Parameters.AddWithValue("@OwnerToken", ownerToken);
         var parameter = command.Parameters.AddWithValue("@Ids", tvp);
         parameter.SqlDbType = SqlDbType.Structured;

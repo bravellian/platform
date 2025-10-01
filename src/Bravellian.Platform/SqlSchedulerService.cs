@@ -118,8 +118,8 @@ internal class SqlSchedulerService : IHostedService
 
             // Try to acquire a lease for scheduler processing
             var lease = await this.leaseFactory.AcquireAsync(
-                "scheduler:run", 
-                TimeSpan.FromSeconds(30), 
+                "scheduler:run",
+                TimeSpan.FromSeconds(30),
                 cancellationToken: cancellationToken).ConfigureAwait(false);
 
             if (lease == null)
@@ -139,11 +139,11 @@ internal class SqlSchedulerService : IHostedService
                     // Update the fencing state to indicate we're the current scheduler
                     using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.connectionString);
                     await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-                    
-                    await connection.ExecuteAsync(this.schedulerStateUpdateSql, new 
-                    { 
-                        FencingToken = lease.FencingToken, 
-                        LastRunAt = this.timeProvider.GetUtcNow() 
+
+                    await connection.ExecuteAsync(this.schedulerStateUpdateSql, new
+                    {
+                        FencingToken = lease.FencingToken,
+                        LastRunAt = this.timeProvider.GetUtcNow()
                     }).ConfigureAwait(false);
 
                     // 1. Process any work that is currently due.

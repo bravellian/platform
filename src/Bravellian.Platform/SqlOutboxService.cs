@@ -33,7 +33,7 @@ internal class SqlOutboxService : IOutbox
         this.options = options.Value;
         this.connectionString = this.options.ConnectionString;
         this.logger = logger;
-        
+
         // Build the SQL query using configured schema and table names
         this.enqueueSql = $@"
             INSERT INTO [{this.options.SchemaName}].[{this.options.TableName}] (Topic, Payload, CorrelationId, MessageId)
@@ -63,17 +63,17 @@ internal class SqlOutboxService : IOutbox
     {
         using var activity = SchedulerMetrics.StartActivity("outbox.claim");
         var result = new List<Guid>(batchSize);
-        
+
         try
         {
             await using var connection = new SqlConnection(this.connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-            
+
             await using var command = new SqlCommand("dbo.Outbox_Claim", connection)
             {
                 CommandType = CommandType.StoredProcedure,
             };
-            
+
             command.Parameters.AddWithValue("@OwnerToken", ownerToken);
             command.Parameters.AddWithValue("@LeaseSeconds", leaseSeconds);
             command.Parameters.AddWithValue("@BatchSize", batchSize);
@@ -102,9 +102,9 @@ internal class SqlOutboxService : IOutbox
     {
         using var activity = SchedulerMetrics.StartActivity("outbox.ack");
         var idList = ids.ToList();
-        
+
         if (idList.Count == 0) return;
-        
+
         try
         {
             await this.ExecuteWithIdsAsync("dbo.Outbox_Ack", ownerToken, idList, cancellationToken).ConfigureAwait(false);
@@ -125,9 +125,9 @@ internal class SqlOutboxService : IOutbox
     {
         using var activity = SchedulerMetrics.StartActivity("outbox.abandon");
         var idList = ids.ToList();
-        
+
         if (idList.Count == 0) return;
-        
+
         try
         {
             await this.ExecuteWithIdsAsync("dbo.Outbox_Abandon", ownerToken, idList, cancellationToken).ConfigureAwait(false);
@@ -148,9 +148,9 @@ internal class SqlOutboxService : IOutbox
     {
         using var activity = SchedulerMetrics.StartActivity("outbox.fail");
         var idList = ids.ToList();
-        
+
         if (idList.Count == 0) return;
-        
+
         try
         {
             await this.ExecuteWithIdsAsync("dbo.Outbox_Fail", ownerToken, idList, cancellationToken).ConfigureAwait(false);
@@ -167,12 +167,12 @@ internal class SqlOutboxService : IOutbox
     public async Task ReapExpiredAsync(CancellationToken cancellationToken = default)
     {
         using var activity = SchedulerMetrics.StartActivity("outbox.reap_expired");
-        
+
         try
         {
             await using var connection = new SqlConnection(this.connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-            
+
             await using var command = new SqlCommand("dbo.Outbox_ReapExpired", connection)
             {
                 CommandType = CommandType.StoredProcedure,
@@ -180,7 +180,7 @@ internal class SqlOutboxService : IOutbox
 
             var reapedCount = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
             var count = Convert.ToInt32(reapedCount ?? 0);
-            
+
             this.logger.LogDebug("Reaped {Count} expired outbox items", count);
             SchedulerMetrics.OutboxItemsReaped.Add(count);
         }
@@ -212,12 +212,12 @@ internal class SqlOutboxService : IOutbox
 
         await using var connection = new SqlConnection(this.connectionString);
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-        
+
         await using var command = new SqlCommand(procedure, connection)
         {
             CommandType = CommandType.StoredProcedure,
         };
-        
+
         command.Parameters.AddWithValue("@OwnerToken", ownerToken);
         var parameter = command.Parameters.AddWithValue("@Ids", tvp);
         parameter.SqlDbType = SqlDbType.Structured;

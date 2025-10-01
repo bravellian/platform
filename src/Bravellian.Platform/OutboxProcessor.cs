@@ -42,12 +42,12 @@ internal class OutboxProcessor : IHostedService
 
         // Build SQL queries using configured schema and table names
         this.selectSql = $"SELECT TOP 10 * FROM [{this.options.SchemaName}].[{this.options.TableName}] WHERE IsProcessed = 0 AND NextAttemptAt <= SYSDATETIMEOFFSET() ORDER BY CreatedAt;";
-        
+
         this.successSql = $@"
             UPDATE [{this.options.SchemaName}].[{this.options.TableName}]
             SET IsProcessed = 1, ProcessedAt = SYSDATETIMEOFFSET(), ProcessedBy = @InstanceId
             WHERE Id = @Id AND @FencingToken >= (SELECT ISNULL(CurrentFencingToken, 0) FROM [{this.options.SchemaName}].[OutboxState] WHERE Id = 1);";
-        
+
         this.failureSql = $@"
             UPDATE [{this.options.SchemaName}].[{this.options.TableName}]
             SET RetryCount = @RetryCount, LastError = @Error, NextAttemptAt = @NextAttempt
@@ -88,8 +88,8 @@ internal class OutboxProcessor : IHostedService
     {
         // Try to acquire a lease for outbox processing
         var lease = await this.leaseFactory.AcquireAsync(
-            "outbox:dispatch", 
-            TimeSpan.FromSeconds(30), 
+            "outbox:dispatch",
+            TimeSpan.FromSeconds(30),
             cancellationToken: cancellationToken).ConfigureAwait(false);
 
         if (lease == null)
@@ -123,10 +123,10 @@ internal class OutboxProcessor : IHostedService
         await connection.OpenAsync(combinedToken).ConfigureAwait(false);
 
         // Update the fencing state to indicate we're the current processor
-        await connection.ExecuteAsync(this.fencingStateUpdateSql, new 
-        { 
-            FencingToken = lease.FencingToken, 
-            LastDispatchAt = this.timeProvider.GetUtcNow() 
+        await connection.ExecuteAsync(this.fencingStateUpdateSql, new
+        {
+            FencingToken = lease.FencingToken,
+            LastDispatchAt = this.timeProvider.GetUtcNow()
         }).ConfigureAwait(false);
 
         // Fetch messages that are ready to be processed
@@ -159,9 +159,9 @@ internal class OutboxProcessor : IHostedService
                 }
 
                 // 2. If successful, mark as processed with fencing token validation
-                var rowsAffected = await connection.ExecuteAsync(this.successSql, new 
-                { 
-                    message.Id, 
+                var rowsAffected = await connection.ExecuteAsync(this.successSql, new
+                {
+                    message.Id,
                     InstanceId = this.instanceId,
                     FencingToken = lease.FencingToken
                 }).ConfigureAwait(false);
