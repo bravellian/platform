@@ -26,26 +26,28 @@ internal class OutboxProcessor : IHostedService
     private readonly string connectionString;
     private readonly SqlOutboxOptions options;
     private readonly ISystemLeaseFactory leaseFactory;
+    private readonly TimeProvider timeProvider;
     private readonly string instanceId = $"{Environment.MachineName}:{Guid.NewGuid()}"; // Unique ID for this processor instance
     private readonly string selectSql;
     private readonly string successSql;
     private readonly string failureSql;
     private readonly string fencingStateUpdateSql;
 
-    public OutboxProcessor(IOptions<SqlOutboxOptions> options, ISystemLeaseFactory leaseFactory)
+    public OutboxProcessor(IOptions<SqlOutboxOptions> options, ISystemLeaseFactory leaseFactory, TimeProvider timeProvider)
     {
         this.options = options.Value;
         this.connectionString = this.options.ConnectionString;
         this.leaseFactory = leaseFactory;
+        this.timeProvider = timeProvider;
 
         // Build SQL queries using configured schema and table names
         this.selectSql = $"SELECT TOP 10 * FROM [{this.options.SchemaName}].[{this.options.TableName}] WHERE IsProcessed = 0 AND NextAttemptAt <= SYSDATETIMEOFFSET() ORDER BY CreatedAt;";
-        
+
         this.successSql = $@"
             UPDATE [{this.options.SchemaName}].[{this.options.TableName}]
             SET IsProcessed = 1, ProcessedAt = SYSDATETIMEOFFSET(), ProcessedBy = @InstanceId
             WHERE Id = @Id AND @FencingToken >= (SELECT ISNULL(CurrentFencingToken, 0) FROM [{this.options.SchemaName}].[OutboxState] WHERE Id = 1);";
-        
+
         this.failureSql = $@"
             UPDATE [{this.options.SchemaName}].[{this.options.TableName}]
             SET RetryCount = @RetryCount, LastError = @Error, NextAttemptAt = @NextAttempt
@@ -86,8 +88,8 @@ internal class OutboxProcessor : IHostedService
     {
         // Try to acquire a lease for outbox processing
         var lease = await this.leaseFactory.AcquireAsync(
-            "outbox:dispatch", 
-            TimeSpan.FromSeconds(30), 
+            "outbox:dispatch",
+            TimeSpan.FromSeconds(30),
             cancellationToken: cancellationToken).ConfigureAwait(false);
 
         if (lease == null)
@@ -121,10 +123,10 @@ internal class OutboxProcessor : IHostedService
         await connection.OpenAsync(combinedToken).ConfigureAwait(false);
 
         // Update the fencing state to indicate we're the current processor
-        await connection.ExecuteAsync(this.fencingStateUpdateSql, new 
-        { 
-            FencingToken = lease.FencingToken, 
-            LastDispatchAt = DateTimeOffset.UtcNow 
+        await connection.ExecuteAsync(this.fencingStateUpdateSql, new
+        {
+            FencingToken = lease.FencingToken,
+            LastDispatchAt = this.timeProvider.GetUtcNow(),
         }).ConfigureAwait(false);
 
         // Fetch messages that are ready to be processed
@@ -157,11 +159,11 @@ internal class OutboxProcessor : IHostedService
                 }
 
                 // 2. If successful, mark as processed with fencing token validation
-                var rowsAffected = await connection.ExecuteAsync(this.successSql, new 
-                { 
-                    message.Id, 
+                var rowsAffected = await connection.ExecuteAsync(this.successSql, new
+                {
+                    message.Id,
                     InstanceId = this.instanceId,
-                    FencingToken = lease.FencingToken
+                    FencingToken = lease.FencingToken,
                 }).ConfigureAwait(false);
 
                 if (rowsAffected == 0)
@@ -178,7 +180,7 @@ internal class OutboxProcessor : IHostedService
             {
                 // 3. If it fails, update for a later retry
                 var retryCount = message.RetryCount + 1;
-                var nextAttempt = DateTimeOffset.UtcNow.AddSeconds(Math.Pow(2, retryCount)); // Exponential backoff
+                var nextAttempt = this.timeProvider.GetUtcNow().AddSeconds(Math.Pow(2, retryCount)); // Exponential backoff
 
                 await connection.ExecuteAsync(this.failureSql, new
                 {

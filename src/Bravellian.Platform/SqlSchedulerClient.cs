@@ -26,6 +26,7 @@ internal class SqlSchedulerClient : ISchedulerClient
 {
     private readonly string connectionString;
     private readonly SqlSchedulerOptions options;
+    private readonly TimeProvider timeProvider;
 
     // Pre-built SQL queries using configured table names
     private readonly string insertTimerSql;
@@ -35,16 +36,17 @@ internal class SqlSchedulerClient : ISchedulerClient
     private readonly string deleteJobSql;
     private readonly string triggerJobSql;
 
-    public SqlSchedulerClient(IOptions<SqlSchedulerOptions> options)
+    public SqlSchedulerClient(IOptions<SqlSchedulerOptions> options, TimeProvider timeProvider)
     {
         this.options = options.Value;
         this.connectionString = this.options.ConnectionString;
+        this.timeProvider = timeProvider;
 
         // Build SQL queries using configured schema and table names
         this.insertTimerSql = $"INSERT INTO [{this.options.SchemaName}].[{this.options.TimersTableName}] (Id, Topic, Payload, DueTime) VALUES (@Id, @Topic, @Payload, @DueTime);";
-        
+
         this.cancelTimerSql = $"UPDATE [{this.options.SchemaName}].[{this.options.TimersTableName}] SET Status = 'Cancelled' WHERE Id = @TimerId AND Status = 'Pending';";
-        
+
         this.mergeJobSql = $@"
             MERGE [{this.options.SchemaName}].[{this.options.JobsTableName}] AS target
             USING (SELECT @JobName AS JobName) AS source
@@ -54,11 +56,11 @@ internal class SqlSchedulerClient : ISchedulerClient
             WHEN NOT MATCHED THEN
                 INSERT (Id, JobName, Topic, CronSchedule, Payload, NextDueTime)
                 VALUES (NEWID(), @JobName, @Topic, @CronSchedule, @Payload, @NextDueTime);";
-        
+
         this.deleteJobRunsSql = $"DELETE FROM [{this.options.SchemaName}].[{this.options.JobRunsTableName}] WHERE JobId = (SELECT Id FROM [{this.options.SchemaName}].[{this.options.JobsTableName}] WHERE JobName = @JobName);";
-        
+
         this.deleteJobSql = $"DELETE FROM [{this.options.SchemaName}].[{this.options.JobsTableName}] WHERE JobName = @JobName;";
-        
+
         this.triggerJobSql = $@"
             INSERT INTO [{this.options.SchemaName}].[{this.options.JobRunsTableName}] (Id, JobId, ScheduledTime)
             SELECT NEWID(), Id, SYSDATETIMEOFFSET() FROM [{this.options.SchemaName}].[{this.options.JobsTableName}] WHERE JobName = @JobName;";
@@ -87,7 +89,7 @@ internal class SqlSchedulerClient : ISchedulerClient
     public async Task CreateOrUpdateJobAsync(string jobName, string topic, string cronSchedule, string? payload = null)
     {
         var cronExpression = CronExpression.Parse(cronSchedule, CronFormat.IncludeSeconds);
-        var nextDueTime = cronExpression.GetNextOccurrence(DateTime.UtcNow);
+        var nextDueTime = cronExpression.GetNextOccurrence(this.timeProvider.GetUtcNow().UtcDateTime);
 
         // MERGE is a great way to handle "UPSERT" logic atomically in SQL Server.
         using (var connection = new SqlConnection(this.connectionString))
@@ -129,15 +131,15 @@ internal class SqlSchedulerClient : ISchedulerClient
         CancellationToken cancellationToken = default)
     {
         var result = new List<Guid>(batchSize);
-        
+
         await using var connection = new SqlConnection(this.connectionString);
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-        
+
         await using var command = new SqlCommand("dbo.Timers_Claim", connection)
         {
             CommandType = CommandType.StoredProcedure,
         };
-        
+
         command.Parameters.AddWithValue("@OwnerToken", ownerToken);
         command.Parameters.AddWithValue("@LeaseSeconds", leaseSeconds);
         command.Parameters.AddWithValue("@BatchSize", batchSize);
@@ -158,15 +160,15 @@ internal class SqlSchedulerClient : ISchedulerClient
         CancellationToken cancellationToken = default)
     {
         var result = new List<Guid>(batchSize);
-        
+
         await using var connection = new SqlConnection(this.connectionString);
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-        
+
         await using var command = new SqlCommand("dbo.JobRuns_Claim", connection)
         {
             CommandType = CommandType.StoredProcedure,
         };
-        
+
         command.Parameters.AddWithValue("@OwnerToken", ownerToken);
         command.Parameters.AddWithValue("@LeaseSeconds", leaseSeconds);
         command.Parameters.AddWithValue("@BatchSize", batchSize);
@@ -216,7 +218,7 @@ internal class SqlSchedulerClient : ISchedulerClient
     {
         await using var connection = new SqlConnection(this.connectionString);
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-        
+
         await using var command = new SqlCommand("dbo.Timers_ReapExpired", connection)
         {
             CommandType = CommandType.StoredProcedure,
@@ -229,7 +231,7 @@ internal class SqlSchedulerClient : ISchedulerClient
     {
         await using var connection = new SqlConnection(this.connectionString);
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-        
+
         await using var command = new SqlCommand("dbo.JobRuns_ReapExpired", connection)
         {
             CommandType = CommandType.StoredProcedure,
@@ -259,12 +261,12 @@ internal class SqlSchedulerClient : ISchedulerClient
 
         await using var connection = new SqlConnection(this.connectionString);
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-        
+
         await using var command = new SqlCommand(procedure, connection)
         {
             CommandType = CommandType.StoredProcedure,
         };
-        
+
         command.Parameters.AddWithValue("@OwnerToken", ownerToken);
         var parameter = command.Parameters.AddWithValue("@Ids", tvp);
         parameter.SqlDbType = SqlDbType.Structured;

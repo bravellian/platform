@@ -1,4 +1,7 @@
-﻿Bravellian.Platform.IInbox
+Bravellian.Platform.IMonotonicClock
+Bravellian.Platform.IMonotonicClock.Seconds.get -> double
+Bravellian.Platform.IMonotonicClock.Ticks.get -> long
+Bravellian.Platform.IInbox
 Bravellian.Platform.IInbox.AlreadyProcessedAsync(string! messageId, string! source, byte[]? hash = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 Bravellian.Platform.IInbox.MarkDeadAsync(string! messageId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Bravellian.Platform.IInbox.MarkProcessedAsync(string! messageId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
@@ -26,6 +29,10 @@ Bravellian.Platform.LostLeaseException
 Bravellian.Platform.LostLeaseException.LostLeaseException(string! resourceName, System.Guid ownerToken) -> void
 Bravellian.Platform.LostLeaseException.OwnerToken.get -> System.Guid
 Bravellian.Platform.LostLeaseException.ResourceName.get -> string!
+Bravellian.Platform.MonoDeadline
+Bravellian.Platform.MonoDeadline.AtSeconds.get -> double
+Bravellian.Platform.MonoDeadline.Expired(Bravellian.Platform.IMonotonicClock! clock) -> bool
+Bravellian.Platform.MonoDeadline.MonoDeadline(double AtSeconds) -> void
 Bravellian.Platform.OutboxMessage
 Bravellian.Platform.OutboxMessage.<Clone>$() -> Bravellian.Platform.OutboxMessage!
 Bravellian.Platform.OutboxMessage.CreatedAt.get -> System.DateTimeOffset
@@ -82,3 +89,5 @@ static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddSqlScheduler(
 static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddSqlScheduler(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Bravellian.Platform.SqlSchedulerOptions! options) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddSystemLeases(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Bravellian.Platform.SystemLeaseOptions! options) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddSystemLeases(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! connectionString, string! schemaName = "dbo") -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddTimeAbstractions(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.TimeProvider? timeProvider = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Bravellian.Platform.MonoDeadline.In(Bravellian.Platform.IMonotonicClock! clock, System.TimeSpan span) -> Bravellian.Platform.MonoDeadline

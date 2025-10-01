@@ -3,6 +3,7 @@ namespace Bravellian.Platform.Tests;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 
 public class SqlSchedulerClientTests : SqlServerTestBase
 {
@@ -17,14 +18,14 @@ public class SqlSchedulerClientTests : SqlServerTestBase
     {
         await base.InitializeAsync();
         this.defaultOptions.ConnectionString = this.ConnectionString;
-        this.schedulerClient = new SqlSchedulerClient(Options.Create(this.defaultOptions));
+        this.schedulerClient = new SqlSchedulerClient(Options.Create(this.defaultOptions), FakeTimeProvider.System);
     }
 
     [Fact]
     public void Constructor_WithValidConnectionString_CreatesInstance()
     {
         // Arrange & Act
-        var client = new SqlSchedulerClient(Options.Create(this.defaultOptions));
+        var client = new SqlSchedulerClient(Options.Create(this.defaultOptions), FakeTimeProvider.System);
 
         // Assert
         client.ShouldNotBeNull();
@@ -69,7 +70,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
             SchemaName = "custom", 
             TimersTableName = "CustomTimers",
             JobsTableName = "CustomJobs",
-            JobRunsTableName = "CustomJobRuns"
+            JobRunsTableName = "CustomJobRuns",
         };
         
         // Create the custom schema and tables for this test
@@ -82,7 +83,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         // Create custom tables using DatabaseSchemaManager
         await DatabaseSchemaManager.EnsureSchedulerSchemaAsync(this.ConnectionString, "custom", "CustomJobs", "CustomJobRuns", "CustomTimers");
         
-        var customSchedulerClient = new SqlSchedulerClient(Options.Create(customOptions));
+        var customSchedulerClient = new SqlSchedulerClient(Options.Create(customOptions), FakeTimeProvider.System);
 
         string topic = "test-timer-custom";
         string payload = "test timer custom payload";

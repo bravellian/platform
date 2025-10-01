@@ -31,7 +31,7 @@ public class OutboxWorkerTests : SqlServerTestBase
         { 
             ConnectionString = this.ConnectionString,
             SchemaName = "dbo",
-            TableName = "Outbox"
+            TableName = "Outbox",
         });
         this.outboxService = new SqlOutboxService(options, new TestLogger(this.TestOutputHelper));
         this.worker = new TestOutboxWorker(this.outboxService, new TestLogger(this.TestOutputHelper));

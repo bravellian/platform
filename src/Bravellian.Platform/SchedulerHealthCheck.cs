@@ -22,10 +22,12 @@ using System.Threading.Tasks;
 internal class SchedulerHealthCheck : IHealthCheck
 {
     private readonly string connectionString;
+    private readonly TimeProvider timeProvider;
 
-    public SchedulerHealthCheck(string connectionString)
+    public SchedulerHealthCheck(string connectionString, TimeProvider timeProvider)
     {
         this.connectionString = connectionString;
+        this.timeProvider = timeProvider;
     }
 
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
@@ -49,7 +51,7 @@ internal class SchedulerHealthCheck : IHealthCheck
                     return HealthCheckResult.Healthy("No pending items.");
                 }
 
-                var age = DateTimeOffset.UtcNow - oldestItem.Value;
+                var age = this.timeProvider.GetUtcNow() - oldestItem.Value;
 
                 // Define thresholds for system health
                 if (age > TimeSpan.FromHours(1))

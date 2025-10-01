@@ -2,7 +2,7 @@ namespace Bravellian.Platform.Tests;
 
 using Dapper;
 using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Shouldly;
 
@@ -25,9 +25,9 @@ public class OutboxWorkQueueTests : SqlServerTestBase
         { 
             ConnectionString = this.ConnectionString,
             SchemaName = "dbo",
-            TableName = "Outbox"
+            TableName = "Outbox",
         });
-        this.outboxService = new SqlOutboxService(options, new TestLogger(this.TestOutputHelper));
+        this.outboxService = new SqlOutboxService(options, NullLogger<SqlOutboxService>.Instance);
     }
 
     [Fact]
@@ -208,29 +208,6 @@ public class OutboxWorkQueueTests : SqlServerTestBase
             var isProcessed = await connection.ExecuteScalarAsync<bool>(
                 "SELECT IsProcessed FROM dbo.Outbox WHERE Id = @Id", new { Id = id });
             isProcessed.ShouldBe(expectedProcessed);
-        }
-    }
-
-    private class TestLogger : ILogger<SqlOutboxService>
-    {
-        private readonly ITestOutputHelper output;
-
-        public TestLogger(ITestOutputHelper output)
-        {
-            this.output = output;
-        }
-
-        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
-
-        public bool IsEnabled(LogLevel logLevel) => true;
-
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
-        {
-            this.output.WriteLine($"[{logLevel}] {formatter(state, exception)}");
-            if (exception != null)
-            {
-                this.output.WriteLine($"Exception: {exception}");
-            }
         }
     }
 }

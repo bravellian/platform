@@ -1,11 +1,10 @@
 namespace Bravellian.Platform.Tests;
 
-using System.Data;
 using Dapper;
 using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using System.Data;
 
 public class SqlOutboxServiceTests : SqlServerTestBase
 {
@@ -72,7 +71,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         { 
             ConnectionString = this.ConnectionString, 
             SchemaName = "custom", 
-            TableName = "CustomOutbox" 
+            TableName = "CustomOutbox", 
         };
         
         // Create the custom table for this test

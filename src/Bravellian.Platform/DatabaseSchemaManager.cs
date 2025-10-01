@@ -193,7 +193,7 @@ internal static class DatabaseSchemaManager
     {
         // Split by GO statements and execute each batch separately
         var batches = script.Split(new[] { "\nGO\n", "\nGO\r\n", "\rGO\r", "GO" }, StringSplitOptions.RemoveEmptyEntries);
-        
+
         foreach (var batch in batches)
         {
             var trimmedBatch = batch.Trim();
@@ -729,7 +729,7 @@ VALUES (1, 0, NULL);";
                 UPDATE dbo.Outbox SET Status = 0, OwnerToken = NULL, LockedUntil = NULL
                 WHERE Status = 1 AND LockedUntil IS NOT NULL AND LockedUntil <= SYSUTCDATETIME();
                 SELECT @@ROWCOUNT AS ReapedCount;
-              END"
+              END",
         };
 
         foreach (var procedure in procedures)
