@@ -81,6 +81,27 @@ internal static class DatabaseSchemaManager
     }
 
     /// <summary>
+    /// Ensures that the required database schema exists for the inbox functionality.
+    /// </summary>
+    /// <param name="connectionString">The database connection string.</param>
+    /// <param name="schemaName">The schema name (default: "dbo").</param>
+    /// <param name="tableName">The table name (default: "Inbox").</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public static async Task EnsureInboxSchemaAsync(string connectionString, string schemaName = "dbo", string tableName = "Inbox")
+    {
+        using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync().ConfigureAwait(false);
+
+        // Check if table exists
+        var tableExists = await TableExistsAsync(connection, schemaName, tableName).ConfigureAwait(false);
+        if (!tableExists)
+        {
+            var createScript = GetInboxCreateScript(schemaName, tableName);
+            await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
     /// Ensures that the required database schema exists for the scheduler functionality.
     /// </summary>
     /// <param name="connectionString">The database connection string.</param>
@@ -529,6 +550,44 @@ BEGIN
        SET OwnerToken = NULL, LeaseUntil = NULL, ContextJson = NULL
      WHERE LeaseUntil IS NOT NULL AND LeaseUntil <= SYSUTCDATETIME();
 END";
+    }
+
+    /// <summary>
+    /// Gets the SQL script to create the Inbox table.
+    /// </summary>
+    /// <param name="schemaName">The schema name.</param>
+    /// <param name="tableName">The table name.</param>
+    /// <returns>The SQL create script.</returns>
+    private static string GetInboxCreateScript(string schemaName, string tableName)
+    {
+        return $@"
+CREATE TABLE [{schemaName}].[{tableName}] (
+    -- Core identification
+    MessageId VARCHAR(64) NOT NULL PRIMARY KEY,
+    Source VARCHAR(64) NOT NULL,
+    Hash BINARY(32) NULL,
+    
+    -- Timing tracking
+    FirstSeenUtc DATETIME2(3) NOT NULL DEFAULT GETUTCDATE(),
+    LastSeenUtc DATETIME2(3) NOT NULL DEFAULT GETUTCDATE(),
+    ProcessedUtc DATETIME2(3) NULL,
+    
+    -- Processing status
+    Attempts INT NOT NULL DEFAULT 0,
+    Status VARCHAR(16) NOT NULL DEFAULT 'Seen'
+        CONSTRAINT CK_{tableName}_Status CHECK (Status IN ('Seen', 'Processing', 'Done', 'Dead'))
+);
+
+-- Index for querying processed messages efficiently
+CREATE INDEX IX_{tableName}_ProcessedUtc ON [{schemaName}].[{tableName}](ProcessedUtc)
+    WHERE ProcessedUtc IS NOT NULL;
+
+-- Index for querying by status
+CREATE INDEX IX_{tableName}_Status ON [{schemaName}].[{tableName}](Status);
+
+-- Index for efficient cleanup of old processed messages
+CREATE INDEX IX_{tableName}_Status_ProcessedUtc ON [{schemaName}].[{tableName}](Status, ProcessedUtc)
+    WHERE Status = 'Done' AND ProcessedUtc IS NOT NULL;";
     }
 
     /// <summary>
