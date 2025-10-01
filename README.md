@@ -198,6 +198,37 @@ public class OrderService
 }
 ```
 
+### Alternative: Standalone Usage
+
+For scenarios where you don't need to participate in an existing transaction, you can use the standalone method that manages its own connection and transaction:
+
+```csharp
+public class NotificationService
+{
+    private readonly IOutbox _outbox;
+
+    public NotificationService(IOutbox outbox)
+    {
+        _outbox = outbox;
+    }
+
+    public async Task SendWelcomeEmailAsync(string userId, string email)
+    {
+        // This method creates its own connection and transaction
+        // It also ensures the outbox table exists
+        await _outbox.EnqueueAsync(
+            topic: "WelcomeEmail",
+            payload: JsonSerializer.Serialize(new WelcomeEmailEvent 
+            { 
+                UserId = userId,
+                Email = email,
+                RequestedAt = DateTime.UtcNow
+            }),
+            correlationId: $"welcome-{userId}");
+    }
+}
+```
+
 ### How It Works
 
 1. **Enqueue**: Messages are stored in the outbox table within your business transaction
