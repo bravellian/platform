@@ -83,9 +83,13 @@ public static class SchedulerServiceCollectionExtensions
         if (options.EnableSchemaDeployment)
         {
             services.TryAddSingleton<IDatabaseSchemaCompletion, DatabaseSchemaBackgroundService>();
-            services.TryAddSingleton<DatabaseSchemaBackgroundService>();
-            services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService>(serviceProvider =>
-                serviceProvider.GetRequiredService<DatabaseSchemaBackgroundService>()));
+            
+            // Only add hosted service if not already registered
+            if (!services.Any(s => s.ServiceType == typeof(IHostedService) && 
+                                   s.ImplementationType == typeof(DatabaseSchemaBackgroundService)))
+            {
+                services.AddHostedService<DatabaseSchemaBackgroundService>();
+            }
         }
 
         return services;
@@ -135,9 +139,13 @@ public static class SchedulerServiceCollectionExtensions
         if (options.EnableSchemaDeployment)
         {
             services.TryAddSingleton<IDatabaseSchemaCompletion, DatabaseSchemaBackgroundService>();
-            services.TryAddSingleton<DatabaseSchemaBackgroundService>();
-            services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService>(serviceProvider =>
-                serviceProvider.GetRequiredService<DatabaseSchemaBackgroundService>()));
+            
+            // Only add hosted service if not already registered
+            if (!services.Any(s => s.ServiceType == typeof(IHostedService) && 
+                                   s.ImplementationType == typeof(DatabaseSchemaBackgroundService)))
+            {
+                services.AddHostedService<DatabaseSchemaBackgroundService>();
+            }
         }
 
         return services;
@@ -230,9 +238,13 @@ public static class SchedulerServiceCollectionExtensions
         if (options.EnableSchemaDeployment)
         {
             services.TryAddSingleton<IDatabaseSchemaCompletion, DatabaseSchemaBackgroundService>();
-            services.TryAddSingleton<DatabaseSchemaBackgroundService>();
-            services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService>(serviceProvider =>
-                serviceProvider.GetRequiredService<DatabaseSchemaBackgroundService>()));
+            
+            // Only add hosted service if not already registered
+            if (!services.Any(s => s.ServiceType == typeof(IHostedService) && 
+                                   s.ImplementationType == typeof(DatabaseSchemaBackgroundService)))
+            {
+                services.AddHostedService<DatabaseSchemaBackgroundService>();
+            }
         }
 
         return services;
@@ -314,9 +326,13 @@ public static class SchedulerServiceCollectionExtensions
         if (options.EnableSchemaDeployment)
         {
             services.TryAddSingleton<IDatabaseSchemaCompletion, DatabaseSchemaBackgroundService>();
-            services.TryAddSingleton<DatabaseSchemaBackgroundService>();
-            services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService>(serviceProvider =>
-                serviceProvider.GetRequiredService<DatabaseSchemaBackgroundService>()));
+            
+            // Only add hosted service if not already registered
+            if (!services.Any(s => s.ServiceType == typeof(IHostedService) && 
+                                   s.ImplementationType == typeof(DatabaseSchemaBackgroundService)))
+            {
+                services.AddHostedService<DatabaseSchemaBackgroundService>();
+            }
         }
 
         return services;
