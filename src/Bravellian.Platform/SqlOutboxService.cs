@@ -69,7 +69,7 @@ internal class SqlOutboxService : IOutbox
         }
         catch
         {
-            transaction.Rollback();
+            await transaction.RollbackAsync().ConfigureAwait(false);
             throw;
         }
     }
