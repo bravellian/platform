@@ -568,4 +568,145 @@ CREATE TABLE [{schemaName}].[SchedulerState] (
 INSERT [{schemaName}].[SchedulerState] (Id, CurrentFencingToken, LastRunAt) 
 VALUES (1, 0, NULL);";
     }
+
+    /// <summary>
+    /// Ensures that the work queue pattern columns and stored procedures exist for all platform tables.
+    /// </summary>
+    /// <param name="connectionString">The database connection string.</param>
+    /// <param name="schemaName">The schema name (default: "dbo").</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public static async Task EnsureWorkQueueSchemaAsync(string connectionString, string schemaName = "dbo")
+    {
+        try
+        {
+            using var connection = new SqlConnection(connectionString);
+            await connection.OpenAsync().ConfigureAwait(false);
+
+            // Apply work queue migration (columns and types)
+            var migrationScript = GetWorkQueueMigrationInlineScript();
+            await ExecuteScriptAsync(connection, migrationScript).ConfigureAwait(false);
+
+            // Create each stored procedure individually to avoid batch issues
+            await CreateOutboxProceduresAsync(connection).ConfigureAwait(false);
+        }
+        catch (SqlException sqlEx)
+        {
+            throw new InvalidOperationException($"Failed to ensure work queue schema. SQL Error: {sqlEx.Message} (Error Number: {sqlEx.Number}, Severity: {sqlEx.Class}, State: {sqlEx.State})", sqlEx);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Failed to ensure work queue schema: {ex.Message}", ex);
+        }
+    }
+
+    /// <summary>
+    /// Creates the Outbox work queue stored procedures individually.
+    /// </summary>
+    /// <param name="connection">The SQL connection.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    private static async Task CreateOutboxProceduresAsync(SqlConnection connection)
+    {
+        // Create procedures one by one to avoid batch execution issues
+        var procedures = new[]
+        {
+            @"CREATE OR ALTER PROCEDURE dbo.Outbox_Claim
+                @OwnerToken UNIQUEIDENTIFIER,
+                @LeaseSeconds INT,
+                @BatchSize INT = 50
+              AS
+              BEGIN
+                SET NOCOUNT ON;
+                DECLARE @now DATETIME2(3) = SYSUTCDATETIME();
+                DECLARE @until DATETIME2(3) = DATEADD(SECOND, @LeaseSeconds, @now);
+
+                WITH cte AS (
+                    SELECT TOP (@BatchSize) Id
+                    FROM dbo.Outbox WITH (READPAST, UPDLOCK, ROWLOCK)
+                    WHERE Status = 0 AND (LockedUntil IS NULL OR LockedUntil <= @now)
+                    ORDER BY CreatedAt
+                )
+                UPDATE o SET Status = 1, OwnerToken = @OwnerToken, LockedUntil = @until
+                OUTPUT inserted.Id
+                FROM dbo.Outbox o JOIN cte ON cte.Id = o.Id;
+              END",
+
+            @"CREATE OR ALTER PROCEDURE dbo.Outbox_Ack
+                @OwnerToken UNIQUEIDENTIFIER,
+                @Ids dbo.GuidIdList READONLY
+              AS
+              BEGIN
+                SET NOCOUNT ON;
+                UPDATE o SET Status = 2, OwnerToken = NULL, LockedUntil = NULL, IsProcessed = 1, ProcessedAt = SYSUTCDATETIME()
+                FROM dbo.Outbox o JOIN @Ids i ON i.Id = o.Id
+                WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
+              END",
+
+            @"CREATE OR ALTER PROCEDURE dbo.Outbox_Abandon
+                @OwnerToken UNIQUEIDENTIFIER,
+                @Ids dbo.GuidIdList READONLY
+              AS
+              BEGIN
+                SET NOCOUNT ON;
+                UPDATE o SET Status = 0, OwnerToken = NULL, LockedUntil = NULL
+                FROM dbo.Outbox o JOIN @Ids i ON i.Id = o.Id
+                WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
+              END",
+
+            @"CREATE OR ALTER PROCEDURE dbo.Outbox_Fail
+                @OwnerToken UNIQUEIDENTIFIER,
+                @Ids dbo.GuidIdList READONLY
+              AS
+              BEGIN
+                SET NOCOUNT ON;
+                UPDATE o SET Status = 3, OwnerToken = NULL, LockedUntil = NULL
+                FROM dbo.Outbox o JOIN @Ids i ON i.Id = o.Id
+                WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
+              END",
+
+            @"CREATE OR ALTER PROCEDURE dbo.Outbox_ReapExpired
+              AS
+              BEGIN
+                SET NOCOUNT ON;
+                UPDATE dbo.Outbox SET Status = 0, OwnerToken = NULL, LockedUntil = NULL
+                WHERE Status = 1 AND LockedUntil IS NOT NULL AND LockedUntil <= SYSUTCDATETIME();
+                SELECT @@ROWCOUNT AS ReapedCount;
+              END"
+        };
+
+        foreach (var procedure in procedures)
+        {
+            await connection.ExecuteAsync(procedure).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// Gets the work queue migration script.
+    /// </summary>
+    /// <returns>The SQL migration script.</returns>
+    private static string GetWorkQueueMigrationScript()
+    {
+        return GetWorkQueueMigrationInlineScript();
+    }
+
+    private static string GetWorkQueueMigrationInlineScript()
+    {
+        return @"
+-- Create table-valued parameter types if they don't exist
+IF TYPE_ID('dbo.GuidIdList') IS NULL
+BEGIN
+    CREATE TYPE dbo.GuidIdList AS TABLE (
+        Id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY
+    );
+END
+
+-- Add work queue columns to Outbox if they don't exist
+IF COL_LENGTH('dbo.Outbox', 'Status') IS NULL
+    ALTER TABLE dbo.Outbox ADD Status TINYINT NOT NULL CONSTRAINT DF_Outbox_Status DEFAULT(0);
+
+IF COL_LENGTH('dbo.Outbox', 'LockedUntil') IS NULL
+    ALTER TABLE dbo.Outbox ADD LockedUntil DATETIME2(3) NULL;
+
+IF COL_LENGTH('dbo.Outbox', 'OwnerToken') IS NULL
+    ALTER TABLE dbo.Outbox ADD OwnerToken UNIQUEIDENTIFIER NULL;";
+    }
 }
