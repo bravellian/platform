@@ -4,12 +4,13 @@ A robust .NET platform providing SQL-based distributed locking, outbox pattern i
 
 ## Overview
 
-This platform provides four core components:
+This platform provides five core components:
 
 1. **SQL Distributed Lock** - Database-backed distributed locking mechanism
 2. **Outbox Service** - Transactional outbox pattern for reliable message publishing
-3. **Timer Scheduler** - One-time scheduled tasks with persistence
-4. **Job Scheduler** - Recurring jobs with cron-based scheduling
+3. **Inbox Service** - At-most-once processing guard for inbound messages
+4. **Timer Scheduler** - One-time scheduled tasks with persistence
+5. **Job Scheduler** - Recurring jobs with cron-based scheduling
 
 All components are designed to work together seamlessly and provide strong consistency guarantees through SQL Server integration.
 
@@ -41,6 +42,11 @@ builder.Services.AddSqlDistributedLock(new SqlDistributedLockOptions
 });
 
 builder.Services.AddSqlOutbox(new SqlOutboxOptions
+{
+    ConnectionString = "Your SQL Server connection string"
+});
+
+builder.Services.AddSqlInbox(new SqlInboxOptions
 {
     ConnectionString = "Your SQL Server connection string"
 });
@@ -225,7 +231,105 @@ The outbox includes built-in retry logic:
 - Retry count and error details are tracked
 - Messages that fail repeatedly can be inspected and manually resolved
 
-## 3. Timer Scheduler (One-Time Tasks)
+## 3. Inbox Service
+
+Implements the Inbox pattern to ensure at-most-once processing of inbound messages. Prevents duplicate handling when the same message is received multiple times.
+
+### Basic Usage
+
+```csharp
+public class OrderEventHandler
+{
+    private readonly IInbox _inbox;
+    private readonly IOrderService _orderService;
+
+    public OrderEventHandler(IInbox inbox, IOrderService orderService)
+    {
+        _inbox = inbox;
+        _orderService = orderService;
+    }
+
+    public async Task HandleOrderEventAsync(OrderEvent orderEvent)
+    {
+        // Check if this message was already processed
+        var alreadyProcessed = await _inbox.AlreadyProcessedAsync(
+            messageId: orderEvent.MessageId,
+            source: "OrderService",
+            hash: ComputeHash(orderEvent)); // Optional content verification
+
+        if (alreadyProcessed)
+        {
+            // Safe to ignore - already processed
+            return;
+        }
+
+        try
+        {
+            // Mark as being processed (for poison detection)
+            await _inbox.MarkProcessingAsync(orderEvent.MessageId);
+
+            // Process the message
+            await _orderService.ProcessOrderAsync(orderEvent);
+
+            // Mark as successfully processed
+            await _inbox.MarkProcessedAsync(orderEvent.MessageId);
+        }
+        catch (Exception ex)
+        {
+            // Could mark as dead after repeated failures
+            await _inbox.MarkDeadAsync(orderEvent.MessageId);
+            throw;
+        }
+    }
+
+    private byte[] ComputeHash(OrderEvent orderEvent)
+    {
+        var json = JsonSerializer.Serialize(orderEvent);
+        return SHA256.HashData(Encoding.UTF8.GetBytes(json));
+    }
+}
+```
+
+### How It Works
+
+1. **First Check**: `AlreadyProcessedAsync` atomically checks if the message was already processed
+2. **Safe Processing**: If not processed, marks as "Processing" and handles the message
+3. **Completion**: Marks as "Done" when successfully processed
+4. **Concurrency Safe**: Uses SQL MERGE for atomic upsert operations
+5. **Poison Detection**: Tracks attempts and allows marking messages as "Dead"
+
+### Configuration
+
+```csharp
+services.AddSqlInbox(new SqlInboxOptions
+{
+    ConnectionString = "Server=localhost;Database=MyApp;Trusted_Connection=true;",
+    SchemaName = "dbo",      // Default
+    TableName = "Inbox"      // Default
+});
+
+// Or using connection string shorthand
+services.AddSqlInbox("Server=localhost;Database=MyApp;Trusted_Connection=true;");
+```
+
+### Database Schema
+
+The Inbox service automatically creates the following table:
+
+```sql
+CREATE TABLE dbo.Inbox (
+    MessageId VARCHAR(64) NOT NULL PRIMARY KEY,
+    Source VARCHAR(64) NOT NULL,
+    Hash BINARY(32) NULL,
+    FirstSeenUtc DATETIME2(3) NOT NULL,
+    LastSeenUtc DATETIME2(3) NOT NULL,
+    ProcessedUtc DATETIME2(3) NULL,
+    Attempts INT NOT NULL DEFAULT 0,
+    Status VARCHAR(16) NOT NULL DEFAULT 'Seen'
+);
+```
+
+## 4. Timer Scheduler (One-Time Tasks)
 
 Schedule one-time tasks to be executed at a specific future time.
 
@@ -300,7 +404,7 @@ public class ReminderHandler
 - **Scalable**: Multiple instances can run, but only one processes each timer
 - **Cancellable**: Cancel timers before they execute
 
-## 4. Job Scheduler (Recurring Jobs)
+## 5. Job Scheduler (Recurring Jobs)
 
 Schedule recurring jobs using cron expressions for repeated execution.
 
