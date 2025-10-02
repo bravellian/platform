@@ -1604,6 +1604,232 @@ public class JobManagementService
                 IncludeWeekendData = false
             }));
     }
+
+## 6. Generic Fan-Out on a Schedule
+
+The Fan-Out system provides a first-class, generic capability for running planners on a schedule, computing which units of work are due, and enqueuing per-unit work items for processing. It reuses existing primitives (Jobs, Outbox, Inbox, Locks) and supports multiple independent fan-outs with custom planners and dispatchers.
+
+### Architecture
+
+The fan-out system uses a **four-phase pipeline**:
+
+1. **Planning Phase**: `IFanoutPlanner` determines which slices are due for processing
+2. **Coordination Phase**: `IFanoutCoordinator` acquires a lease and orchestrates the process  
+3. **Dispatch Phase**: `IFanoutDispatcher` enqueues slices via Outbox for downstream processing
+4. **Processing Phase**: Outbox handlers consume slices and update completion cursors
+
+### Core Components
+
+- **`FanoutSlice`**: A unit of work identified by `(FanoutTopic, ShardKey, WorkKey, WindowStart)`
+- **`IFanoutPlanner`**: Application-specific logic for determining which work is due
+- **`IFanoutCoordinator`**: Orchestrates fanout using leases for singleton behavior
+- **`IFanoutDispatcher`**: Enqueues slices to Outbox with topic `fanout:{topic}:{workKey}`
+- **`FanoutPolicy`**: Stores cadence settings per topic/work key combination
+- **`FanoutCursor`**: Tracks last completion timestamps per slice for resumable processing
+
+### Basic Usage
+
+```csharp
+// Program.cs - Setup fanout system
+builder.Services.AddSqlFanout(connectionString)
+    .AddFanoutTopic<EtlFanoutPlanner>(new FanoutTopicOptions
+    {
+        FanoutTopic = "etl",
+        WorkKey = "payments",
+        Cron = "*/10 * * * *",        // Every 10 minutes
+        DefaultEverySeconds = 600,
+        JitterSeconds = 60
+    })
+    .AddFanoutTopic<EtlFanoutPlanner>(new FanoutTopicOptions
+    {
+        FanoutTopic = "etl", 
+        WorkKey = "vendors",
+        Cron = "0 */4 * * * *",       // Every 4 hours
+        DefaultEverySeconds = 14400,
+        JitterSeconds = 300
+    });
+
+// Register handlers for processing fanout slices
+builder.Services.AddOutboxHandler<PaymentEtlHandler>();
+builder.Services.AddOutboxHandler<VendorEtlHandler>();
+```
+
+### Example Planner Implementation
+
+```csharp
+public class EtlFanoutPlanner : BaseFanoutPlanner
+{
+    private readonly ITenantReader tenantReader;
+
+    public EtlFanoutPlanner(
+        IFanoutPolicyRepository policyRepository,
+        IFanoutCursorRepository cursorRepository, 
+        TimeProvider timeProvider,
+        ITenantReader tenantReader)
+        : base(policyRepository, cursorRepository, timeProvider)
+    {
+        this.tenantReader = tenantReader;
+    }
+
+    protected override async IAsyncEnumerable<(string ShardKey, string WorkKey)> EnumerateCandidatesAsync(
+        string fanoutTopic, string? workKey, CancellationToken ct)
+    {
+        // Get all enabled tenants
+        var tenants = await tenantReader.ListEnabledAsync(ct);
+        
+        // Define available work types
+        var workKeys = workKey is null 
+            ? new[] { "payments", "vendors", "contacts", "products" }
+            : new[] { workKey };
+        
+        // Generate all combinations
+        foreach (var tenant in tenants)
+        foreach (var wk in workKeys)
+            yield return (ShardKey: tenant.Id.ToString("D"), WorkKey: wk);
+    }
+}
+```
+
+### Example Outbox Handler
+
+```csharp
+public class PaymentEtlHandler : IOutboxHandler
+{
+    private readonly IInbox inbox;
+    private readonly IFanoutCursorRepository cursorRepository;
+    private readonly IPaymentEtlService etlService;
+    private readonly TimeProvider timeProvider;
+
+    public string Topic => "fanout:etl:payments";
+
+    public async Task HandleAsync(OutboxMessage message, CancellationToken cancellationToken)
+    {
+        // Deserialize fanout slice
+        var slice = JsonSerializer.Deserialize<FanoutSlice>(message.Payload)!;
+        
+        // Create idempotency key
+        var idempotencyKey = $"{slice.FanoutTopic}|{slice.WorkKey}|{slice.ShardKey}|{slice.WindowStart:O}";
+        
+        // Check if already processed
+        if (await inbox.AlreadyProcessedAsync(idempotencyKey, "fanout", cancellationToken: cancellationToken))
+            return;
+        
+        // Mark as processing
+        await inbox.MarkProcessingAsync(idempotencyKey, cancellationToken);
+        
+        try
+        {
+            // Determine processing window
+            var since = slice.WindowStart ?? timeProvider.GetUtcNow().AddHours(-1);
+            var until = timeProvider.GetUtcNow();
+            
+            // Perform ETL operation
+            await etlService.ProcessPaymentsAsync(
+                tenantId: Guid.Parse(slice.ShardKey),
+                since: since,
+                until: until,
+                cancellationToken: cancellationToken);
+            
+            // Update completion cursor
+            await cursorRepository.MarkCompletedAsync(
+                slice.FanoutTopic, slice.WorkKey, slice.ShardKey, until, cancellationToken);
+            
+            // Mark as processed
+            await inbox.MarkProcessedAsync(idempotencyKey, cancellationToken);
+        }
+        catch
+        {
+            await inbox.MarkDeadAsync(idempotencyKey, cancellationToken);
+            throw;
+        }
+    }
+}
+```
+
+### Database Schema
+
+The fanout system uses two tables:
+
+```sql
+-- Stores cadence policies per topic/work key
+CREATE TABLE dbo.FanoutPolicy (
+    FanoutTopic NVARCHAR(100) NOT NULL,
+    WorkKey NVARCHAR(100) NOT NULL,
+    DefaultEverySeconds INT NOT NULL,
+    JitterSeconds INT NOT NULL DEFAULT 60,
+    CreatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(),
+    UpdatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(),
+    CONSTRAINT PK_FanoutPolicy PRIMARY KEY (FanoutTopic, WorkKey)
+);
+
+-- Tracks completion progress per slice
+CREATE TABLE dbo.FanoutCursor (
+    FanoutTopic NVARCHAR(100) NOT NULL,
+    WorkKey NVARCHAR(100) NOT NULL, 
+    ShardKey NVARCHAR(256) NOT NULL,
+    LastCompletedAt DATETIMEOFFSET NULL,
+    CreatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(),
+    UpdatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(),
+    CONSTRAINT PK_FanoutCursor PRIMARY KEY (FanoutTopic, WorkKey, ShardKey)
+);
+```
+
+### Key Features
+
+**Generic Design**: No hard-coded tenant/dataset concepts - uses opaque `ShardKey` and `WorkKey` strings for maximum flexibility.
+
+**Multiple Fan-Outs**: Register many independent fanout topics, each with its own schedule and planner logic.
+
+**Resumable Processing**: `FanoutCursor` tracks completion timestamps, enabling incremental and resumable processing windows.
+
+**Lease Coordination**: Only one instance coordinates each fanout topic/work key combination at a time using distributed leases.
+
+**Outbox Integration**: Leverages existing Outbox infrastructure for reliable delivery, retry, and error handling.
+
+**Inbox Idempotency**: Optional integration with Inbox service prevents duplicate processing of slices.
+
+**Automatic Schema**: Database tables are created automatically with `EnableSchemaDeployment = true`.
+
+### Advanced Configuration
+
+```csharp
+// Custom planner with application-specific dependencies
+builder.Services.AddScoped<ITenantReader, SqlTenantReader>();
+builder.Services.AddScoped<IPaymentEtlService, PaymentEtlService>();
+
+// Multiple work keys for same topic
+builder.Services.AddFanoutTopic<EtlFanoutPlanner>(new FanoutTopicOptions
+{
+    FanoutTopic = "etl",
+    WorkKey = "payments",
+    Cron = "*/10 * * * *"
+})
+.AddFanoutTopic<EtlFanoutPlanner>(new FanoutTopicOptions
+{
+    FanoutTopic = "etl", 
+    WorkKey = "vendors",
+    Cron = "0 */4 * * * *"
+})
+.AddFanoutTopic<ReportFanoutPlanner>(new FanoutTopicOptions
+{
+    FanoutTopic = "reports",
+    Cron = "0 0 6 * * *",     // Daily at 6 AM
+    DefaultEverySeconds = 86400,
+    JitterSeconds = 1800      // 30 minute jitter
+});
+
+// Separate schema for fanout tables
+builder.Services.AddSqlFanout(new SqlFanoutOptions
+{
+    ConnectionString = connectionString,
+    SchemaName = "fanout",
+    PolicyTableName = "Policy", 
+    CursorTableName = "Cursor"
+});
+```
+
+The fanout system provides a powerful abstraction for periodic, distributed processing that scales with your application's sharding strategy while maintaining simple setup and reliable execution semantics.
+
 ## Configuration
 
 ### Complete Configuration Example
