@@ -66,4 +66,22 @@ public interface IInbox
     Task MarkDeadAsync(
         string messageId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Enqueues a message for processing by the inbox dispatcher.
+    /// </summary>
+    /// <param name="topic">The topic to route the message to an appropriate handler.</param>
+    /// <param name="source">The source system or component that sent the message.</param>
+    /// <param name="messageId">The unique identifier of the message.</param>
+    /// <param name="payload">The message payload content.</param>
+    /// <param name="hash">Optional content hash for deduplication.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    Task EnqueueAsync(
+        string topic,
+        string source,
+        string messageId,
+        string payload,
+        byte[]? hash = null,
+        CancellationToken cancellationToken = default);
 }

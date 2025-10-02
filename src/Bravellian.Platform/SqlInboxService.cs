@@ -32,6 +32,7 @@ internal class SqlInboxService : IInbox
     private readonly string markProcessedSql;
     private readonly string markProcessingSql;
     private readonly string markDeadSql;
+    private readonly string enqueueSql;
 
     public SqlInboxService(IOptions<SqlInboxOptions> options, ILogger<SqlInboxService> logger)
     {
@@ -43,37 +44,61 @@ internal class SqlInboxService : IInbox
         var tableName = $"[{this.options.SchemaName}].[{this.options.TableName}]";
 
         // MERGE statement for atomic upsert operation with concurrency safety
-        this.upsertSql = $@"
-            MERGE {tableName} AS target
-            USING (SELECT @MessageId AS MessageId, @Source AS Source, @Hash AS Hash) AS source
-                ON target.MessageId = source.MessageId
-            WHEN MATCHED THEN
-                UPDATE SET 
-                    LastSeenUtc = GETUTCDATE(),
-                    Attempts = Attempts + 1
-            WHEN NOT MATCHED THEN
-                INSERT (MessageId, Source, Hash, FirstSeenUtc, LastSeenUtc, Attempts)
-                VALUES (source.MessageId, source.Source, source.Hash, GETUTCDATE(), GETUTCDATE(), 1)
-            OUTPUT ISNULL(inserted.ProcessedUtc, deleted.ProcessedUtc) AS ProcessedUtc;";
+        this.upsertSql = $"""
 
-        this.markProcessedSql = $@"
-            UPDATE {tableName}
-            SET ProcessedUtc = GETUTCDATE(),
-                Status = 'Done',
-                LastSeenUtc = GETUTCDATE()
-            WHERE MessageId = @MessageId;";
+                        MERGE {tableName} AS target
+                        USING (SELECT @MessageId AS MessageId, @Source AS Source, @Hash AS Hash) AS source
+                            ON target.MessageId = source.MessageId
+                        WHEN MATCHED THEN
+                            UPDATE SET 
+                                LastSeenUtc = GETUTCDATE(),
+                                Attempts = Attempts + 1
+                        WHEN NOT MATCHED THEN
+                            INSERT (MessageId, Source, Hash, FirstSeenUtc, LastSeenUtc, Attempts)
+                            VALUES (source.MessageId, source.Source, source.Hash, GETUTCDATE(), GETUTCDATE(), 1)
+                        OUTPUT ISNULL(inserted.ProcessedUtc, deleted.ProcessedUtc) AS ProcessedUtc;
+            """;
 
-        this.markProcessingSql = $@"
-            UPDATE {tableName}
-            SET Status = 'Processing',
-                LastSeenUtc = GETUTCDATE()
-            WHERE MessageId = @MessageId;";
+        this.markProcessedSql = $"""
 
-        this.markDeadSql = $@"
-            UPDATE {tableName}
-            SET Status = 'Dead',
-                LastSeenUtc = GETUTCDATE()
-            WHERE MessageId = @MessageId;";
+                        UPDATE {tableName}
+                        SET ProcessedUtc = GETUTCDATE(),
+                            Status = 'Done',
+                            LastSeenUtc = GETUTCDATE()
+                        WHERE MessageId = @MessageId;
+            """;
+
+        this.markProcessingSql = $"""
+
+                        UPDATE {tableName}
+                        SET Status = 'Processing',
+                            LastSeenUtc = GETUTCDATE()
+                        WHERE MessageId = @MessageId;
+            """;
+
+        this.markDeadSql = $"""
+
+                        UPDATE {tableName}
+                        SET Status = 'Dead',
+                            LastSeenUtc = GETUTCDATE()
+                        WHERE MessageId = @MessageId;
+            """;
+
+        this.enqueueSql = $"""
+
+                        MERGE {tableName} AS target
+                        USING (SELECT @MessageId AS MessageId, @Source AS Source, @Topic AS Topic, @Payload AS Payload, @Hash AS Hash) AS source
+                            ON target.MessageId = source.MessageId
+                        WHEN MATCHED THEN
+                            UPDATE SET 
+                                LastSeenUtc = GETUTCDATE(),
+                                Attempts = Attempts + 1,
+                                Topic = COALESCE(source.Topic, target.Topic),
+                                Payload = COALESCE(source.Payload, target.Payload)
+                        WHEN NOT MATCHED THEN
+                            INSERT (MessageId, Source, Topic, Payload, Hash, FirstSeenUtc, LastSeenUtc, Attempts, Status)
+                            VALUES (source.MessageId, source.Source, source.Topic, source.Payload, source.Hash, GETUTCDATE(), GETUTCDATE(), 1, 'Seen');
+            """;
     }
 
     public async Task<bool> AlreadyProcessedAsync(
@@ -220,6 +245,63 @@ internal class SqlInboxService : IInbox
             this.logger.LogError(ex, 
                 "Failed to mark message {MessageId} as dead", 
                 messageId);
+            throw;
+        }
+    }
+
+    public async Task EnqueueAsync(
+        string topic,
+        string source,
+        string messageId,
+        string payload,
+        byte[]? hash = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrEmpty(topic))
+        {
+            throw new ArgumentException("Topic cannot be null or empty", nameof(topic));
+        }
+
+        if (string.IsNullOrEmpty(source))
+        {
+            throw new ArgumentException("Source cannot be null or empty", nameof(source));
+        }
+
+        if (string.IsNullOrEmpty(messageId))
+        {
+            throw new ArgumentException("MessageId cannot be null or empty", nameof(messageId));
+        }
+
+        if (string.IsNullOrEmpty(payload))
+        {
+            throw new ArgumentException("Payload cannot be null or empty", nameof(payload));
+        }
+
+        try
+        {
+            using var connection = new SqlConnection(this.connectionString);
+            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+
+            await connection.ExecuteAsync(
+                this.enqueueSql,
+                new 
+                { 
+                    MessageId = messageId, 
+                    Source = source, 
+                    Topic = topic, 
+                    Payload = payload, 
+                    Hash = hash 
+                }).ConfigureAwait(false);
+
+            this.logger.LogDebug(
+                "Enqueued message {MessageId} with topic '{Topic}' from source '{Source}'",
+                messageId, topic, source);
+        }
+        catch (SqlException ex)
+        {
+            this.logger.LogError(ex, 
+                "Failed to enqueue message {MessageId} with topic '{Topic}' from source '{Source}'", 
+                messageId, topic, source);
             throw;
         }
     }

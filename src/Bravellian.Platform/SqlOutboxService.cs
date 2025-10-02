@@ -35,9 +35,11 @@ internal class SqlOutboxService : IOutbox
         this.logger = logger;
 
         // Build the SQL query using configured schema and table names
-        this.enqueueSql = $@"
-            INSERT INTO [{this.options.SchemaName}].[{this.options.TableName}] (Topic, Payload, CorrelationId, MessageId)
-            VALUES (@Topic, @Payload, @CorrelationId, NEWID());";
+        this.enqueueSql = $"""
+
+                        INSERT INTO [{this.options.SchemaName}].[{this.options.TableName}] (Topic, Payload, CorrelationId, MessageId)
+                        VALUES (@Topic, @Payload, @CorrelationId, NEWID());
+            """;
     }
 
     public async Task EnqueueAsync(

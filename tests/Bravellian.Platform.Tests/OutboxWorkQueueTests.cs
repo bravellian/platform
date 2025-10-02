@@ -17,12 +17,12 @@ public class OutboxWorkQueueTests : SqlServerTestBase
     public override async ValueTask InitializeAsync()
     {
         await base.InitializeAsync();
-        
+
         // Ensure work queue schema is set up
         await DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(this.ConnectionString);
-        
-        var options = Options.Create(new SqlOutboxOptions 
-        { 
+
+        var options = Options.Create(new SqlOutboxOptions
+        {
             ConnectionString = this.ConnectionString,
             SchemaName = "dbo",
             TableName = "Outbox",
@@ -113,7 +113,7 @@ public class OutboxWorkQueueTests : SqlServerTestBase
         var testIds = await this.CreateTestOutboxItemsAsync(1);
         var ownerToken = Guid.NewGuid();
         await this.outboxService!.ClaimAsync(ownerToken, 1, 10); // 1 second lease
-        
+
         // Wait for lease to expire
         await Task.Delay(1500);
 
@@ -135,7 +135,7 @@ public class OutboxWorkQueueTests : SqlServerTestBase
         // Act - simulate concurrent claims
         var claimTask1 = this.outboxService!.ClaimAsync(worker1Token, 30, 5);
         var claimTask2 = this.outboxService.ClaimAsync(worker2Token, 30, 5);
-        
+
         var results = await Task.WhenAll(claimTask1, claimTask2);
         var claimed1 = results[0];
         var claimed2 = results[1];
@@ -143,7 +143,7 @@ public class OutboxWorkQueueTests : SqlServerTestBase
         // Assert
         var totalClaimed = claimed1.Count + claimed2.Count;
         totalClaimed.ShouldBeLessThanOrEqualTo(10);
-        
+
         // No overlap between the two claims
         claimed1.Intersect(claimed2).ShouldBeEmpty();
     }
@@ -167,7 +167,7 @@ public class OutboxWorkQueueTests : SqlServerTestBase
     private async Task<List<Guid>> CreateTestOutboxItemsAsync(int count)
     {
         var ids = new List<Guid>();
-        
+
         await using var connection = new SqlConnection(this.ConnectionString);
         await connection.OpenAsync();
 
@@ -175,7 +175,7 @@ public class OutboxWorkQueueTests : SqlServerTestBase
         {
             var id = Guid.NewGuid();
             ids.Add(id);
-            
+
             await connection.ExecuteAsync(@"
                 INSERT INTO dbo.Outbox (Id, Topic, Payload, Status, CreatedAt)
                 VALUES (@Id, @Topic, @Payload, 0, SYSUTCDATETIME())",

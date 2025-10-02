@@ -50,10 +50,12 @@ internal sealed class SqlFanoutCursorRepository : IFanoutCursorRepository
         await using var connection = new SqlConnection(this.connectionString);
         await connection.OpenAsync(ct).ConfigureAwait(false);
 
-        var sql = $@"
-            SELECT LastCompletedAt 
-            FROM [{this.options.SchemaName}].[{this.options.CursorTableName}]
-            WHERE FanoutTopic = @FanoutTopic AND WorkKey = @WorkKey AND ShardKey = @ShardKey";
+        var sql = $"""
+
+                        SELECT LastCompletedAt 
+                        FROM [{this.options.SchemaName}].[{this.options.CursorTableName}]
+                        WHERE FanoutTopic = @FanoutTopic AND WorkKey = @WorkKey AND ShardKey = @ShardKey
+            """;
 
         var result = await connection.QueryFirstOrDefaultAsync<DateTimeOffset?>(
             sql,
@@ -68,15 +70,17 @@ internal sealed class SqlFanoutCursorRepository : IFanoutCursorRepository
         await using var connection = new SqlConnection(this.connectionString);
         await connection.OpenAsync(ct).ConfigureAwait(false);
 
-        var sql = $@"
-            MERGE [{this.options.SchemaName}].[{this.options.CursorTableName}] AS target
-            USING (VALUES (@FanoutTopic, @WorkKey, @ShardKey, @LastCompletedAt)) AS source (FanoutTopic, WorkKey, ShardKey, LastCompletedAt)
-            ON target.FanoutTopic = source.FanoutTopic AND target.WorkKey = source.WorkKey AND target.ShardKey = source.ShardKey
-            WHEN MATCHED THEN
-                UPDATE SET LastCompletedAt = source.LastCompletedAt
-            WHEN NOT MATCHED THEN
-                INSERT (FanoutTopic, WorkKey, ShardKey, LastCompletedAt)
-                VALUES (source.FanoutTopic, source.WorkKey, source.ShardKey, source.LastCompletedAt);";
+        var sql = $"""
+
+                        MERGE [{this.options.SchemaName}].[{this.options.CursorTableName}] AS target
+                        USING (VALUES (@FanoutTopic, @WorkKey, @ShardKey, @LastCompletedAt)) AS source (FanoutTopic, WorkKey, ShardKey, LastCompletedAt)
+                        ON target.FanoutTopic = source.FanoutTopic AND target.WorkKey = source.WorkKey AND target.ShardKey = source.ShardKey
+                        WHEN MATCHED THEN
+                            UPDATE SET LastCompletedAt = source.LastCompletedAt
+                        WHEN NOT MATCHED THEN
+                            INSERT (FanoutTopic, WorkKey, ShardKey, LastCompletedAt)
+                            VALUES (source.FanoutTopic, source.WorkKey, source.ShardKey, source.LastCompletedAt);
+            """;
 
         await connection.ExecuteAsync(
             sql,

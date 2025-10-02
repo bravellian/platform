@@ -35,11 +35,13 @@ internal class SchedulerHealthCheck : IHealthCheck
         try
         {
             // This query is designed to be very fast and non-locking.
-            var sql = @"
-                SELECT
-                    (SELECT MIN(CreatedAt) FROM dbo.Outbox WITH(NOLOCK) WHERE IsProcessed = 0) AS OldestOutbox,
-                    (SELECT MIN(DueTime) FROM dbo.Timers WITH(NOLOCK) WHERE Status = 'Pending') AS OldestTimer,
-                    (SELECT MIN(ScheduledTime) FROM dbo.JobRuns WITH(NOLOCK) WHERE Status = 'Pending') AS OldestJobRun;";
+            var sql = """
+
+                                SELECT
+                                    (SELECT MIN(CreatedAt) FROM dbo.Outbox WITH(NOLOCK) WHERE IsProcessed = 0) AS OldestOutbox,
+                                    (SELECT MIN(DueTime) FROM dbo.Timers WITH(NOLOCK) WHERE Status = 'Pending') AS OldestTimer,
+                                    (SELECT MIN(ScheduledTime) FROM dbo.JobRuns WITH(NOLOCK) WHERE Status = 'Pending') AS OldestJobRun;
+                """;
 
             using (var connection = new SqlConnection(this.connectionString))
             {

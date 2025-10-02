@@ -24,7 +24,7 @@ public class InboxIntegrationTests : SqlServerTestBase
         {
             ConnectionString = this.ConnectionString,
             SchemaName = "dbo",
-            TableName = "Inbox"
+            TableName = "Inbox",
         });
 
         var logger = new TestLogger<SqlInboxService>(this.TestOutputHelper);
@@ -40,7 +40,7 @@ public class InboxIntegrationTests : SqlServerTestBase
 
         // Simulate processing workflow
         await inbox.MarkProcessingAsync(messageId);
-        
+
         // Complete processing
         await inbox.MarkProcessedAsync(messageId);
 
@@ -60,7 +60,7 @@ public class InboxIntegrationTests : SqlServerTestBase
         {
             ConnectionString = this.ConnectionString,
             SchemaName = "dbo",
-            TableName = "Inbox"
+            TableName = "Inbox",
         });
 
         var logger = new TestLogger<SqlInboxService>(this.TestOutputHelper);
@@ -74,7 +74,7 @@ public class InboxIntegrationTests : SqlServerTestBase
         Assert.False(alreadyProcessed);
 
         await inbox.MarkProcessingAsync(messageId);
-        
+
         // Mark as dead (poison message)
         await inbox.MarkDeadAsync(messageId);
 
@@ -100,7 +100,7 @@ public class InboxIntegrationTests : SqlServerTestBase
                 {
                     ConnectionString = this.ConnectionString,
                     SchemaName = "dbo",
-                    TableName = "Inbox"
+                    TableName = "Inbox",
                 });
 
                 var logger = new TestLogger<SqlInboxService>(this.TestOutputHelper);
@@ -117,11 +117,11 @@ public class InboxIntegrationTests : SqlServerTestBase
         // Verify only one record exists and attempts were tracked
         await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
         await connection.OpenAsync();
-        
+
         var (count, attempts) = await connection.QuerySingleAsync<(int Count, int Attempts)>(
             "SELECT COUNT(*) as Count, MAX(Attempts) as Attempts FROM dbo.Inbox WHERE MessageId = @MessageId",
             new { MessageId = messageId });
-        
+
         Assert.Equal(1, count);
         Assert.Equal(concurrentTasks, attempts);
     }
@@ -130,13 +130,13 @@ public class InboxIntegrationTests : SqlServerTestBase
     {
         await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
         await connection.OpenAsync();
-        
+
         var result = await connection.QuerySingleAsync<(string Status, DateTime? ProcessedUtc)>(
             "SELECT Status, ProcessedUtc FROM dbo.Inbox WHERE MessageId = @MessageId",
             new { MessageId = messageId });
 
         Assert.Equal(expectedStatus, result.Status);
-        
+
         if (processedUtc)
         {
             Assert.NotNull(result.ProcessedUtc);

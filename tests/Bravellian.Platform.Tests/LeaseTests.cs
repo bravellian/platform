@@ -53,7 +53,7 @@ public class LeaseTests : SqlServerTestBase
         result.ServerUtcNow.ShouldNotBe(default(DateTime));
         result.LeaseUntilUtc.ShouldNotBeNull();
         result.LeaseUntilUtc.Value.ShouldBeGreaterThan(result.ServerUtcNow);
-        
+
         var expectedExpiry = result.ServerUtcNow.AddSeconds(leaseSeconds);
         var timeDiff = Math.Abs((result.LeaseUntilUtc.Value - expectedExpiry).TotalSeconds);
         timeDiff.ShouldBeLessThan(1); // Allow for small timing differences

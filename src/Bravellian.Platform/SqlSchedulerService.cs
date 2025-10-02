@@ -51,67 +51,77 @@ internal class SqlSchedulerService : BackgroundService
         this.timeProvider = timeProvider;
 
         // Build SQL queries using configured schema and table names
-        this.claimTimersSql = $@"
-            UPDATE [{this.options.SchemaName}].[{this.options.TimersTableName}]
-            SET Status = 'Claimed', ClaimedBy = @InstanceId, ClaimedAt = SYSDATETIMEOFFSET()
-            OUTPUT INSERTED.Id, INSERTED.Topic, INSERTED.Payload
-            WHERE Id IN (
-                SELECT TOP 10 Id FROM [{this.options.SchemaName}].[{this.options.TimersTableName}]
-                WHERE Status = 'Pending' AND DueTime <= SYSDATETIMEOFFSET()
-                  AND @FencingToken >= (SELECT ISNULL(CurrentFencingToken, 0) FROM [{this.options.SchemaName}].[SchedulerState] WHERE Id = 1)
-                ORDER BY DueTime
-            );";
+        this.claimTimersSql = $"""
 
-        this.claimJobsSql = $@"
-            UPDATE [{this.options.SchemaName}].[{this.options.JobRunsTableName}]
-            SET Status = 'Claimed', ClaimedBy = @InstanceId, ClaimedAt = SYSDATETIMEOFFSET()
-            OUTPUT INSERTED.Id, INSERTED.JobId, j.Topic, j.Payload
-            FROM [{this.options.SchemaName}].[{this.options.JobRunsTableName}] jr
-            INNER JOIN [{this.options.SchemaName}].[{this.options.JobsTableName}] j ON jr.JobId = j.Id
-            WHERE jr.Id IN (
-                SELECT TOP 10 Id FROM [{this.options.SchemaName}].[{this.options.JobRunsTableName}]
-                WHERE Status = 'Pending' AND ScheduledTime <= SYSDATETIMEOFFSET()
-                  AND @FencingToken >= (SELECT ISNULL(CurrentFencingToken, 0) FROM [{this.options.SchemaName}].[SchedulerState] WHERE Id = 1)
-                ORDER BY ScheduledTime
-            );";
+                        UPDATE [{this.options.SchemaName}].[{this.options.TimersTableName}]
+                        SET Status = 'Claimed', ClaimedBy = @InstanceId, ClaimedAt = SYSDATETIMEOFFSET()
+                        OUTPUT INSERTED.Id, INSERTED.Topic, INSERTED.Payload
+                        WHERE Id IN (
+                            SELECT TOP 10 Id FROM [{this.options.SchemaName}].[{this.options.TimersTableName}]
+                            WHERE Status = 'Pending' AND DueTime <= SYSDATETIMEOFFSET()
+                              AND @FencingToken >= (SELECT ISNULL(CurrentFencingToken, 0) FROM [{this.options.SchemaName}].[SchedulerState] WHERE Id = 1)
+                            ORDER BY DueTime
+                        );
+            """;
 
-        this.getNextEventTimeSql = $@"
-            SELECT MIN(NextDue)
-            FROM (
-                SELECT MIN(DueTime) AS NextDue FROM [{this.options.SchemaName}].[{this.options.TimersTableName}] WHERE Status = 'Pending'
-                UNION ALL
-                SELECT MIN(ScheduledTime) AS NextDue FROM [{this.options.SchemaName}].[{this.options.JobRunsTableName}] WHERE Status = 'Pending'
-                UNION ALL
-                SELECT MIN(NextDueTime) AS NextDue FROM [{this.options.SchemaName}].[{this.options.JobsTableName}]
-            ) AS NextEvents;";
+        this.claimJobsSql = $"""
+
+                        UPDATE [{this.options.SchemaName}].[{this.options.JobRunsTableName}]
+                        SET Status = 'Claimed', ClaimedBy = @InstanceId, ClaimedAt = SYSDATETIMEOFFSET()
+                        OUTPUT INSERTED.Id, INSERTED.JobId, j.Topic, j.Payload
+                        FROM [{this.options.SchemaName}].[{this.options.JobRunsTableName}] jr
+                        INNER JOIN [{this.options.SchemaName}].[{this.options.JobsTableName}] j ON jr.JobId = j.Id
+                        WHERE jr.Id IN (
+                            SELECT TOP 10 Id FROM [{this.options.SchemaName}].[{this.options.JobRunsTableName}]
+                            WHERE Status = 'Pending' AND ScheduledTime <= SYSDATETIMEOFFSET()
+                              AND @FencingToken >= (SELECT ISNULL(CurrentFencingToken, 0) FROM [{this.options.SchemaName}].[SchedulerState] WHERE Id = 1)
+                            ORDER BY ScheduledTime
+                        );
+            """;
+
+        this.getNextEventTimeSql = $"""
+
+                        SELECT MIN(NextDue)
+                        FROM (
+                            SELECT MIN(DueTime) AS NextDue FROM [{this.options.SchemaName}].[{this.options.TimersTableName}] WHERE Status = 'Pending'
+                            UNION ALL
+                            SELECT MIN(ScheduledTime) AS NextDue FROM [{this.options.SchemaName}].[{this.options.JobRunsTableName}] WHERE Status = 'Pending'
+                            UNION ALL
+                            SELECT MIN(NextDueTime) AS NextDue FROM [{this.options.SchemaName}].[{this.options.JobsTableName}]
+                        ) AS NextEvents;
+            """;
 
         // SQL to update the fencing token state for scheduler operations
-        this.schedulerStateUpdateSql = $@"
-            MERGE [{this.options.SchemaName}].[SchedulerState] AS target
-            USING (VALUES (1, @FencingToken, @LastRunAt)) AS source (Id, FencingToken, LastRunAt)
-            ON target.Id = source.Id
-            WHEN MATCHED AND @FencingToken >= target.CurrentFencingToken THEN
-                UPDATE SET CurrentFencingToken = @FencingToken, LastRunAt = @LastRunAt
-            WHEN NOT MATCHED THEN
-                INSERT (Id, CurrentFencingToken, LastRunAt) VALUES (1, @FencingToken, @LastRunAt);";
-        
-        this.createJobRunsSql = $@"
-            WITH DueJobs AS (
-                SELECT Id, CronSchedule
-                FROM [{this.options.SchemaName}].[{this.options.JobsTableName}]
-                WHERE NextDueTime <= SYSDATETIMEOFFSET()
-            )
-            INSERT INTO [{this.options.SchemaName}].[{this.options.JobRunsTableName}] (Id, JobId, ScheduledTime, Status)
-            SELECT NEWID(), Id, SYSDATETIMEOFFSET(), 'Pending'
-            FROM DueJobs;
+        this.schedulerStateUpdateSql = $"""
 
-            UPDATE j
-            SET j.NextDueTime = (
-                SELECT TOP 1 NextOccurrence
-                FROM dbo.GetNextOccurrences(j.CronSchedule, SYSDATETIMEOFFSET())
-            )
-            FROM [{this.options.SchemaName}].[{this.options.JobsTableName}] j
-            WHERE j.Id IN (SELECT Id FROM DueJobs);";
+                        MERGE [{this.options.SchemaName}].[SchedulerState] AS target
+                        USING (VALUES (1, @FencingToken, @LastRunAt)) AS source (Id, FencingToken, LastRunAt)
+                        ON target.Id = source.Id
+                        WHEN MATCHED AND @FencingToken >= target.CurrentFencingToken THEN
+                            UPDATE SET CurrentFencingToken = @FencingToken, LastRunAt = @LastRunAt
+                        WHEN NOT MATCHED THEN
+                            INSERT (Id, CurrentFencingToken, LastRunAt) VALUES (1, @FencingToken, @LastRunAt);
+            """;
+        
+        this.createJobRunsSql = $"""
+
+                        WITH DueJobs AS (
+                            SELECT Id, CronSchedule
+                            FROM [{this.options.SchemaName}].[{this.options.JobsTableName}]
+                            WHERE NextDueTime <= SYSDATETIMEOFFSET()
+                        )
+                        INSERT INTO [{this.options.SchemaName}].[{this.options.JobRunsTableName}] (Id, JobId, ScheduledTime, Status)
+                        SELECT NEWID(), Id, SYSDATETIMEOFFSET(), 'Pending'
+                        FROM DueJobs;
+
+                        UPDATE j
+                        SET j.NextDueTime = (
+                            SELECT TOP 1 NextOccurrence
+                            FROM dbo.GetNextOccurrences(j.CronSchedule, SYSDATETIMEOFFSET())
+                        )
+                        FROM [{this.options.SchemaName}].[{this.options.JobsTableName}] j
+                        WHERE j.Id IN (SELECT Id FROM DueJobs);
+            """;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -251,9 +261,11 @@ internal class SqlSchedulerService : BackgroundService
 
     private async Task CreateJobRunsFromDueJobsAsync(Microsoft.Data.SqlClient.SqlTransaction transaction, ISystemLease lease)
     {
-        var findDueJobsSql = $@"
-            SELECT Id, CronSchedule FROM [{this.options.SchemaName}].[{this.options.JobsTableName}]
-            WHERE NextDueTime <= @Now;";
+        var findDueJobsSql = $"""
+
+                        SELECT Id, CronSchedule FROM [{this.options.SchemaName}].[{this.options.JobsTableName}]
+                        WHERE NextDueTime <= @Now;
+            """;
 
         var dueJobs = (await transaction.Connection.QueryAsync<(Guid Id, string CronSchedule)>(
             findDueJobsSql, new { Now = this.timeProvider.GetUtcNow() }, transaction).ConfigureAwait(false)).AsList();
@@ -294,16 +306,20 @@ internal class SqlSchedulerService : BackgroundService
             });
         }
 
-        var insertRunSql = $@"
-            INSERT INTO [{this.options.SchemaName}].[{this.options.JobRunsTableName}] (Id, JobId, ScheduledTime, Status)
-            VALUES (@RunId, @JobId, @ScheduledTime, 'Pending');";
+        var insertRunSql = $"""
+
+                        INSERT INTO [{this.options.SchemaName}].[{this.options.JobRunsTableName}] (Id, JobId, ScheduledTime, Status)
+                        VALUES (@RunId, @JobId, @ScheduledTime, 'Pending');
+            """;
 
         await transaction.Connection.ExecuteAsync(insertRunSql, runsToInsert, transaction).ConfigureAwait(false);
 
-        var updateJobSql = $@"
-            UPDATE [{this.options.SchemaName}].[{this.options.JobsTableName}]
-            SET NextDueTime = @NextDueTime
-            WHERE Id = @JobId;";
+        var updateJobSql = $"""
+
+                        UPDATE [{this.options.SchemaName}].[{this.options.JobsTableName}]
+                        SET NextDueTime = @NextDueTime
+                        WHERE Id = @JobId;
+            """;
 
         await transaction.Connection.ExecuteAsync(updateJobSql, jobsToUpdate, transaction).ConfigureAwait(false);
     }
