@@ -86,12 +86,8 @@ public static class SchedulerServiceCollectionExtensions
             services.TryAddSingleton<DatabaseSchemaCompletion>();
             services.TryAddSingleton<IDatabaseSchemaCompletion>(provider => provider.GetRequiredService<DatabaseSchemaCompletion>());
             
-            // Only add hosted service if not already registered
-            if (!services.Any(s => s.ServiceType == typeof(IHostedService) && 
-                                   s.ImplementationType == typeof(DatabaseSchemaBackgroundService)))
-            {
-                services.AddHostedService<DatabaseSchemaBackgroundService>();
-            }
+            // Only add hosted service if not already registered using TryAddEnumerable
+            services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, DatabaseSchemaBackgroundService>());
         }
 
         return services;
@@ -143,12 +139,8 @@ public static class SchedulerServiceCollectionExtensions
             services.TryAddSingleton<DatabaseSchemaCompletion>();
             services.TryAddSingleton<IDatabaseSchemaCompletion>(provider => provider.GetRequiredService<DatabaseSchemaCompletion>());
             
-            // Only add hosted service if not already registered
-            if (!services.Any(s => s.ServiceType == typeof(IHostedService) && 
-                                   s.ImplementationType == typeof(DatabaseSchemaBackgroundService)))
-            {
-                services.AddHostedService<DatabaseSchemaBackgroundService>();
-            }
+            // Only add hosted service if not already registered using TryAddEnumerable
+            services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, DatabaseSchemaBackgroundService>());
         }
 
         return services;
@@ -243,12 +235,8 @@ public static class SchedulerServiceCollectionExtensions
             services.TryAddSingleton<DatabaseSchemaCompletion>();
             services.TryAddSingleton<IDatabaseSchemaCompletion>(provider => provider.GetRequiredService<DatabaseSchemaCompletion>());
             
-            // Only add hosted service if not already registered
-            if (!services.Any(s => s.ServiceType == typeof(IHostedService) && 
-                                   s.ImplementationType == typeof(DatabaseSchemaBackgroundService)))
-            {
-                services.AddHostedService<DatabaseSchemaBackgroundService>();
-            }
+            // Only add hosted service if not already registered using TryAddEnumerable
+            services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, DatabaseSchemaBackgroundService>());
         }
 
         return services;
@@ -333,18 +321,17 @@ public static class SchedulerServiceCollectionExtensions
         services.AddSingleton<IFanoutCursorRepository, SqlFanoutCursorRepository>();
         services.AddSingleton<IFanoutDispatcher, FanoutDispatcher>();
 
+        // Register the fanout job handler
+        services.AddTransient<IOutboxHandler, FanoutJobHandler>();
+
         // Register schema deployment service if enabled (only register once per service collection)
         if (options.EnableSchemaDeployment)
         {
             services.TryAddSingleton<DatabaseSchemaCompletion>();
             services.TryAddSingleton<IDatabaseSchemaCompletion>(provider => provider.GetRequiredService<DatabaseSchemaCompletion>());
             
-            // Only add hosted service if not already registered
-            if (!services.Any(s => s.ServiceType == typeof(IHostedService) && 
-                                   s.ImplementationType == typeof(DatabaseSchemaBackgroundService)))
-            {
-                services.AddHostedService<DatabaseSchemaBackgroundService>();
-            }
+            // Only add hosted service if not already registered using TryAddEnumerable
+            services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, DatabaseSchemaBackgroundService>());
         }
 
         return services;
@@ -409,8 +396,8 @@ public static class SchedulerServiceCollectionExtensions
             return new FanoutCoordinator(planner, dispatcher, leaseFactory, logger);
         });
 
-        // TODO: Register the recurring job with the scheduler
-        // This will be implemented when we have the job payload handling ready
+        // Register the recurring job with the scheduler using a hosted service
+        services.AddSingleton<IHostedService>(provider => new FanoutJobRegistrationService(provider, options));
         
         return services;
     }
@@ -438,12 +425,8 @@ public static class SchedulerServiceCollectionExtensions
             services.TryAddSingleton<DatabaseSchemaCompletion>();
             services.TryAddSingleton<IDatabaseSchemaCompletion>(provider => provider.GetRequiredService<DatabaseSchemaCompletion>());
             
-            // Only add hosted service if not already registered
-            if (!services.Any(s => s.ServiceType == typeof(IHostedService) && 
-                                   s.ImplementationType == typeof(DatabaseSchemaBackgroundService)))
-            {
-                services.AddHostedService<DatabaseSchemaBackgroundService>();
-            }
+            // Only add hosted service if not already registered using TryAddEnumerable
+            services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, DatabaseSchemaBackgroundService>());
         }
 
         return services;
