@@ -31,5 +31,5 @@ public interface IInboxHandler
     /// </summary>
     /// <param name="message">The message to process.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    Task HandleAsync(IInboxMessage message, CancellationToken cancellationToken);
+    Task HandleAsync(InboxMessage message, CancellationToken cancellationToken);
 }

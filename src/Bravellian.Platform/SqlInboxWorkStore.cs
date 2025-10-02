@@ -241,7 +241,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
         }
     }
 
-    public async Task<IInboxMessage> GetAsync(string messageId, CancellationToken cancellationToken)
+    public async Task<InboxMessage> GetAsync(string messageId, CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(messageId))
         {
@@ -290,6 +290,9 @@ internal class SqlInboxWorkStore : IInboxWorkStore
     {
         var table = new System.Data.DataTable();
         table.Columns.Add("Id", typeof(string));
+        
+        // Pre-size the table to avoid dynamic resizing
+        table.MinimumCapacity = ids.Count;
 
         foreach (var id in ids)
         {

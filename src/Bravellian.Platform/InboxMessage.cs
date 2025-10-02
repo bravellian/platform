@@ -15,9 +15,9 @@
 namespace Bravellian.Platform;
 
 /// <summary>
-/// Concrete implementation of IInboxMessage.
+/// Represents an inbound message for processing through the Inbox Handler system.
 /// </summary>
-public sealed record InboxMessage : IInboxMessage
+public sealed record InboxMessage
 {
     public string MessageId { get; internal init; } = string.Empty;
 

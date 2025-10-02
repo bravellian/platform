@@ -29,18 +29,22 @@ public sealed class InboxDispatcher
     private readonly Func<int, TimeSpan> backoffPolicy;
     private readonly ILogger<InboxDispatcher> logger;
     private readonly int maxAttempts;
+    private readonly int leaseSeconds;
 
     public InboxDispatcher(
         IInboxWorkStore store,
         IInboxHandlerResolver resolver,
         ILogger<InboxDispatcher> logger,
-        Func<int, TimeSpan>? backoffPolicy = null)
+        Func<int, TimeSpan>? backoffPolicy = null,
+        int maxAttempts = 5,
+        int leaseSeconds = 30)
     {
         this.store = store;
         this.resolver = resolver;
         this.logger = logger;
         this.backoffPolicy = backoffPolicy ?? DefaultBackoff;
-        this.maxAttempts = 5; // Default max attempts
+        this.maxAttempts = maxAttempts;
+        this.leaseSeconds = leaseSeconds;
     }
 
     /// <summary>
@@ -52,7 +56,6 @@ public sealed class InboxDispatcher
     public async Task<int> RunOnceAsync(int batchSize, CancellationToken cancellationToken)
     {
         var ownerToken = Guid.NewGuid();
-        var leaseSeconds = 30; // 30-second lease by default
 
         this.logger.LogDebug(
             "Starting inbox processing batch with owner {OwnerToken}, batch size {BatchSize}", 
@@ -61,7 +64,7 @@ public sealed class InboxDispatcher
         try
         {
             // Claim messages with a lease
-            var claimedIds = await this.store.ClaimAsync(ownerToken, leaseSeconds, batchSize, cancellationToken).ConfigureAwait(false);
+            var claimedIds = await this.store.ClaimAsync(ownerToken, this.leaseSeconds, batchSize, cancellationToken).ConfigureAwait(false);
             
             if (claimedIds.Count == 0)
             {

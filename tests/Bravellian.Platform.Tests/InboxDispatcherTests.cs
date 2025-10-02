@@ -163,7 +163,7 @@ public class InboxDispatcherTests : SqlServerTestBase
 
         public string Topic { get; }
 
-        public Task HandleAsync(IInboxMessage message, CancellationToken cancellationToken)
+        public Task HandleAsync(InboxMessage message, CancellationToken cancellationToken)
         {
             // Just succeed
             return Task.CompletedTask;
@@ -185,7 +185,7 @@ public class InboxDispatcherTests : SqlServerTestBase
 
         public string Topic { get; }
 
-        public Task HandleAsync(IInboxMessage message, CancellationToken cancellationToken)
+        public Task HandleAsync(InboxMessage message, CancellationToken cancellationToken)
         {
             if (this.shouldFail)
             {

@@ -36,4 +36,16 @@ public class SqlInboxOptions
     /// Defaults to true.
     /// </summary>
     public bool EnableSchemaDeployment { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets the maximum number of retry attempts for failed messages.
+    /// Defaults to 5.
+    /// </summary>
+    public int MaxAttempts { get; set; } = 5;
+
+    /// <summary>
+    /// Gets or sets the lease duration in seconds for claimed messages.
+    /// Defaults to 30 seconds.
+    /// </summary>
+    public int LeaseSeconds { get; set; } = 30;
 }

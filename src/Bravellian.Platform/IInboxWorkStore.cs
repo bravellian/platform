@@ -67,5 +67,5 @@ public interface IInboxWorkStore
     /// <param name="messageId">The message ID.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The inbox message.</returns>
-    Task<IInboxMessage> GetAsync(string messageId, CancellationToken cancellationToken);
+    Task<InboxMessage> GetAsync(string messageId, CancellationToken cancellationToken);
 }
