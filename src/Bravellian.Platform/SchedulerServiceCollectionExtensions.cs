@@ -82,7 +82,8 @@ public static class SchedulerServiceCollectionExtensions
         // Register schema deployment service if enabled (only register once per service collection)
         if (options.EnableSchemaDeployment)
         {
-            services.TryAddSingleton<IDatabaseSchemaCompletion, DatabaseSchemaBackgroundService>();
+            services.TryAddSingleton<DatabaseSchemaCompletion>();
+            services.TryAddSingleton<IDatabaseSchemaCompletion>(provider => provider.GetRequiredService<DatabaseSchemaCompletion>());
             
             // Only add hosted service if not already registered
             if (!services.Any(s => s.ServiceType == typeof(IHostedService) && 
@@ -138,7 +139,8 @@ public static class SchedulerServiceCollectionExtensions
         // Register schema deployment service if enabled (only register once per service collection)
         if (options.EnableSchemaDeployment)
         {
-            services.TryAddSingleton<IDatabaseSchemaCompletion, DatabaseSchemaBackgroundService>();
+            services.TryAddSingleton<DatabaseSchemaCompletion>();
+            services.TryAddSingleton<IDatabaseSchemaCompletion>(provider => provider.GetRequiredService<DatabaseSchemaCompletion>());
             
             // Only add hosted service if not already registered
             if (!services.Any(s => s.ServiceType == typeof(IHostedService) && 
@@ -237,7 +239,8 @@ public static class SchedulerServiceCollectionExtensions
         // Register schema deployment service if enabled (only register once per service collection)
         if (options.EnableSchemaDeployment)
         {
-            services.TryAddSingleton<IDatabaseSchemaCompletion, DatabaseSchemaBackgroundService>();
+            services.TryAddSingleton<DatabaseSchemaCompletion>();
+            services.TryAddSingleton<IDatabaseSchemaCompletion>(provider => provider.GetRequiredService<DatabaseSchemaCompletion>());
             
             // Only add hosted service if not already registered
             if (!services.Any(s => s.ServiceType == typeof(IHostedService) && 
@@ -325,7 +328,8 @@ public static class SchedulerServiceCollectionExtensions
         // Register schema deployment service if enabled (only register once per service collection)
         if (options.EnableSchemaDeployment)
         {
-            services.TryAddSingleton<IDatabaseSchemaCompletion, DatabaseSchemaBackgroundService>();
+            services.TryAddSingleton<DatabaseSchemaCompletion>();
+            services.TryAddSingleton<IDatabaseSchemaCompletion>(provider => provider.GetRequiredService<DatabaseSchemaCompletion>());
             
             // Only add hosted service if not already registered
             if (!services.Any(s => s.ServiceType == typeof(IHostedService) && 

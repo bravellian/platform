@@ -23,33 +23,31 @@ using System.Threading.Tasks;
 /// <summary>
 /// Background service that handles database schema deployment and signals completion to dependent services.
 /// </summary>
-internal sealed class DatabaseSchemaBackgroundService : BackgroundService, IDatabaseSchemaCompletion
+internal sealed class DatabaseSchemaBackgroundService : BackgroundService
 {
     private readonly ILogger<DatabaseSchemaBackgroundService> _logger;
     private readonly IOptionsMonitor<SqlOutboxOptions> _outboxOptions;
     private readonly IOptionsMonitor<SqlSchedulerOptions> _schedulerOptions;
     private readonly IOptionsMonitor<SystemLeaseOptions> _systemLeaseOptions;
     private readonly IOptionsMonitor<SqlInboxOptions> _inboxOptions;
-    private readonly TaskCompletionSource<bool> _completionSource = new();
+    private readonly DatabaseSchemaCompletion _schemaCompletion;
 
     public DatabaseSchemaBackgroundService(
         ILogger<DatabaseSchemaBackgroundService> logger,
         IOptionsMonitor<SqlOutboxOptions> outboxOptions,
         IOptionsMonitor<SqlSchedulerOptions> schedulerOptions,
         IOptionsMonitor<SystemLeaseOptions> systemLeaseOptions,
-        IOptionsMonitor<SqlInboxOptions> inboxOptions)
+        IOptionsMonitor<SqlInboxOptions> inboxOptions,
+        DatabaseSchemaCompletion schemaCompletion)
     {
         _logger = logger;
         _outboxOptions = outboxOptions;
         _schedulerOptions = schedulerOptions;
         _systemLeaseOptions = systemLeaseOptions;
         _inboxOptions = inboxOptions;
+        _schemaCompletion = schemaCompletion;
     }
 
-    /// <summary>
-    /// Gets a task that completes when schema deployment is finished.
-    /// </summary>
-    public Task SchemaDeploymentCompleted => _completionSource.Task;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -98,17 +96,17 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService, IData
             }
 
             // Signal completion to dependent services
-            _completionSource.SetResult(true);
+            _schemaCompletion.SetCompleted();
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
             _logger.LogInformation("Database schema deployment was cancelled");
-            _completionSource.SetCanceled(stoppingToken);
+            _schemaCompletion.SetCancelled(stoppingToken);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Database schema deployment failed");
-            _completionSource.SetException(ex);
+            _schemaCompletion.SetException(ex);
             throw; // Re-throw to stop the host if schema deployment fails
         }
     }

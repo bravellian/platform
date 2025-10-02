@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 using Bravellian.Platform;
+using System.Linq;
 
 namespace Bravellian.Platform.Tests
 {
@@ -100,6 +101,58 @@ namespace Bravellian.Platform.Tests
             
             Assert.Single(schemaCompletionDescriptors); // Only one instance should be registered
             Assert.Single(hostedServiceDescriptors); // Only one hosted service should be registered
+        }
+
+        [Fact]
+        public void SchemaCompletion_RegisteredSeparatelyFromBackgroundService()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            var options = new SqlOutboxOptions 
+            { 
+                ConnectionString = "Server=.;Database=TestDb;Integrated Security=true;",
+                EnableSchemaDeployment = true 
+            };
+
+            // Act
+            services.AddSqlOutbox(options);
+
+            // Assert
+            var schemaCompletionDescriptor = services.FirstOrDefault(s => s.ServiceType == typeof(IDatabaseSchemaCompletion));
+            var databaseSchemaCompletionDescriptor = services.FirstOrDefault(s => s.ServiceType == typeof(DatabaseSchemaCompletion));
+            var hostedServiceDescriptor = services.FirstOrDefault(s => s.ServiceType == typeof(IHostedService) && s.ImplementationType == typeof(DatabaseSchemaBackgroundService));
+            
+            Assert.NotNull(schemaCompletionDescriptor);
+            Assert.NotNull(databaseSchemaCompletionDescriptor);
+            Assert.NotNull(hostedServiceDescriptor);
+            
+            // The IDatabaseSchemaCompletion should be registered as a factory pointing to DatabaseSchemaCompletion
+            Assert.Equal(ServiceLifetime.Singleton, schemaCompletionDescriptor.Lifetime);
+            Assert.Equal(ServiceLifetime.Singleton, databaseSchemaCompletionDescriptor.Lifetime);
+            
+            // The implementation type for IDatabaseSchemaCompletion should be a factory
+            Assert.Null(schemaCompletionDescriptor.ImplementationType);
+            Assert.NotNull(schemaCompletionDescriptor.ImplementationFactory);
+            
+            // The DatabaseSchemaCompletion should be registered directly
+            Assert.Equal(typeof(DatabaseSchemaCompletion), databaseSchemaCompletionDescriptor.ImplementationType);
+        }
+
+        [Fact]
+        public void DatabaseSchemaCompletion_CoordinatesStateCorrectly()
+        {
+            // Arrange
+            var completion = new DatabaseSchemaCompletion();
+            
+            // Act & Assert - Initial state should not be completed
+            Assert.False(completion.SchemaDeploymentCompleted.IsCompleted);
+            
+            // Act - Signal completion
+            completion.SetCompleted();
+            
+            // Assert - Should now be completed
+            Assert.True(completion.SchemaDeploymentCompleted.IsCompleted);
+            Assert.Equal(TaskStatus.RanToCompletion, completion.SchemaDeploymentCompleted.Status);
         }
     }
 }
