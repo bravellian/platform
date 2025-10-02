@@ -221,6 +221,69 @@ public class OutboxHandlerTests : SqlServerTestBase
     }
 
     [Fact]
+    public async Task OutboxDispatcher_LogsAtCorrectLevels()
+    {
+        // Arrange
+        var capturingLogger = new CapturingLogger<OutboxDispatcher>();
+        
+        var testHandler = new TestHandler("Test.Topic");
+        var resolver = new OutboxHandlerResolver(new[] { testHandler });
+        var store = new TestOutboxStore();
+        var dispatcher = new OutboxDispatcher(store, resolver, capturingLogger);
+
+        var successMessage = new OutboxMessage
+        {
+            Id = Guid.NewGuid(),
+            Topic = "Test.Topic",
+            Payload = "success payload",
+            RetryCount = 0
+        };
+        
+        var failMessage = new OutboxMessage
+        {
+            Id = Guid.NewGuid(),
+            Topic = "Unknown.Topic",
+            Payload = "fail payload",
+            RetryCount = 0
+        };
+
+        store.AddMessage(successMessage);
+        store.AddMessage(failMessage);
+
+        // Act
+        var processed = await dispatcher.RunOnceAsync(10, CancellationToken.None);
+
+        // Assert
+        processed.ShouldBe(2);
+        capturingLogger.LogEntries.Count.ShouldBeGreaterThan(0);
+        
+        // Verify we have Information level logs for batch processing
+        capturingLogger.LogEntries.Any(log => log.Level == LogLevel.Information && log.Message.Contains("Processing")).ShouldBeTrue();
+        
+        // Verify we have Debug level logs for individual message processing
+        capturingLogger.LogEntries.Any(log => log.Level == LogLevel.Debug && log.Message.Contains("Processing outbox message")).ShouldBeTrue();
+        
+        // Verify we have Warning level logs for no handler
+        capturingLogger.LogEntries.Any(log => log.Level == LogLevel.Warning && log.Message.Contains("No handler registered")).ShouldBeTrue();
+    }
+
+    // Simple logger that captures log entries for testing
+    private class CapturingLogger<T> : ILogger<T>
+    {
+        public List<(LogLevel Level, string Message, Exception? Exception)> LogEntries { get; } = new();
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            var message = formatter(state, exception);
+            LogEntries.Add((logLevel, message, exception));
+        }
+    }
+
+    [Fact]
     public void OutboxDispatcher_DefaultBackoff_ExponentialWithJitter()
     {
         // Act
