@@ -1,5 +1,8 @@
 namespace Bravellian.Platform.Tests;
 
+using Bravellian.Platform.Tests.TestUtilities;
+using Microsoft.Extensions.Logging;
+
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Microsoft.Data.SqlClient;
@@ -22,7 +25,8 @@ public class SqlOutboxStoreTests : SqlServerTestBase
         await base.InitializeAsync();
         this.timeProvider = new FakeTimeProvider();
         this.defaultOptions.ConnectionString = this.ConnectionString;
-        this.outboxStore = new SqlOutboxStore(Options.Create(this.defaultOptions), this.timeProvider);
+        var logger = new TestLogger<SqlOutboxStore>(this.TestOutputHelper);
+        this.outboxStore = new SqlOutboxStore(Options.Create(this.defaultOptions), this.timeProvider, logger);
     }
 
     [Fact]
