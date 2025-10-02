@@ -64,4 +64,11 @@ public class SqlSchedulerOptions
     /// Defaults to "Timers".
     /// </summary>
     public string TimersTableName { get; set; } = "Timers";
+
+    /// <summary>
+    /// Gets or sets a value indicating whether database schema deployment should be performed automatically.
+    /// When true, the required database schema will be created/updated on startup.
+    /// Defaults to true.
+    /// </summary>
+    public bool EnableSchemaDeployment { get; set; } = true;
 }

@@ -67,7 +67,7 @@ Bravellian.Platform.OutboxMessage.ProcessedBy.get -> string
 Bravellian.Platform.OutboxMessage.RetryCount.get -> int
 Bravellian.Platform.OutboxMessage.Topic.get -> string
 Bravellian.Platform.OutboxPollingService
-Bravellian.Platform.OutboxPollingService.OutboxPollingService(Bravellian.Platform.OutboxDispatcher! dispatcher, Bravellian.Platform.IMonotonicClock! mono, double intervalSeconds = 0.25, int batchSize = 50) -> void
+Bravellian.Platform.OutboxPollingService.OutboxPollingService(Bravellian.Platform.OutboxDispatcher! dispatcher, Bravellian.Platform.IMonotonicClock! mono, double intervalSeconds = 0.25, int batchSize = 50, Bravellian.Platform.IDatabaseSchemaCompletion? schemaCompletion = null) -> void
 Bravellian.Platform.SchedulerServiceCollectionExtensions
 Bravellian.Platform.SqlInboxOptions
 Bravellian.Platform.SqlInboxOptions.ConnectionString.get -> string!
@@ -113,3 +113,21 @@ static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddSystemLeases(
 static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddSystemLeases(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! connectionString, string! schemaName = "dbo") -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddTimeAbstractions(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.TimeProvider? timeProvider = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Bravellian.Platform.MonoDeadline.In(Bravellian.Platform.IMonotonicClock! clock, System.TimeSpan span) -> Bravellian.Platform.MonoDeadline
+Bravellian.Platform.IDatabaseSchemaCompletion
+Bravellian.Platform.IDatabaseSchemaCompletion.SchemaDeploymentCompleted.get -> System.Threading.Tasks.Task!
+Bravellian.Platform.SqlInboxOptions.EnableSchemaDeployment.get -> bool
+Bravellian.Platform.SqlInboxOptions.EnableSchemaDeployment.set -> void
+Bravellian.Platform.SqlOutboxOptions.EnableSchemaDeployment.get -> bool
+Bravellian.Platform.SqlOutboxOptions.EnableSchemaDeployment.set -> void
+Bravellian.Platform.SqlSchedulerOptions.EnableSchemaDeployment.get -> bool
+Bravellian.Platform.SqlSchedulerOptions.EnableSchemaDeployment.set -> void
+Bravellian.Platform.SqlSchedulerOptions.JobsTableName.get -> string!
+Bravellian.Platform.SqlSchedulerOptions.JobsTableName.set -> void
+Bravellian.Platform.SqlSchedulerOptions.JobRunsTableName.get -> string!
+Bravellian.Platform.SqlSchedulerOptions.JobRunsTableName.set -> void
+Bravellian.Platform.SqlSchedulerOptions.SchemaName.get -> string!
+Bravellian.Platform.SqlSchedulerOptions.SchemaName.set -> void
+Bravellian.Platform.SqlSchedulerOptions.TimersTableName.get -> string!
+Bravellian.Platform.SqlSchedulerOptions.TimersTableName.set -> void
+Bravellian.Platform.SystemLeaseOptions.EnableSchemaDeployment.get -> bool
+Bravellian.Platform.SystemLeaseOptions.EnableSchemaDeployment.set -> void

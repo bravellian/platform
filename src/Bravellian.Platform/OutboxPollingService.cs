@@ -19,11 +19,13 @@ using Microsoft.Extensions.Hosting;
 /// <summary>
 /// Background service that periodically polls and processes outbox messages.
 /// Uses monotonic clock for consistent polling intervals regardless of system time changes.
+/// Waits for database schema deployment to complete before starting.
 /// </summary>
 public sealed class OutboxPollingService : BackgroundService
 {
     private readonly OutboxDispatcher _dispatcher;
     private readonly IMonotonicClock _mono;
+    private readonly IDatabaseSchemaCompletion? _schemaCompletion;
     private readonly double _intervalSeconds;
     private readonly int _batchSize;
 
@@ -31,16 +33,31 @@ public sealed class OutboxPollingService : BackgroundService
         OutboxDispatcher dispatcher, 
         IMonotonicClock mono,
         double intervalSeconds = 0.25, // 250ms default
-        int batchSize = 50)
+        int batchSize = 50,
+        IDatabaseSchemaCompletion? schemaCompletion = null)
     {
         _dispatcher = dispatcher;
         _mono = mono;
+        _schemaCompletion = schemaCompletion;
         _intervalSeconds = intervalSeconds;
         _batchSize = batchSize;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        // Wait for schema deployment to complete if available
+        if (_schemaCompletion != null)
+        {
+            try
+            {
+                await _schemaCompletion.SchemaDeploymentCompleted.ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                // Log and continue - schema deployment errors should not prevent outbox processing
+                System.Diagnostics.Debug.WriteLine($"Schema deployment failed, but continuing with outbox processing: {ex}");
+            }
+        }
         while (!stoppingToken.IsCancellationRequested)
         {
             var next = _mono.Seconds + _intervalSeconds;

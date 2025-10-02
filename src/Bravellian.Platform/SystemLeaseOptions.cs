@@ -55,4 +55,11 @@ public class SystemLeaseOptions
     /// Default is 200ms.
     /// </summary>
     public int GateTimeoutMs { get; set; } = 200;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether database schema deployment should be performed automatically.
+    /// When true, the required database schema will be created/updated on startup.
+    /// Defaults to true.
+    /// </summary>
+    public bool EnableSchemaDeployment { get; set; } = true;
 }

@@ -14,7 +14,9 @@
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Hosting;
 
 namespace Bravellian.Platform;
 
@@ -68,6 +70,7 @@ public static class SchedulerServiceCollectionExtensions
             o.ConnectionString = options.ConnectionString;
             o.SchemaName = options.SchemaName;
             o.TableName = options.TableName;
+            o.EnableSchemaDeployment = options.EnableSchemaDeployment;
         });
 
         services.AddSingleton<IOutbox, SqlOutboxService>();
@@ -76,22 +79,18 @@ public static class SchedulerServiceCollectionExtensions
         services.AddSingleton<OutboxDispatcher>();
         services.AddHostedService<OutboxPollingService>();
 
-        // Ensure database schema exists
-        Task.Run(async () =>
+        // Register schema deployment service if enabled (only register once per service collection)
+        if (options.EnableSchemaDeployment)
         {
-            try
+            services.TryAddSingleton<IDatabaseSchemaCompletion, DatabaseSchemaBackgroundService>();
+            
+            // Only add hosted service if not already registered
+            if (!services.Any(s => s.ServiceType == typeof(IHostedService) && 
+                                   s.ImplementationType == typeof(DatabaseSchemaBackgroundService)))
             {
-                await DatabaseSchemaManager.EnsureOutboxSchemaAsync(
-                    options.ConnectionString,
-                    options.SchemaName,
-                    options.TableName).ConfigureAwait(false);
+                services.AddHostedService<DatabaseSchemaBackgroundService>();
             }
-            catch
-            {
-                // Schema creation errors will be handled during actual operations
-                // This is just a best-effort attempt during service registration
-            }
-        });
+        }
 
         return services;
     }
@@ -129,30 +128,25 @@ public static class SchedulerServiceCollectionExtensions
             o.TimersTableName = options.TimersTableName;
             o.MaxPollingInterval = options.MaxPollingInterval;
             o.EnableBackgroundWorkers = options.EnableBackgroundWorkers;
+            o.EnableSchemaDeployment = options.EnableSchemaDeployment;
         });
 
         services.AddSingleton<ISchedulerClient, SqlSchedulerClient>();
         services.AddSingleton<SchedulerHealthCheck>();
         services.AddHostedService<SqlSchedulerService>();
 
-        // Ensure database schema exists
-        Task.Run(async () =>
+        // Register schema deployment service if enabled (only register once per service collection)
+        if (options.EnableSchemaDeployment)
         {
-            try
+            services.TryAddSingleton<IDatabaseSchemaCompletion, DatabaseSchemaBackgroundService>();
+            
+            // Only add hosted service if not already registered
+            if (!services.Any(s => s.ServiceType == typeof(IHostedService) && 
+                                   s.ImplementationType == typeof(DatabaseSchemaBackgroundService)))
             {
-                await DatabaseSchemaManager.EnsureSchedulerSchemaAsync(
-                    options.ConnectionString,
-                    options.SchemaName,
-                    options.JobsTableName,
-                    options.JobRunsTableName,
-                    options.TimersTableName).ConfigureAwait(false);
+                services.AddHostedService<DatabaseSchemaBackgroundService>();
             }
-            catch
-            {
-                // Schema creation errors will be handled during actual operations
-                // This is just a best-effort attempt during service registration
-            }
-        });
+        }
 
         return services;
     }
@@ -235,24 +229,23 @@ public static class SchedulerServiceCollectionExtensions
             o.RenewPercent = options.RenewPercent;
             o.UseGate = options.UseGate;
             o.GateTimeoutMs = options.GateTimeoutMs;
+            o.EnableSchemaDeployment = options.EnableSchemaDeployment;
         });
 
         services.AddSingleton<ISystemLeaseFactory, SqlLeaseFactory>();
 
-        // Ensure database schema exists
-        Task.Run(async () =>
+        // Register schema deployment service if enabled (only register once per service collection)
+        if (options.EnableSchemaDeployment)
         {
-            try
+            services.TryAddSingleton<IDatabaseSchemaCompletion, DatabaseSchemaBackgroundService>();
+            
+            // Only add hosted service if not already registered
+            if (!services.Any(s => s.ServiceType == typeof(IHostedService) && 
+                                   s.ImplementationType == typeof(DatabaseSchemaBackgroundService)))
             {
-                await DatabaseSchemaManager.EnsureDistributedLockSchemaAsync(
-                    options.ConnectionString,
-                    options.SchemaName).ConfigureAwait(false);
+                services.AddHostedService<DatabaseSchemaBackgroundService>();
             }
-            catch
-            {
-                // Schema creation failed - this will be retried when the service actually tries to use it
-            }
-        });
+        }
 
         return services;
     }
@@ -324,26 +317,23 @@ public static class SchedulerServiceCollectionExtensions
             o.ConnectionString = options.ConnectionString;
             o.SchemaName = options.SchemaName;
             o.TableName = options.TableName;
+            o.EnableSchemaDeployment = options.EnableSchemaDeployment;
         });
 
         services.AddSingleton<IInbox, SqlInboxService>();
 
-        // Ensure database schema exists
-        Task.Run(async () =>
+        // Register schema deployment service if enabled (only register once per service collection)
+        if (options.EnableSchemaDeployment)
         {
-            try
+            services.TryAddSingleton<IDatabaseSchemaCompletion, DatabaseSchemaBackgroundService>();
+            
+            // Only add hosted service if not already registered
+            if (!services.Any(s => s.ServiceType == typeof(IHostedService) && 
+                                   s.ImplementationType == typeof(DatabaseSchemaBackgroundService)))
             {
-                await DatabaseSchemaManager.EnsureInboxSchemaAsync(
-                    options.ConnectionString,
-                    options.SchemaName,
-                    options.TableName).ConfigureAwait(false);
+                services.AddHostedService<DatabaseSchemaBackgroundService>();
             }
-            catch
-            {
-                // Schema creation errors will be handled during actual operations
-                // This is just a best-effort attempt during service registration
-            }
-        });
+        }
 
         return services;
     }
