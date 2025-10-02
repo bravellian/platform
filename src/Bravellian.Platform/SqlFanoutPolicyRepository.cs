@@ -43,6 +43,13 @@ internal sealed class SqlFanoutPolicyRepository : IFanoutPolicyRepository
         const int defaultEverySeconds = 300; // 5 minutes
         const int defaultJitterSeconds = 60; // 1 minute
 
+        // Ensure fanout schema exists before querying
+        await DatabaseSchemaManager.EnsureFanoutSchemaAsync(
+            this.connectionString,
+            this.options.SchemaName,
+            this.options.PolicyTableName,
+            this.options.CursorTableName).ConfigureAwait(false);
+
         await using var connection = new SqlConnection(this.connectionString);
         await connection.OpenAsync(ct).ConfigureAwait(false);
 

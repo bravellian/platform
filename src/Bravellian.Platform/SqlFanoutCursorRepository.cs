@@ -40,6 +40,13 @@ internal sealed class SqlFanoutCursorRepository : IFanoutCursorRepository
     /// <inheritdoc/>
     public async Task<DateTimeOffset?> GetLastAsync(string fanoutTopic, string workKey, string shardKey, CancellationToken ct)
     {
+        // Ensure fanout schema exists before querying
+        await DatabaseSchemaManager.EnsureFanoutSchemaAsync(
+            this.connectionString,
+            this.options.SchemaName,
+            this.options.PolicyTableName,
+            this.options.CursorTableName).ConfigureAwait(false);
+
         await using var connection = new SqlConnection(this.connectionString);
         await connection.OpenAsync(ct).ConfigureAwait(false);
 
