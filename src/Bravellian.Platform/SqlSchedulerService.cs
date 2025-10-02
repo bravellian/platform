@@ -348,7 +348,7 @@ internal class SqlSchedulerService : BackgroundService
 
             await this.outbox.EnqueueAsync(
                 topic: job.Topic,
-                payload: job.Payload, // The payload from the Job definition is passed on.
+                payload: job.Payload ?? string.Empty, // The payload from the Job definition is passed on.
                 transaction: transaction,
                 correlationId: job.Id.ToString()) // Correlation is the JobRun Id
             .ConfigureAwait(false);
