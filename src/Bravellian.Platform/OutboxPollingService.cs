@@ -15,6 +15,7 @@
 namespace Bravellian.Platform;
 
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 /// <summary>
 /// Background service that periodically polls and processes outbox messages.
@@ -28,16 +29,19 @@ public sealed class OutboxPollingService : BackgroundService
     private readonly IDatabaseSchemaCompletion? _schemaCompletion;
     private readonly double _intervalSeconds;
     private readonly int _batchSize;
+    private readonly ILogger<OutboxPollingService> _logger;
 
     public OutboxPollingService(
         OutboxDispatcher dispatcher, 
         IMonotonicClock mono,
+        ILogger<OutboxPollingService> logger,
         double intervalSeconds = 0.25, // 250ms default
         int batchSize = 50,
         IDatabaseSchemaCompletion? schemaCompletion = null)
     {
         _dispatcher = dispatcher;
         _mono = mono;
+        _logger = logger;
         _schemaCompletion = schemaCompletion;
         _intervalSeconds = intervalSeconds;
         _batchSize = batchSize;
@@ -45,35 +49,46 @@ public sealed class OutboxPollingService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        _logger.LogInformation("Starting outbox polling service with {IntervalMs}ms interval and batch size {BatchSize}", 
+            _intervalSeconds * 1000, _batchSize);
+        
         // Wait for schema deployment to complete if available
         if (_schemaCompletion != null)
         {
+            _logger.LogDebug("Waiting for database schema deployment to complete");
             try
             {
                 await _schemaCompletion.SchemaDeploymentCompleted.ConfigureAwait(false);
+                _logger.LogInformation("Database schema deployment completed successfully");
             }
             catch (Exception ex)
             {
                 // Log and continue - schema deployment errors should not prevent outbox processing
-                System.Diagnostics.Debug.WriteLine($"Schema deployment failed, but continuing with outbox processing: {ex}");
+                _logger.LogWarning(ex, "Schema deployment failed, but continuing with outbox processing");
             }
         }
+        
         while (!stoppingToken.IsCancellationRequested)
         {
             var next = _mono.Seconds + _intervalSeconds;
             
             try
             {
-                await _dispatcher.RunOnceAsync(_batchSize, stoppingToken).ConfigureAwait(false);
+                var processedCount = await _dispatcher.RunOnceAsync(_batchSize, stoppingToken).ConfigureAwait(false);
+                if (processedCount > 0)
+                {
+                    _logger.LogDebug("Outbox polling iteration completed: {ProcessedCount} messages processed", processedCount);
+                }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
+                _logger.LogDebug("Outbox polling service stopped due to cancellation");
                 break;
             }
             catch (Exception ex)
             {
                 // Log and continue - don't let processing errors stop the service
-                System.Diagnostics.Debug.WriteLine($"Error in outbox polling: {ex}");
+                _logger.LogError(ex, "Error in outbox polling iteration - continuing with next iteration");
             }
 
             // Sleep until next interval, using monotonic clock to avoid time jumps
@@ -83,5 +98,7 @@ public sealed class OutboxPollingService : BackgroundService
                 await Task.Delay(TimeSpan.FromSeconds(sleep), stoppingToken).ConfigureAwait(false);
             }
         }
+        
+        _logger.LogInformation("Outbox polling service stopped");
     }
 }

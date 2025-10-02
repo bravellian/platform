@@ -27,6 +27,7 @@
 namespace Bravellian.Platform;
 
 using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 
 /// <summary>
 /// Dispatches outbox messages to their appropriate handlers.
@@ -37,14 +38,17 @@ public sealed class OutboxDispatcher
     private readonly IOutboxStore _store;
     private readonly IOutboxHandlerResolver _resolver;
     private readonly Func<int, TimeSpan> _backoffPolicy;
+    private readonly ILogger<OutboxDispatcher> _logger;
 
     public OutboxDispatcher(
         IOutboxStore store, 
         IOutboxHandlerResolver resolver,
+        ILogger<OutboxDispatcher> logger,
         Func<int, TimeSpan>? backoffPolicy = null)
     {
         _store = store;
         _resolver = resolver;
+        _logger = logger;
         _backoffPolicy = backoffPolicy ?? DefaultBackoff;
     }
 
@@ -56,11 +60,17 @@ public sealed class OutboxDispatcher
     /// <returns>Number of messages processed.</returns>
     public async Task<int> RunOnceAsync(int batchSize, CancellationToken cancellationToken)
     {
+        _logger.LogDebug("Starting outbox batch processing with batch size {BatchSize}", batchSize);
+        
         var messages = await _store.ClaimDueAsync(batchSize, cancellationToken).ConfigureAwait(false);
         
         if (messages.Count == 0)
+        {
+            _logger.LogDebug("No outbox messages available for processing");
             return 0;
+        }
 
+        _logger.LogInformation("Processing {MessageCount} outbox messages", messages.Count);
         var processedCount = 0;
         
         foreach (var message in messages)
@@ -72,16 +82,18 @@ public sealed class OutboxDispatcher
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
+                _logger.LogDebug("Outbox processing cancelled after processing {ProcessedCount} of {TotalCount} messages", processedCount, messages.Count);
                 // Stop processing if cancellation is requested
                 break;
             }
             catch (Exception ex)
             {
                 // Log unexpected errors but continue processing other messages
-                System.Diagnostics.Debug.WriteLine($"Unexpected error processing outbox message {message.Id}: {ex}");
+                _logger.LogError(ex, "Unexpected error processing outbox message {MessageId} with topic '{Topic}'", message.Id, message.Topic);
             }
         }
 
+        _logger.LogInformation("Completed outbox batch processing: {ProcessedCount}/{TotalCount} messages processed", processedCount, messages.Count);
         return processedCount;
     }
 
@@ -91,18 +103,23 @@ public sealed class OutboxDispatcher
         
         try
         {
+            _logger.LogDebug("Processing outbox message {MessageId} with topic '{Topic}'", message.Id, message.Topic);
+            
             // Try to resolve handler for this topic
             if (!_resolver.TryGet(message.Topic, out var handler))
             {
+                _logger.LogWarning("No handler registered for topic '{Topic}' - failing message {MessageId}", message.Topic, message.Id);
                 await _store.FailAsync(message.Id, $"No handler registered for topic '{message.Topic}'", cancellationToken).ConfigureAwait(false);
                 SchedulerMetrics.OutboxMessagesFailed.Add(1);
                 return;
             }
 
             // Execute the handler
+            _logger.LogDebug("Executing handler for message {MessageId} with topic '{Topic}'", message.Id, message.Topic);
             await handler.HandleAsync(message, cancellationToken).ConfigureAwait(false);
 
             // Mark as successfully dispatched
+            _logger.LogDebug("Successfully processed message {MessageId} with topic '{Topic}'", message.Id, message.Topic);
             await _store.MarkDispatchedAsync(message.Id, cancellationToken).ConfigureAwait(false);
             SchedulerMetrics.OutboxMessagesSent.Add(1);
         }
@@ -111,6 +128,9 @@ public sealed class OutboxDispatcher
             // Handler threw an exception - reschedule with backoff
             var nextAttempt = message.RetryCount + 1;
             var delay = _backoffPolicy(nextAttempt);
+            
+            _logger.LogWarning(ex, "Handler failed for message {MessageId} with topic '{Topic}' (attempt {AttemptCount}). Rescheduling with {DelayMs}ms delay", 
+                message.Id, message.Topic, nextAttempt, delay.TotalMilliseconds);
             
             await _store.RescheduleAsync(message.Id, delay, ex.Message, cancellationToken).ConfigureAwait(false);
             SchedulerMetrics.OutboxMessagesFailed.Add(1);
