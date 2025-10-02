@@ -82,16 +82,14 @@ public sealed class InboxDispatcher
             // Process each claimed message
             foreach (var messageId in claimedIds)
             {
-                try
+                var wasHandled = await ProcessSingleMessageAsync(ownerToken, messageId, cancellationToken).ConfigureAwait(false);
+                
+                if (wasHandled)
                 {
-                    await ProcessSingleMessageAsync(messageId, cancellationToken).ConfigureAwait(false);
                     succeeded.Add(messageId);
                 }
-                catch (Exception ex)
+                else
                 {
-                    this.logger.LogWarning(ex, 
-                        "Failed to process inbox message {MessageId} with owner {OwnerToken}", 
-                        messageId, ownerToken);
                     failed.Add(messageId);
                 }
             }
@@ -140,7 +138,7 @@ public sealed class InboxDispatcher
         return TimeSpan.FromMilliseconds(baseMs + jitter);
     }
 
-    private async Task ProcessSingleMessageAsync(string messageId, CancellationToken cancellationToken)
+    private async Task<bool> ProcessSingleMessageAsync(Guid ownerToken, string messageId, CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
 
@@ -162,9 +160,10 @@ public sealed class InboxDispatcher
             catch (InvalidOperationException)
             {
                 this.logger.LogWarning(
-                    "No handler registered for topic '{Topic}' - message {MessageId} will be marked as failed", 
+                    "No handler registered for topic '{Topic}' - marking message {MessageId} as dead", 
                     message.Topic, message.MessageId);
-                throw new InvalidOperationException($"No handler registered for topic '{message.Topic}'");
+                await this.store.FailAsync(ownerToken, new[] { messageId }, $"No handler registered for topic '{message.Topic}'", cancellationToken).ConfigureAwait(false);
+                return true; // Message was handled (failed immediately)
             }
 
             // Execute the handler
@@ -173,13 +172,15 @@ public sealed class InboxDispatcher
             this.logger.LogDebug(
                 "Successfully processed inbox message {MessageId} with topic '{Topic}' in {ElapsedMs}ms", 
                 message.MessageId, message.Topic, stopwatch.ElapsedMilliseconds);
+            
+            return true; // Message was handled successfully
         }
         catch (Exception ex)
         {
             this.logger.LogWarning(ex, 
                 "Handler failed for inbox message {MessageId}: {ErrorMessage}", 
                 messageId, ex.Message);
-            throw;
+            return false; // Message failed and needs retry logic
         }
         finally
         {
