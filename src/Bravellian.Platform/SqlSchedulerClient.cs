@@ -47,23 +47,27 @@ internal class SqlSchedulerClient : ISchedulerClient
 
         this.cancelTimerSql = $"UPDATE [{this.options.SchemaName}].[{this.options.TimersTableName}] SET Status = 'Cancelled' WHERE Id = @TimerId AND Status = 'Pending';";
 
-        this.mergeJobSql = $@"
-            MERGE [{this.options.SchemaName}].[{this.options.JobsTableName}] AS target
-            USING (SELECT @JobName AS JobName) AS source
-            ON (target.JobName = source.JobName)
-            WHEN MATCHED THEN
-                UPDATE SET Topic = @Topic, CronSchedule = @CronSchedule, Payload = @Payload, NextDueTime = @NextDueTime
-            WHEN NOT MATCHED THEN
-                INSERT (Id, JobName, Topic, CronSchedule, Payload, NextDueTime)
-                VALUES (NEWID(), @JobName, @Topic, @CronSchedule, @Payload, @NextDueTime);";
+        this.mergeJobSql = $"""
+
+                        MERGE [{this.options.SchemaName}].[{this.options.JobsTableName}] AS target
+                        USING (SELECT @JobName AS JobName) AS source
+                        ON (target.JobName = source.JobName)
+                        WHEN MATCHED THEN
+                            UPDATE SET Topic = @Topic, CronSchedule = @CronSchedule, Payload = @Payload, NextDueTime = @NextDueTime
+                        WHEN NOT MATCHED THEN
+                            INSERT (Id, JobName, Topic, CronSchedule, Payload, NextDueTime)
+                            VALUES (NEWID(), @JobName, @Topic, @CronSchedule, @Payload, @NextDueTime);
+            """;
 
         this.deleteJobRunsSql = $"DELETE FROM [{this.options.SchemaName}].[{this.options.JobRunsTableName}] WHERE JobId = (SELECT Id FROM [{this.options.SchemaName}].[{this.options.JobsTableName}] WHERE JobName = @JobName);";
 
         this.deleteJobSql = $"DELETE FROM [{this.options.SchemaName}].[{this.options.JobsTableName}] WHERE JobName = @JobName;";
 
-        this.triggerJobSql = $@"
-            INSERT INTO [{this.options.SchemaName}].[{this.options.JobRunsTableName}] (Id, JobId, ScheduledTime)
-            SELECT NEWID(), Id, SYSDATETIMEOFFSET() FROM [{this.options.SchemaName}].[{this.options.JobsTableName}] WHERE JobName = @JobName;";
+        this.triggerJobSql = $"""
+
+                        INSERT INTO [{this.options.SchemaName}].[{this.options.JobRunsTableName}] (Id, JobId, ScheduledTime)
+                        SELECT NEWID(), Id, SYSDATETIMEOFFSET() FROM [{this.options.SchemaName}].[{this.options.JobsTableName}] WHERE JobName = @JobName;
+            """;
     }
 
     public async Task<string> ScheduleTimerAsync(string topic, string payload, DateTimeOffset dueTime)

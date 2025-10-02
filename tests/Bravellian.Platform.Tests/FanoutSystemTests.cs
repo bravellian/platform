@@ -67,7 +67,7 @@ public class FanoutSystemTests
         // Arrange & Act
         var options = new FanoutTopicOptions
         {
-            FanoutTopic = "test-topic"
+            FanoutTopic = "test-topic",
         };
 
         // Assert

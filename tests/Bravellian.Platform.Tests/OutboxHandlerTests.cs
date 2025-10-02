@@ -29,7 +29,7 @@ public class OutboxHandlerTests : SqlServerTestBase
         {
             new TestHandler("Email.Send"),
             new TestHandler("SMS.Send"),
-            new TestHandler("Push.Notification")
+            new TestHandler("Push.Notification"),
         };
 
         var resolver = new OutboxHandlerResolver(handlers);
@@ -74,7 +74,7 @@ public class OutboxHandlerTests : SqlServerTestBase
             Id = Guid.NewGuid(),
             Topic = "Test.Topic",
             Payload = "test payload",
-            RetryCount = 0
+            RetryCount = 0,
         };
 
         store.AddMessage(message);
@@ -104,7 +104,7 @@ public class OutboxHandlerTests : SqlServerTestBase
             Id = Guid.NewGuid(),
             Topic = "Unknown.Topic",
             Payload = "test payload",
-            RetryCount = 0
+            RetryCount = 0,
         };
 
         store.AddMessage(message);
@@ -135,7 +135,7 @@ public class OutboxHandlerTests : SqlServerTestBase
             Id = Guid.NewGuid(),
             Topic = "Test.Topic",
             Payload = "test payload",
-            RetryCount = 2
+            RetryCount = 2,
         };
 
         store.AddMessage(message);
@@ -147,7 +147,7 @@ public class OutboxHandlerTests : SqlServerTestBase
         processed.ShouldBe(1);
         testHandler.HandledMessages.Count.ShouldBe(1); // Handler was called
         store.RescheduledMessages.Count.ShouldBe(1);
-        
+
         var rescheduled = store.RescheduledMessages.First();
         rescheduled.Key.ShouldBe(message.Id);
         rescheduled.Value.Delay.ShouldBeGreaterThan(TimeSpan.Zero);
@@ -169,7 +169,7 @@ public class OutboxHandlerTests : SqlServerTestBase
             Id = Guid.NewGuid(),
             Topic = "Test.Topic",
             Payload = "test payload",
-            RetryCount = 0
+            RetryCount = 0,
         };
 
         store.AddMessage(message);
@@ -179,7 +179,7 @@ public class OutboxHandlerTests : SqlServerTestBase
 
         // Assert
         processed.ShouldBe(1);
-        
+
         // Verify that proper log messages are generated
         // The TestLogger outputs to the test output, but we can verify the calls were made
         // by checking that processing completed successfully
@@ -203,7 +203,7 @@ public class OutboxHandlerTests : SqlServerTestBase
             Id = Guid.NewGuid(),
             Topic = "Test.Topic",
             Payload = "test payload",
-            RetryCount = 0
+            RetryCount = 0,
         };
 
         store.AddMessage(message);
@@ -213,7 +213,7 @@ public class OutboxHandlerTests : SqlServerTestBase
 
         // Assert
         processed.ShouldBe(1);
-        
+
         // Verify that handler was called and error was logged
         testHandler.HandledMessages.Count.ShouldBe(1);
         store.RescheduledMessages.Count.ShouldBe(1);
@@ -225,7 +225,7 @@ public class OutboxHandlerTests : SqlServerTestBase
     {
         // Arrange
         var capturingLogger = new CapturingLogger<OutboxDispatcher>();
-        
+
         var testHandler = new TestHandler("Test.Topic");
         var resolver = new OutboxHandlerResolver(new[] { testHandler });
         var store = new TestOutboxStore();
@@ -236,15 +236,15 @@ public class OutboxHandlerTests : SqlServerTestBase
             Id = Guid.NewGuid(),
             Topic = "Test.Topic",
             Payload = "success payload",
-            RetryCount = 0
+            RetryCount = 0,
         };
-        
+
         var failMessage = new OutboxMessage
         {
             Id = Guid.NewGuid(),
             Topic = "Unknown.Topic",
             Payload = "fail payload",
-            RetryCount = 0
+            RetryCount = 0,
         };
 
         store.AddMessage(successMessage);
@@ -256,13 +256,13 @@ public class OutboxHandlerTests : SqlServerTestBase
         // Assert
         processed.ShouldBe(2);
         capturingLogger.LogEntries.Count.ShouldBeGreaterThan(0);
-        
+
         // Verify we have Information level logs for batch processing
         capturingLogger.LogEntries.Any(log => log.Level == LogLevel.Information && log.Message.Contains("Processing")).ShouldBeTrue();
-        
+
         // Verify we have Debug level logs for individual message processing
         capturingLogger.LogEntries.Any(log => log.Level == LogLevel.Debug && log.Message.Contains("Processing outbox message")).ShouldBeTrue();
-        
+
         // Verify we have Warning level logs for no handler
         capturingLogger.LogEntries.Any(log => log.Level == LogLevel.Warning && log.Message.Contains("No handler registered")).ShouldBeTrue();
     }
@@ -300,7 +300,7 @@ public class OutboxHandlerTests : SqlServerTestBase
         // For attempt 2: base = 1000ms, jitter = 0-249ms, so range is 1000-1249ms
         delay2.ShouldBeGreaterThanOrEqualTo(TimeSpan.FromMilliseconds(1000));
         delay2.ShouldBeLessThan(TimeSpan.FromMilliseconds(1250));
-        
+
         // For attempt 3: base = 2000ms, jitter = 0-249ms, so range is 2000-2249ms  
         delay3.ShouldBeGreaterThanOrEqualTo(TimeSpan.FromMilliseconds(2000));
         delay3.ShouldBeLessThan(TimeSpan.FromMilliseconds(2250));
@@ -359,10 +359,10 @@ public class OutboxHandlerTests : SqlServerTestBase
         public Task HandleAsync(OutboxMessage message, CancellationToken cancellationToken)
         {
             HandledMessages.Add(message);
-            
+
             if (ShouldThrow)
                 throw new Exception("Test exception");
-                
+
             return Task.CompletedTask;
         }
     }
@@ -371,7 +371,7 @@ public class OutboxHandlerTests : SqlServerTestBase
     private class TestOutboxStore : IOutboxStore
     {
         private readonly List<OutboxMessage> _messages = new List<OutboxMessage>();
-        
+
         public List<Guid> DispatchedMessages { get; } = new List<Guid>();
         public List<KeyValuePair<Guid, string>> FailedMessages { get; } = new List<KeyValuePair<Guid, string>>();
         public List<KeyValuePair<Guid, (TimeSpan Delay, string Error)>> RescheduledMessages { get; } = new List<KeyValuePair<Guid, (TimeSpan Delay, string Error)>>();

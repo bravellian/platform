@@ -139,14 +139,16 @@ internal sealed class FanoutJobRegistrationService : BackgroundService
         await using var connection = new SqlConnection(connectionString);
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-        var sql = $@"
-            INSERT INTO [{schemaName}].[{tableName}] 
-                (FanoutTopic, WorkKey, DefaultEverySeconds, JitterSeconds, CreatedAt, UpdatedAt)
-            SELECT @FanoutTopic, @WorkKey, @DefaultEverySeconds, @JitterSeconds, SYSDATETIMEOFFSET(), SYSDATETIMEOFFSET()
-            WHERE NOT EXISTS (
-                SELECT 1 FROM [{schemaName}].[{tableName}] 
-                WHERE FanoutTopic = @FanoutTopic AND WorkKey = @WorkKey
-            )";
+        var sql = $"""
+
+                        INSERT INTO [{schemaName}].[{tableName}] 
+                            (FanoutTopic, WorkKey, DefaultEverySeconds, JitterSeconds, CreatedAt, UpdatedAt)
+                        SELECT @FanoutTopic, @WorkKey, @DefaultEverySeconds, @JitterSeconds, SYSDATETIMEOFFSET(), SYSDATETIMEOFFSET()
+                        WHERE NOT EXISTS (
+                            SELECT 1 FROM [{schemaName}].[{tableName}] 
+                            WHERE FanoutTopic = @FanoutTopic AND WorkKey = @WorkKey
+                        )
+            """;
 
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.AddWithValue("@FanoutTopic", this.options.FanoutTopic);

@@ -47,11 +47,11 @@ public class InboxDispatcherTests : SqlServerTestBase
         // Verify message was marked as Done
         await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
         await connection.OpenAsync();
-        
+
         var status = await connection.QuerySingleAsync<string>(
             "SELECT Status FROM dbo.Inbox WHERE MessageId = @MessageId",
             new { MessageId = "msg-1" });
-        
+
         Assert.Equal("Done", status);
     }
 
@@ -76,11 +76,11 @@ public class InboxDispatcherTests : SqlServerTestBase
         // Verify message was marked as Dead due to no handler
         await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
         await connection.OpenAsync();
-        
+
         var status = await connection.QuerySingleAsync<string>(
             "SELECT Status FROM dbo.Inbox WHERE MessageId = @MessageId",
             new { MessageId = "msg-2" });
-        
+
         Assert.Equal("Dead", status);
     }
 
@@ -106,36 +106,36 @@ public class InboxDispatcherTests : SqlServerTestBase
         // Verify message was abandoned (back to Seen status)
         await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
         await connection.OpenAsync();
-        
+
         var status = await connection.QuerySingleAsync<string>(
             "SELECT Status FROM dbo.Inbox WHERE MessageId = @MessageId",
             new { MessageId = "msg-3" });
-        
+
         Assert.Equal("Seen", status);
     }
 
     private SqlInboxService CreateInboxService()
     {
-        var options = Options.Create(new SqlInboxOptions 
-        { 
+        var options = Options.Create(new SqlInboxOptions
+        {
             ConnectionString = this.ConnectionString,
             SchemaName = "dbo",
-            TableName = "Inbox"
+            TableName = "Inbox",
         });
-        
+
         var logger = new TestLogger<SqlInboxService>(this.TestOutputHelper);
         return new SqlInboxService(options, logger);
     }
 
     private SqlInboxWorkStore CreateInboxWorkStore()
     {
-        var options = Options.Create(new SqlInboxOptions 
-        { 
+        var options = Options.Create(new SqlInboxOptions
+        {
             ConnectionString = this.ConnectionString,
             SchemaName = "dbo",
-            TableName = "Inbox"
+            TableName = "Inbox",
         });
-        
+
         var logger = new TestLogger<SqlInboxWorkStore>(this.TestOutputHelper);
         return new SqlInboxWorkStore(options, logger);
     }

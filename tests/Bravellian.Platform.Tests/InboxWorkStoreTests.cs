@@ -46,11 +46,11 @@ public class InboxWorkStoreTests : SqlServerTestBase
         // Verify message status is Processing and has owner token
         await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
         await connection.OpenAsync();
-        
+
         var result = await connection.QuerySingleAsync(
             "SELECT Status, OwnerToken FROM dbo.Inbox WHERE MessageId = @MessageId",
             new { MessageId = "msg-1" });
-        
+
         Assert.Equal("Processing", result.Status);
         Assert.Equal(ownerToken, result.OwnerToken);
     }
@@ -77,7 +77,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
         // Assert - Only one worker should get the message
         var totalClaimed = claims1.Count + claims2.Count;
         Assert.Equal(1, totalClaimed);
-        
+
         // Verify exactly one claim succeeded
         Assert.True((claims1.Count == 1 && claims2.Count == 0) || (claims1.Count == 0 && claims2.Count == 1));
     }
@@ -101,11 +101,11 @@ public class InboxWorkStoreTests : SqlServerTestBase
         // Assert
         await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
         await connection.OpenAsync();
-        
+
         var result = await connection.QuerySingleAsync(
             "SELECT Status, OwnerToken, ProcessedUtc FROM dbo.Inbox WHERE MessageId = @MessageId",
             new { MessageId = "msg-1" });
-        
+
         Assert.Equal("Done", result.Status);
         Assert.Null(result.OwnerToken);
         Assert.NotNull(result.ProcessedUtc);
@@ -130,11 +130,11 @@ public class InboxWorkStoreTests : SqlServerTestBase
         // Assert
         await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
         await connection.OpenAsync();
-        
+
         var result = await connection.QuerySingleAsync(
             "SELECT Status, OwnerToken FROM dbo.Inbox WHERE MessageId = @MessageId",
             new { MessageId = "msg-1" });
-        
+
         Assert.Equal("Seen", result.Status);
         Assert.Null(result.OwnerToken);
     }
@@ -158,11 +158,11 @@ public class InboxWorkStoreTests : SqlServerTestBase
         // Assert
         await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
         await connection.OpenAsync();
-        
+
         var result = await connection.QuerySingleAsync(
             "SELECT Status, OwnerToken FROM dbo.Inbox WHERE MessageId = @MessageId",
             new { MessageId = "msg-1" });
-        
+
         Assert.Equal("Dead", result.Status);
         Assert.Null(result.OwnerToken);
     }
@@ -187,11 +187,11 @@ public class InboxWorkStoreTests : SqlServerTestBase
         // Assert - Message should still be Processing (ack should have been ignored)
         await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
         await connection.OpenAsync();
-        
+
         var result = await connection.QuerySingleAsync(
             "SELECT Status, OwnerToken FROM dbo.Inbox WHERE MessageId = @MessageId",
             new { MessageId = "msg-1" });
-        
+
         Assert.Equal("Processing", result.Status);
         Assert.Equal(rightOwner, result.OwnerToken);
     }
@@ -231,26 +231,26 @@ public class InboxWorkStoreTests : SqlServerTestBase
 
     private SqlInboxService CreateInboxService()
     {
-        var options = Options.Create(new SqlInboxOptions 
-        { 
+        var options = Options.Create(new SqlInboxOptions
+        {
             ConnectionString = this.ConnectionString,
             SchemaName = "dbo",
-            TableName = "Inbox"
+            TableName = "Inbox",
         });
-        
+
         var logger = new TestLogger<SqlInboxService>(this.TestOutputHelper);
         return new SqlInboxService(options, logger);
     }
 
     private SqlInboxWorkStore CreateInboxWorkStore()
     {
-        var options = Options.Create(new SqlInboxOptions 
-        { 
+        var options = Options.Create(new SqlInboxOptions
+        {
             ConnectionString = this.ConnectionString,
             SchemaName = "dbo",
-            TableName = "Inbox"
+            TableName = "Inbox",
         });
-        
+
         var logger = new TestLogger<SqlInboxWorkStore>(this.TestOutputHelper);
         return new SqlInboxWorkStore(options, logger);
     }

@@ -255,10 +255,12 @@ internal class SqlInboxWorkStore : IInboxWorkStore
             using var connection = new SqlConnection(this.connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-            var sql = $@"
-                SELECT MessageId, Source, Topic, Payload, Hash, Attempts, FirstSeenUtc, LastSeenUtc
-                FROM [{this.schemaName}].[{this.tableName}]
-                WHERE MessageId = @MessageId";
+            var sql = $"""
+
+                                SELECT MessageId, Source, Topic, Payload, Hash, Attempts, FirstSeenUtc, LastSeenUtc
+                                FROM [{this.schemaName}].[{this.tableName}]
+                                WHERE MessageId = @MessageId
+                """;
 
             var row = await connection.QuerySingleOrDefaultAsync(sql, new { MessageId = messageId }).ConfigureAwait(false);
             

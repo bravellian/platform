@@ -53,7 +53,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         await using var command = new SqlCommand(sql, connection, transaction);
         command.Parameters.AddWithValue("@Topic", topic);
         command.Parameters.AddWithValue("@Payload", payload);
-        
+
         var count = (int)await command.ExecuteScalarAsync();
 
         // Assert
@@ -67,23 +67,23 @@ public class SqlOutboxServiceTests : SqlServerTestBase
     public async Task EnqueueAsync_WithCustomSchemaAndTable_InsertsMessageToCorrectTable()
     {
         // Arrange - Use custom schema and table name
-        var customOptions = new SqlOutboxOptions 
-        { 
-            ConnectionString = this.ConnectionString, 
-            SchemaName = "custom", 
-            TableName = "CustomOutbox", 
+        var customOptions = new SqlOutboxOptions
+        {
+            ConnectionString = this.ConnectionString,
+            SchemaName = "custom",
+            TableName = "CustomOutbox",
         };
-        
+
         // Create the custom table for this test
         await using var setupConnection = new SqlConnection(this.ConnectionString);
         await setupConnection.OpenAsync();
-        
+
         // Create custom schema if it doesn't exist
         await setupConnection.ExecuteAsync("IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'custom') EXEC('CREATE SCHEMA custom')");
-        
+
         // Create custom table using DatabaseSchemaManager
         await DatabaseSchemaManager.EnsureOutboxSchemaAsync(this.ConnectionString, "custom", "CustomOutbox");
-        
+
         var customOutboxService = new SqlOutboxService(Options.Create(customOptions), NullLogger<SqlOutboxService>.Instance);
 
         await using var connection = new SqlConnection(this.ConnectionString);
@@ -101,7 +101,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         await using var command = new SqlCommand(sql, connection, transaction);
         command.Parameters.AddWithValue("@Topic", topic);
         command.Parameters.AddWithValue("@Payload", payload);
-        
+
         var count = (int)await command.ExecuteScalarAsync();
 
         // Assert
@@ -130,7 +130,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         await using var command = new SqlCommand(sql, connection, transaction);
         command.Parameters.AddWithValue("@Topic", topic);
         command.Parameters.AddWithValue("@Payload", payload);
-        
+
         var count = (int)await command.ExecuteScalarAsync();
 
         // Assert
@@ -218,7 +218,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         // The implementation tries to access transaction.Connection without checking null
         var exception = await Should.ThrowAsync<NullReferenceException>(
             () => this.outboxService!.EnqueueAsync(validTopic, validPayload, nullTransaction));
-        
+
         exception.ShouldNotBeNull();
     }
 
@@ -241,7 +241,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         command.Parameters.AddWithValue("@Topic", topic);
         command.Parameters.AddWithValue("@Payload", payload);
         command.Parameters.AddWithValue("@CorrelationId", correlationId);
-        
+
         var count = (int)await command.ExecuteScalarAsync();
 
         // Assert
@@ -272,7 +272,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.AddWithValue("@Topic", topic);
         command.Parameters.AddWithValue("@Payload", payload);
-        
+
         var count = (int)await command.ExecuteScalarAsync();
 
         // Assert
@@ -328,13 +328,13 @@ public class SqlOutboxServiceTests : SqlServerTestBase
     public async Task EnqueueAsync_Standalone_EnsuresTableExists()
     {
         // Arrange - Create a custom outbox service with a different table name
-        var customOptions = new SqlOutboxOptions 
-        { 
-            ConnectionString = this.ConnectionString, 
-            SchemaName = "dbo", 
-            TableName = "TestOutbox_StandaloneEnsure", 
+        var customOptions = new SqlOutboxOptions
+        {
+            ConnectionString = this.ConnectionString,
+            SchemaName = "dbo",
+            TableName = "TestOutbox_StandaloneEnsure",
         };
-        
+
         var customOutboxService = new SqlOutboxService(Options.Create(customOptions), NullLogger<SqlOutboxService>.Instance);
 
         // First, ensure the custom table doesn't exist
@@ -355,7 +355,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
             await using var command = new SqlCommand(sql, setupConnection);
             command.Parameters.AddWithValue("@Topic", topic);
             command.Parameters.AddWithValue("@Payload", payload);
-            
+
             var count = (int)await command.ExecuteScalarAsync();
 
             // Assert

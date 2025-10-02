@@ -45,12 +45,14 @@ internal class SqlOutboxStore : IOutboxStore
         this.logger.LogDebug("Claiming up to {Limit} outbox messages for processing", limit);
         
         // Use READPAST to skip locked rows, UPDLOCK to prevent other readers from claiming same rows
-        var sql = $@"
-            SELECT TOP ({limit}) * 
-            FROM [{this.schemaName}].[{this.tableName}] WITH (READPAST, UPDLOCK, ROWLOCK)
-            WHERE IsProcessed = 0 
-              AND NextAttemptAt <= SYSDATETIMEOFFSET()
-            ORDER BY CreatedAt";
+        var sql = $"""
+
+                        SELECT TOP ({limit}) * 
+                        FROM [{this.schemaName}].[{this.tableName}] WITH (READPAST, UPDLOCK, ROWLOCK)
+                        WHERE IsProcessed = 0 
+                          AND NextAttemptAt <= SYSDATETIMEOFFSET()
+                        ORDER BY CreatedAt
+            """;
 
         try
         {
@@ -74,12 +76,14 @@ internal class SqlOutboxStore : IOutboxStore
     {
         this.logger.LogDebug("Marking outbox message {MessageId} as dispatched", id);
         
-        var sql = $@"
-            UPDATE [{this.schemaName}].[{this.tableName}]
-            SET IsProcessed = 1, 
-                ProcessedAt = SYSDATETIMEOFFSET(),
-                ProcessedBy = @ProcessedBy
-            WHERE Id = @Id";
+        var sql = $"""
+
+                        UPDATE [{this.schemaName}].[{this.tableName}]
+                        SET IsProcessed = 1, 
+                            ProcessedAt = SYSDATETIMEOFFSET(),
+                            ProcessedBy = @ProcessedBy
+                        WHERE Id = @Id
+            """;
 
         try
         {
@@ -108,12 +112,14 @@ internal class SqlOutboxStore : IOutboxStore
         this.logger.LogDebug("Rescheduling outbox message {MessageId} for next attempt at {NextAttempt} due to error: {Error}", 
             id, nextAttempt, lastError);
         
-        var sql = $@"
-            UPDATE [{this.schemaName}].[{this.tableName}]
-            SET RetryCount = RetryCount + 1,
-                LastError = @LastError,
-                NextAttemptAt = @NextAttemptAt
-            WHERE Id = @Id";
+        var sql = $"""
+
+                        UPDATE [{this.schemaName}].[{this.tableName}]
+                        SET RetryCount = RetryCount + 1,
+                            LastError = @LastError,
+                            NextAttemptAt = @NextAttemptAt
+                        WHERE Id = @Id
+            """;
 
         try
         {
@@ -140,13 +146,15 @@ internal class SqlOutboxStore : IOutboxStore
     {
         this.logger.LogWarning("Permanently failing outbox message {MessageId} due to error: {Error}", id, lastError);
         
-        var sql = $@"
-            UPDATE [{this.schemaName}].[{this.tableName}]
-            SET IsProcessed = 1,
-                ProcessedAt = SYSDATETIMEOFFSET(),
-                ProcessedBy = @ProcessedBy,
-                LastError = @LastError
-            WHERE Id = @Id";
+        var sql = $"""
+
+                        UPDATE [{this.schemaName}].[{this.tableName}]
+                        SET IsProcessed = 1,
+                            ProcessedAt = SYSDATETIMEOFFSET(),
+                            ProcessedBy = @ProcessedBy,
+                            LastError = @LastError
+                        WHERE Id = @Id
+            """;
 
         try
         {

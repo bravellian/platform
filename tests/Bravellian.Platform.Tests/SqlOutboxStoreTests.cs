@@ -46,7 +46,7 @@ public class SqlOutboxStoreTests : SqlServerTestBase
         var messageId = Guid.NewGuid();
         await using var connection = new SqlConnection(this.ConnectionString);
         await connection.OpenAsync();
-        
+
         await connection.ExecuteAsync($@"
             INSERT INTO [{this.defaultOptions.SchemaName}].[{this.defaultOptions.TableName}] 
             (Id, Topic, Payload, IsProcessed, NextAttemptAt, CreatedAt, RetryCount)
@@ -57,7 +57,7 @@ public class SqlOutboxStoreTests : SqlServerTestBase
                 Topic = "Test.Topic",
                 Payload = "test payload",
                 NextAttemptAt = DateTimeOffset.UtcNow.AddMinutes(-1), // Due in the past
-                CreatedAt = DateTimeOffset.UtcNow.AddMinutes(-5)
+                CreatedAt = DateTimeOffset.UtcNow.AddMinutes(-5),
             });
 
         // Act
@@ -77,7 +77,7 @@ public class SqlOutboxStoreTests : SqlServerTestBase
         var messageId = Guid.NewGuid();
         await using var connection = new SqlConnection(this.ConnectionString);
         await connection.OpenAsync();
-        
+
         await connection.ExecuteAsync($@"
             INSERT INTO [{this.defaultOptions.SchemaName}].[{this.defaultOptions.TableName}] 
             (Id, Topic, Payload, IsProcessed, NextAttemptAt, CreatedAt, RetryCount)
@@ -88,7 +88,7 @@ public class SqlOutboxStoreTests : SqlServerTestBase
                 Topic = "Test.Topic",
                 Payload = "test payload",
                 NextAttemptAt = DateTimeOffset.UtcNow.AddMinutes(10), // Due in the future
-                CreatedAt = DateTimeOffset.UtcNow
+                CreatedAt = DateTimeOffset.UtcNow,
             });
 
         // Act
@@ -105,7 +105,7 @@ public class SqlOutboxStoreTests : SqlServerTestBase
         var messageId = Guid.NewGuid();
         await using var connection = new SqlConnection(this.ConnectionString);
         await connection.OpenAsync();
-        
+
         await connection.ExecuteAsync($@"
             INSERT INTO [{this.defaultOptions.SchemaName}].[{this.defaultOptions.TableName}] 
             (Id, Topic, Payload, IsProcessed, NextAttemptAt, CreatedAt, RetryCount)
@@ -116,7 +116,7 @@ public class SqlOutboxStoreTests : SqlServerTestBase
                 Topic = "Test.Topic",
                 Payload = "test payload",
                 NextAttemptAt = DateTimeOffset.UtcNow,
-                CreatedAt = DateTimeOffset.UtcNow
+                CreatedAt = DateTimeOffset.UtcNow,
             });
 
         // Act
@@ -126,7 +126,7 @@ public class SqlOutboxStoreTests : SqlServerTestBase
         var processed = await connection.QueryFirstAsync<bool>($@"
             SELECT IsProcessed FROM [{this.defaultOptions.SchemaName}].[{this.defaultOptions.TableName}] 
             WHERE Id = @Id", new { Id = messageId });
-        
+
         processed.ShouldBeTrue();
     }
 
@@ -137,7 +137,7 @@ public class SqlOutboxStoreTests : SqlServerTestBase
         var messageId = Guid.NewGuid();
         await using var connection = new SqlConnection(this.ConnectionString);
         await connection.OpenAsync();
-        
+
         await connection.ExecuteAsync($@"
             INSERT INTO [{this.defaultOptions.SchemaName}].[{this.defaultOptions.TableName}] 
             (Id, Topic, Payload, IsProcessed, NextAttemptAt, CreatedAt, RetryCount)
@@ -148,7 +148,7 @@ public class SqlOutboxStoreTests : SqlServerTestBase
                 Topic = "Test.Topic",
                 Payload = "test payload",
                 NextAttemptAt = DateTimeOffset.UtcNow,
-                CreatedAt = DateTimeOffset.UtcNow
+                CreatedAt = DateTimeOffset.UtcNow,
             });
 
         var delay = TimeSpan.FromMinutes(5);
@@ -164,7 +164,7 @@ public class SqlOutboxStoreTests : SqlServerTestBase
 
         ((int)result.RetryCount).ShouldBe(3); // Should be incremented from 2 to 3
         ((string)result.LastError).ShouldBe(errorMessage);
-        
+
         var nextAttempt = (DateTimeOffset)result.NextAttemptAt;
         nextAttempt.ShouldBeGreaterThan(this.timeProvider.GetUtcNow().Add(delay).AddMinutes(-1));
         nextAttempt.ShouldBeLessThan(this.timeProvider.GetUtcNow().Add(delay).AddMinutes(1));
@@ -177,7 +177,7 @@ public class SqlOutboxStoreTests : SqlServerTestBase
         var messageId = Guid.NewGuid();
         await using var connection = new SqlConnection(this.ConnectionString);
         await connection.OpenAsync();
-        
+
         await connection.ExecuteAsync($@"
             INSERT INTO [{this.defaultOptions.SchemaName}].[{this.defaultOptions.TableName}] 
             (Id, Topic, Payload, IsProcessed, NextAttemptAt, CreatedAt, RetryCount)
@@ -188,7 +188,7 @@ public class SqlOutboxStoreTests : SqlServerTestBase
                 Topic = "Test.Topic",
                 Payload = "test payload",
                 NextAttemptAt = DateTimeOffset.UtcNow,
-                CreatedAt = DateTimeOffset.UtcNow
+                CreatedAt = DateTimeOffset.UtcNow,
             });
 
         var errorMessage = "Permanent failure";

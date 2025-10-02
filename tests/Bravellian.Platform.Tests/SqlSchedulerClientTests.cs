@@ -55,7 +55,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.AddWithValue("@Id", timerGuid);
         command.Parameters.AddWithValue("@Topic", topic);
-        
+
         var count = (int)await command.ExecuteScalarAsync();
         count.ShouldBe(1);
     }
@@ -64,25 +64,25 @@ public class SqlSchedulerClientTests : SqlServerTestBase
     public async Task ScheduleTimerAsync_WithCustomTableNames_InsertsToCorrectTable()
     {
         // Arrange - Use custom table names
-        var customOptions = new SqlSchedulerOptions 
-        { 
-            ConnectionString = this.ConnectionString, 
-            SchemaName = "custom", 
+        var customOptions = new SqlSchedulerOptions
+        {
+            ConnectionString = this.ConnectionString,
+            SchemaName = "custom",
             TimersTableName = "CustomTimers",
             JobsTableName = "CustomJobs",
             JobRunsTableName = "CustomJobRuns",
         };
-        
+
         // Create the custom schema and tables for this test
         await using var setupConnection = new SqlConnection(this.ConnectionString);
         await setupConnection.OpenAsync();
-        
+
         // Create custom schema if it doesn't exist
         await setupConnection.ExecuteAsync("IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'custom') EXEC('CREATE SCHEMA custom')");
-        
+
         // Create custom tables using DatabaseSchemaManager
         await DatabaseSchemaManager.EnsureSchedulerSchemaAsync(this.ConnectionString, "custom", "CustomJobs", "CustomJobRuns", "CustomTimers");
-        
+
         var customSchedulerClient = new SqlSchedulerClient(Options.Create(customOptions), FakeTimeProvider.System);
 
         string topic = "test-timer-custom";
@@ -103,7 +103,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.AddWithValue("@Id", timerGuid);
         command.Parameters.AddWithValue("@Topic", topic);
-        
+
         var count = (int)await command.ExecuteScalarAsync();
         count.ShouldBe(1);
     }
@@ -127,7 +127,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
                    WHERE Id = @Id";
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.AddWithValue("@Id", Guid.Parse(timerId));
-        
+
         await using var reader = await command.ExecuteReaderAsync();
         reader.Read().ShouldBeTrue();
 
@@ -146,7 +146,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         string topic = "test-timer-cancel";
         string payload = "test timer cancel payload";
         DateTimeOffset dueTime = DateTimeOffset.UtcNow.AddMinutes(15);
-        
+
         var timerId = await this.schedulerClient!.ScheduleTimerAsync(topic, payload, dueTime);
 
         // Act
@@ -161,7 +161,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         var sql = "SELECT Status FROM dbo.Timers WHERE Id = @Id";
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.AddWithValue("@Id", Guid.Parse(timerId));
-        
+
         var status = (string?)await command.ExecuteScalarAsync();
         status.ShouldBe("Cancelled");
     }
@@ -201,7 +201,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         command.Parameters.AddWithValue("@JobName", jobName);
         command.Parameters.AddWithValue("@Topic", topic);
         command.Parameters.AddWithValue("@CronSchedule", cronSchedule);
-        
+
         var count = (int)await command.ExecuteScalarAsync();
         count.ShouldBe(1);
     }
@@ -223,7 +223,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         var sql = @"SELECT Payload FROM dbo.Jobs WHERE JobName = @JobName";
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.AddWithValue("@JobName", jobName);
-        
+
         var result = await command.ExecuteScalarAsync();
         result.ShouldBe(DBNull.Value);
     }
@@ -249,7 +249,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         var countSql = "SELECT COUNT(*) FROM dbo.Jobs WHERE JobName = @JobName";
         await using var countCommand = new SqlCommand(countSql, connection);
         countCommand.Parameters.AddWithValue("@JobName", jobName);
-        
+
         var count = (int)await countCommand.ExecuteScalarAsync();
         count.ShouldBe(1);
 
@@ -257,7 +257,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         var topicSql = "SELECT Topic FROM dbo.Jobs WHERE JobName = @JobName";
         await using var topicCommand = new SqlCommand(topicSql, connection);
         topicCommand.Parameters.AddWithValue("@JobName", jobName);
-        
+
         var topic = (string)await topicCommand.ExecuteScalarAsync();
         topic.ShouldBe(updatedTopic);
     }
@@ -281,7 +281,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         var sql = "SELECT COUNT(*) FROM dbo.Jobs WHERE JobName = @JobName";
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.AddWithValue("@JobName", jobName);
-        
+
         var count = (int)await command.ExecuteScalarAsync();
         count.ShouldBe(0);
     }
@@ -307,7 +307,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
                    WHERE j.JobName = @JobName";
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.AddWithValue("@JobName", jobName);
-        
+
         var count = (int)await command.ExecuteScalarAsync();
         count.ShouldBeGreaterThan(0);
     }

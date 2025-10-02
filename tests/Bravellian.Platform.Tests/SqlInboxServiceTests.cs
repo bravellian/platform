@@ -30,11 +30,11 @@ public class SqlInboxServiceTests : SqlServerTestBase
         // Verify the message was recorded in the database
         await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
         await connection.OpenAsync();
-        
+
         var count = await connection.QuerySingleAsync<int>(
             "SELECT COUNT(*) FROM dbo.Inbox WHERE MessageId = @MessageId",
             new { MessageId = messageId });
-        
+
         Assert.Equal(1, count);
     }
 
@@ -74,7 +74,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
         // Assert
         await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
         await connection.OpenAsync();
-        
+
         var result = await connection.QuerySingleAsync<(DateTime? ProcessedUtc, string Status)>(
             "SELECT ProcessedUtc, Status FROM dbo.Inbox WHERE MessageId = @MessageId",
             new { MessageId = messageId });
@@ -100,7 +100,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
         // Assert
         await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
         await connection.OpenAsync();
-        
+
         var status = await connection.QuerySingleAsync<string>(
             "SELECT Status FROM dbo.Inbox WHERE MessageId = @MessageId",
             new { MessageId = messageId });
@@ -125,7 +125,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
         // Assert
         await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
         await connection.OpenAsync();
-        
+
         var status = await connection.QuerySingleAsync<string>(
             "SELECT Status FROM dbo.Inbox WHERE MessageId = @MessageId",
             new { MessageId = messageId });
@@ -156,18 +156,18 @@ public class SqlInboxServiceTests : SqlServerTestBase
         // Verify only one record was created in the database
         await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
         await connection.OpenAsync();
-        
+
         var count = await connection.QuerySingleAsync<int>(
             "SELECT COUNT(*) FROM dbo.Inbox WHERE MessageId = @MessageId",
             new { MessageId = messageId });
-        
+
         Assert.Equal(1, count);
 
         // Check that attempts were incremented appropriately
         var attempts = await connection.QuerySingleAsync<int>(
             "SELECT Attempts FROM dbo.Inbox WHERE MessageId = @MessageId",
             new { MessageId = messageId });
-        
+
         Assert.Equal(5, attempts);
     }
 
@@ -186,7 +186,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
         // Assert
         await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
         await connection.OpenAsync();
-        
+
         var storedHash = await connection.QuerySingleAsync<byte[]>(
             "SELECT Hash FROM dbo.Inbox WHERE MessageId = @MessageId",
             new { MessageId = messageId });
@@ -203,7 +203,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
         var inbox = CreateInboxService();
 
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => 
+        await Assert.ThrowsAsync<ArgumentException>(() =>
             inbox.AlreadyProcessedAsync(invalidMessageId!, "test-source"));
     }
 
@@ -216,7 +216,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
         var inbox = CreateInboxService();
 
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => 
+        await Assert.ThrowsAsync<ArgumentException>(() =>
             inbox.AlreadyProcessedAsync("test-message", invalidSource!));
     }
 
@@ -226,7 +226,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
         {
             ConnectionString = this.ConnectionString,
             SchemaName = "dbo",
-            TableName = "Inbox"
+            TableName = "Inbox",
         });
 
         var logger = new TestLogger<SqlInboxService>(this.TestOutputHelper);

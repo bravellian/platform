@@ -53,10 +53,12 @@ internal sealed class SqlFanoutPolicyRepository : IFanoutPolicyRepository
         await using var connection = new SqlConnection(this.connectionString);
         await connection.OpenAsync(ct).ConfigureAwait(false);
 
-        var sql = $@"
-            SELECT DefaultEverySeconds, JitterSeconds 
-            FROM [{this.options.SchemaName}].[{this.options.PolicyTableName}]
-            WHERE FanoutTopic = @FanoutTopic AND WorkKey = @WorkKey";
+        var sql = $"""
+
+                        SELECT DefaultEverySeconds, JitterSeconds 
+                        FROM [{this.options.SchemaName}].[{this.options.PolicyTableName}]
+                        WHERE FanoutTopic = @FanoutTopic AND WorkKey = @WorkKey
+            """;
 
         var result = await connection.QueryFirstOrDefaultAsync<(int DefaultEverySeconds, int JitterSeconds)>(
             sql, 
@@ -71,15 +73,17 @@ internal sealed class SqlFanoutPolicyRepository : IFanoutPolicyRepository
         await using var connection = new SqlConnection(this.connectionString);
         await connection.OpenAsync(ct).ConfigureAwait(false);
 
-        var sql = $@"
-            MERGE [{this.options.SchemaName}].[{this.options.PolicyTableName}] AS target
-            USING (VALUES (@FanoutTopic, @WorkKey, @DefaultEverySeconds, @JitterSeconds)) AS source (FanoutTopic, WorkKey, DefaultEverySeconds, JitterSeconds)
-            ON target.FanoutTopic = source.FanoutTopic AND target.WorkKey = source.WorkKey
-            WHEN MATCHED THEN
-                UPDATE SET DefaultEverySeconds = source.DefaultEverySeconds, JitterSeconds = source.JitterSeconds
-            WHEN NOT MATCHED THEN
-                INSERT (FanoutTopic, WorkKey, DefaultEverySeconds, JitterSeconds)
-                VALUES (source.FanoutTopic, source.WorkKey, source.DefaultEverySeconds, source.JitterSeconds);";
+        var sql = $"""
+
+                        MERGE [{this.options.SchemaName}].[{this.options.PolicyTableName}] AS target
+                        USING (VALUES (@FanoutTopic, @WorkKey, @DefaultEverySeconds, @JitterSeconds)) AS source (FanoutTopic, WorkKey, DefaultEverySeconds, JitterSeconds)
+                        ON target.FanoutTopic = source.FanoutTopic AND target.WorkKey = source.WorkKey
+                        WHEN MATCHED THEN
+                            UPDATE SET DefaultEverySeconds = source.DefaultEverySeconds, JitterSeconds = source.JitterSeconds
+                        WHEN NOT MATCHED THEN
+                            INSERT (FanoutTopic, WorkKey, DefaultEverySeconds, JitterSeconds)
+                            VALUES (source.FanoutTopic, source.WorkKey, source.DefaultEverySeconds, source.JitterSeconds);
+            """;
 
         await connection.ExecuteAsync(
             sql,

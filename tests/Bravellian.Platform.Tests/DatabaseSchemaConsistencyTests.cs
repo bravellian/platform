@@ -36,12 +36,12 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
         var expectedTables = new[]
         {
             "Outbox",
-            "OutboxState", 
+            "OutboxState",
             "Inbox",
             "Jobs",
             "JobRuns",
             "Timers",
-            "SchedulerState"
+            "SchedulerState",
         };
 
         // Act & Assert
@@ -79,7 +79,7 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
             // Work queue columns added by migration
             ["Status"] = "tinyint",
             ["LockedUntil"] = "datetime2",
-            ["OwnerToken"] = "uniqueidentifier"
+            ["OwnerToken"] = "uniqueidentifier",
         };
 
         foreach (var (columnName, expectedType) in expectedColumns)
@@ -101,12 +101,12 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
             ["Id"] = "uniqueidentifier",
             ["JobName"] = "nvarchar",
             ["CronSchedule"] = "nvarchar",
-            ["Topic"] = "nvarchar", 
+            ["Topic"] = "nvarchar",
             ["Payload"] = "nvarchar",
             ["IsEnabled"] = "bit",
             ["NextDueTime"] = "datetimeoffset",
             ["LastRunTime"] = "datetimeoffset",
-            ["LastRunStatus"] = "nvarchar"
+            ["LastRunStatus"] = "nvarchar",
         };
 
         foreach (var (columnName, expectedType) in expectedColumns)
@@ -136,7 +136,7 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
             ["RetryCount"] = "int",
             ["CreatedAt"] = "datetimeoffset",
             ["ProcessedAt"] = "datetimeoffset",
-            ["LastError"] = "nvarchar"
+            ["LastError"] = "nvarchar",
         };
 
         foreach (var (columnName, expectedType) in expectedColumns)
@@ -165,7 +165,7 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
             ["StartTime"] = "datetimeoffset",
             ["EndTime"] = "datetimeoffset",
             ["Output"] = "nvarchar",
-            ["LastError"] = "nvarchar"
+            ["LastError"] = "nvarchar",
         };
 
         foreach (var (columnName, expectedType) in expectedColumns)
@@ -191,7 +191,7 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
             ["LastSeenUtc"] = "datetime2",
             ["ProcessedUtc"] = "datetime2",
             ["Attempts"] = "int",
-            ["Status"] = "varchar"
+            ["Status"] = "varchar",
         };
 
         foreach (var (columnName, expectedType) in expectedColumns)
@@ -236,10 +236,10 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
 
         // Act - Create schema using DatabaseSchemaManager with custom schema name
         await DatabaseSchemaManager.EnsureSchedulerSchemaAsync(
-            customConnectionString, 
-            customSchema, 
-            "CustomJobs", 
-            "CustomJobRuns", 
+            customConnectionString,
+            customSchema,
+            "CustomJobs",
+            "CustomJobRuns",
             "CustomTimers");
 
         // Assert
@@ -277,7 +277,7 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
 
         var typeExists = await connection.QuerySingleOrDefaultAsync<int>(
             "SELECT COUNT(*) FROM sys.types WHERE name = 'GuidIdList' AND schema_id = SCHEMA_ID('dbo')");
-        
+
         typeExists.ShouldBeGreaterThan(0, "Work queue type dbo.GuidIdList should exist");
     }
 

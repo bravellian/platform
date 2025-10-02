@@ -44,51 +44,61 @@ internal class SqlInboxService : IInbox
         var tableName = $"[{this.options.SchemaName}].[{this.options.TableName}]";
 
         // MERGE statement for atomic upsert operation with concurrency safety
-        this.upsertSql = $@"
-            MERGE {tableName} AS target
-            USING (SELECT @MessageId AS MessageId, @Source AS Source, @Hash AS Hash) AS source
-                ON target.MessageId = source.MessageId
-            WHEN MATCHED THEN
-                UPDATE SET 
-                    LastSeenUtc = GETUTCDATE(),
-                    Attempts = Attempts + 1
-            WHEN NOT MATCHED THEN
-                INSERT (MessageId, Source, Hash, FirstSeenUtc, LastSeenUtc, Attempts)
-                VALUES (source.MessageId, source.Source, source.Hash, GETUTCDATE(), GETUTCDATE(), 1)
-            OUTPUT ISNULL(inserted.ProcessedUtc, deleted.ProcessedUtc) AS ProcessedUtc;";
+        this.upsertSql = $"""
 
-        this.markProcessedSql = $@"
-            UPDATE {tableName}
-            SET ProcessedUtc = GETUTCDATE(),
-                Status = 'Done',
-                LastSeenUtc = GETUTCDATE()
-            WHERE MessageId = @MessageId;";
+                        MERGE {tableName} AS target
+                        USING (SELECT @MessageId AS MessageId, @Source AS Source, @Hash AS Hash) AS source
+                            ON target.MessageId = source.MessageId
+                        WHEN MATCHED THEN
+                            UPDATE SET 
+                                LastSeenUtc = GETUTCDATE(),
+                                Attempts = Attempts + 1
+                        WHEN NOT MATCHED THEN
+                            INSERT (MessageId, Source, Hash, FirstSeenUtc, LastSeenUtc, Attempts)
+                            VALUES (source.MessageId, source.Source, source.Hash, GETUTCDATE(), GETUTCDATE(), 1)
+                        OUTPUT ISNULL(inserted.ProcessedUtc, deleted.ProcessedUtc) AS ProcessedUtc;
+            """;
 
-        this.markProcessingSql = $@"
-            UPDATE {tableName}
-            SET Status = 'Processing',
-                LastSeenUtc = GETUTCDATE()
-            WHERE MessageId = @MessageId;";
+        this.markProcessedSql = $"""
 
-        this.markDeadSql = $@"
-            UPDATE {tableName}
-            SET Status = 'Dead',
-                LastSeenUtc = GETUTCDATE()
-            WHERE MessageId = @MessageId;";
+                        UPDATE {tableName}
+                        SET ProcessedUtc = GETUTCDATE(),
+                            Status = 'Done',
+                            LastSeenUtc = GETUTCDATE()
+                        WHERE MessageId = @MessageId;
+            """;
 
-        this.enqueueSql = $@"
-            MERGE {tableName} AS target
-            USING (SELECT @MessageId AS MessageId, @Source AS Source, @Topic AS Topic, @Payload AS Payload, @Hash AS Hash) AS source
-                ON target.MessageId = source.MessageId
-            WHEN MATCHED THEN
-                UPDATE SET 
-                    LastSeenUtc = GETUTCDATE(),
-                    Attempts = Attempts + 1,
-                    Topic = COALESCE(source.Topic, target.Topic),
-                    Payload = COALESCE(source.Payload, target.Payload)
-            WHEN NOT MATCHED THEN
-                INSERT (MessageId, Source, Topic, Payload, Hash, FirstSeenUtc, LastSeenUtc, Attempts, Status)
-                VALUES (source.MessageId, source.Source, source.Topic, source.Payload, source.Hash, GETUTCDATE(), GETUTCDATE(), 1, 'Seen');";
+        this.markProcessingSql = $"""
+
+                        UPDATE {tableName}
+                        SET Status = 'Processing',
+                            LastSeenUtc = GETUTCDATE()
+                        WHERE MessageId = @MessageId;
+            """;
+
+        this.markDeadSql = $"""
+
+                        UPDATE {tableName}
+                        SET Status = 'Dead',
+                            LastSeenUtc = GETUTCDATE()
+                        WHERE MessageId = @MessageId;
+            """;
+
+        this.enqueueSql = $"""
+
+                        MERGE {tableName} AS target
+                        USING (SELECT @MessageId AS MessageId, @Source AS Source, @Topic AS Topic, @Payload AS Payload, @Hash AS Hash) AS source
+                            ON target.MessageId = source.MessageId
+                        WHEN MATCHED THEN
+                            UPDATE SET 
+                                LastSeenUtc = GETUTCDATE(),
+                                Attempts = Attempts + 1,
+                                Topic = COALESCE(source.Topic, target.Topic),
+                                Payload = COALESCE(source.Payload, target.Payload)
+                        WHEN NOT MATCHED THEN
+                            INSERT (MessageId, Source, Topic, Payload, Hash, FirstSeenUtc, LastSeenUtc, Attempts, Status)
+                            VALUES (source.MessageId, source.Source, source.Topic, source.Payload, source.Hash, GETUTCDATE(), GETUTCDATE(), 1, 'Seen');
+            """;
     }
 
     public async Task<bool> AlreadyProcessedAsync(

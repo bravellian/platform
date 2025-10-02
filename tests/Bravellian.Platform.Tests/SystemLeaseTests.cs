@@ -50,7 +50,7 @@ public class SystemLeaseTests : SqlServerTestBase
 
         // Ensure the distributed lock schema exists
         await DatabaseSchemaManager.EnsureDistributedLockSchemaAsync(
-            this.ConnectionString, 
+            this.ConnectionString,
             this.options.SchemaName).ConfigureAwait(false);
     }
 
@@ -193,8 +193,8 @@ public class SystemLeaseTests : SqlServerTestBase
 
         // Act
         var lease = await this.leaseFactory!.AcquireAsync(
-            resourceName, 
-            leaseDuration, 
+            resourceName,
+            leaseDuration,
             ownerToken: customOwnerToken);
 
         // Assert
@@ -215,13 +215,13 @@ public class SystemLeaseTests : SqlServerTestBase
 
         // Act
         var firstLease = await this.leaseFactory!.AcquireAsync(
-            resourceName, 
-            leaseDuration, 
+            resourceName,
+            leaseDuration,
             ownerToken: ownerToken);
-        
+
         var secondLease = await this.leaseFactory.AcquireAsync(
-            resourceName, 
-            leaseDuration, 
+            resourceName,
+            leaseDuration,
             ownerToken: ownerToken);
 
         // Assert
