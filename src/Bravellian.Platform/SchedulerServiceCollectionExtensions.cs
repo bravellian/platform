@@ -17,6 +17,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Bravellian.Platform;
 
@@ -85,12 +86,8 @@ public static class SchedulerServiceCollectionExtensions
             services.TryAddSingleton<DatabaseSchemaCompletion>();
             services.TryAddSingleton<IDatabaseSchemaCompletion>(provider => provider.GetRequiredService<DatabaseSchemaCompletion>());
             
-            // Only add hosted service if not already registered
-            if (!services.Any(s => s.ServiceType == typeof(IHostedService) && 
-                                   s.ImplementationType == typeof(DatabaseSchemaBackgroundService)))
-            {
-                services.AddHostedService<DatabaseSchemaBackgroundService>();
-            }
+            // Only add hosted service if not already registered using TryAddEnumerable
+            services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, DatabaseSchemaBackgroundService>());
         }
 
         return services;
@@ -142,12 +139,8 @@ public static class SchedulerServiceCollectionExtensions
             services.TryAddSingleton<DatabaseSchemaCompletion>();
             services.TryAddSingleton<IDatabaseSchemaCompletion>(provider => provider.GetRequiredService<DatabaseSchemaCompletion>());
             
-            // Only add hosted service if not already registered
-            if (!services.Any(s => s.ServiceType == typeof(IHostedService) && 
-                                   s.ImplementationType == typeof(DatabaseSchemaBackgroundService)))
-            {
-                services.AddHostedService<DatabaseSchemaBackgroundService>();
-            }
+            // Only add hosted service if not already registered using TryAddEnumerable
+            services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, DatabaseSchemaBackgroundService>());
         }
 
         return services;
@@ -242,12 +235,8 @@ public static class SchedulerServiceCollectionExtensions
             services.TryAddSingleton<DatabaseSchemaCompletion>();
             services.TryAddSingleton<IDatabaseSchemaCompletion>(provider => provider.GetRequiredService<DatabaseSchemaCompletion>());
             
-            // Only add hosted service if not already registered
-            if (!services.Any(s => s.ServiceType == typeof(IHostedService) && 
-                                   s.ImplementationType == typeof(DatabaseSchemaBackgroundService)))
-            {
-                services.AddHostedService<DatabaseSchemaBackgroundService>();
-            }
+            // Only add hosted service if not already registered using TryAddEnumerable
+            services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, DatabaseSchemaBackgroundService>());
         }
 
         return services;
@@ -308,6 +297,111 @@ public static class SchedulerServiceCollectionExtensions
         return services;
     }
 
+    /// <summary>
+    /// Adds SQL fanout functionality with SQL Server backend.
+    /// </summary>
+    /// <param name="services">The IServiceCollection to add services to.</param>
+    /// <param name="options">The configuration options.</param>
+    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
+    public static IServiceCollection AddSqlFanout(this IServiceCollection services, SqlFanoutOptions options)
+    {
+        // Add time abstractions
+        services.AddTimeAbstractions();
+
+        services.Configure<SqlFanoutOptions>(o =>
+        {
+            o.ConnectionString = options.ConnectionString;
+            o.SchemaName = options.SchemaName;
+            o.PolicyTableName = options.PolicyTableName;
+            o.CursorTableName = options.CursorTableName;
+            o.EnableSchemaDeployment = options.EnableSchemaDeployment;
+        });
+
+        services.AddSingleton<IFanoutPolicyRepository, SqlFanoutPolicyRepository>();
+        services.AddSingleton<IFanoutCursorRepository, SqlFanoutCursorRepository>();
+        services.AddSingleton<IFanoutDispatcher, FanoutDispatcher>();
+
+        // Register the fanout job handler
+        services.AddTransient<IOutboxHandler, FanoutJobHandler>();
+
+        // Register schema deployment service if enabled (only register once per service collection)
+        if (options.EnableSchemaDeployment)
+        {
+            services.TryAddSingleton<DatabaseSchemaCompletion>();
+            services.TryAddSingleton<IDatabaseSchemaCompletion>(provider => provider.GetRequiredService<DatabaseSchemaCompletion>());
+            
+            // Only add hosted service if not already registered using TryAddEnumerable
+            services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, DatabaseSchemaBackgroundService>());
+        }
+
+        return services;
+    }
+
+    /// <summary>
+    /// Adds SQL fanout functionality with custom schema and table names.
+    /// </summary>
+    /// <param name="services">The IServiceCollection to add services to.</param>
+    /// <param name="connectionString">The database connection string.</param>
+    /// <param name="schemaName">The database schema name (default: "dbo").</param>
+    /// <param name="policyTableName">The policy table name (default: "FanoutPolicy").</param>
+    /// <param name="cursorTableName">The cursor table name (default: "FanoutCursor").</param>
+    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
+    public static IServiceCollection AddSqlFanout(
+        this IServiceCollection services, 
+        string connectionString, 
+        string schemaName = "dbo", 
+        string policyTableName = "FanoutPolicy", 
+        string cursorTableName = "FanoutCursor")
+    {
+        return services.AddSqlFanout(new SqlFanoutOptions
+        {
+            ConnectionString = connectionString,
+            SchemaName = schemaName,
+            PolicyTableName = policyTableName,
+            CursorTableName = cursorTableName,
+        });
+    }
+
+    /// <summary>
+    /// Registers a fanout topic with its planner implementation and scheduling options.
+    /// Creates a recurring job that coordinates fanout processing for the topic.
+    /// </summary>
+    /// <typeparam name="TPlanner">The fanout planner implementation type.</typeparam>
+    /// <param name="services">The IServiceCollection to add services to.</param>
+    /// <param name="options">The topic configuration and scheduling options.</param>
+    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
+    public static IServiceCollection AddFanoutTopic<TPlanner>(
+        this IServiceCollection services,
+        FanoutTopicOptions options)
+        where TPlanner : class, IFanoutPlanner
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentException.ThrowIfNullOrWhiteSpace(options.FanoutTopic);
+
+        // Register the planner for this topic (scoped to allow for stateful planners)
+        services.AddScoped<TPlanner>();
+        
+        // Register a keyed scoped service for this specific topic/workkey combination
+        var key = options.WorkKey is null ? options.FanoutTopic : $"{options.FanoutTopic}:{options.WorkKey}";
+        services.AddKeyedScoped<IFanoutPlanner, TPlanner>(key);
+        
+        // Register the coordinator for this topic
+        services.AddKeyedScoped<IFanoutCoordinator>(key, (provider, key) =>
+        {
+            var planner = provider.GetRequiredKeyedService<IFanoutPlanner>(key);
+            var dispatcher = provider.GetRequiredService<IFanoutDispatcher>();
+            var leaseFactory = provider.GetRequiredService<ISystemLeaseFactory>();
+            var logger = provider.GetRequiredService<ILogger<FanoutCoordinator>>();
+            
+            return new FanoutCoordinator(planner, dispatcher, leaseFactory, logger);
+        });
+
+        // Register the recurring job with the scheduler using a hosted service
+        services.AddSingleton<IHostedService>(provider => new FanoutJobRegistrationService(provider, options));
+        
+        return services;
+    }
+
     /// Adds SQL inbox functionality for at-most-once message processing.
     /// </summary>
     /// <param name="services">The IServiceCollection to add services to.</param>
@@ -331,12 +425,8 @@ public static class SchedulerServiceCollectionExtensions
             services.TryAddSingleton<DatabaseSchemaCompletion>();
             services.TryAddSingleton<IDatabaseSchemaCompletion>(provider => provider.GetRequiredService<DatabaseSchemaCompletion>());
             
-            // Only add hosted service if not already registered
-            if (!services.Any(s => s.ServiceType == typeof(IHostedService) && 
-                                   s.ImplementationType == typeof(DatabaseSchemaBackgroundService)))
-            {
-                services.AddHostedService<DatabaseSchemaBackgroundService>();
-            }
+            // Only add hosted service if not already registered using TryAddEnumerable
+            services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, DatabaseSchemaBackgroundService>());
         }
 
         return services;

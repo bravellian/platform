@@ -176,6 +176,36 @@ internal static class DatabaseSchemaManager
     }
 
     /// <summary>
+    /// Ensures that the required database schema exists for the fanout functionality.
+    /// </summary>
+    /// <param name="connectionString">The database connection string.</param>
+    /// <param name="schemaName">The schema name (default: "dbo").</param>
+    /// <param name="policyTableName">The policy table name (default: "FanoutPolicy").</param>
+    /// <param name="cursorTableName">The cursor table name (default: "FanoutCursor").</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public static async Task EnsureFanoutSchemaAsync(string connectionString, string schemaName = "dbo", string policyTableName = "FanoutPolicy", string cursorTableName = "FanoutCursor")
+    {
+        using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync().ConfigureAwait(false);
+
+        // Create FanoutPolicy table first (no dependencies)
+        var policyExists = await TableExistsAsync(connection, schemaName, policyTableName).ConfigureAwait(false);
+        if (!policyExists)
+        {
+            var createScript = GetFanoutPolicyCreateScript(schemaName, policyTableName);
+            await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
+        }
+
+        // Create FanoutCursor table
+        var cursorExists = await TableExistsAsync(connection, schemaName, cursorTableName).ConfigureAwait(false);
+        if (!cursorExists)
+        {
+            var createScript = GetFanoutCursorCreateScript(schemaName, cursorTableName);
+            await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
     /// Ensures that a schema exists in the database.
     /// </summary>
     /// <param name="connection">The database connection.</param>
@@ -924,5 +954,67 @@ IF COL_LENGTH('dbo.Outbox', 'LockedUntil') IS NULL
 
 IF COL_LENGTH('dbo.Outbox', 'OwnerToken') IS NULL
     ALTER TABLE dbo.Outbox ADD OwnerToken UNIQUEIDENTIFIER NULL;";
+    }
+
+    /// <summary>
+    /// Gets the SQL script to create the FanoutPolicy table.
+    /// </summary>
+    /// <param name="schemaName">The schema name.</param>
+    /// <param name="tableName">The table name.</param>
+    /// <returns>The SQL create script.</returns>
+    private static string GetFanoutPolicyCreateScript(string schemaName, string tableName)
+    {
+        return $@"
+CREATE TABLE [{schemaName}].[{tableName}] (
+    -- Primary key columns
+    FanoutTopic NVARCHAR(100) NOT NULL,
+    WorkKey NVARCHAR(100) NOT NULL,
+    
+    -- Policy settings
+    DefaultEverySeconds INT NOT NULL,
+    JitterSeconds INT NOT NULL DEFAULT 60,
+    
+    -- Auditing
+    CreatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(),
+    UpdatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(),
+    
+    CONSTRAINT PK_{tableName} PRIMARY KEY (FanoutTopic, WorkKey)
+);
+
+-- Index for efficient lookups by topic (all work keys for a topic)
+CREATE INDEX IX_{tableName}_FanoutTopic ON [{schemaName}].[{tableName}](FanoutTopic);";
+    }
+
+    /// <summary>
+    /// Gets the SQL script to create the FanoutCursor table.
+    /// </summary>
+    /// <param name="schemaName">The schema name.</param>
+    /// <param name="tableName">The table name.</param>
+    /// <returns>The SQL create script.</returns>
+    private static string GetFanoutCursorCreateScript(string schemaName, string tableName)
+    {
+        return $@"
+CREATE TABLE [{schemaName}].[{tableName}] (
+    -- Primary key columns
+    FanoutTopic NVARCHAR(100) NOT NULL,
+    WorkKey NVARCHAR(100) NOT NULL,
+    ShardKey NVARCHAR(256) NOT NULL,
+    
+    -- Cursor data
+    LastCompletedAt DATETIMEOFFSET NULL,
+    
+    -- Auditing
+    CreatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(),
+    UpdatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(),
+    
+    CONSTRAINT PK_{tableName} PRIMARY KEY (FanoutTopic, WorkKey, ShardKey)
+);
+
+-- Index for efficient queries by topic and work key (all shards for a topic/work combination)
+CREATE INDEX IX_{tableName}_TopicWork ON [{schemaName}].[{tableName}](FanoutTopic, WorkKey);
+
+-- Index for finding stale cursors that need processing
+CREATE INDEX IX_{tableName}_LastCompleted ON [{schemaName}].[{tableName}](LastCompletedAt)
+    WHERE LastCompletedAt IS NOT NULL;";
     }
 }
