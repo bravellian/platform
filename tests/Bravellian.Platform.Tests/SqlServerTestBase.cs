@@ -63,6 +63,7 @@ public abstract class SqlServerTestBase : IAsyncLifetime
         // Use the production DatabaseSchemaManager to ensure test and production schemas are identical
         await DatabaseSchemaManager.EnsureOutboxSchemaAsync(this.connectionString!);
         await DatabaseSchemaManager.EnsureInboxSchemaAsync(this.connectionString!);
+        await DatabaseSchemaManager.EnsureInboxWorkQueueSchemaAsync(this.connectionString!);
         await DatabaseSchemaManager.EnsureSchedulerSchemaAsync(this.connectionString!);
         await DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(this.connectionString!);
 
