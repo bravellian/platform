@@ -259,7 +259,7 @@ CREATE TABLE [{schemaName}].[{tableName}] (
 
     -- For Idempotency & Tracing
     MessageId UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(), -- A stable ID for the message consumer
-    CorrelationId UNIQUEIDENTIFIER NULL -- To trace a message through multiple systems
+    CorrelationId NVARCHAR(255) NULL -- To trace a message through multiple systems
 );
 
 -- An index to efficiently query for unprocessed messages, now including the next attempt time.
