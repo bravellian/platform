@@ -137,5 +137,22 @@ namespace Bravellian.Platform.Tests
             // The DatabaseSchemaCompletion should be registered directly
             Assert.Equal(typeof(DatabaseSchemaCompletion), databaseSchemaCompletionDescriptor.ImplementationType);
         }
+
+        [Fact]
+        public void DatabaseSchemaCompletion_CoordinatesStateCorrectly()
+        {
+            // Arrange
+            var completion = new DatabaseSchemaCompletion();
+            
+            // Act & Assert - Initial state should not be completed
+            Assert.False(completion.SchemaDeploymentCompleted.IsCompleted);
+            
+            // Act - Signal completion
+            completion.SetCompleted();
+            
+            // Assert - Should now be completed
+            Assert.True(completion.SchemaDeploymentCompleted.IsCompleted);
+            Assert.Equal(TaskStatus.RanToCompletion, completion.SchemaDeploymentCompleted.Status);
+        }
     }
 }
