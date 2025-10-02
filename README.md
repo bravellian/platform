@@ -1181,7 +1181,61 @@ public class BulkTimerService
 
 ## 5. Job Scheduler (Recurring Jobs)
 
-Schedule recurring jobs using cron expressions for repeated execution.
+Schedules recurring jobs using cron expressions with work queue processing for reliable execution.
+
+### Architecture
+
+**Job Definitions**: Stored in `dbo.Jobs` table with cron schedules
+**Job Runs**: Individual execution instances stored in `dbo.JobRuns` table  
+**Scheduling**: Background service creates `JobRuns` based on cron schedules
+**Processing**: Workers claim and execute job runs using work queue pattern
+
+### Database Schema
+
+```sql
+-- Job definitions with cron schedules
+CREATE TABLE dbo.Jobs (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    JobName NVARCHAR(100) NOT NULL,
+    CronSchedule NVARCHAR(100) NOT NULL,         -- e.g., "0 */5 * * * *"
+    Topic NVARCHAR(255) NOT NULL,
+    Payload NVARCHAR(MAX) NULL,
+    IsEnabled BIT NOT NULL DEFAULT 1,
+    
+    -- Scheduling state
+    NextDueTime DATETIMEOFFSET NULL,
+    LastRunTime DATETIMEOFFSET NULL,
+    LastRunStatus NVARCHAR(20) NULL
+);
+
+-- Individual job execution instances
+CREATE TABLE dbo.JobRuns (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    JobId UNIQUEIDENTIFIER NOT NULL REFERENCES dbo.Jobs(Id),
+    ScheduledTime DATETIMEOFFSET NOT NULL,
+    
+    -- Work queue state management
+    StatusCode TINYINT NOT NULL DEFAULT(0),      -- 0=Ready, 1=InProgress, 2=Done, 3=Failed
+    LockedUntil DATETIME2(3) NULL,               -- UTC lease expiration time
+    OwnerToken UNIQUEIDENTIFIER NULL,            -- Process ownership identifier
+    
+    -- Legacy fields for compatibility
+    Status NVARCHAR(20) NOT NULL DEFAULT 'Pending',
+    ClaimedBy NVARCHAR(100) NULL,
+    ClaimedAt DATETIMEOFFSET NULL,
+    RetryCount INT NOT NULL DEFAULT 0,
+    
+    -- Execution tracking
+    StartTime DATETIMEOFFSET NULL,
+    EndTime DATETIMEOFFSET NULL,
+    Output NVARCHAR(MAX) NULL,
+    LastError NVARCHAR(MAX) NULL
+);
+
+-- Efficient work queue index
+CREATE INDEX IX_JobRuns_WorkQueue ON dbo.JobRuns(StatusCode, ScheduledTime) 
+    INCLUDE(Id, OwnerToken) WHERE StatusCode = 0;
+```
 
 ### Basic Usage
 
@@ -1190,14 +1244,9 @@ public class MaintenanceService
 {
     private readonly ISchedulerClient _scheduler;
 
-    public MaintenanceService(ISchedulerClient scheduler)
-    {
-        _scheduler = scheduler;
-    }
-
     public async Task SetupRecurringJobsAsync()
     {
-        // Run daily cleanup at 2 AM
+        // Daily cleanup at 2 AM UTC
         await _scheduler.CreateOrUpdateJobAsync(
             jobName: "DailyCleanup",
             topic: "RunCleanup",
@@ -1205,10 +1254,11 @@ public class MaintenanceService
             payload: JsonSerializer.Serialize(new CleanupConfig 
             { 
                 RetentionDays = 90,
-                IncludeArchives = true 
+                IncludeArchives = true,
+                Tables = new[] { "Logs", "TempData", "Sessions" }
             }));
 
-        // Generate reports every Monday at 9 AM
+        // Weekly reports every Monday at 9 AM UTC
         await _scheduler.CreateOrUpdateJobAsync(
             jobName: "WeeklyReport",
             topic: "GenerateReport",
@@ -1216,19 +1266,37 @@ public class MaintenanceService
             payload: JsonSerializer.Serialize(new ReportConfig 
             { 
                 ReportType = "Weekly",
-                Recipients = new[] { "admin@company.com" }
+                Recipients = new[] { "admin@company.com", "reports@company.com" },
+                IncludeTrends = true
+            }));
+
+        // Health checks every 5 minutes
+        await _scheduler.CreateOrUpdateJobAsync(
+            jobName: "HealthCheck",
+            topic: "CheckSystemHealth",
+            cronSchedule: "0 */5 * * * *", // Every 5 minutes
+            payload: JsonSerializer.Serialize(new HealthCheckConfig
+            {
+                CheckDatabases = true,
+                CheckExternalServices = true,
+                TimeoutSeconds = 30
             }));
     }
 
-    public async Task DeleteJobAsync()
+    public async Task ManageJobsAsync()
     {
-        // Delete a job and all its pending runs
-        await _scheduler.DeleteJobAsync("DailyCleanup");
-    }
+        // Disable a job temporarily
+        await _scheduler.CreateOrUpdateJobAsync(
+            jobName: "WeeklyReport",
+            topic: "GenerateReport", 
+            cronSchedule: "0 0 9 * * 1",
+            payload: "...");
+        // Note: To disable, you'd need to delete and recreate or use database updates
 
-    public async Task TriggerJobNowAsync()
-    {
-        // Trigger a job immediately, outside its normal schedule
+        // Delete a job and all its pending runs
+        await _scheduler.DeleteJobAsync("HealthCheck");
+
+        // Trigger a job immediately (outside normal schedule)
         await _scheduler.TriggerJobAsync("DailyCleanup");
     }
 }
@@ -1237,378 +1305,1790 @@ public class MaintenanceService
 ### Cron Expression Examples
 
 ```csharp
-// Every 5 minutes
-"0 */5 * * * *"
+// Common cron patterns (using 6-field format: second minute hour day month dayofweek)
 
-// Every hour at minute 0
-"0 0 * * * *"
-
-// Every day at 2:30 AM
-"0 30 2 * * *"
-
-// Every Monday at 9 AM
-"0 0 9 * * 1"
-
-// Every first day of the month at midnight
-"0 0 0 1 * *"
-
-// Every weekday at 6 PM
-"0 0 18 * * 1-5"
+"0 */5 * * * *"      // Every 5 minutes
+"0 0 * * * *"        // Every hour at minute 0
+"0 30 2 * * *"       // Every day at 2:30 AM
+"0 0 9 * * 1"        // Every Monday at 9 AM
+"0 0 0 1 * *"        // Every first day of the month at midnight
+"0 0 18 * * 1-5"     // Every weekday at 6 PM
+"0 15 10,14 * * *"   // At 10:15 AM and 2:15 PM every day
+"0 0 8-17/2 * * *"   // Every 2 hours from 8 AM to 5 PM
+"0 0 0 * * 6,0"      // Every Saturday and Sunday at midnight
 ```
 
-### Processing Job Events
-
-Similar to timers, job executions create outbox messages:
+### Job Run Processing with Work Queue
 
 ```csharp
-public class CleanupHandler
+public class JobRunProcessingService : BackgroundService
 {
-    public async Task HandleCleanupAsync(string payload)
+    private readonly ISchedulerClient _scheduler;
+    private readonly IOutbox _outbox;
+    private readonly Guid _ownerToken = Guid.NewGuid();
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var config = JsonSerializer.Deserialize<CleanupConfig>(payload);
-        
-        // Perform cleanup operations
-        await DeleteOldRecordsAsync(config.RetentionDays);
-        
-        if (config.IncludeArchives)
+        while (!stoppingToken.IsCancellationRequested)
         {
-            await CleanupArchivesAsync();
+            try
+            {
+                // Claim due job runs (60-second lease, batch of 10)
+                var claimedJobRunIds = await _scheduler.ClaimJobRunsAsync(_ownerToken, 60, 10, stoppingToken);
+                
+                if (claimedJobRunIds.Count == 0)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
+                    continue;
+                }
+
+                var processedIds = new List<Guid>();
+                var failedIds = new List<Guid>();
+
+                foreach (var jobRunId in claimedJobRunIds)
+                {
+                    try
+                    {
+                        // Get job run details with job definition
+                        var jobRun = await GetJobRunWithJobAsync(jobRunId);
+                        
+                        // Record start time
+                        await UpdateJobRunStartTimeAsync(jobRunId);
+                        
+                        // Dispatch job execution through outbox
+                        await _outbox.EnqueueAsync(
+                            topic: jobRun.Job.Topic,
+                            payload: jobRun.Job.Payload ?? "{}",
+                            correlationId: $"job-run-{jobRunId}");
+                            
+                        // Record completion
+                        await UpdateJobRunCompletionAsync(jobRunId, "Succeeded", null);
+                            
+                        processedIds.Add(jobRunId);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to process job run {JobRunId}", jobRunId);
+                        
+                        // Record error
+                        await UpdateJobRunCompletionAsync(jobRunId, "Failed", ex.Message);
+                        
+                        failedIds.Add(jobRunId);
+                    }
+                }
+
+                // Acknowledge results
+                if (processedIds.Count > 0)
+                    await _scheduler.AckJobRunsAsync(_ownerToken, processedIds, stoppingToken);
+
+                if (failedIds.Count > 0)
+                    await _scheduler.AbandonJobRunsAsync(_ownerToken, failedIds, stoppingToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in job run processing service");
+                await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
+            }
         }
     }
 }
 ```
 
-### Key Features
+### Job Scheduling Service
 
-- **Cron-based**: Flexible scheduling using standard cron expressions
-- **Persistent**: Job definitions survive application restarts
-- **Reliable**: Uses distributed locking for consistent execution
-- **Manageable**: Create, update, delete, and enable/disable jobs
-- **Triggerable**: Run jobs immediately outside their normal schedule
-- **Auditable**: Track execution history and results
+The platform includes a background service that creates job runs based on cron schedules:
 
-### Job Management
+```csharp
+public class JobSchedulingService : BackgroundService
+{
+    private readonly IServiceProvider _services;
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                using var scope = _services.CreateScope();
+                var schedulerClient = scope.ServiceProvider.GetRequiredService<ISchedulerClient>();
+                
+                // Get enabled jobs that need scheduling
+                var jobsToSchedule = await GetJobsNeedingSchedulingAsync();
+                
+                foreach (var job in jobsToSchedule)
+                {
+                    try
+                    {
+                        // Calculate next run time based on cron schedule
+                        var nextRunTime = CalculateNextRunTime(job.CronSchedule, job.LastRunTime);
+                        
+                        if (nextRunTime <= DateTime.UtcNow)
+                        {
+                            // Create job run for execution
+                            await CreateJobRunAsync(job.Id, nextRunTime);
+                            
+                            // Update job's last run time and next due time
+                            await UpdateJobSchedulingInfoAsync(job.Id, nextRunTime, 
+                                CalculateNextRunTime(job.CronSchedule, nextRunTime));
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to schedule job {JobName}", job.JobName);
+                    }
+                }
+                
+                // Run every 30 seconds to catch due jobs
+                await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in job scheduling service");
+                await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+            }
+        }
+    }
+}
+```
+
+### Job Run Claim Logic
+
+The `JobRuns_Claim` stored procedure implements time-based claiming:
+
+```sql
+CREATE OR ALTER PROCEDURE dbo.JobRuns_Claim
+    @OwnerToken UNIQUEIDENTIFIER,
+    @LeaseSeconds INT,
+    @BatchSize INT = 10
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @now DATETIME2(3) = SYSUTCDATETIME();
+    DECLARE @until DATETIME2(3) = DATEADD(SECOND, @LeaseSeconds, @now);
+
+    -- Only claim job runs that are due (ScheduledTime <= now)
+    WITH cte AS (
+        SELECT TOP (@BatchSize) Id
+        FROM dbo.JobRuns WITH (READPAST, UPDLOCK, ROWLOCK)
+        WHERE StatusCode = 0 /* Ready */
+          AND ScheduledTime <= @now /* Due for execution */
+          AND (LockedUntil IS NULL OR LockedUntil <= @now)
+        ORDER BY ScheduledTime, Id
+    )
+    UPDATE jr SET 
+        StatusCode = 1 /* InProgress */, 
+        OwnerToken = @OwnerToken, 
+        LockedUntil = @until
+    OUTPUT inserted.Id
+    FROM dbo.JobRuns jr
+    JOIN cte ON cte.Id = jr.Id;
+END
+```
+
+### Job Event Handling
+
+Job executions are processed through outbox message handlers:
+
+```csharp
+public class CleanupJobHandler : IOutboxHandler
+{
+    private readonly IDataCleanupService _cleanupService;
+    private readonly ILogger<CleanupJobHandler> _logger;
+
+    public string Topic => "RunCleanup";
+
+    public async Task HandleAsync(OutboxMessage message, CancellationToken cancellationToken)
+    {
+        var config = JsonSerializer.Deserialize<CleanupConfig>(message.Payload);
+        
+        _logger.LogInformation("Starting cleanup job with retention {Days} days", config.RetentionDays);
+        
+        var startTime = DateTime.UtcNow;
+        var results = new CleanupResults();
+
+        try
+        {
+            // Perform cleanup operations
+            results.DeletedLogs = await _cleanupService.CleanupLogsAsync(
+                config.RetentionDays, cancellationToken);
+                
+            results.DeletedTempData = await _cleanupService.CleanupTempDataAsync(
+                config.RetentionDays, cancellationToken);
+                
+            if (config.IncludeArchives)
+            {
+                results.ArchivedFiles = await _cleanupService.ArchiveOldFilesAsync(
+                    config.RetentionDays, cancellationToken);
+            }
+            
+            var duration = DateTime.UtcNow - startTime;
+            _logger.LogInformation("Cleanup completed in {Duration}. Results: {@Results}", 
+                duration, results);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Cleanup job failed after {Duration}", 
+                DateTime.UtcNow - startTime);
+            throw;
+        }
+    }
+}
+
+public class ReportGenerationHandler : IOutboxHandler
+{
+    private readonly IReportService _reportService;
+    private readonly IEmailService _emailService;
+
+    public string Topic => "GenerateReport";
+
+    public async Task HandleAsync(OutboxMessage message, CancellationToken cancellationToken)
+    {
+        var config = JsonSerializer.Deserialize<ReportConfig>(message.Payload);
+        
+        // Generate report
+        var report = await _reportService.GenerateReportAsync(config.ReportType, 
+            includeTrends: config.IncludeTrends, cancellationToken);
+        
+        // Send to recipients
+        foreach (var recipient in config.Recipients)
+        {
+            await _emailService.SendReportAsync(recipient, report, cancellationToken);
+        }
+        
+        _logger.LogInformation("Generated and sent {ReportType} report to {Count} recipients", 
+            config.ReportType, config.Recipients.Length);
+    }
+}
+```
+
+### Advanced Job Management
 
 ```csharp
 public class JobManagementService
 {
     private readonly ISchedulerClient _scheduler;
 
-    public JobManagementService(ISchedulerClient scheduler)
+    public async Task CreateDynamicBackupJobAsync(string databaseName, TimeZoneInfo timeZone)
     {
-        _scheduler = scheduler;
-    }
-
-    public async Task CreateJobAsync()
-    {
-        // Create or update a job (idempotent operation)
+        // Create job with timezone-adjusted schedule
+        var localTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, timeZone);
+        var backupHour = 3; // 3 AM local time
+        
+        // Convert to UTC cron expression
+        var utcHour = TimeZoneInfo.ConvertTimeToUtc(
+            localTime.Date.AddHours(backupHour), timeZone).Hour;
+            
         await _scheduler.CreateOrUpdateJobAsync(
-            jobName: "DataBackup",
+            jobName: $"Backup_{databaseName}",
             topic: "BackupDatabase",
-            cronSchedule: "0 0 3 * * *", // Daily at 3 AM
+            cronSchedule: $"0 0 {utcHour} * * *", // Daily at calculated UTC hour
             payload: JsonSerializer.Serialize(new BackupConfig 
             { 
-                DatabaseName = "Production",
-                RetentionDays = 30 
+                DatabaseName = databaseName,
+                RetentionDays = 30,
+                CompressionLevel = "High",
+                NotifyOnCompletion = true
             }));
     }
 
-    public async Task UpdateJobScheduleAsync()
+    public async Task CreateConditionalJobAsync()
     {
-        // Update existing job (changes schedule and payload)
+        // Job that only runs on business days
         await _scheduler.CreateOrUpdateJobAsync(
-            jobName: "DataBackup",
-            topic: "BackupDatabase", 
-            cronSchedule: "0 0 2 * * *", // Change to 2 AM
-            payload: JsonSerializer.Serialize(new BackupConfig 
-            { 
-                DatabaseName = "Production",
-                RetentionDays = 45 // Longer retention
+            jobName: "BusinessDayReport",
+            topic: "GenerateBusinessReport",
+            cronSchedule: "0 0 8 * * 1-5", // Monday through Friday at 8 AM
+            payload: JsonSerializer.Serialize(new BusinessReportConfig
+            {
+                ExcludeHolidays = true,
+                IncludeWeekendData = false
             }));
     }
-
-    public async Task DeleteJobAsync()
-    {
-        // Delete job and all pending runs
-        await _scheduler.DeleteJobAsync("DataBackup");
-    }
-
-    public async Task TriggerJobNowAsync()
-    {
-        // Run job immediately (doesn't affect normal schedule)
-        await _scheduler.TriggerJobAsync("DataBackup");
-    }
-}
-
 ## Configuration
 
-### Full Configuration Example
+### Complete Configuration Example
 
 ```csharp
 // appsettings.json
 {
   "SqlScheduler": {
     "ConnectionString": "Server=localhost;Database=MyApp;Trusted_Connection=true;",
+    "SchemaName": "dbo",
+    "EnableSchemaDeployment": true,
     "MaxPollingInterval": "00:00:30",
     "EnableBackgroundWorkers": true
+  },
+  "Logging": {
+    "LogLevel": {
+      "Bravellian.Platform": "Information"
+    }
   }
 }
 
-// Program.cs
+// Program.cs - Comprehensive Setup
 var builder = WebApplication.CreateBuilder(args);
 
-// Option 1: Use configuration binding
-builder.Services.AddSqlScheduler(builder.Configuration);
+// Option 1: Complete platform with configuration binding
+builder.Services.AddSqlScheduler(builder.Configuration.GetSection("SqlScheduler"));
 
-// Option 2: Configure with options
+// Option 2: Explicit configuration with all options
 builder.Services.AddSqlScheduler(new SqlSchedulerOptions
 {
-    ConnectionString = builder.Configuration.GetConnectionString("Default"),
+    ConnectionString = builder.Configuration.GetConnectionString("Default")!,
+    SchemaName = "dbo",
+    EnableSchemaDeployment = true,      // Auto-create tables and procedures
     MaxPollingInterval = TimeSpan.FromSeconds(30),
-    EnableBackgroundWorkers = true
+    EnableBackgroundWorkers = true      // Start polling services
 });
 
-// Option 3: Individual components
-builder.Services.AddSqlDistributedLock(new SqlDistributedLockOptions
-{
-    ConnectionString = builder.Configuration.GetConnectionString("Default")
-});
-
+// Option 3: Individual components for fine-grained control
 builder.Services.AddSqlOutbox(new SqlOutboxOptions
 {
-    ConnectionString = builder.Configuration.GetConnectionString("Default")
+    ConnectionString = builder.Configuration.GetConnectionString("Default")!,
+    SchemaName = "dbo",
+    TableName = "Outbox",
+    EnableSchemaDeployment = true
 });
 
-// Add health checks
+builder.Services.AddSqlInbox(new SqlInboxOptions
+{
+    ConnectionString = builder.Configuration.GetConnectionString("Default")!,
+    SchemaName = "dbo", 
+    TableName = "Inbox",
+    EnableSchemaDeployment = true
+});
+
+builder.Services.AddSystemLeases(new SystemLeaseOptions
+{
+    ConnectionString = builder.Configuration.GetConnectionString("Default")!,
+    SchemaName = "dbo"
+});
+
+// Register custom message handlers
+builder.Services.AddTransient<IOutboxHandler, OrderEventHandler>();
+builder.Services.AddTransient<IOutboxHandler, NotificationHandler>();
+builder.Services.AddTransient<IOutboxHandler, CleanupJobHandler>();
+
+// Add health checks with custom tags
 builder.Services.AddHealthChecks()
-    .AddSqlSchedulerHealthCheck();
+    .AddSqlSchedulerHealthCheck("scheduler", tags: new[] { "database", "scheduler" })
+    .AddSqlServer(builder.Configuration.GetConnectionString("Default")!, 
+        name: "database", tags: new[] { "database" });
 
 var app = builder.Build();
 
-// Configure health check endpoint
+// Configure health check endpoints
 app.MapHealthChecks("/health");
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("database")
+});
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("scheduler")
+});
+
+app.Run();
 ```
 
-### Configuration Options
+### Configuration Options Reference
 
 #### SqlSchedulerOptions
-
-- **ConnectionString**: SQL Server connection string (required)
-- **MaxPollingInterval**: Maximum time between polling cycles (default: 30 seconds)
-- **EnableBackgroundWorkers**: Whether to start background processing services (default: true)
-
-#### SqlDistributedLockOptions
-
-- **ConnectionString**: SQL Server connection string (required)
+```csharp
+public class SqlSchedulerOptions
+{
+    public string ConnectionString { get; set; } = string.Empty;
+    public string SchemaName { get; set; } = "dbo";
+    public bool EnableSchemaDeployment { get; set; } = false;
+    public TimeSpan MaxPollingInterval { get; set; } = TimeSpan.FromSeconds(30);
+    public bool EnableBackgroundWorkers { get; set; } = true;
+}
+```
 
 #### SqlOutboxOptions
+```csharp
+public class SqlOutboxOptions
+{
+    public string ConnectionString { get; set; } = string.Empty;
+    public string SchemaName { get; set; } = "dbo";
+    public string TableName { get; set; } = "Outbox";
+    public bool EnableSchemaDeployment { get; set; } = false;
+}
+```
 
-- **ConnectionString**: SQL Server connection string (required)
+#### SqlInboxOptions
+```csharp
+public class SqlInboxOptions
+{
+    public string ConnectionString { get; set; } = string.Empty;
+    public string SchemaName { get; set; } = "dbo";
+    public string TableName { get; set; } = "Inbox";
+    public bool EnableSchemaDeployment { get; set; } = false;
+}
+```
 
-## Database Schema
+#### SystemLeaseOptions
+```csharp
+public class SystemLeaseOptions
+{
+    public string ConnectionString { get; set; } = string.Empty;
+    public string SchemaName { get; set; } = "dbo";
+    public bool EnableSchemaDeployment { get; set; } = false;
+}
+```
 
-The platform requires four tables in your SQL Server database:
+### Environment-Specific Configuration
 
-### Outbox Table
+```csharp
+// Development environment
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddSqlScheduler(new SqlSchedulerOptions
+    {
+        ConnectionString = "Server=(localdb)\\MSSQLLocalDB;Database=DevApp;Integrated Security=true;",
+        EnableSchemaDeployment = true,          // Auto-create in dev
+        MaxPollingInterval = TimeSpan.FromSeconds(5),  // Fast polling for dev
+        EnableBackgroundWorkers = true
+    });
+}
+
+// Production environment  
+if (builder.Environment.IsProduction())
+{
+    builder.Services.AddSqlScheduler(new SqlSchedulerOptions
+    {
+        ConnectionString = builder.Configuration.GetConnectionString("Production")!,
+        EnableSchemaDeployment = false,         // Manual schema management
+        MaxPollingInterval = TimeSpan.FromSeconds(30), // Conservative polling
+        EnableBackgroundWorkers = true
+    });
+}
+```
+
+### Docker and Container Configuration
+
+```dockerfile
+# Dockerfile
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+WORKDIR /app
+EXPOSE 80
+EXPOSE 443
+
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+COPY ["MyApp.csproj", "."]
+RUN dotnet restore
+COPY . .
+RUN dotnet build -c Release -o /app/build
+
+FROM build AS publish  
+RUN dotnet publish -c Release -o /app/publish
+
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+ENTRYPOINT ["dotnet", "MyApp.dll"]
+```
+
+```yaml
+# docker-compose.yml
+version: '3.8'
+services:
+  app:
+    build: .
+    environment:
+      - ConnectionStrings__Default=Server=sqlserver;Database=MyApp;User Id=sa;Password=YourPassword123!;TrustServerCertificate=true;
+      - SqlScheduler__EnableSchemaDeployment=true
+      - SqlScheduler__MaxPollingInterval=00:00:10
+    depends_on:
+      - sqlserver
+    
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourPassword123!
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+
+volumes:
+  sqlserver_data:
+```
+
+## Database Schema Reference
+
+The platform creates a comprehensive set of tables and stored procedures for reliable work queue processing.
+
+### Core Tables
+
+#### Outbox Table
 ```sql
 CREATE TABLE dbo.Outbox (
+    -- Core message fields
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     Payload NVARCHAR(MAX) NOT NULL,
     Topic NVARCHAR(255) NOT NULL,
     CreatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(),
+    
+    -- Work queue state management
+    Status TINYINT NOT NULL DEFAULT(0),           -- 0=Ready, 1=InProgress, 2=Done, 3=Failed
+    LockedUntil DATETIME2(3) NULL,                -- UTC lease expiration time
+    OwnerToken UNIQUEIDENTIFIER NULL,             -- Process ownership identifier
+    
+    -- Processing metadata
     IsProcessed BIT NOT NULL DEFAULT 0,
     ProcessedAt DATETIMEOFFSET NULL,
     ProcessedBy NVARCHAR(100) NULL,
+    
+    -- Error handling and retry
     RetryCount INT NOT NULL DEFAULT 0,
     LastError NVARCHAR(MAX) NULL,
     NextAttemptAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(),
+    
+    -- Message tracking
     MessageId UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
-    CorrelationId UNIQUEIDENTIFIER NULL
+    CorrelationId NVARCHAR(255) NULL
 );
+
+-- Work queue optimization index
+CREATE INDEX IX_Outbox_WorkQueue ON dbo.Outbox(Status, CreatedAt) 
+    INCLUDE(Id, OwnerToken);
+
+-- Legacy processing index
+CREATE INDEX IX_Outbox_GetNext ON dbo.Outbox(IsProcessed, NextAttemptAt)
+    INCLUDE(Id, Payload, Topic, RetryCount) 
+    WHERE IsProcessed = 0;
 ```
 
-### Timers Table
+#### Timers Table
 ```sql
 CREATE TABLE dbo.Timers (
+    -- Core scheduling fields
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     DueTime DATETIMEOFFSET NOT NULL,
     Payload NVARCHAR(MAX) NOT NULL,
     Topic NVARCHAR(255) NOT NULL,
     CorrelationId NVARCHAR(255) NULL,
+    
+    -- Work queue state management
+    StatusCode TINYINT NOT NULL DEFAULT(0),       -- 0=Ready, 1=InProgress, 2=Done, 3=Failed
+    LockedUntil DATETIME2(3) NULL,                -- UTC lease expiration time
+    OwnerToken UNIQUEIDENTIFIER NULL,             -- Process ownership identifier
+    
+    -- Legacy status management
     Status NVARCHAR(20) NOT NULL DEFAULT 'Pending',
     ClaimedBy NVARCHAR(100) NULL,
     ClaimedAt DATETIMEOFFSET NULL,
     RetryCount INT NOT NULL DEFAULT 0,
+    
+    -- Auditing
     CreatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(),
     ProcessedAt DATETIMEOFFSET NULL,
     LastError NVARCHAR(MAX) NULL
 );
+
+-- Efficient timer lookup index
+CREATE INDEX IX_Timers_WorkQueue ON dbo.Timers(StatusCode, DueTime) 
+    INCLUDE(Id, OwnerToken) WHERE StatusCode = 0;
+
+-- Legacy index
+CREATE INDEX IX_Timers_GetNext ON dbo.Timers(Status, DueTime)
+    INCLUDE(Id, Topic) WHERE Status = 'Pending';
 ```
 
-### Jobs Table
+#### Jobs Table
 ```sql
 CREATE TABLE dbo.Jobs (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     JobName NVARCHAR(100) NOT NULL,
-    CronSchedule NVARCHAR(100) NOT NULL,
+    CronSchedule NVARCHAR(100) NOT NULL,          -- e.g., "0 */5 * * * *"
     Topic NVARCHAR(255) NOT NULL,
     Payload NVARCHAR(MAX) NULL,
     IsEnabled BIT NOT NULL DEFAULT 1,
+    
+    -- Scheduling state tracking
     NextDueTime DATETIMEOFFSET NULL,
     LastRunTime DATETIMEOFFSET NULL,
     LastRunStatus NVARCHAR(20) NULL
 );
+
+-- Ensure unique job names
+CREATE UNIQUE INDEX UQ_Jobs_JobName ON dbo.Jobs(JobName);
 ```
 
-### JobRuns Table
+#### JobRuns Table
 ```sql
 CREATE TABLE dbo.JobRuns (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    JobId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Jobs(Id),
+    JobId UNIQUEIDENTIFIER NOT NULL REFERENCES dbo.Jobs(Id),
     ScheduledTime DATETIMEOFFSET NOT NULL,
+    
+    -- Work queue state management
+    StatusCode TINYINT NOT NULL DEFAULT(0),       -- 0=Ready, 1=InProgress, 2=Done, 3=Failed
+    LockedUntil DATETIME2(3) NULL,                -- UTC lease expiration time
+    OwnerToken UNIQUEIDENTIFIER NULL,             -- Process ownership identifier
+    
+    -- Legacy status management
     Status NVARCHAR(20) NOT NULL DEFAULT 'Pending',
     ClaimedBy NVARCHAR(100) NULL,
     ClaimedAt DATETIMEOFFSET NULL,
     RetryCount INT NOT NULL DEFAULT 0,
+    
+    -- Execution tracking
     StartTime DATETIMEOFFSET NULL,
     EndTime DATETIMEOFFSET NULL,
     Output NVARCHAR(MAX) NULL,
     LastError NVARCHAR(MAX) NULL
 );
+
+-- Work queue processing index
+CREATE INDEX IX_JobRuns_WorkQueue ON dbo.JobRuns(StatusCode, ScheduledTime) 
+    INCLUDE(Id, OwnerToken) WHERE StatusCode = 0;
+
+-- Legacy index
+CREATE INDEX IX_JobRuns_GetNext ON dbo.JobRuns(Status, ScheduledTime)
+    WHERE Status = 'Pending';
 ```
 
-## Key Assumptions and Considerations
+#### Inbox Table
+```sql
+CREATE TABLE dbo.Inbox (
+    MessageId VARCHAR(64) NOT NULL PRIMARY KEY,
+    Source VARCHAR(64) NOT NULL,
+    Hash BINARY(32) NULL,                         -- Optional content verification
+    FirstSeenUtc DATETIME2(3) NOT NULL,
+    LastSeenUtc DATETIME2(3) NOT NULL,
+    ProcessedUtc DATETIME2(3) NULL,
+    Attempts INT NOT NULL DEFAULT 0,
+    Status VARCHAR(16) NOT NULL DEFAULT 'Seen'    -- Seen, Processing, Done, Dead
+);
 
-### Database Requirements
+-- Processing optimization index
+CREATE INDEX IX_Inbox_Processing ON dbo.Inbox(Status, LastSeenUtc)
+    WHERE Status IN ('Seen', 'Processing');
+```
 
-- **SQL Server**: The platform requires SQL Server (2012 or later)
-- **Connection Pool**: Ensure your connection pool can handle the background workers
-- **Permissions**: The application needs permissions to create locks (`sp_getapplock`) and perform standard CRUD operations
+#### Lease Table (Lease System v2)
+```sql
+CREATE TABLE dbo.Lease (
+    LeaseName NVARCHAR(200) NOT NULL PRIMARY KEY,
+    Owner NVARCHAR(200) NOT NULL,
+    LeaseUntilUtc DATETIME2(3) NOT NULL,
+    CreatedUtc DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
+    RenewedUtc DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME()
+);
 
-### Scalability Considerations
+-- Index for expired lease cleanup
+CREATE INDEX IX_Lease_Expired ON dbo.Lease(LeaseUntilUtc)
+    WHERE LeaseUntilUtc < SYSUTCDATETIME();
+```
 
-- **Multiple Instances**: All components are designed to work with multiple application instances
-- **Distributed Locking**: Prevents duplicate processing across instances
-- **Polling Intervals**: Adjust `MaxPollingInterval` based on your throughput requirements
-- **Database Load**: Background workers will continuously poll the database
+### Stored Procedures
 
-### Reliability Features
+The platform generates work queue stored procedures following a consistent pattern:
 
-- **Transactional Consistency**: Outbox messages are part of your business transactions
-- **Automatic Retries**: Failed messages and timers are retried with exponential backoff
-- **Poison Message Handling**: Messages that fail repeatedly can be manually investigated
-- **Health Checks**: Built-in health checks for monitoring
+#### Outbox Procedures
+```sql
+-- Atomically claim ready outbox messages
+dbo.Outbox_Claim (@OwnerToken, @LeaseSeconds, @BatchSize)
 
-### Performance Tips
+-- Mark messages as successfully processed
+dbo.Outbox_Ack (@OwnerToken, @Ids)
 
-- **Indexes**: The provided SQL scripts include optimized indexes for performance
-- **Connection Pooling**: Use connection pooling in your connection string
-- **Batch Processing**: The outbox processor handles multiple messages in batches
-- **Monitoring**: Use the health checks and metrics for monitoring
+-- Return messages to ready state for retry
+dbo.Outbox_Abandon (@OwnerToken, @Ids)
 
-### Message Handling
+-- Mark messages as failed
+dbo.Outbox_Fail (@OwnerToken, @Ids)
 
-Your application needs to implement message handlers for the topics you use:
+-- Recover expired leases
+dbo.Outbox_ReapExpired ()
+```
+
+#### Timer Procedures
+```sql
+-- Claim due timers for processing
+dbo.Timers_Claim (@OwnerToken, @LeaseSeconds, @BatchSize)
+
+-- Acknowledge completed timers
+dbo.Timers_Ack (@OwnerToken, @Ids)
+
+-- Abandon failed timers for retry
+dbo.Timers_Abandon (@OwnerToken, @Ids)
+
+-- Reap expired timer leases
+dbo.Timers_ReapExpired ()
+```
+
+#### JobRuns Procedures
+```sql
+-- Claim due job runs for processing
+dbo.JobRuns_Claim (@OwnerToken, @LeaseSeconds, @BatchSize)
+
+-- Acknowledge completed job runs
+dbo.JobRuns_Ack (@OwnerToken, @Ids)
+
+-- Abandon failed job runs for retry
+dbo.JobRuns_Abandon (@OwnerToken, @Ids)
+
+-- Reap expired job run leases
+dbo.JobRuns_ReapExpired ()
+```
+
+### User-Defined Table Types
+
+For efficient batch operations:
+
+```sql
+-- Used for passing multiple IDs to stored procedures
+CREATE TYPE dbo.GuidIdList AS TABLE
+(
+    Id UNIQUEIDENTIFIER NOT NULL
+);
+```
+
+### Schema Deployment
+
+The platform supports automatic schema deployment:
 
 ```csharp
-public interface IMessageHandler
-{
-    Task HandleAsync(string topic, string payload);
-}
+// Automatic deployment during startup
+services.AddSqlScheduler(new SqlSchedulerOptions 
+{ 
+    EnableSchemaDeployment = true 
+});
 
-// Implement handlers for your specific topics
-public class OrderEventHandler : IMessageHandler
+// Manual deployment
+await DatabaseSchemaManager.EnsureOutboxSchemaAsync(connectionString);
+await DatabaseSchemaManager.EnsureSchedulerSchemaAsync(connectionString);
+await DatabaseSchemaManager.EnsureInboxSchemaAsync(connectionString);
+await DatabaseSchemaManager.EnsureLeaseSchemaAsync(connectionString);
+```
+
+### Database Permissions
+
+Required SQL Server permissions for the application user:
+
+```sql
+-- Core permissions for work queue operations
+GRANT SELECT, INSERT, UPDATE, DELETE ON dbo.Outbox TO [AppUser];
+GRANT SELECT, INSERT, UPDATE, DELETE ON dbo.Timers TO [AppUser];
+GRANT SELECT, INSERT, UPDATE, DELETE ON dbo.Jobs TO [AppUser];
+GRANT SELECT, INSERT, UPDATE, DELETE ON dbo.JobRuns TO [AppUser];
+GRANT SELECT, INSERT, UPDATE, DELETE ON dbo.Inbox TO [AppUser];
+GRANT SELECT, INSERT, UPDATE, DELETE ON dbo.Lease TO [AppUser];
+
+-- Stored procedure execution
+GRANT EXECUTE ON dbo.Outbox_Claim TO [AppUser];
+GRANT EXECUTE ON dbo.Outbox_Ack TO [AppUser];
+GRANT EXECUTE ON dbo.Outbox_Abandon TO [AppUser];
+GRANT EXECUTE ON dbo.Outbox_Fail TO [AppUser];
+GRANT EXECUTE ON dbo.Outbox_ReapExpired TO [AppUser];
+
+-- Similar grants for Timers and JobRuns procedures...
+
+-- User-defined table type permissions
+GRANT EXECUTE ON TYPE::dbo.GuidIdList TO [AppUser];
+
+-- For schema deployment (if enabled)
+GRANT ALTER ON SCHEMA::dbo TO [AppUser];  -- Only if auto-deployment enabled
+```
+
+## Operational Considerations
+
+### Production Deployment
+
+#### Database Considerations
+
+**Connection Pooling**: Configure appropriate connection pool settings:
+```csharp
+var connectionString = "Server=prod-sql;Database=MyApp;Integrated Security=true;" +
+                      "Min Pool Size=5;Max Pool Size=100;Pooling=true;" +
+                      "Connection Timeout=30;Command Timeout=60;";
+```
+
+**Scaling Strategy**: The platform is designed for horizontal scaling:
+- Multiple application instances can run simultaneously
+- Work queue operations use atomic claims to prevent conflicts
+- Database becomes the coordination point for distributed processing
+
+**High Availability**: Configure SQL Server for high availability:
+- SQL Server Always On Availability Groups
+- Automatic failover support
+- Connection string with failover partner
+
+#### Monitoring and Observability
+
+**Health Checks**: Monitor system health across all components:
+```csharp
+// Comprehensive health check setup
+app.MapHealthChecks("/health", new HealthCheckOptions
 {
-    public async Task HandleAsync(string topic, string payload)
+    ResponseWriter = async (context, report) =>
     {
-        switch (topic)
+        context.Response.ContentType = "application/json";
+        var result = JsonSerializer.Serialize(new
         {
-            case "OrderCreated":
-                await HandleOrderCreated(payload);
-                break;
-            case "SendReminder":
-                await HandleReminder(payload);
-                break;
-            // Add other topic handlers
+            status = report.Status.ToString(),
+            checks = report.Entries.Select(e => new
+            {
+                name = e.Key,
+                status = e.Value.Status.ToString(),
+                duration = e.Value.Duration.TotalMilliseconds,
+                description = e.Value.Description,
+                exception = e.Value.Exception?.Message
+            }),
+            totalDuration = report.TotalDuration.TotalMilliseconds
+        });
+        await context.Response.WriteAsync(result);
+    }
+});
+```
+
+**Key Metrics to Track**:
+- Outbox processing rate and latency
+- Timer/job execution accuracy and delays
+- Lease acquisition success rates
+- Background service health status
+- Database connection pool metrics
+
+**Logging Configuration**:
+```csharp
+builder.Logging.AddConfiguration(builder.Configuration.GetSection("Logging"));
+
+// appsettings.Production.json
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Bravellian.Platform.OutboxPollingService": "Warning",
+      "Bravellian.Platform.LeaseRunner": "Information",
+      "System.Net.Http": "Warning",
+      "Microsoft.EntityFrameworkCore": "Warning"
+    }
+  }
+}
+```
+
+#### Performance Tuning
+
+**Polling Intervals**: Adjust based on throughput requirements:
+```csharp
+// High throughput environment
+services.AddSqlScheduler(new SqlSchedulerOptions
+{
+    MaxPollingInterval = TimeSpan.FromSeconds(5)  // More frequent polling
+});
+
+// Low throughput environment  
+services.AddSqlScheduler(new SqlSchedulerOptions
+{
+    MaxPollingInterval = TimeSpan.FromMinutes(1)  // Less frequent polling
+});
+```
+
+**Batch Sizes**: Optimize for your workload:
+```csharp
+// In your custom processors
+var claimedIds = await outbox.ClaimAsync(ownerToken, 
+    leaseSeconds: 60,      // Longer lease for complex processing
+    batchSize: 100);       // Larger batches for efficiency
+```
+
+**Database Maintenance**: Regular maintenance tasks:
+```sql
+-- Clean up old processed outbox messages (run weekly)
+DELETE FROM dbo.Outbox 
+WHERE Status = 2 /* Done */ 
+  AND ProcessedAt < DATEADD(day, -30, GETUTCDATE());
+
+-- Clean up old completed job runs (run monthly)
+DELETE FROM dbo.JobRuns 
+WHERE StatusCode = 2 /* Done */ 
+  AND EndTime < DATEADD(day, -90, GETUTCDATE());
+
+-- Update statistics for optimal query performance
+UPDATE STATISTICS dbo.Outbox;
+UPDATE STATISTICS dbo.Timers;
+UPDATE STATISTICS dbo.JobRuns;
+
+-- Rebuild fragmented indexes if needed
+ALTER INDEX IX_Outbox_WorkQueue ON dbo.Outbox REBUILD;
+```
+
+### Error Handling and Resilience
+
+#### Retry Strategies
+
+**Exponential Backoff**: Built into outbox processing:
+```csharp
+public static TimeSpan CalculateBackoffDelay(int attempt)
+{
+    // 1s, 2s, 4s, 8s, 16s, 32s, then 60s max
+    var seconds = Math.Min(Math.Pow(2, attempt), 60);
+    return TimeSpan.FromSeconds(seconds);
+}
+```
+
+**Circuit Breaker Pattern**: For external service calls:
+```csharp
+public class ResilientMessageHandler : IOutboxHandler
+{
+    private readonly HttpClient _httpClient;
+    private readonly CircuitBreakerPolicy _circuitBreaker;
+
+    public async Task HandleAsync(OutboxMessage message, CancellationToken cancellationToken)
+    {
+        await _circuitBreaker.ExecuteAsync(async () =>
+        {
+            // Call external service with circuit breaker protection
+            await _httpClient.PostAsync("/api/webhook", 
+                new StringContent(message.Payload), cancellationToken);
+        });
+    }
+}
+```
+
+#### Dead Letter Handling
+
+**Poison Message Detection**:
+```csharp
+public class PoisonMessageHandler
+{
+    private const int MaxRetryAttempts = 5;
+
+    public async Task ProcessMessageAsync(OutboxMessage message)
+    {
+        if (message.RetryCount >= MaxRetryAttempts)
+        {
+            // Move to dead letter storage
+            await _deadLetterService.StoreAsync(message);
+            
+            // Mark as failed to stop retries
+            await _outbox.FailAsync(_ownerToken, new[] { message.Id });
+            
+            // Alert operations team
+            await _alertingService.SendAlertAsync($"Poison message detected: {message.Id}");
+            return;
+        }
+
+        // Normal processing...
+    }
+}
+```
+
+#### Database Connection Resilience
+
+```csharp
+// Configure retry policy for transient failures
+services.AddSqlOutbox(new SqlOutboxOptions
+{
+    ConnectionString = connectionString
+});
+
+// Custom retry policy for database operations
+services.AddTransient<IRetryPolicy>(provider => 
+    Policy.Handle<SqlException>(ex => IsTransientError(ex))
+          .WaitAndRetryAsync(
+              retryCount: 3,
+              sleepDurationProvider: attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt)),
+              onRetry: (outcome, timespan, retryCount, context) =>
+              {
+                  var logger = provider.GetRequiredService<ILogger<RetryPolicy>>();
+                  logger.LogWarning("Retry {RetryCount} for database operation after {Delay}ms", 
+                      retryCount, timespan.TotalMilliseconds);
+              }));
+
+private static bool IsTransientError(SqlException ex)
+{
+    // Common transient error codes
+    var transientErrors = new[] { 2, 53, 121, 233, 10053, 10054, 10060, 40197, 40501, 40613 };
+    return transientErrors.Contains(ex.Number);
+}
+```
+
+### Security Considerations
+
+#### Connection String Security
+
+```csharp
+// Use managed identity in Azure
+var connectionString = "Server=myserver.database.windows.net;Database=MyApp;" +
+                      "Authentication=Active Directory Managed Identity;";
+
+// Use connection string encryption
+services.Configure<SqlSchedulerOptions>(options =>
+{
+    options.ConnectionString = _configuration.GetConnectionString("Encrypted");
+});
+```
+
+#### SQL Injection Prevention
+
+The platform uses parameterized queries throughout:
+```sql
+-- All stored procedures use proper parameterization
+CREATE PROCEDURE dbo.Outbox_Claim
+    @OwnerToken UNIQUEIDENTIFIER,
+    @LeaseSeconds INT,
+    @BatchSize INT
+AS
+BEGIN
+    -- Safe parameterized SQL - no injection risk
+    UPDATE o SET OwnerToken = @OwnerToken
+    WHERE Status = 0 AND Id IN (
+        SELECT TOP (@BatchSize) Id FROM dbo.Outbox WHERE Status = 0
+    );
+END
+```
+
+#### Least Privilege Database Access
+
+```sql
+-- Create dedicated application user
+CREATE USER [AppSchedulerUser] FOR LOGIN [AppSchedulerLogin];
+
+-- Grant only necessary permissions
+GRANT SELECT, INSERT, UPDATE, DELETE ON dbo.Outbox TO [AppSchedulerUser];
+GRANT EXECUTE ON dbo.Outbox_Claim TO [AppSchedulerUser];
+GRANT EXECUTE ON dbo.Outbox_Ack TO [AppSchedulerUser];
+-- ... other specific procedure grants
+
+-- Deny dangerous permissions
+DENY ALTER ON SCHEMA::dbo TO [AppSchedulerUser];
+DENY DROP ON SCHEMA::dbo TO [AppSchedulerUser];
+```
+
+### Troubleshooting Guide
+
+#### Common Issues and Solutions
+
+**1. Messages Not Being Processed**
+```csharp
+// Check if background workers are enabled
+services.AddSqlScheduler(new SqlSchedulerOptions
+{
+    EnableBackgroundWorkers = true  // Ensure this is true
+});
+
+// Verify database connectivity
+var healthChecks = app.Services.GetRequiredService<HealthCheckService>();
+var result = await healthChecks.CheckHealthAsync();
+```
+
+**2. High Database CPU Usage**
+```sql
+-- Check for missing indexes
+SELECT DISTINCT 
+    CONVERT(decimal(18,2), user_seeks * avg_total_user_cost * (avg_user_impact * 0.01)) AS [index_advantage],
+    migs.last_user_seek, 
+    mid.[statement] AS [Database.Schema.Table],
+    mid.equality_columns, 
+    mid.inequality_columns,
+    mid.included_columns
+FROM sys.dm_db_missing_index_group_stats AS migs
+INNER JOIN sys.dm_db_missing_index_groups AS mig ON migs.group_handle = mig.index_group_handle
+INNER JOIN sys.dm_db_missing_index_details AS mid ON mig.index_handle = mid.index_handle
+ORDER BY index_advantage DESC;
+```
+
+**3. Lease Renewal Failures**
+```csharp
+// Increase lease duration for slow operations
+var runner = await LeaseRunner.AcquireAsync(
+    leaseApi, clock, timeProvider,
+    "long-running-process", "owner",
+    leaseDuration: TimeSpan.FromMinutes(10), // Longer lease
+    renewPercent: 0.5); // Renew at 50% for safety margin
+```
+
+**4. Timer/Job Execution Delays**
+```sql
+-- Check for lease contention
+SELECT 
+    COUNT(*) as LeaseCount,
+    AVG(DATEDIFF(second, ClaimedAt, GETUTCDATE())) as AvgLeaseAge
+FROM dbo.Timers 
+WHERE Status = 'InProgress' 
+  AND LockedUntil > GETUTCDATE();
+
+-- Look for stuck timers
+SELECT TOP 10 *
+FROM dbo.Timers
+WHERE Status = 'InProgress'
+  AND LockedUntil < GETUTCDATE()
+  AND ClaimedAt < DATEADD(minute, -5, GETUTCDATE());
+```
+
+#### Diagnostic Queries
+
+```sql
+-- Outbox processing statistics
+SELECT 
+    Topic,
+    COUNT(*) as TotalMessages,
+    SUM(CASE WHEN Status = 0 THEN 1 ELSE 0 END) as Ready,
+    SUM(CASE WHEN Status = 1 THEN 1 ELSE 0 END) as InProgress,
+    SUM(CASE WHEN Status = 2 THEN 1 ELSE 0 END) as Done,
+    SUM(CASE WHEN Status = 3 THEN 1 ELSE 0 END) as Failed,
+    AVG(RetryCount) as AvgRetries
+FROM dbo.Outbox
+GROUP BY Topic
+ORDER BY TotalMessages DESC;
+
+-- Timer execution performance
+SELECT 
+    DATEPART(hour, DueTime) as Hour,
+    COUNT(*) as ScheduledCount,
+    AVG(DATEDIFF(second, DueTime, ProcessedAt)) as AvgDelaySeconds,
+    MAX(DATEDIFF(second, DueTime, ProcessedAt)) as MaxDelaySeconds
+FROM dbo.Timers 
+WHERE ProcessedAt IS NOT NULL
+GROUP BY DATEPART(hour, DueTime)
+ORDER BY Hour;
+
+-- Active leases summary
+SELECT 
+    'Outbox' as TableName,
+    COUNT(*) as ActiveLeases,
+    MIN(LockedUntil) as EarliestExpiry,
+    MAX(LockedUntil) as LatestExpiry
+FROM dbo.Outbox WHERE Status = 1 AND LockedUntil > GETUTCDATE()
+UNION ALL
+SELECT 
+    'Timers',
+    COUNT(*),
+    MIN(LockedUntil),
+    MAX(LockedUntil)
+FROM dbo.Timers WHERE StatusCode = 1 AND LockedUntil > GETUTCDATE()
+UNION ALL
+SELECT 
+    'JobRuns',
+    COUNT(*),
+    MIN(LockedUntil),
+    MAX(LockedUntil)
+FROM dbo.JobRuns WHERE StatusCode = 1 AND LockedUntil > GETUTCDATE();
+```
+
+## Testing
+
+The platform includes comprehensive testing utilities for integration testing with SQL Server using Testcontainers.
+
+### Test Base Classes
+
+```csharp
+public abstract class SqlServerTestBase : IAsyncLifetime
+{
+    private MsSqlContainer? _container;
+    protected string ConnectionString { get; private set; } = string.Empty;
+
+    public async Task InitializeAsync()
+    {
+        _container = new MsSqlBuilder()
+            .WithImage("mcr.microsoft.com/mssql/server:2022-latest")
+            .WithPassword("YourPassword123!")
+            .Build();
+
+        await _container.StartAsync();
+        ConnectionString = _container.GetConnectionString();
+        
+        // Deploy schemas automatically
+        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(ConnectionString);
+        await DatabaseSchemaManager.EnsureSchedulerSchemaAsync(ConnectionString);
+        await DatabaseSchemaManager.EnsureInboxSchemaAsync(ConnectionString);
+        await DatabaseSchemaManager.EnsureLeaseSchemaAsync(ConnectionString);
+    }
+
+    public async Task DisposeAsync()
+    {
+        if (_container != null)
+        {
+            await _container.DisposeAsync();
         }
     }
 }
 ```
 
-### Error Handling Best Practices
-
-- **Idempotent Handlers**: Ensure your message handlers can be safely retried
-- **Correlation IDs**: Use correlation IDs for tracing messages across systems
-- **Error Logging**: Log errors with sufficient context for debugging
-- **Dead Letter Handling**: Plan for messages that fail permanently
-
-## Testing
-
-The platform includes test utilities for integration testing with SQL Server.
-
-### Test Setup
+### Outbox Integration Tests
 
 ```csharp
-public class MyServiceTests : SqlServerTestBase
+public class OutboxIntegrationTests : SqlServerTestBase
 {
-    public MyServiceTests(ITestOutputHelper testOutputHelper) 
-        : base(testOutputHelper)
-    {
-    }
-
     [Fact]
-    public async Task Should_Process_Outbox_Messages()
+    public async Task OutboxService_Should_EnqueueAndRetrieveMessages()
     {
         // Arrange
         var services = new ServiceCollection();
         services.AddSqlOutbox(new SqlOutboxOptions 
         { 
-            ConnectionString = ConnectionString 
+            ConnectionString = ConnectionString,
+            EnableSchemaDeployment = false // Already deployed in base class
         });
         
         var serviceProvider = services.BuildServiceProvider();
         var outbox = serviceProvider.GetRequiredService<IOutbox>();
 
-        // Act & Assert
+        // Act - Enqueue message
+        await outbox.EnqueueAsync("TestTopic", "TestPayload", "correlation-123");
+
+        // Act - Claim message
+        var ownerToken = Guid.NewGuid();
+        var claimedIds = await outbox.ClaimAsync(ownerToken, 30, 10);
+
+        // Assert
+        claimedIds.Should().HaveCount(1);
+        
+        // Act - Acknowledge message
+        await outbox.AckAsync(ownerToken, claimedIds);
+        
+        // Verify no more messages available
+        var noClaims = await outbox.ClaimAsync(Guid.NewGuid(), 30, 10);
+        noClaims.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task OutboxService_Should_HandleTransactionalEnqueue()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddSqlOutbox(new SqlOutboxOptions { ConnectionString = ConnectionString });
+        var serviceProvider = services.BuildServiceProvider();
+        var outbox = serviceProvider.GetRequiredService<IOutbox>();
+
+        // Act - Enqueue within transaction that rolls back
         using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync();
         using var transaction = connection.BeginTransaction();
         
-        await outbox.EnqueueAsync("TestTopic", "TestPayload", transaction);
-        await transaction.CommitAsync();
-        
-        // Verify message was stored
-        // Add your assertions here
+        await outbox.EnqueueAsync("TestTopic", "TestPayload", transaction, "correlation-456");
+        await transaction.RollbackAsync();
+
+        // Assert - Message should not exist
+        var claimedIds = await outbox.ClaimAsync(Guid.NewGuid(), 30, 10);
+        claimedIds.Should().BeEmpty();
     }
 }
 ```
 
-### Test Containers
-
-The test base uses Testcontainers to spin up a real SQL Server instance:
+### Timer Scheduler Tests
 
 ```csharp
-// Automatically uses SQL Server 2022 container
-// Schema is created automatically from SQL scripts
-// Clean database for each test class
+public class TimerSchedulerTests : SqlServerTestBase
+{
+    [Fact]
+    public async Task SchedulerClient_Should_ScheduleAndClaimTimers()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddSqlScheduler(new SqlSchedulerOptions 
+        { 
+            ConnectionString = ConnectionString,
+            EnableSchemaDeployment = false,
+            EnableBackgroundWorkers = false // Disable for testing
+        });
+        
+        var serviceProvider = services.BuildServiceProvider();
+        var scheduler = serviceProvider.GetRequiredService<ISchedulerClient>();
+
+        // Act - Schedule timer for immediate execution
+        var dueTime = DateTimeOffset.UtcNow.AddMilliseconds(-100); // Past due
+        var timerId = await scheduler.ScheduleTimerAsync("TestTopic", "TestPayload", dueTime);
+
+        // Act - Claim due timers
+        var ownerToken = Guid.NewGuid();
+        var claimedTimerIds = await scheduler.ClaimTimersAsync(ownerToken, 30, 10);
+
+        // Assert
+        claimedTimerIds.Should().HaveCount(1);
+        
+        // Act - Acknowledge timer
+        await scheduler.AckTimersAsync(ownerToken, claimedTimerIds);
+    }
+
+    [Fact]
+    public async Task SchedulerClient_Should_CancelPendingTimers()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddSqlScheduler(new SqlSchedulerOptions { ConnectionString = ConnectionString });
+        var serviceProvider = services.BuildServiceProvider();
+        var scheduler = serviceProvider.GetRequiredService<ISchedulerClient>();
+
+        // Act - Schedule future timer
+        var dueTime = DateTimeOffset.UtcNow.AddHours(1);
+        var timerId = await scheduler.ScheduleTimerAsync("TestTopic", "TestPayload", dueTime);
+
+        // Act - Cancel timer
+        var cancelled = await scheduler.CancelTimerAsync(timerId);
+
+        // Assert
+        cancelled.Should().BeTrue();
+        
+        // Verify timer cannot be claimed
+        var claimedIds = await scheduler.ClaimTimersAsync(Guid.NewGuid(), 30, 10);
+        claimedIds.Should().BeEmpty();
+    }
+}
+```
+
+### Inbox Service Tests
+
+```csharp
+public class InboxServiceTests : SqlServerTestBase
+{
+    [Fact]
+    public async Task InboxService_Should_PreventDuplicateProcessing()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddSqlInbox(new SqlInboxOptions { ConnectionString = ConnectionString });
+        var serviceProvider = services.BuildServiceProvider();
+        var inbox = serviceProvider.GetRequiredService<IInbox>();
+
+        // Act - First processing attempt
+        var firstCheck = await inbox.AlreadyProcessedAsync("msg-123", "TestSource");
+        
+        // Assert - Should be false (first time)
+        firstCheck.Should().BeFalse();
+        
+        // Act - Mark as processed
+        await inbox.MarkProcessedAsync("msg-123");
+        
+        // Act - Second processing attempt
+        var secondCheck = await inbox.AlreadyProcessedAsync("msg-123", "TestSource");
+        
+        // Assert - Should be true (already processed)
+        secondCheck.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task InboxService_Should_HandleConcurrentAccess()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddSqlInbox(new SqlInboxOptions { ConnectionString = ConnectionString });
+        var serviceProvider = services.BuildServiceProvider();
+        var inbox = serviceProvider.GetRequiredService<IInbox>();
+
+        // Act - Simulate concurrent processing of same message
+        var tasks = Enumerable.Range(0, 10).Select(async i =>
+        {
+            var isProcessed = await inbox.AlreadyProcessedAsync("concurrent-msg", "TestSource");
+            if (!isProcessed)
+            {
+                await Task.Delay(50); // Simulate processing time
+                await inbox.MarkProcessedAsync("concurrent-msg");
+            }
+            return isProcessed;
+        });
+
+        var results = await Task.WhenAll(tasks);
+
+        // Assert - Exactly one should have processed (returned false)
+        results.Count(r => !r).Should().Be(1);
+        results.Count(r => r).Should().Be(9);
+    }
+}
+```
+
+### Lease System Tests
+
+```csharp
+public class LeaseSystemTests : SqlServerTestBase
+{
+    [Fact]
+    public async Task LeaseRunner_Should_AcquireAndRenewLease()
+    {
+        // Arrange
+        var leaseApi = new LeaseApi(ConnectionString, "dbo");
+        var clock = new MonotonicClock();
+        var timeProvider = TimeProvider.System;
+        var logger = new NullLogger<LeaseRunner>();
+
+        // Act - Acquire lease
+        var runner = await LeaseRunner.AcquireAsync(
+            leaseApi, clock, timeProvider,
+            "test-lease", "test-owner", TimeSpan.FromSeconds(10),
+            renewPercent: 0.5, logger: logger);
+
+        // Assert
+        runner.Should().NotBeNull();
+        runner!.CancellationToken.IsCancellationRequested.Should().BeFalse();
+
+        // Act - Manual renewal
+        var renewed = await runner.TryRenewNowAsync();
+        
+        // Assert
+        renewed.Should().BeTrue();
+
+        // Cleanup
+        await runner.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task LeaseRunner_Should_PreventDuplicateAcquisition()
+    {
+        // Arrange
+        var leaseApi = new LeaseApi(ConnectionString, "dbo");
+        var clock = new MonotonicClock();
+        var timeProvider = TimeProvider.System;
+        var logger = new NullLogger<LeaseRunner>();
+
+        // Act - First acquisition
+        var runner1 = await LeaseRunner.AcquireAsync(
+            leaseApi, clock, timeProvider,
+            "exclusive-lease", "owner-1", TimeSpan.FromMinutes(1));
+
+        // Act - Second acquisition attempt
+        var runner2 = await LeaseRunner.AcquireAsync(
+            leaseApi, clock, timeProvider,
+            "exclusive-lease", "owner-2", TimeSpan.FromMinutes(1));
+
+        // Assert
+        runner1.Should().NotBeNull();
+        runner2.Should().BeNull();
+
+        // Cleanup
+        await runner1!.DisposeAsync();
+    }
+}
+```
+
+### Test Utilities and Helpers
+
+```csharp
+public static class TestHelpers
+{
+    public static async Task WaitForConditionAsync(
+        Func<Task<bool>> condition, 
+        TimeSpan timeout = default,
+        TimeSpan pollInterval = default)
+    {
+        timeout = timeout == default ? TimeSpan.FromSeconds(30) : timeout;
+        pollInterval = pollInterval == default ? TimeSpan.FromMilliseconds(100) : pollInterval;
+        
+        var stopwatch = Stopwatch.StartNew();
+        
+        while (stopwatch.Elapsed < timeout)
+        {
+            if (await condition())
+                return;
+                
+            await Task.Delay(pollInterval);
+        }
+        
+        throw new TimeoutException($"Condition was not met within {timeout}");
+    }
+
+    public static IServiceProvider CreateTestServices(string connectionString)
+    {
+        var services = new ServiceCollection();
+        
+        services.AddSqlScheduler(new SqlSchedulerOptions
+        {
+            ConnectionString = connectionString,
+            EnableSchemaDeployment = false,
+            EnableBackgroundWorkers = false
+        });
+        
+        services.AddLogging(builder => builder.AddXUnit());
+        
+        return services.BuildServiceProvider();
+    }
+}
+```
+
+### Performance and Load Testing
+
+```csharp
+[Collection("Database")]
+public class PerformanceTests : SqlServerTestBase
+{
+    [Fact]
+    public async Task OutboxService_Should_HandleHighThroughput()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddSqlOutbox(new SqlOutboxOptions { ConnectionString = ConnectionString });
+        var serviceProvider = services.BuildServiceProvider();
+        var outbox = serviceProvider.GetRequiredService<IOutbox>();
+
+        const int messageCount = 1000;
+        const int workerCount = 5;
+
+        // Act - Enqueue messages
+        var enqueueTasks = Enumerable.Range(0, messageCount).Select(async i =>
+        {
+            await outbox.EnqueueAsync($"Topic-{i % 10}", $"Payload-{i}", $"correlation-{i}");
+        });
+        
+        var enqueueStopwatch = Stopwatch.StartNew();
+        await Task.WhenAll(enqueueTasks);
+        enqueueStopwatch.Stop();
+
+        // Act - Process messages with multiple workers
+        var workerTasks = Enumerable.Range(0, workerCount).Select(async workerId =>
+        {
+            var ownerToken = Guid.NewGuid();
+            var processed = 0;
+
+            while (processed < messageCount / workerCount + 100) // Process extra to handle distribution
+            {
+                var claimed = await outbox.ClaimAsync(ownerToken, 30, 50);
+                if (claimed.Count == 0)
+                {
+                    await Task.Delay(10);
+                    continue;
+                }
+
+                await outbox.AckAsync(ownerToken, claimed);
+                processed += claimed.Count;
+            }
+
+            return processed;
+        });
+
+        var processStopwatch = Stopwatch.StartNew();
+        var processedCounts = await Task.WhenAll(workerTasks);
+        processStopwatch.Stop();
+
+        // Assert
+        var totalProcessed = processedCounts.Sum();
+        totalProcessed.Should().BeGreaterOrEqualTo(messageCount);
+        
+        var enqueueRate = messageCount / enqueueStopwatch.Elapsed.TotalSeconds;
+        var processRate = totalProcessed / processStopwatch.Elapsed.TotalSeconds;
+        
+        // Log performance metrics
+        Console.WriteLine($"Enqueue rate: {enqueueRate:F2} msg/sec");
+        Console.WriteLine($"Process rate: {processRate:F2} msg/sec");
+        
+        enqueueRate.Should().BeGreaterThan(100); // Expect > 100 msg/sec enqueue
+        processRate.Should().BeGreaterThan(50);  // Expect > 50 msg/sec process
+    }
+}
 ```
 
 ## Health Monitoring
 
-The platform includes health checks for monitoring:
+The platform includes comprehensive health checks for monitoring system health and diagnosing issues.
+
+### Health Check Configuration
 
 ```csharp
+// Basic health check setup
 builder.Services.AddHealthChecks()
-    .AddSqlSchedulerHealthCheck("scheduler", tags: new[] { "database", "scheduler" });
+    .AddSqlSchedulerHealthCheck("scheduler")
+    .AddSqlServer(connectionString, name: "database");
 
-app.MapHealthChecks("/health");
+// Advanced health check configuration
+builder.Services.AddHealthChecks()
+    .AddSqlSchedulerHealthCheck("scheduler", 
+        tags: new[] { "scheduler", "critical" },
+        timeout: TimeSpan.FromSeconds(10))
+    .AddSqlServer(connectionString, 
+        healthQuery: "SELECT 1", 
+        name: "database",
+        tags: new[] { "database", "critical" })
+    .AddCheck<CustomOutboxHealthCheck>("outbox-processing")
+    .AddCheck<TimerAccuracyHealthCheck>("timer-accuracy");
+
+// Configure health check endpoints
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+});
+
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("critical")
+});
+
+app.MapHealthChecks("/health/ready", new HealthCheckOptions  
+{
+    Predicate = check => check.Tags.Contains("scheduler")
+});
 ```
 
-Health checks verify:
-- Database connectivity
-- Table existence and schema
-- Background worker status
+### Built-in Health Checks
+
+The `AddSqlSchedulerHealthCheck()` method registers health checks that verify:
+
+1. **Database Connectivity**: Can connect to SQL Server
+2. **Schema Validation**: Required tables and procedures exist
+3. **Background Services**: Polling services are running
+4. **Work Queue Health**: No excessive stuck items
+5. **Lease System**: Lease renewal is functioning
+
+### Custom Health Checks
+
+```csharp
+public class CustomOutboxHealthCheck : IHealthCheck
+{
+    private readonly IOutbox _outbox;
+    private readonly ILogger<CustomOutboxHealthCheck> _logger;
+
+    public async Task<HealthCheckResult> CheckHealthAsync(
+        HealthCheckContext context, 
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Check for excessive pending messages
+            var ownerToken = Guid.NewGuid();
+            var pendingMessages = await _outbox.ClaimAsync(ownerToken, 1, 1000, cancellationToken);
+            
+            // Abandon immediately - just checking count
+            if (pendingMessages.Count > 0)
+            {
+                await _outbox.AbandonAsync(ownerToken, pendingMessages, cancellationToken);
+            }
+
+            if (pendingMessages.Count > 10000)
+            {
+                return HealthCheckResult.Degraded(
+                    $"High number of pending outbox messages: {pendingMessages.Count}");
+            }
+
+            if (pendingMessages.Count > 50000)
+            {
+                return HealthCheckResult.Unhealthy(
+                    $"Excessive pending outbox messages: {pendingMessages.Count}");
+            }
+
+            return HealthCheckResult.Healthy($"Outbox processing normal. Pending: {pendingMessages.Count}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Outbox health check failed");
+            return HealthCheckResult.Unhealthy("Outbox health check failed", ex);
+        }
+    }
+}
+
+public class TimerAccuracyHealthCheck : IHealthCheck
+{
+    private readonly IServiceProvider _services;
+
+    public async Task<HealthCheckResult> CheckHealthAsync(
+        HealthCheckContext context,
+        CancellationToken cancellationToken = default)
+    {
+        using var scope = _services.CreateScope();
+        var connectionString = scope.ServiceProvider
+            .GetRequiredService<IOptionsSnapshot<SqlSchedulerOptions>>().Value.ConnectionString;
+
+        using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        // Check for timers that are significantly overdue
+        var query = @"
+            SELECT COUNT(*) 
+            FROM dbo.Timers 
+            WHERE StatusCode = 0 
+              AND DueTime < DATEADD(minute, -5, GETUTCDATE())";
+
+        using var command = new SqlCommand(query, connection);
+        var overdueCount = (int)await command.ExecuteScalarAsync(cancellationToken);
+
+        if (overdueCount > 100)
+        {
+            return HealthCheckResult.Unhealthy($"Too many overdue timers: {overdueCount}");
+        }
+
+        if (overdueCount > 10)
+        {
+            return HealthCheckResult.Degraded($"Some overdue timers detected: {overdueCount}");
+        }
+
+        return HealthCheckResult.Healthy($"Timer accuracy good. Overdue: {overdueCount}");
+    }
+}
+```
+
+### Monitoring Dashboards
+
+Health check data can be consumed by monitoring systems:
+
+```csharp
+// For Prometheus/Grafana
+builder.Services.AddHealthChecks()
+    .AddSqlSchedulerHealthCheck()
+    .ForwardToPrometheus();
+
+// For Application Insights
+builder.Services.AddApplicationInsightsTelemetry();
+builder.Services.Configure<TelemetryConfiguration>(config =>
+{
+    config.TelemetryInitializers.Add(new HealthCheckTelemetryInitializer());
+});
+
+// Custom metrics for detailed monitoring
+public class SchedulerMetricsCollector : BackgroundService
+{
+    private readonly IMetrics _metrics;
+    private readonly IServiceProvider _services;
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(1));
+        
+        while (await timer.WaitForNextTickAsync(stoppingToken))
+        {
+            await CollectMetricsAsync(stoppingToken);
+        }
+    }
+
+    private async Task CollectMetricsAsync(CancellationToken cancellationToken)
+    {
+        using var scope = _services.CreateScope();
+        var connectionString = scope.ServiceProvider
+            .GetRequiredService<IOptionsSnapshot<SqlSchedulerOptions>>().Value.ConnectionString;
+
+        using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        // Collect outbox metrics
+        var outboxMetrics = await GetOutboxMetricsAsync(connection, cancellationToken);
+        _metrics.CreateGauge<int>("outbox_pending_messages").Record(outboxMetrics.Pending);
+        _metrics.CreateGauge<int>("outbox_processing_messages").Record(outboxMetrics.Processing);
+        _metrics.CreateGauge<int>("outbox_failed_messages").Record(outboxMetrics.Failed);
+
+        // Collect timer metrics
+        var timerMetrics = await GetTimerMetricsAsync(connection, cancellationToken);
+        _metrics.CreateGauge<int>("timers_pending").Record(timerMetrics.Pending);
+        _metrics.CreateGauge<int>("timers_overdue").Record(timerMetrics.Overdue);
+
+        // Collect lease metrics
+        var leaseMetrics = await GetLeaseMetricsAsync(connection, cancellationToken);
+        _metrics.CreateGauge<int>("active_leases").Record(leaseMetrics.ActiveCount);
+    }
+}
+```
 
 ## License
 
-See LICENSE and NOTICE for licensing and attribution information.
+Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE) files for licensing and attribution information.
+
+---
+
+## Summary
+
+The Bravellian Platform provides a comprehensive, production-ready solution for distributed scheduling and message processing in .NET applications. Its **work queue pattern** with **atomic claim-ack-abandon semantics** ensures reliable processing even in distributed environments with multiple application instances.
+
+**Key Strengths:**
+- **Database-Authoritative Design**: SQL Server provides strong consistency guarantees
+- **Integrated Work Queue Pattern**: Eliminates the need for external message brokers for basic scenarios  
+- **Monotonic Clock System**: Resilient timing that survives system clock changes and GC pauses
+- **Comprehensive Testing**: Full integration test suite with SQL Server containers
+- **Production-Ready**: Built-in health checks, monitoring, and operational tooling
+
+**Ideal Use Cases:**
+- Applications requiring reliable background processing
+- Systems that need distributed coordination without external dependencies
+- Scenarios where strong consistency is more important than extreme throughput
+- Development teams wanting to avoid the complexity of managing separate message brokers
+
+The platform scales horizontally through database coordination and provides the reliability guarantees needed for mission-critical applications while maintaining simplicity in deployment and operations.
