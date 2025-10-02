@@ -1,18 +1,23 @@
 # Bravellian Platform
 
-A robust .NET platform providing SQL-based distributed locking, outbox pattern implementation, and scheduler services for building resilient, scalable applications.
+A robust .NET platform providing SQL-based distributed locking, outbox pattern implementation, and scheduler services for building resilient, scalable applications. The platform is designed around **work queue patterns** with **claim-ack-abandon semantics** and **database-authoritative timing** for maximum reliability in distributed systems.
 
 ## Overview
 
-This platform provides five core components:
+This platform provides five core components that work together seamlessly:
 
-1. **SQL Distributed Lock** - Database-backed distributed locking mechanism
-2. **Outbox Service** - Transactional outbox pattern for reliable message publishing
-3. **Inbox Service** - At-most-once processing guard for inbound messages
-4. **Timer Scheduler** - One-time scheduled tasks with persistence
+1. **SQL Distributed Lock** - Database-backed distributed locking with lease renewal
+2. **Outbox Service** - Transactional outbox pattern with work queue processing
+3. **Inbox Service** - At-most-once processing guard for inbound messages  
+4. **Timer Scheduler** - One-time scheduled tasks with precise timing
 5. **Job Scheduler** - Recurring jobs with cron-based scheduling
 
-All components are designed to work together seamlessly and provide strong consistency guarantees through SQL Server integration.
+**Key Design Principles:**
+- **Database-Authoritative Timing**: SQL Server's `SYSUTCDATETIME()` is the source of truth
+- **Monotonic Clock Scheduling**: Resilient to system clock changes and GC pauses
+- **Work Queue Pattern**: Atomic claim-process-acknowledge lifecycle for reliability
+- **Integrated API Design**: Work queue operations are part of domain interfaces
+- **Strong Consistency**: All operations leverage SQL Server's ACID properties
 
 ## Quick Start
 
@@ -32,131 +37,446 @@ using Bravellian.Platform;
 // In your Program.cs or Startup.cs
 var builder = WebApplication.CreateBuilder(args);
 
-// Add SQL Scheduler (includes outbox and distributed lock)
-builder.Services.AddSqlScheduler(builder.Configuration);
-
-// Or add components individually
-builder.Services.AddSqlDistributedLock(new SqlDistributedLockOptions 
+// Option 1: Add complete scheduler platform (recommended)
+builder.Services.AddSqlScheduler(new SqlSchedulerOptions
 {
-    ConnectionString = "Your SQL Server connection string"
+    ConnectionString = "Server=localhost;Database=MyApp;Trusted_Connection=true;",
+    EnableSchemaDeployment = true, // Automatically creates tables
+    MaxPollingInterval = TimeSpan.FromSeconds(5)
 });
 
+// Option 2: Add components individually with more control
 builder.Services.AddSqlOutbox(new SqlOutboxOptions
 {
-    ConnectionString = "Your SQL Server connection string"
+    ConnectionString = "Server=localhost;Database=MyApp;Trusted_Connection=true;",
+    EnableSchemaDeployment = true
 });
 
 builder.Services.AddSqlInbox(new SqlInboxOptions
 {
-    ConnectionString = "Your SQL Server connection string"
+    ConnectionString = "Server=localhost;Database=MyApp;Trusted_Connection=true;",
+    EnableSchemaDeployment = true
 });
 
+// Add health checks
+builder.Services.AddHealthChecks()
+    .AddSqlSchedulerHealthCheck();
+
 var app = builder.Build();
+
+// Configure health check endpoint
+app.MapHealthChecks("/health");
 ```
 
-### Database Setup
+### Database Schema
 
-Run the provided SQL scripts to create the required tables:
+The platform automatically creates the required database schema when `EnableSchemaDeployment = true`. Alternatively, you can run the SQL scripts manually:
+
+```bash
+# Core tables and stored procedures
+src/Bravellian.Platform.Database/
+├── Outbox.sql                    # Message outbox table
+├── OutboxWorkQueueProcs.sql      # Outbox work queue procedures
+├── Timers.sql                    # One-time scheduled tasks
+├── TimersWorkQueueProcs.sql      # Timer work queue procedures  
+├── Jobs.sql                      # Recurring job definitions
+├── JobRuns.sql                   # Job execution instances
+├── JobRunsWorkQueueProcs.sql     # Job run work queue procedures
+└── Inbox.sql                     # Inbound message deduplication
+```
+
+**Work Queue Enhancement**: All tables include work queue columns (`Status`, `LockedUntil`, `OwnerToken`) for atomic claim-and-process semantics.
+
+## Architecture Deep Dive
+
+### Work Queue Pattern Implementation
+
+The platform's reliability comes from its **integrated work queue pattern** that provides atomic claim-and-process semantics for all background operations.
+
+#### Core Concepts
+
+**1. Atomic Claims**: Using SQL Server's `READPAST, UPDLOCK, ROWLOCK` hints, workers atomically claim items without blocking other processes.
+
+**2. Lease-Based Processing**: Claimed items have a lease timeout (`LockedUntil`). If a worker crashes, items automatically become available for retry when the lease expires.
+
+**3. Owner Token Validation**: Each worker process uses a unique `OwnerToken` (GUID) to ensure only the claiming process can modify its items.
+
+#### Work Item Lifecycle
+
+```
+Ready (Status=0) → Claim → InProgress (Status=1) → Process → Done (Status=2)
+                             ↓                       ↑
+                         Abandon/Fail         Automatic Reap
+                             ↓                       ↑
+                      Ready (Status=0) ←──────────────┘
+```
+
+**State Transitions:**
+- **Claim**: `Ready → InProgress` (atomic, with lease)
+- **Acknowledge**: `InProgress → Done` (successful completion)
+- **Abandon**: `InProgress → Ready` (temporary failure, retry later)
+- **Fail**: `InProgress → Failed` (permanent failure)
+- **Reap**: `InProgress → Ready` (lease expired, automatic recovery)
+
+#### Database Schema Design
+
+All work queue tables share these common columns:
 
 ```sql
--- Required tables (run these scripts in order)
--- 1. Outbox.sql - For outbox pattern
--- 2. Timers.sql - For one-time scheduled tasks
--- 3. Jobs.sql - For recurring jobs
--- 4. JobRuns.sql - For job execution tracking
+-- Work queue state management
+Status TINYINT NOT NULL DEFAULT(0),           -- 0=Ready, 1=InProgress, 2=Done, 3=Failed
+LockedUntil DATETIME2(3) NULL,                -- UTC lease expiration time  
+OwnerToken UNIQUEIDENTIFIER NULL              -- Process ownership identifier
+
+-- Optimized indexes for work queue operations
+CREATE INDEX IX_{Table}_WorkQueue ON dbo.{Table}(Status, {TimeColumn}) 
+    INCLUDE(Id, OwnerToken);
 ```
 
-## Components
+#### Stored Procedures Pattern
 
-## 1. SQL Distributed Lock
+Each table has five generated stored procedures following this pattern:
 
-Provides a distributed locking mechanism using SQL Server's `sp_getapplock` stored procedure.
+```sql
+-- Example for Outbox table
+dbo.Outbox_Claim        -- Atomically claim ready items
+dbo.Outbox_Ack          -- Mark items as successfully completed
+dbo.Outbox_Abandon      -- Return items to ready state for retry
+dbo.Outbox_Fail         -- Mark items as failed
+dbo.Outbox_ReapExpired  -- Recover expired leases
+```
 
-### Basic Usage
+**Claim Procedure Logic** (simplified):
+```sql
+CREATE OR ALTER PROCEDURE dbo.Outbox_Claim
+    @OwnerToken UNIQUEIDENTIFIER,
+    @LeaseSeconds INT,
+    @BatchSize INT = 50
+AS
+BEGIN
+    DECLARE @now DATETIME2(3) = SYSUTCDATETIME();
+    DECLARE @until DATETIME2(3) = DATEADD(SECOND, @LeaseSeconds, @now);
+
+    WITH cte AS (
+        SELECT TOP (@BatchSize) Id
+        FROM dbo.Outbox WITH (READPAST, UPDLOCK, ROWLOCK)
+        WHERE Status = 0 /* Ready */
+          AND (LockedUntil IS NULL OR LockedUntil <= @now)
+        ORDER BY CreatedAt
+    )
+    UPDATE o SET 
+        Status = 1 /* InProgress */, 
+        OwnerToken = @OwnerToken, 
+        LockedUntil = @until
+    OUTPUT inserted.Id
+    FROM dbo.Outbox o
+    JOIN cte ON cte.Id = o.Id;
+END
+```
+
+### Time Abstractions System
+
+The platform uses two complementary time abstractions for reliability:
+
+#### TimeProvider - Wall Clock Authority
+- **Purpose**: Authoritative timestamps and business logic timing
+- **Usage**: Database records, audit trails, scheduling due times
+- **Implementation**: Uses `TimeProvider.System` in production
+- **Database Authority**: `SYSUTCDATETIME()` is the source of truth
+
+#### IMonotonicClock - Stable Duration Measurement  
+- **Purpose**: Timeout handling, lease renewals, performance measurement
+- **Usage**: Background service timing, lease management, retry delays
+- **Implementation**: Platform-specific monotonic time source
+- **Resilience**: Immune to system clock changes, NTP adjustments, GC pauses
+
+#### Example: Lease Renewal with Monotonic Timing
 
 ```csharp
-public class MyService
+public class LeaseRunner
 {
-    private readonly ISqlDistributedLock _distributedLock;
+    private readonly IMonotonicClock _clock;
+    private readonly TimeProvider _timeProvider;
 
-    public MyService(ISqlDistributedLock distributedLock)
+    public async Task<LeaseRunner> AcquireAsync(
+        string leaseName, 
+        TimeSpan leaseDuration, 
+        double renewPercent = 0.6)
     {
-        _distributedLock = distributedLock;
+        // Use wall clock for database operations
+        var result = await _leaseApi.AcquireAsync(leaseName, 
+            _timeProvider.GetUtcNow(), leaseDuration);
+        
+        if (!result.Acquired) return null;
+
+        // Use monotonic clock for renewal scheduling
+        var renewalInterval = leaseDuration * renewPercent;
+        var nextRenewal = MonoDeadline.In(_clock, renewalInterval);
+        
+        StartRenewalLoop(nextRenewal);
+        return this;
     }
+}
+```
 
-    public async Task DoExclusiveWork()
+### Background Service Architecture
+
+#### Polling Services with Exponential Backoff
+
+Background services use intelligent polling with automatic backoff:
+
+```csharp
+public class OutboxPollingService : BackgroundService
+{
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // Try to acquire lock immediately (TimeSpan.Zero)
-        var lockHandle = await _distributedLock.AcquireAsync(
-            "MyResourceLock", 
-            TimeSpan.Zero);
+        var emptyCount = 0;
+        const double baseInterval = 0.25; // 250ms base
+        const double maxInterval = 30.0;  // 30s max
 
-        await using (lockHandle)
+        while (!stoppingToken.IsCancellationRequested)
         {
-            if (lockHandle == null)
+            var processed = await _dispatcher.RunOnceAsync(batchSize: 50, stoppingToken);
+            
+            if (processed > 0)
             {
-                // Lock not acquired - another instance is working
-                return;
+                emptyCount = 0; // Reset backoff on successful processing
+                continue;
             }
-
-            // Lock acquired - do exclusive work
-            await ProcessImportantTask();
-        } // Lock is automatically released here
-    }
-
-    public async Task DoWorkWithWait()
-    {
-        // Wait up to 30 seconds for the lock
-        var lockHandle = await _distributedLock.AcquireAsync(
-            "MyResourceLock", 
-            TimeSpan.FromSeconds(30));
-
-        await using (lockHandle)
-        {
-            if (lockHandle == null)
-            {
-                throw new TimeoutException("Could not acquire lock within timeout");
-            }
-
-            await ProcessImportantTask();
+            
+            // Exponential backoff when no work available
+            emptyCount++;
+            var delay = Math.Min(baseInterval * Math.Pow(2, emptyCount), maxInterval);
+            await Task.Delay(TimeSpan.FromSeconds(delay), stoppingToken);
         }
     }
 }
 ```
 
-### Key Features
-
-- **Exclusive locking**: Only one instance can hold a named lock at a time
-- **Automatic cleanup**: Locks are released when the connection is closed or transaction rolls back
-- **Timeout support**: Configure how long to wait for lock acquisition
-- **Cancellation support**: Respects CancellationToken for operation cancellation
-
-### Configuration
+#### Schema Deployment Service
 
 ```csharp
-services.AddSqlDistributedLock(new SqlDistributedLockOptions
+public class DatabaseSchemaBackgroundService : BackgroundService
 {
-    ConnectionString = "Server=localhost;Database=MyApp;Trusted_Connection=true;"
-});
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        // Deploy schemas for all enabled components
+        var deploymentTasks = new List<Task>();
+        
+        if (_outboxOptions.CurrentValue.EnableSchemaDeployment)
+            deploymentTasks.Add(DeployOutboxSchemaAsync());
+            
+        if (_schedulerOptions.CurrentValue.EnableSchemaDeployment)
+            deploymentTasks.Add(DeploySchedulerSchemaAsync());
+            
+        await Task.WhenAll(deploymentTasks);
+        
+        // Signal completion to dependent services
+        _schemaCompletion.SetCompleted();
+    }
+}
+```
+
+## Components
+
+## 1. SQL Distributed Lock (Lease System v2)
+
+The distributed lock system provides database-authoritative lease management with monotonic clock scheduling and automatic renewal.
+
+### Architecture
+
+**Core Components:**
+- **`dbo.Lease` table**: Stores lease information with DB-authoritative timestamps
+- **`LeaseApi`**: Low-level data access operations  
+- **`LeaseRunner`**: High-level lease manager with automatic renewal
+
+### Key Features
+
+1. **DB-Authoritative Timestamps**: Database decides lease validity using `SYSUTCDATETIME()`
+2. **Monotonic Scheduling**: Uses `IMonotonicClock` for renewal timing
+3. **Configurable Renewal**: Renews at configurable percentage of lease duration (default 60%)
+4. **Jitter Prevention**: Adds random jitter to prevent thundering herd
+5. **Server Time Synchronization**: Returns server time to reduce round-trips
+
+### Basic Usage
+
+```csharp
+public class CriticalProcessService
+{
+    private readonly LeaseApi _leaseApi;
+    private readonly IMonotonicClock _clock;
+    private readonly TimeProvider _timeProvider;
+
+    public async Task RunExclusiveProcessAsync()
+    {
+        // Acquire a 5-minute lease with 60% renewal threshold
+        var runner = await LeaseRunner.AcquireAsync(
+            _leaseApi, _clock, _timeProvider,
+            leaseName: "critical-process",
+            owner: Environment.MachineName,
+            leaseDuration: TimeSpan.FromMinutes(5),
+            renewPercent: 0.6);
+
+        if (runner == null)
+        {
+            // Another instance is already running
+            _logger.LogInformation("Critical process already running on another instance");
+            return;
+        }
+
+        try
+        {
+            // Do exclusive work - use runner.CancellationToken for cooperative cancellation
+            await ProcessDataAsync(runner.CancellationToken);
+        }
+        catch (LostLeaseException ex)
+        {
+            _logger.LogWarning("Lease lost during processing: {Message}", ex.Message);
+        }
+        finally
+        {
+            await runner.DisposeAsync(); // Releases lease
+        }
+    }
+}
+```
+
+### Advanced Lease Management
+
+```csharp
+public class LongRunningJobService
+{
+    public async Task ProcessLargeDatasetAsync()
+    {
+        var runner = await LeaseRunner.AcquireAsync(/* ... */);
+        if (runner == null) return;
+
+        try
+        {
+            var items = await GetItemsToProcessAsync();
+            
+            foreach (var item in items)
+            {
+                // Check lease before each item
+                runner.ThrowIfLost();
+                
+                await ProcessItemAsync(item);
+                
+                // Manually renew if needed (optional - automatic renewal happens in background)
+                if (ShouldRenewNow())
+                {
+                    var renewed = await runner.TryRenewNowAsync();
+                    if (!renewed)
+                    {
+                        _logger.LogWarning("Failed to renew lease, stopping processing");
+                        break;
+                    }
+                }
+            }
+        }
+        finally
+        {
+            await runner.DisposeAsync();
+        }
+    }
+}
+```
+
+### Lease Renewal Mechanics
+
+The `LeaseRunner` automatically handles lease renewal:
+
+```csharp
+// Internal renewal logic (simplified)
+private async Task RenewalLoopAsync()
+{
+    while (!_cancellationTokenSource.Token.IsCancellationRequested)
+    {
+        // Calculate next renewal time using monotonic clock
+        var renewAt = _nextRenewalDeadline;
+        var now = _monotonicClock.Seconds;
+        
+        if (now >= renewAt.AtSeconds)
+        {
+            // Attempt renewal with jitter to prevent herd behavior
+            var jitter = Random.Shared.NextDouble(); // 0-1 second
+            await Task.Delay(TimeSpan.FromSeconds(jitter));
+            
+            var result = await _leaseApi.RenewAsync(_leaseName, _owner, _leaseDurationSeconds);
+            
+            if (result.Renewed)
+            {
+                // Schedule next renewal at 60% of lease duration
+                var renewalInterval = _leaseDurationSeconds * _renewPercent;
+                _nextRenewalDeadline = MonoDeadline.In(_monotonicClock, 
+                    TimeSpan.FromSeconds(renewalInterval));
+            }
+            else
+            {
+                // Lease lost - cancel all operations
+                _cancellationTokenSource.Cancel();
+                break;
+            }
+        }
+        
+        await Task.Delay(TimeSpan.FromSeconds(0.1)); // Check every 100ms
+    }
+}
 ```
 
 ## 2. Outbox Service
 
-Implements the transactional outbox pattern to ensure reliable message publishing alongside database transactions.
+Implements the transactional outbox pattern with integrated work queue processing for reliable message publishing alongside database transactions.
+
+### Architecture
+
+The outbox service combines traditional enqueuing with work queue processing:
+
+**Enqueue Phase**: Messages are stored in the outbox table within business transactions
+**Process Phase**: Background workers claim and process messages using work queue pattern
+
+### Database Schema
+
+```sql
+CREATE TABLE dbo.Outbox (
+    -- Core message fields
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    Payload NVARCHAR(MAX) NOT NULL,
+    Topic NVARCHAR(255) NOT NULL,
+    CreatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(),
+    
+    -- Work queue state management
+    Status TINYINT NOT NULL DEFAULT(0),           -- 0=Ready, 1=InProgress, 2=Done, 3=Failed
+    LockedUntil DATETIME2(3) NULL,                -- UTC lease expiration time
+    OwnerToken UNIQUEIDENTIFIER NULL,             -- Process ownership identifier
+    
+    -- Processing metadata
+    IsProcessed BIT NOT NULL DEFAULT 0,
+    ProcessedAt DATETIMEOFFSET NULL,
+    ProcessedBy NVARCHAR(100) NULL,
+    
+    -- Error handling and retry
+    RetryCount INT NOT NULL DEFAULT 0,
+    LastError NVARCHAR(MAX) NULL,
+    NextAttemptAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(),
+    
+    -- Message tracking
+    MessageId UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
+    CorrelationId NVARCHAR(255) NULL
+);
+
+-- Optimized work queue index
+CREATE INDEX IX_Outbox_WorkQueue ON dbo.Outbox(Status, CreatedAt) 
+    INCLUDE(Id, OwnerToken);
+```
 
 ### Basic Usage
 
 ```csharp
 public class OrderService
 {
-    private readonly ISqlServerContext _dbContext; // Your DB context
+    private readonly ISqlServerContext _dbContext;
     private readonly IOutbox _outbox;
-
-    public OrderService(ISqlServerContext dbContext, IOutbox outbox)
-    {
-        _dbContext = dbContext;
-        _outbox = outbox;
-    }
 
     public async Task CreateOrderAsync(CreateOrderRequest request)
     {
@@ -164,17 +484,18 @@ public class OrderService
         
         try
         {
-            // 1. Perform your database operations
+            // 1. Perform business operations
             var order = new Order 
             { 
                 CustomerId = request.CustomerId,
-                Total = request.Total 
+                Total = request.Total,
+                CreatedAt = DateTime.UtcNow
             };
             
             _dbContext.Orders.Add(order);
             await _dbContext.SaveChangesAsync();
 
-            // 2. Enqueue outbox message in the same transaction
+            // 2. Enqueue outbox message in same transaction
             await _outbox.EnqueueAsync(
                 topic: "OrderCreated",
                 payload: JsonSerializer.Serialize(new OrderCreatedEvent 
@@ -182,7 +503,7 @@ public class OrderService
                     OrderId = order.Id,
                     CustomerId = order.CustomerId,
                     Total = order.Total,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = order.CreatedAt
                 }),
                 transaction: transaction.GetDbTransaction(),
                 correlationId: request.CorrelationId);
@@ -198,24 +519,16 @@ public class OrderService
 }
 ```
 
-### Alternative: Standalone Usage
-
-For scenarios where you don't need to participate in an existing transaction, you can use the standalone method that manages its own connection and transaction:
+### Standalone Usage (Self-Managed Transaction)
 
 ```csharp
 public class NotificationService
 {
     private readonly IOutbox _outbox;
 
-    public NotificationService(IOutbox outbox)
-    {
-        _outbox = outbox;
-    }
-
     public async Task SendWelcomeEmailAsync(string userId, string email)
     {
-        // This method creates its own connection and transaction
-        // It also ensures the outbox table exists
+        // This creates its own connection and transaction
         await _outbox.EnqueueAsync(
             topic: "WelcomeEmail",
             payload: JsonSerializer.Serialize(new WelcomeEmailEvent 
@@ -229,42 +542,162 @@ public class NotificationService
 }
 ```
 
-### How It Works
+### Work Queue Processing
 
-1. **Enqueue**: Messages are stored in the outbox table within your business transaction
-2. **Process**: Background processor (`OutboxProcessor`) polls for unprocessed messages
-3. **Deliver**: Messages are sent to your message broker (Service Bus, RabbitMQ, etc.)
-4. **Cleanup**: Successfully delivered messages are marked as processed
-
-### Background Processing
-
-The `OutboxProcessor` runs as a hosted service and automatically processes outbox messages:
+The outbox service provides work queue methods for building custom processors:
 
 ```csharp
-// Automatically registered when you call AddSqlScheduler() or AddSqlOutbox()
-// Polls every 5 seconds for new messages
-// Uses distributed locking to ensure only one instance processes messages
-```
-
-### Configuration
-
-```csharp
-services.AddSqlOutbox(new SqlOutboxOptions
+public class OutboxProcessorService : BackgroundService
 {
-    ConnectionString = "Server=localhost;Database=MyApp;Trusted_Connection=true;"
-});
+    private readonly IOutbox _outbox;
+    private readonly IMessageBroker _messageBroker;
+    private readonly Guid _ownerToken = Guid.NewGuid();
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            // Claim batch of ready messages (30-second lease)
+            var claimedIds = await _outbox.ClaimAsync(_ownerToken, 30, 50, stoppingToken);
+            
+            if (claimedIds.Count == 0)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(200), stoppingToken);
+                continue;
+            }
+
+            var succeededIds = new List<Guid>();
+            var failedIds = new List<Guid>();
+
+            // Process each claimed message
+            foreach (var id in claimedIds)
+            {
+                try
+                {
+                    var message = await GetOutboxMessageAsync(id);
+                    await _messageBroker.PublishAsync(message.Topic, message.Payload);
+                    succeededIds.Add(id);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to process outbox message {Id}", id);
+                    failedIds.Add(id);
+                }
+            }
+
+            // Acknowledge results
+            if (succeededIds.Count > 0)
+                await _outbox.AckAsync(_ownerToken, succeededIds, stoppingToken);
+
+            if (failedIds.Count > 0)
+                await _outbox.AbandonAsync(_ownerToken, failedIds, stoppingToken);
+        }
+    }
+}
 ```
 
-### Error Handling
+### Built-in Background Processing
 
-The outbox includes built-in retry logic:
-- Failed messages are automatically retried with exponential backoff
-- Retry count and error details are tracked
-- Messages that fail repeatedly can be inspected and manually resolved
+The platform includes an automatic outbox processor:
+
+```csharp
+public class OutboxPollingService : BackgroundService
+{
+    private readonly OutboxDispatcher _dispatcher;
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                var processed = await _dispatcher.RunOnceAsync(batchSize: 50, stoppingToken);
+                
+                if (processed == 0)
+                {
+                    // No work available - exponential backoff
+                    await Task.Delay(CalculateBackoffDelay(), stoppingToken);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in outbox polling service");
+                await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+            }
+        }
+    }
+}
+```
+
+### Error Handling and Retry Logic
+
+The outbox includes built-in retry with exponential backoff:
+
+```csharp
+public class OutboxDispatcher
+{
+    public static TimeSpan DefaultBackoff(int attempt)
+    {
+        // Exponential backoff: 1s, 2s, 4s, 8s, 16s, 32s, 60s max
+        var seconds = Math.Min(Math.Pow(2, attempt), 60);
+        return TimeSpan.FromSeconds(seconds);
+    }
+
+    public async Task<int> RunOnceAsync(int batchSize, CancellationToken cancellationToken)
+    {
+        var messages = await _store.GetNextBatchAsync(batchSize, cancellationToken);
+        
+        foreach (var message in messages)
+        {
+            try
+            {
+                var handler = _resolver.GetHandler(message.Topic);
+                await handler.HandleAsync(message, cancellationToken);
+                
+                await _store.MarkProcessedAsync(message.Id, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                var nextAttempt = _timeProvider.GetUtcNow() + _backoffPolicy(message.RetryCount);
+                await _store.MarkFailedAsync(message.Id, ex.Message, nextAttempt, cancellationToken);
+            }
+        }
+        
+        return messages.Count;
+    }
+}
+```
 
 ## 3. Inbox Service
 
-Implements the Inbox pattern to ensure at-most-once processing of inbound messages. Prevents duplicate handling when the same message is received multiple times.
+Implements the Inbox pattern for at-most-once processing of inbound messages with atomic deduplication using SQL MERGE semantics.
+
+### Architecture
+
+The inbox service provides idempotent message processing by tracking message IDs and content hashes:
+
+**First Check**: `AlreadyProcessedAsync` atomically checks if message was processed
+**Safe Processing**: If new, marks as "Processing" and handles the message  
+**Completion**: Marks as "Done" when successfully processed
+**Poison Detection**: Tracks attempts and supports marking messages as "Dead"
+
+### Database Schema
+
+```sql
+CREATE TABLE dbo.Inbox (
+    MessageId VARCHAR(64) NOT NULL PRIMARY KEY,
+    Source VARCHAR(64) NOT NULL,
+    Hash BINARY(32) NULL,                    -- Optional content verification
+    FirstSeenUtc DATETIME2(3) NOT NULL,
+    LastSeenUtc DATETIME2(3) NOT NULL,
+    ProcessedUtc DATETIME2(3) NULL,
+    Attempts INT NOT NULL DEFAULT 0,
+    Status VARCHAR(16) NOT NULL DEFAULT 'Seen'  -- Seen, Processing, Done, Dead
+);
+
+CREATE INDEX IX_Inbox_Processing ON dbo.Inbox(Status, LastSeenUtc)
+    WHERE Status IN ('Seen', 'Processing');
+```
 
 ### Basic Usage
 
@@ -274,15 +707,9 @@ public class OrderEventHandler
     private readonly IInbox _inbox;
     private readonly IOrderService _orderService;
 
-    public OrderEventHandler(IInbox inbox, IOrderService orderService)
-    {
-        _inbox = inbox;
-        _orderService = orderService;
-    }
-
     public async Task HandleOrderEventAsync(OrderEvent orderEvent)
     {
-        // Check if this message was already processed
+        // Atomic check-and-mark-as-seen operation
         var alreadyProcessed = await _inbox.AlreadyProcessedAsync(
             messageId: orderEvent.MessageId,
             source: "OrderService",
@@ -290,7 +717,8 @@ public class OrderEventHandler
 
         if (alreadyProcessed)
         {
-            // Safe to ignore - already processed
+            // Safe to ignore - already processed this exact message
+            _logger.LogDebug("Message {MessageId} already processed", orderEvent.MessageId);
             return;
         }
 
@@ -299,7 +727,7 @@ public class OrderEventHandler
             // Mark as being processed (for poison detection)
             await _inbox.MarkProcessingAsync(orderEvent.MessageId);
 
-            // Process the message
+            // Process the message (your business logic)
             await _orderService.ProcessOrderAsync(orderEvent);
 
             // Mark as successfully processed
@@ -307,6 +735,8 @@ public class OrderEventHandler
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Failed to process message {MessageId}", orderEvent.MessageId);
+            
             // Could mark as dead after repeated failures
             await _inbox.MarkDeadAsync(orderEvent.MessageId);
             throw;
@@ -321,48 +751,213 @@ public class OrderEventHandler
 }
 ```
 
-### How It Works
-
-1. **First Check**: `AlreadyProcessedAsync` atomically checks if the message was already processed
-2. **Safe Processing**: If not processed, marks as "Processing" and handles the message
-3. **Completion**: Marks as "Done" when successfully processed
-4. **Concurrency Safe**: Uses SQL MERGE for atomic upsert operations
-5. **Poison Detection**: Tracks attempts and allows marking messages as "Dead"
-
-### Configuration
+### Advanced Usage with Retry Logic
 
 ```csharp
-services.AddSqlInbox(new SqlInboxOptions
+public class ResilientMessageHandler
 {
-    ConnectionString = "Server=localhost;Database=MyApp;Trusted_Connection=true;",
-    SchemaName = "dbo",      // Default
-    TableName = "Inbox"      // Default
-});
+    private readonly IInbox _inbox;
+    private readonly int _maxRetries = 3;
 
-// Or using connection string shorthand
-services.AddSqlInbox("Server=localhost;Database=MyApp;Trusted_Connection=true;");
+    public async Task HandleWithRetriesAsync(InboundMessage message)
+    {
+        var alreadyProcessed = await _inbox.AlreadyProcessedAsync(
+            message.Id, message.Source, ComputeHash(message.Content));
+            
+        if (alreadyProcessed) return;
+
+        var attempts = 0;
+        Exception lastException = null;
+
+        while (attempts < _maxRetries)
+        {
+            try
+            {
+                await _inbox.MarkProcessingAsync(message.Id);
+                
+                // Your processing logic here
+                await ProcessMessageAsync(message);
+                
+                await _inbox.MarkProcessedAsync(message.Id);
+                return; // Success!
+            }
+            catch (TransientException ex)
+            {
+                lastException = ex;
+                attempts++;
+                
+                if (attempts < _maxRetries)
+                {
+                    // Brief delay before retry
+                    await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempts)));
+                }
+            }
+            catch (Exception ex)
+            {
+                // Non-transient error - don't retry
+                await _inbox.MarkDeadAsync(message.Id);
+                throw;
+            }
+        }
+        
+        // Max retries exceeded
+        await _inbox.MarkDeadAsync(message.Id);
+        throw new MaxRetriesExceededException($"Failed after {_maxRetries} attempts", lastException);
+    }
+}
 ```
 
-### Database Schema
+### MERGE/Upsert Semantics
 
-The Inbox service automatically creates the following table:
+The `AlreadyProcessedAsync` method uses SQL MERGE for atomic deduplication:
 
 ```sql
-CREATE TABLE dbo.Inbox (
-    MessageId VARCHAR(64) NOT NULL PRIMARY KEY,
-    Source VARCHAR(64) NOT NULL,
-    Hash BINARY(32) NULL,
-    FirstSeenUtc DATETIME2(3) NOT NULL,
-    LastSeenUtc DATETIME2(3) NOT NULL,
-    ProcessedUtc DATETIME2(3) NULL,
-    Attempts INT NOT NULL DEFAULT 0,
-    Status VARCHAR(16) NOT NULL DEFAULT 'Seen'
-);
+-- Simplified version of the actual implementation
+MERGE dbo.Inbox AS target
+USING (VALUES (@MessageId, @Source, @Hash, @Now)) AS source(MessageId, Source, Hash, LastSeenUtc)
+ON target.MessageId = source.MessageId
+
+WHEN MATCHED THEN
+    UPDATE SET 
+        LastSeenUtc = source.LastSeenUtc,
+        Attempts = Attempts + 1
+
+WHEN NOT MATCHED THEN
+    INSERT (MessageId, Source, Hash, FirstSeenUtc, LastSeenUtc, Status)
+    VALUES (source.MessageId, source.Source, source.Hash, @Now, @Now, 'Seen')
+
+OUTPUT $action, inserted.ProcessedUtc;
+```
+
+This ensures that:
+1. **First time**: Message is inserted as 'Seen', returns `false` (not processed)
+2. **Subsequent times**: Message is updated, returns `true` if already processed
+3. **Concurrent access**: Only one thread can "win" the first processing attempt
+
+### Message Broker Integration
+
+Example integration with Azure Service Bus:
+
+```csharp
+public class ServiceBusMessageProcessor
+{
+    private readonly IInbox _inbox;
+    private readonly IMessageHandler _handler;
+
+    public async Task ProcessMessageAsync(ServiceBusReceivedMessage message)
+    {
+        try
+        {
+            // Extract message details
+            var messageId = message.MessageId;
+            var source = "ServiceBus";
+            var content = message.Body.ToString();
+            var hash = SHA256.HashData(Encoding.UTF8.GetBytes(content));
+
+            // Check for duplicate
+            var alreadyProcessed = await _inbox.AlreadyProcessedAsync(messageId, source, hash);
+            if (alreadyProcessed)
+            {
+                // Complete the message to remove from queue
+                await message.CompleteAsync();
+                return;
+            }
+
+            // Process message
+            await _inbox.MarkProcessingAsync(messageId);
+            await _handler.HandleAsync(content);
+            await _inbox.MarkProcessedAsync(messageId);
+
+            // Complete the message
+            await message.CompleteAsync();
+        }
+        catch (Exception ex)
+        {
+            await _inbox.MarkDeadAsync(message.MessageId);
+            
+            // Dead letter the message for manual investigation
+            await message.DeadLetterAsync("ProcessingError", ex.Message);
+        }
+    }
+}
+```
+
+### Monitoring and Cleanup
+
+```csharp
+public class InboxMaintenanceService : BackgroundService
+{
+    private readonly IServiceProvider _services;
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                using var scope = _services.CreateScope();
+                var connectionString = scope.ServiceProvider.GetRequiredService<IOptionsSnapshot<SqlInboxOptions>>().Value.ConnectionString;
+                
+                // Clean up old processed messages (older than 30 days)
+                await CleanupOldMessagesAsync(connectionString, TimeSpan.FromDays(30));
+                
+                // Alert on stuck processing messages
+                await AlertOnStuckMessagesAsync(connectionString, TimeSpan.FromHours(1));
+                
+                await Task.Delay(TimeSpan.FromHours(6), stoppingToken); // Run every 6 hours
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in inbox maintenance");
+                await Task.Delay(TimeSpan.FromMinutes(15), stoppingToken);
+            }
+        }
+    }
+}
 ```
 
 ## 4. Timer Scheduler (One-Time Tasks)
 
-Schedule one-time tasks to be executed at a specific future time.
+Schedules one-time tasks with precise timing and work queue processing for reliable execution.
+
+### Architecture
+
+**Scheduling**: Creates timer records with future `DueTime`
+**Processing**: Background workers claim due timers using work queue pattern
+**Execution**: Timer events are dispatched through the outbox pattern
+
+### Database Schema
+
+```sql
+CREATE TABLE dbo.Timers (
+    -- Core scheduling fields
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    DueTime DATETIMEOFFSET NOT NULL,
+    Payload NVARCHAR(MAX) NOT NULL,
+    Topic NVARCHAR(255) NOT NULL,
+    CorrelationId NVARCHAR(255) NULL,
+    
+    -- Work queue state management
+    StatusCode TINYINT NOT NULL DEFAULT(0),      -- 0=Ready, 1=InProgress, 2=Done, 3=Failed
+    LockedUntil DATETIME2(3) NULL,               -- UTC lease expiration time
+    OwnerToken UNIQUEIDENTIFIER NULL,            -- Process ownership identifier
+    
+    -- Legacy status field (for compatibility)
+    Status NVARCHAR(20) NOT NULL DEFAULT 'Pending',
+    ClaimedBy NVARCHAR(100) NULL,
+    ClaimedAt DATETIMEOFFSET NULL,
+    RetryCount INT NOT NULL DEFAULT 0,
+    
+    -- Auditing
+    CreatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(),
+    ProcessedAt DATETIMEOFFSET NULL,
+    LastError NVARCHAR(MAX) NULL
+);
+
+-- Critical index for efficient timer processing
+CREATE INDEX IX_Timers_WorkQueue ON dbo.Timers(StatusCode, DueTime) 
+    INCLUDE(Id, OwnerToken) WHERE StatusCode = 0;
+```
 
 ### Basic Usage
 
@@ -371,17 +966,13 @@ public class NotificationService
 {
     private readonly ISchedulerClient _scheduler;
 
-    public NotificationService(ISchedulerClient scheduler)
-    {
-        _scheduler = scheduler;
-    }
-
     public async Task ScheduleReminderAsync(int userId, DateTime reminderTime)
     {
         var payload = JsonSerializer.Serialize(new ReminderPayload 
         { 
             UserId = userId,
-            Message = "Don't forget your appointment!"
+            Message = "Don't forget your appointment!",
+            EmailAddress = "user@example.com"
         });
 
         var timerId = await _scheduler.ScheduleTimerAsync(
@@ -389,8 +980,8 @@ public class NotificationService
             payload: payload,
             dueTime: reminderTime);
 
-        // Store timerId if you need to cancel later
-        Console.WriteLine($"Scheduled reminder: {timerId}");
+        _logger.LogInformation("Scheduled reminder {TimerId} for user {UserId} at {DueTime}", 
+            timerId, userId, reminderTime);
     }
 
     public async Task CancelReminderAsync(string timerId)
@@ -398,42 +989,195 @@ public class NotificationService
         var cancelled = await _scheduler.CancelTimerAsync(timerId);
         if (cancelled)
         {
-            Console.WriteLine("Reminder cancelled successfully");
+            _logger.LogInformation("Reminder {TimerId} cancelled successfully", timerId);
         }
         else
         {
-            Console.WriteLine("Reminder not found or already processed");
+            _logger.LogWarning("Reminder {TimerId} not found or already processed", timerId);
         }
     }
 }
 ```
 
-### Processing Timer Events
+### Timer Processing with Work Queue
 
-Timer events are dispatched through the outbox pattern:
+The platform includes background timer processing:
 
 ```csharp
-// When a timer fires, it automatically creates an outbox message
-// Your message handlers should listen for these messages:
-
-public class ReminderHandler
+public class TimerProcessingService : BackgroundService
 {
-    public async Task HandleReminderAsync(string payload)
+    private readonly ISchedulerClient _scheduler;
+    private readonly IOutbox _outbox;
+    private readonly Guid _ownerToken = Guid.NewGuid();
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var reminder = JsonSerializer.Deserialize<ReminderPayload>(payload);
-        
-        // Send email, SMS, push notification, etc.
-        await SendNotificationAsync(reminder.UserId, reminder.Message);
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                // Claim due timers (30-second lease, batch of 20)
+                var claimedTimerIds = await _scheduler.ClaimTimersAsync(_ownerToken, 30, 20, stoppingToken);
+                
+                if (claimedTimerIds.Count == 0)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
+                    continue;
+                }
+
+                var processedIds = new List<Guid>();
+                var failedIds = new List<Guid>();
+
+                foreach (var timerId in claimedTimerIds)
+                {
+                    try
+                    {
+                        // Get timer details
+                        var timer = await GetTimerAsync(timerId);
+                        
+                        // Dispatch timer event through outbox
+                        await _outbox.EnqueueAsync(
+                            topic: timer.Topic,
+                            payload: timer.Payload,
+                            correlationId: timer.CorrelationId);
+                            
+                        processedIds.Add(timerId);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to process timer {TimerId}", timerId);
+                        failedIds.Add(timerId);
+                    }
+                }
+
+                // Acknowledge results
+                if (processedIds.Count > 0)
+                    await _scheduler.AckTimersAsync(_ownerToken, processedIds, stoppingToken);
+
+                if (failedIds.Count > 0)
+                    await _scheduler.AbandonTimersAsync(_ownerToken, failedIds, stoppingToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in timer processing service");
+                await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+            }
+        }
     }
 }
 ```
 
-### Key Features
+### Timer Claim Logic
 
-- **Persistent**: Timers survive application restarts
-- **Reliable**: Uses distributed locking to prevent duplicate execution
-- **Scalable**: Multiple instances can run, but only one processes each timer
-- **Cancellable**: Cancel timers before they execute
+The `Timers_Claim` stored procedure implements domain-specific logic:
+
+```sql
+CREATE OR ALTER PROCEDURE dbo.Timers_Claim
+    @OwnerToken UNIQUEIDENTIFIER,
+    @LeaseSeconds INT,
+    @BatchSize INT = 20
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @now DATETIME2(3) = SYSUTCDATETIME();
+    DECLARE @until DATETIME2(3) = DATEADD(SECOND, @LeaseSeconds, @now);
+
+    -- Only claim timers that are due (DueTime <= now)
+    WITH cte AS (
+        SELECT TOP (@BatchSize) Id
+        FROM dbo.Timers WITH (READPAST, UPDLOCK, ROWLOCK)
+        WHERE StatusCode = 0 /* Ready */
+          AND DueTime <= @now /* Due for execution */
+          AND (LockedUntil IS NULL OR LockedUntil <= @now)
+        ORDER BY DueTime, CreatedAt
+    )
+    UPDATE t SET 
+        StatusCode = 1 /* InProgress */, 
+        OwnerToken = @OwnerToken, 
+        LockedUntil = @until
+    OUTPUT inserted.Id
+    FROM dbo.Timers t
+    JOIN cte ON cte.Id = t.Id;
+END
+```
+
+### High-Precision Timing
+
+For scenarios requiring precise timing:
+
+```csharp
+public class PrecisionTimerService
+{
+    private readonly ISchedulerClient _scheduler;
+    private readonly TimeProvider _timeProvider;
+
+    public async Task SchedulePreciseTaskAsync(TimeSpan delay)
+    {
+        // Use database-authoritative time for precision
+        var dueTime = _timeProvider.GetUtcNow().Add(delay);
+        
+        var timerId = await _scheduler.ScheduleTimerAsync(
+            topic: "PreciseTask",
+            payload: JsonSerializer.Serialize(new { ScheduledAt = dueTime }),
+            dueTime: dueTime);
+            
+        _logger.LogInformation("Scheduled precise task {TimerId} for {DueTime}", timerId, dueTime);
+    }
+}
+```
+
+### Timer Event Handling
+
+Timer events are processed through your outbox message handlers:
+
+```csharp
+public class ReminderHandler : IOutboxHandler
+{
+    private readonly IEmailService _emailService;
+
+    public string Topic => "SendReminder";
+
+    public async Task HandleAsync(OutboxMessage message, CancellationToken cancellationToken)
+    {
+        var reminder = JsonSerializer.Deserialize<ReminderPayload>(message.Payload);
+        
+        await _emailService.SendEmailAsync(
+            to: reminder.EmailAddress,
+            subject: "Reminder",
+            body: reminder.Message);
+            
+        _logger.LogInformation("Sent reminder to user {UserId}", reminder.UserId);
+    }
+}
+```
+
+### Bulk Timer Operations
+
+```csharp
+public class BulkTimerService
+{
+    private readonly ISchedulerClient _scheduler;
+
+    public async Task ScheduleWeeklyRemindersAsync(IEnumerable<User> users)
+    {
+        var baseTime = DateTime.UtcNow.Date.AddDays(7).AddHours(9); // Next week at 9 AM
+        
+        var scheduleTasks = users.Select(async (user, index) =>
+        {
+            // Spread timers over 1 hour to avoid thundering herd
+            var dueTime = baseTime.AddMinutes(index % 60);
+            
+            return await _scheduler.ScheduleTimerAsync(
+                topic: "WeeklyReminder",
+                payload: JsonSerializer.Serialize(new { UserId = user.Id }),
+                dueTime: dueTime);
+        });
+
+        var timerIds = await Task.WhenAll(scheduleTasks);
+        _logger.LogInformation("Scheduled {Count} weekly reminders", timerIds.Length);
+    }
+}
+```
 
 ## 5. Job Scheduler (Recurring Jobs)
 
