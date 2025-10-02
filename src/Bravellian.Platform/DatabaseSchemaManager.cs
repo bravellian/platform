@@ -896,6 +896,117 @@ VALUES (1, 0, NULL);";
     }
 
     /// <summary>
+    /// Creates the Inbox work queue stored procedures individually.
+    /// </summary>
+    /// <param name="connection">The SQL connection.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    private static async Task CreateInboxProceduresAsync(SqlConnection connection)
+    {
+        // Create procedures one by one to avoid batch execution issues
+        var procedures = new[]
+        {
+            @"CREATE OR ALTER PROCEDURE dbo.Inbox_Claim
+                @OwnerToken UNIQUEIDENTIFIER,
+                @LeaseSeconds INT,
+                @BatchSize INT = 50
+              AS
+              BEGIN
+                SET NOCOUNT ON;
+                DECLARE @now DATETIME2(3) = SYSUTCDATETIME();
+                DECLARE @until DATETIME2(3) = DATEADD(SECOND, @LeaseSeconds, @now);
+
+                WITH cte AS (
+                    SELECT TOP (@BatchSize) MessageId
+                    FROM dbo.Inbox WITH (READPAST, UPDLOCK, ROWLOCK)
+                    WHERE Status IN ('Seen', 'Processing') AND (LockedUntil IS NULL OR LockedUntil <= @now)
+                    ORDER BY LastSeenUtc
+                )
+                UPDATE i SET Status = 'Processing', OwnerToken = @OwnerToken, LockedUntil = @until, LastSeenUtc = @now
+                OUTPUT inserted.MessageId
+                FROM dbo.Inbox i JOIN cte ON cte.MessageId = i.MessageId;
+              END",
+
+            @"CREATE OR ALTER PROCEDURE dbo.Inbox_Ack
+                @OwnerToken UNIQUEIDENTIFIER,
+                @Ids dbo.StringIdList READONLY
+              AS
+              BEGIN
+                SET NOCOUNT ON;
+                UPDATE i SET Status = 'Done', OwnerToken = NULL, LockedUntil = NULL, ProcessedUtc = SYSUTCDATETIME(), LastSeenUtc = SYSUTCDATETIME()
+                FROM dbo.Inbox i JOIN @Ids ids ON ids.Id = i.MessageId
+                WHERE i.OwnerToken = @OwnerToken AND i.Status = 'Processing';
+              END",
+
+            @"CREATE OR ALTER PROCEDURE dbo.Inbox_Abandon
+                @OwnerToken UNIQUEIDENTIFIER,
+                @Ids dbo.StringIdList READONLY
+              AS
+              BEGIN
+                SET NOCOUNT ON;
+                UPDATE i SET Status = 'Seen', OwnerToken = NULL, LockedUntil = NULL, LastSeenUtc = SYSUTCDATETIME()
+                FROM dbo.Inbox i JOIN @Ids ids ON ids.Id = i.MessageId
+                WHERE i.OwnerToken = @OwnerToken AND i.Status = 'Processing';
+              END",
+
+            @"CREATE OR ALTER PROCEDURE dbo.Inbox_Fail
+                @OwnerToken UNIQUEIDENTIFIER,
+                @Ids dbo.StringIdList READONLY,
+                @Reason NVARCHAR(MAX) = NULL
+              AS
+              BEGIN
+                SET NOCOUNT ON;
+                UPDATE i SET Status = 'Dead', OwnerToken = NULL, LockedUntil = NULL, LastSeenUtc = SYSUTCDATETIME()
+                FROM dbo.Inbox i JOIN @Ids ids ON ids.Id = i.MessageId
+                WHERE i.OwnerToken = @OwnerToken AND i.Status = 'Processing';
+              END",
+
+            @"CREATE OR ALTER PROCEDURE dbo.Inbox_ReapExpired
+              AS
+              BEGIN
+                SET NOCOUNT ON;
+                UPDATE dbo.Inbox SET Status = 'Seen', OwnerToken = NULL, LockedUntil = NULL, LastSeenUtc = SYSUTCDATETIME()
+                WHERE Status = 'Processing' AND LockedUntil IS NOT NULL AND LockedUntil <= SYSUTCDATETIME();
+                SELECT @@ROWCOUNT AS ReapedCount;
+              END",
+        };
+
+        foreach (var procedure in procedures)
+        {
+            await connection.ExecuteAsync(procedure).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// Ensures that the required database schema exists for the inbox work queue functionality.
+    /// </summary>
+    /// <param name="connectionString">The database connection string.</param>
+    /// <param name="schemaName">The schema name (default: "dbo").</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public static async Task EnsureInboxWorkQueueSchemaAsync(string connectionString, string schemaName = "dbo")
+    {
+        try
+        {
+            using var connection = new SqlConnection(connectionString);
+            await connection.OpenAsync().ConfigureAwait(false);
+
+            // Apply inbox work queue migration (columns and types)
+            var migrationScript = GetInboxWorkQueueMigrationInlineScript();
+            await ExecuteScriptAsync(connection, migrationScript).ConfigureAwait(false);
+
+            // Create each stored procedure individually to avoid batch issues
+            await CreateInboxProceduresAsync(connection).ConfigureAwait(false);
+        }
+        catch (SqlException sqlEx)
+        {
+            throw new InvalidOperationException($"Failed to ensure inbox work queue schema. SQL Error: {sqlEx.Message} (Error Number: {sqlEx.Number}, Severity: {sqlEx.Class}, State: {sqlEx.State})", sqlEx);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Failed to ensure inbox work queue schema: {ex.Message}", ex);
+        }
+    }
+
+    /// <summary>
     /// Gets the work queue migration script.
     /// </summary>
     /// <returns>The SQL migration script.</returns>
@@ -924,5 +1035,38 @@ IF COL_LENGTH('dbo.Outbox', 'LockedUntil') IS NULL
 
 IF COL_LENGTH('dbo.Outbox', 'OwnerToken') IS NULL
     ALTER TABLE dbo.Outbox ADD OwnerToken UNIQUEIDENTIFIER NULL;";
+    }
+
+    private static string GetInboxWorkQueueMigrationInlineScript()
+    {
+        return @"
+-- Create table-valued parameter types if they don't exist
+IF TYPE_ID('dbo.StringIdList') IS NULL
+BEGIN
+    CREATE TYPE dbo.StringIdList AS TABLE (
+        Id VARCHAR(64) NOT NULL PRIMARY KEY
+    );
+END
+
+-- Add work queue columns to Inbox if they don't exist
+IF COL_LENGTH('dbo.Inbox', 'LockedUntil') IS NULL
+    ALTER TABLE dbo.Inbox ADD LockedUntil DATETIME2(3) NULL;
+
+IF COL_LENGTH('dbo.Inbox', 'OwnerToken') IS NULL
+    ALTER TABLE dbo.Inbox ADD OwnerToken UNIQUEIDENTIFIER NULL;
+
+IF COL_LENGTH('dbo.Inbox', 'Topic') IS NULL
+    ALTER TABLE dbo.Inbox ADD Topic VARCHAR(128) NULL;
+
+IF COL_LENGTH('dbo.Inbox', 'Payload') IS NULL
+    ALTER TABLE dbo.Inbox ADD Payload NVARCHAR(MAX) NULL;
+
+-- Create work queue index for Inbox if it doesn't exist
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name='IX_Inbox_WorkQueue' AND object_id=OBJECT_ID('dbo.Inbox'))
+BEGIN
+    CREATE INDEX IX_Inbox_WorkQueue ON dbo.Inbox(Status, LastSeenUtc)
+        INCLUDE(MessageId, OwnerToken)
+        WHERE Status IN ('Seen', 'Processing');
+END";
     }
 }

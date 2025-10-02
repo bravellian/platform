@@ -152,5 +152,10 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
             options.ConnectionString,
             options.SchemaName,
             options.TableName).ConfigureAwait(false);
+
+        // Also deploy inbox work queue schema for dispatcher
+        await DatabaseSchemaManager.EnsureInboxWorkQueueSchemaAsync(
+            options.ConnectionString,
+            options.SchemaName).ConfigureAwait(false);
     }
 }
