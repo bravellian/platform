@@ -88,7 +88,12 @@ internal class SqlSchedulerClient : ISchedulerClient
 
     public async Task CreateOrUpdateJobAsync(string jobName, string topic, string cronSchedule, string? payload = null)
     {
-        var cronExpression = CronExpression.Parse(cronSchedule, CronFormat.IncludeSeconds);
+        // Determine cron format based on the number of parts.
+        var format = cronSchedule.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length == 6
+            ? CronFormat.IncludeSeconds
+            : CronFormat.Standard;
+
+        var cronExpression = CronExpression.Parse(cronSchedule, format);
         var nextDueTime = cronExpression.GetNextOccurrence(this.timeProvider.GetUtcNow().UtcDateTime);
 
         // MERGE is a great way to handle "UPSERT" logic atomically in SQL Server.

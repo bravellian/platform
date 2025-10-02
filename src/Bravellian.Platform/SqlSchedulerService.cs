@@ -14,6 +14,7 @@
 
 namespace Bravellian.Platform;
 
+using Cronos;
 using Dapper;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -38,6 +39,7 @@ internal class SqlSchedulerService : BackgroundService
     private readonly string claimJobsSql;
     private readonly string getNextEventTimeSql;
     private readonly string schedulerStateUpdateSql;
+    private readonly string createJobRunsSql;
 
     public SqlSchedulerService(ISystemLeaseFactory leaseFactory, IOutbox outbox, IOptions<SqlSchedulerOptions> options, TimeProvider timeProvider, IDatabaseSchemaCompletion? schemaCompletion = null)
     {
@@ -79,6 +81,8 @@ internal class SqlSchedulerService : BackgroundService
                 SELECT MIN(DueTime) AS NextDue FROM [{this.options.SchemaName}].[{this.options.TimersTableName}] WHERE Status = 'Pending'
                 UNION ALL
                 SELECT MIN(ScheduledTime) AS NextDue FROM [{this.options.SchemaName}].[{this.options.JobRunsTableName}] WHERE Status = 'Pending'
+                UNION ALL
+                SELECT MIN(NextDueTime) AS NextDue FROM [{this.options.SchemaName}].[{this.options.JobsTableName}]
             ) AS NextEvents;";
 
         // SQL to update the fencing token state for scheduler operations
@@ -90,6 +94,24 @@ internal class SqlSchedulerService : BackgroundService
                 UPDATE SET CurrentFencingToken = @FencingToken, LastRunAt = @LastRunAt
             WHEN NOT MATCHED THEN
                 INSERT (Id, CurrentFencingToken, LastRunAt) VALUES (1, @FencingToken, @LastRunAt);";
+        
+        this.createJobRunsSql = $@"
+            WITH DueJobs AS (
+                SELECT Id, CronSchedule
+                FROM [{this.options.SchemaName}].[{this.options.JobsTableName}]
+                WHERE NextDueTime <= SYSDATETIMEOFFSET()
+            )
+            INSERT INTO [{this.options.SchemaName}].[{this.options.JobRunsTableName}] (Id, JobId, ScheduledTime, Status)
+            SELECT NEWID(), Id, SYSDATETIMEOFFSET(), 'Pending'
+            FROM DueJobs;
+
+            UPDATE j
+            SET j.NextDueTime = (
+                SELECT TOP 1 NextOccurrence
+                FROM dbo.GetNextOccurrences(j.CronSchedule, SYSDATETIMEOFFSET())
+            )
+            FROM [{this.options.SchemaName}].[{this.options.JobsTableName}] j
+            WHERE j.Id IN (SELECT Id FROM DueJobs);";
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -202,6 +224,9 @@ internal class SqlSchedulerService : BackgroundService
             // Check that we still hold the lease before proceeding
             lease.ThrowIfLost();
 
+            // 1. Create job runs from any due job definitions.
+            await this.CreateJobRunsFromDueJobsAsync(transaction, lease).ConfigureAwait(false);
+
             // 2. Process due timers.
             await this.DispatchTimersAsync(transaction, lease).ConfigureAwait(false);
 
@@ -222,6 +247,65 @@ internal class SqlSchedulerService : BackgroundService
             transaction.Rollback();
             throw; // Re-throw the exception to be logged by the host.
         }
+    }
+
+    private async Task CreateJobRunsFromDueJobsAsync(Microsoft.Data.SqlClient.SqlTransaction transaction, ISystemLease lease)
+    {
+        var findDueJobsSql = $@"
+            SELECT Id, CronSchedule FROM [{this.options.SchemaName}].[{this.options.JobsTableName}]
+            WHERE NextDueTime <= @Now;";
+
+        var dueJobs = (await transaction.Connection.QueryAsync<(Guid Id, string CronSchedule)>(
+            findDueJobsSql, new { Now = this.timeProvider.GetUtcNow() }, transaction).ConfigureAwait(false)).AsList();
+
+        if (!dueJobs.Any())
+        {
+            return;
+        }
+
+        lease.ThrowIfLost();
+
+        var runsToInsert = new List<object>();
+        var jobsToUpdate = new List<object>();
+        var now = this.timeProvider.GetUtcNow();
+
+        foreach (var job in dueJobs)
+        {
+            // Prepare the new JobRun record
+            runsToInsert.Add(new
+            {
+                RunId = Guid.NewGuid(),
+                JobId = job.Id,
+                ScheduledTime = now,
+            });
+
+            // Determine cron format based on the number of parts.
+            var format = job.CronSchedule.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length == 6
+                ? CronFormat.IncludeSeconds
+                : CronFormat.Standard;
+
+            // Calculate the next occurrence and prepare the update
+            var cronExpression = CronExpression.Parse(job.CronSchedule, format);
+            var nextOccurrence = cronExpression.GetNextOccurrence(now.UtcDateTime);
+            jobsToUpdate.Add(new
+            {
+                NextDueTime = nextOccurrence,
+                JobId = job.Id,
+            });
+        }
+
+        var insertRunSql = $@"
+            INSERT INTO [{this.options.SchemaName}].[{this.options.JobRunsTableName}] (Id, JobId, ScheduledTime, Status)
+            VALUES (@RunId, @JobId, @ScheduledTime, 'Pending');";
+
+        await transaction.Connection.ExecuteAsync(insertRunSql, runsToInsert, transaction).ConfigureAwait(false);
+
+        var updateJobSql = $@"
+            UPDATE [{this.options.SchemaName}].[{this.options.JobsTableName}]
+            SET NextDueTime = @NextDueTime
+            WHERE Id = @JobId;";
+
+        await transaction.Connection.ExecuteAsync(updateJobSql, jobsToUpdate, transaction).ConfigureAwait(false);
     }
 
     private async Task DispatchTimersAsync(Microsoft.Data.SqlClient.SqlTransaction transaction, ISystemLease lease)
