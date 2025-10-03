@@ -1,12 +1,8 @@
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Hosting;
-using Xunit;
-using Bravellian.Platform;
-using System.Linq;
-
 namespace Bravellian.Platform.Tests
 {
+    using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Hosting;
+
     public class DatabaseSchemaDeploymentTests
     {
         [Fact]

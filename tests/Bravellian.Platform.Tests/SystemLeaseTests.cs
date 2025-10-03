@@ -25,7 +25,8 @@ public class SystemLeaseTests : SqlServerTestBase
     private IOptions<SystemLeaseOptions>? mockOptions;
     private SqlLeaseFactory? leaseFactory;
 
-    public SystemLeaseTests(ITestOutputHelper testOutputHelper) : base(testOutputHelper)
+    public SystemLeaseTests(ITestOutputHelper testOutputHelper)
+        : base(testOutputHelper)
     {
     }
 

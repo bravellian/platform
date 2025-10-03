@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -54,16 +53,17 @@ internal sealed class FanoutJobHandler : IOutboxHandler
                 return;
             }
 
-            this.logger.LogDebug("Processing fanout job for topic {FanoutTopic}, workKey {WorkKey}", 
-                payload.FanoutTopic, payload.WorkKey);
+            this.logger.LogDebug(
+                "Processing fanout job for topic {FanoutTopic}, workKey {WorkKey}",
+                payload.fanoutTopic, payload.workKey);
 
             // Create a scope to resolve the coordinator
             using var scope = this.serviceProvider.CreateScope();
-            
+
             // Get the coordinator for this topic/workKey combination
-            var key = payload.WorkKey is null ? payload.FanoutTopic : $"{payload.FanoutTopic}:{payload.WorkKey}";
+            var key = payload.workKey is null ? payload.fanoutTopic : $"{payload.fanoutTopic}:{payload.workKey}";
             var coordinator = scope.ServiceProvider.GetKeyedService<IFanoutCoordinator>(key);
-            
+
             if (coordinator == null)
             {
                 this.logger.LogError("No fanout coordinator found for key {Key}", key);
@@ -71,10 +71,11 @@ internal sealed class FanoutJobHandler : IOutboxHandler
             }
 
             // Run the fanout coordination
-            var processedCount = await coordinator.RunAsync(payload.FanoutTopic, payload.WorkKey, cancellationToken);
-            
-            this.logger.LogInformation("Fanout coordination completed for {FanoutTopic}:{WorkKey}, processed {Count} slices", 
-                payload.FanoutTopic, payload.WorkKey, processedCount);
+            var processedCount = await coordinator.RunAsync(payload.fanoutTopic, payload.workKey, cancellationToken).ConfigureAwait(false);
+
+            this.logger.LogInformation(
+                "Fanout coordination completed for {FanoutTopic}:{WorkKey}, processed {Count} slices",
+                payload.fanoutTopic, payload.workKey, processedCount);
         }
         catch (Exception ex)
         {
@@ -86,5 +87,5 @@ internal sealed class FanoutJobHandler : IOutboxHandler
     /// <summary>
     /// Payload for fanout coordination jobs.
     /// </summary>
-    public sealed record FanoutJobPayload(string FanoutTopic, string? WorkKey);
+    public sealed record FanoutJobPayload(string fanoutTopic, string? workKey);
 }

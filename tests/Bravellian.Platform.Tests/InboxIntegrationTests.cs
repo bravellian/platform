@@ -1,9 +1,21 @@
+// Copyright (c) Bravellian
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 namespace Bravellian.Platform.Tests;
 
 using Bravellian.Platform.Tests.TestUtilities;
 using Dapper;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 /// <summary>
@@ -49,7 +61,7 @@ public class InboxIntegrationTests : SqlServerTestBase
         Assert.True(alreadyProcessed2, "Subsequent check should return true");
 
         // Verify the message state in database
-        await VerifyMessageState(messageId, "Done", processedUtc: true);
+        await this.VerifyMessageState(messageId, "Done", processedUtc: true);
     }
 
     [Fact]
@@ -79,7 +91,7 @@ public class InboxIntegrationTests : SqlServerTestBase
         await inbox.MarkDeadAsync(messageId);
 
         // Assert - Verify state
-        await VerifyMessageState(messageId, "Dead", processedUtc: false);
+        await this.VerifyMessageState(messageId, "Dead", processedUtc: false);
     }
 
     [Fact]
@@ -105,7 +117,7 @@ public class InboxIntegrationTests : SqlServerTestBase
 
                 var logger = new TestLogger<SqlInboxService>(this.TestOutputHelper);
                 var inboxInstance = new SqlInboxService(options, logger);
-                return await inboxInstance.AlreadyProcessedAsync(messageId, source);
+                return await inboxInstance.AlreadyProcessedAsync(messageId, source).ConfigureAwait(false);
             }));
         }
 
@@ -128,8 +140,10 @@ public class InboxIntegrationTests : SqlServerTestBase
 
     private async Task VerifyMessageState(string messageId, string expectedStatus, bool processedUtc)
     {
-        await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
+        await using (connection.ConfigureAwait(false))
+        {
+            await connection.OpenAsync();
 
         var result = await connection.QuerySingleAsync<(string Status, DateTime? ProcessedUtc)>(
             "SELECT Status, ProcessedUtc FROM dbo.Inbox WHERE MessageId = @MessageId",
@@ -144,6 +158,7 @@ public class InboxIntegrationTests : SqlServerTestBase
         else
         {
             Assert.Null(result.ProcessedUtc);
+        }
         }
     }
 }

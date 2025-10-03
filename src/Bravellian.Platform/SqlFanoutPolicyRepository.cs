@@ -50,30 +50,35 @@ internal sealed class SqlFanoutPolicyRepository : IFanoutPolicyRepository
             this.options.PolicyTableName,
             this.options.CursorTableName).ConfigureAwait(false);
 
-        await using var connection = new SqlConnection(this.connectionString);
-        await connection.OpenAsync(ct).ConfigureAwait(false);
+        var connection = new SqlConnection(this.connectionString);
+        await using (connection.ConfigureAwait(false))
+        {
+            await connection.OpenAsync(ct).ConfigureAwait(false);
 
-        var sql = $"""
+            var sql = $"""
 
                         SELECT DefaultEverySeconds, JitterSeconds 
                         FROM [{this.options.SchemaName}].[{this.options.PolicyTableName}]
                         WHERE FanoutTopic = @FanoutTopic AND WorkKey = @WorkKey
             """;
 
-        var result = await connection.QueryFirstOrDefaultAsync<(int DefaultEverySeconds, int JitterSeconds)>(
-            sql, 
-            new { FanoutTopic = fanoutTopic, WorkKey = workKey }).ConfigureAwait(false);
+            var result = await connection.QueryFirstOrDefaultAsync<(int DefaultEverySeconds, int JitterSeconds)>(
+                sql,
+                new { FanoutTopic = fanoutTopic, WorkKey = workKey }).ConfigureAwait(false);
 
-        return result == default ? (defaultEverySeconds, defaultJitterSeconds) : result;
+            return result == default ? (defaultEverySeconds, defaultJitterSeconds) : result;
+        }
     }
 
     /// <inheritdoc/>
     public async Task SetCadenceAsync(string fanoutTopic, string workKey, int everySeconds, int jitterSeconds, CancellationToken ct)
     {
-        await using var connection = new SqlConnection(this.connectionString);
-        await connection.OpenAsync(ct).ConfigureAwait(false);
+        var connection = new SqlConnection(this.connectionString);
+        await using (connection.ConfigureAwait(false))
+        {
+            await connection.OpenAsync(ct).ConfigureAwait(false);
 
-        var sql = $"""
+            var sql = $"""
 
                         MERGE [{this.options.SchemaName}].[{this.options.PolicyTableName}] AS target
                         USING (VALUES (@FanoutTopic, @WorkKey, @DefaultEverySeconds, @JitterSeconds)) AS source (FanoutTopic, WorkKey, DefaultEverySeconds, JitterSeconds)
@@ -85,14 +90,15 @@ internal sealed class SqlFanoutPolicyRepository : IFanoutPolicyRepository
                             VALUES (source.FanoutTopic, source.WorkKey, source.DefaultEverySeconds, source.JitterSeconds);
             """;
 
-        await connection.ExecuteAsync(
-            sql,
-            new 
-            { 
-                FanoutTopic = fanoutTopic, 
-                WorkKey = workKey, 
-                DefaultEverySeconds = everySeconds, 
-                JitterSeconds = jitterSeconds 
-            }).ConfigureAwait(false);
+            await connection.ExecuteAsync(
+                sql,
+                new
+                {
+                    FanoutTopic = fanoutTopic,
+                    WorkKey = workKey,
+                    DefaultEverySeconds = everySeconds,
+                    JitterSeconds = jitterSeconds,
+                }).ConfigureAwait(false);
+        }
     }
 }

@@ -68,7 +68,7 @@ public abstract class BaseFanoutPlanner : IFanoutPlanner
 
             if (lastCompleted is null || (now - lastCompleted) >= spacing)
             {
-                list.Add(new FanoutSlice(fanoutTopic, shardKey, wk, WindowStart: lastCompleted));
+                list.Add(new FanoutSlice(fanoutTopic, shardKey, wk, windowStart: lastCompleted));
             }
         }
 

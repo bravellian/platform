@@ -51,7 +51,7 @@ public sealed class InboxPollingService : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         this.logger.LogInformation(
-            "Inbox polling service starting with {IntervalMs}ms interval and batch size {BatchSize}", 
+            "Inbox polling service starting with {IntervalMs}ms interval and batch size {BatchSize}",
             this.intervalSeconds * 1000, this.batchSize);
 
         // Wait for schema deployment to complete
@@ -73,7 +73,7 @@ public sealed class InboxPollingService : BackgroundService
         while (!stoppingToken.IsCancellationRequested)
         {
             var next = this.mono.Seconds + this.intervalSeconds;
-            
+
             try
             {
                 var processedCount = await this.dispatcher.RunOnceAsync(this.batchSize, stoppingToken).ConfigureAwait(false);

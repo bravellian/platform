@@ -12,13 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Logging;
-using Shouldly;
-using System.Text.Json;
-using Xunit;
-
 namespace Bravellian.Platform.Tests;
 
 /// <summary>
@@ -31,11 +24,11 @@ public class FanoutSystemTests
     {
         // Arrange
         var slice = new FanoutSlice(
-            FanoutTopic: "etl",
-            ShardKey: "tenant:123",
-            WorkKey: "payments",
-            WindowStart: DateTimeOffset.Parse("2024-01-01T00:00:00Z"),
-            CorrelationId: "corr-123");
+            fanoutTopic: "etl",
+            shardKey: "tenant:123",
+            workKey: "payments",
+            windowStart: DateTimeOffset.Parse("2024-01-01T00:00:00Z"),
+            correlationId: "corr-123");
 
         // Act
         var json = JsonSerializer.Serialize(slice);
@@ -43,11 +36,11 @@ public class FanoutSystemTests
 
         // Assert
         deserialized.ShouldNotBeNull();
-        deserialized.FanoutTopic.ShouldBe("etl");
-        deserialized.ShardKey.ShouldBe("tenant:123");
-        deserialized.WorkKey.ShouldBe("payments");
-        deserialized.WindowStart.ShouldBe(DateTimeOffset.Parse("2024-01-01T00:00:00Z"));
-        deserialized.CorrelationId.ShouldBe("corr-123");
+        deserialized.fanoutTopic.ShouldBe("etl");
+        deserialized.shardKey.ShouldBe("tenant:123");
+        deserialized.workKey.ShouldBe("payments");
+        deserialized.windowStart.ShouldBe(DateTimeOffset.Parse("2024-01-01T00:00:00Z"));
+        deserialized.correlationId.ShouldBe("corr-123");
     }
 
     [Fact]

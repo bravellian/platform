@@ -21,12 +21,12 @@ namespace Bravellian.Platform;
 public interface IInboxHandler
 {
     /// <summary>
-    /// The topic this handler serves (e.g., "InvoiceImported", "fanout:etl:payments").
+    /// Gets the topic this handler serves (e.g., "InvoiceImported", "fanout:etl:payments").
     /// </summary>
     string Topic { get; }
 
     /// <summary>
-    /// Process the inbound message. 
+    /// Process the inbound message.
     /// Throw for transient failures (will be retried) or permanent failures (will be marked as dead).
     /// </summary>
     /// <param name="message">The message to process.</param>

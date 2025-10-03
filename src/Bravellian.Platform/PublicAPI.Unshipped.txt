@@ -1,3 +1,82 @@
+abstract Bravellian.Platform.BaseFanoutPlanner.EnumerateCandidatesAsync(string! fanoutTopic, string? workKey, System.Threading.CancellationToken ct) -> System.Collections.Generic.IAsyncEnumerable<(string! ShardKey, string! WorkKey)>!
+Bravellian.Platform.BaseFanoutPlanner
+Bravellian.Platform.BaseFanoutPlanner.BaseFanoutPlanner(Bravellian.Platform.IFanoutPolicyRepository! policyRepository, Bravellian.Platform.IFanoutCursorRepository! cursorRepository, System.TimeProvider! timeProvider) -> void
+Bravellian.Platform.BaseFanoutPlanner.GetDueSlicesAsync(string! fanoutTopic, string? workKey, System.Threading.CancellationToken ct) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Bravellian.Platform.FanoutSlice!>!>!
+Bravellian.Platform.Examples.EtlFanoutPlanner
+Bravellian.Platform.Examples.EtlFanoutPlanner.EtlFanoutPlanner(Bravellian.Platform.IFanoutPolicyRepository! policyRepository, Bravellian.Platform.IFanoutCursorRepository! cursorRepository, System.TimeProvider! timeProvider, Bravellian.Platform.Examples.ITenantReader! tenantReader) -> void
+Bravellian.Platform.Examples.IPaymentEtlService
+Bravellian.Platform.Examples.IPaymentEtlService.ProcessPaymentsAsync(System.Guid tenantId, System.DateTimeOffset since, System.DateTimeOffset until, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Bravellian.Platform.Examples.ITenantReader
+Bravellian.Platform.Examples.ITenantReader.ListEnabledAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Bravellian.Platform.Examples.TenantInfo!>!>!
+Bravellian.Platform.Examples.PaymentEtlHandler
+Bravellian.Platform.Examples.PaymentEtlHandler.HandleAsync(Bravellian.Platform.OutboxMessage! message, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Bravellian.Platform.Examples.PaymentEtlHandler.PaymentEtlHandler(Bravellian.Platform.IInbox! inbox, Bravellian.Platform.IFanoutCursorRepository! cursorRepository, Bravellian.Platform.Examples.IPaymentEtlService! etlService, System.TimeProvider! timeProvider) -> void
+Bravellian.Platform.Examples.PaymentEtlHandler.Topic.get -> string!
+Bravellian.Platform.Examples.TenantInfo
+Bravellian.Platform.Examples.TenantInfo.<Clone>$() -> Bravellian.Platform.Examples.TenantInfo!
+Bravellian.Platform.Examples.TenantInfo.Deconstruct(out System.Guid Id, out string! Name, out bool IsEnabled) -> void
+Bravellian.Platform.Examples.TenantInfo.Equals(Bravellian.Platform.Examples.TenantInfo? other) -> bool
+Bravellian.Platform.Examples.TenantInfo.Id.get -> System.Guid
+Bravellian.Platform.Examples.TenantInfo.Id.init -> void
+Bravellian.Platform.Examples.TenantInfo.IsEnabled.get -> bool
+Bravellian.Platform.Examples.TenantInfo.IsEnabled.init -> void
+Bravellian.Platform.Examples.TenantInfo.Name.get -> string!
+Bravellian.Platform.Examples.TenantInfo.Name.init -> void
+Bravellian.Platform.Examples.TenantInfo.TenantInfo(System.Guid Id, string! Name, bool IsEnabled) -> void
+Bravellian.Platform.FanoutSlice
+Bravellian.Platform.FanoutSlice.<Clone>$() -> Bravellian.Platform.FanoutSlice!
+Bravellian.Platform.FanoutSlice.CorrelationId.get -> string?
+Bravellian.Platform.FanoutSlice.CorrelationId.init -> void
+Bravellian.Platform.FanoutSlice.Deconstruct(out string! FanoutTopic, out string! ShardKey, out string! WorkKey, out System.DateTimeOffset? WindowStart, out string? CorrelationId) -> void
+Bravellian.Platform.FanoutSlice.Equals(Bravellian.Platform.FanoutSlice? other) -> bool
+Bravellian.Platform.FanoutSlice.FanoutSlice(string! FanoutTopic, string! ShardKey, string! WorkKey, System.DateTimeOffset? WindowStart = null, string? CorrelationId = null) -> void
+Bravellian.Platform.FanoutSlice.FanoutTopic.get -> string!
+Bravellian.Platform.FanoutSlice.FanoutTopic.init -> void
+Bravellian.Platform.FanoutSlice.ShardKey.get -> string!
+Bravellian.Platform.FanoutSlice.ShardKey.init -> void
+Bravellian.Platform.FanoutSlice.WindowStart.get -> System.DateTimeOffset?
+Bravellian.Platform.FanoutSlice.WindowStart.init -> void
+Bravellian.Platform.FanoutSlice.WorkKey.get -> string!
+Bravellian.Platform.FanoutSlice.WorkKey.init -> void
+Bravellian.Platform.FanoutTopicOptions
+Bravellian.Platform.FanoutTopicOptions.Cron.get -> string!
+Bravellian.Platform.FanoutTopicOptions.Cron.init -> void
+Bravellian.Platform.FanoutTopicOptions.DefaultEverySeconds.get -> int
+Bravellian.Platform.FanoutTopicOptions.DefaultEverySeconds.init -> void
+Bravellian.Platform.FanoutTopicOptions.FanoutTopic.get -> string!
+Bravellian.Platform.FanoutTopicOptions.FanoutTopic.init -> void
+Bravellian.Platform.FanoutTopicOptions.FanoutTopicOptions() -> void
+Bravellian.Platform.FanoutTopicOptions.JitterSeconds.get -> int
+Bravellian.Platform.FanoutTopicOptions.JitterSeconds.init -> void
+Bravellian.Platform.FanoutTopicOptions.LeaseDuration.get -> System.TimeSpan
+Bravellian.Platform.FanoutTopicOptions.LeaseDuration.init -> void
+Bravellian.Platform.FanoutTopicOptions.WorkKey.get -> string?
+Bravellian.Platform.FanoutTopicOptions.WorkKey.init -> void
+Bravellian.Platform.IFanoutCoordinator
+Bravellian.Platform.IFanoutCoordinator.RunAsync(string! fanoutTopic, string? workKey, System.Threading.CancellationToken ct) -> System.Threading.Tasks.Task<int>!
+Bravellian.Platform.IFanoutCursorRepository
+Bravellian.Platform.IFanoutCursorRepository.GetLastAsync(string! fanoutTopic, string! workKey, string! shardKey, System.Threading.CancellationToken ct) -> System.Threading.Tasks.Task<System.DateTimeOffset?>!
+Bravellian.Platform.IFanoutCursorRepository.MarkCompletedAsync(string! fanoutTopic, string! workKey, string! shardKey, System.DateTimeOffset completedAt, System.Threading.CancellationToken ct) -> System.Threading.Tasks.Task!
+Bravellian.Platform.IFanoutDispatcher
+Bravellian.Platform.IFanoutDispatcher.DispatchAsync(System.Collections.Generic.IEnumerable<Bravellian.Platform.FanoutSlice!>! slices, System.Threading.CancellationToken ct) -> System.Threading.Tasks.Task<int>!
+Bravellian.Platform.IFanoutPlanner
+Bravellian.Platform.IFanoutPlanner.GetDueSlicesAsync(string! fanoutTopic, string? workKey, System.Threading.CancellationToken ct) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Bravellian.Platform.FanoutSlice!>!>!
+Bravellian.Platform.IFanoutPolicyRepository
+Bravellian.Platform.IFanoutPolicyRepository.GetCadenceAsync(string! fanoutTopic, string! workKey, System.Threading.CancellationToken ct) -> System.Threading.Tasks.Task<(int everySeconds, int jitterSeconds)>!
+Bravellian.Platform.IFanoutPolicyRepository.SetCadenceAsync(string! fanoutTopic, string! workKey, int everySeconds, int jitterSeconds, System.Threading.CancellationToken ct) -> System.Threading.Tasks.Task!
+Bravellian.Platform.IInbox.EnqueueAsync(string! topic, string! source, string! messageId, string! payload, byte[]? hash = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Bravellian.Platform.IInboxHandler
+Bravellian.Platform.IInboxHandler.HandleAsync(Bravellian.Platform.InboxMessage! message, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Bravellian.Platform.IInboxHandler.Topic.get -> string!
+Bravellian.Platform.IInboxHandlerResolver
+Bravellian.Platform.IInboxHandlerResolver.GetHandler(string! topic) -> Bravellian.Platform.IInboxHandler!
+Bravellian.Platform.IInboxWorkStore
+Bravellian.Platform.IInboxWorkStore.AbandonAsync(System.Guid ownerToken, System.Collections.Generic.IEnumerable<string!>! messageIds, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Bravellian.Platform.IInboxWorkStore.AckAsync(System.Guid ownerToken, System.Collections.Generic.IEnumerable<string!>! messageIds, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Bravellian.Platform.IInboxWorkStore.ClaimAsync(System.Guid ownerToken, int leaseSeconds, int batchSize, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<string!>!>!
+Bravellian.Platform.IInboxWorkStore.FailAsync(System.Guid ownerToken, System.Collections.Generic.IEnumerable<string!>! messageIds, string! error, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Bravellian.Platform.IInboxWorkStore.GetAsync(string! messageId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Bravellian.Platform.InboxMessage!>!
+Bravellian.Platform.IInboxWorkStore.ReapExpiredAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
 Bravellian.Platform.IMonotonicClock
 Bravellian.Platform.IMonotonicClock.Seconds.get -> double
 Bravellian.Platform.IMonotonicClock.Ticks.get -> long
@@ -6,6 +85,31 @@ Bravellian.Platform.IInbox.AlreadyProcessedAsync(string! messageId, string! sour
 Bravellian.Platform.IInbox.MarkDeadAsync(string! messageId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Bravellian.Platform.IInbox.MarkProcessedAsync(string! messageId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Bravellian.Platform.IInbox.MarkProcessingAsync(string! messageId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Bravellian.Platform.InboxDispatcher
+Bravellian.Platform.InboxDispatcher.InboxDispatcher(Bravellian.Platform.IInboxWorkStore! store, Bravellian.Platform.IInboxHandlerResolver! resolver, Microsoft.Extensions.Logging.ILogger<Bravellian.Platform.InboxDispatcher!>! logger, System.Func<int, System.TimeSpan>? backoffPolicy = null, int maxAttempts = 5, int leaseSeconds = 30) -> void
+Bravellian.Platform.InboxDispatcher.RunOnceAsync(int batchSize, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<int>!
+Bravellian.Platform.InboxHandlerResolver
+Bravellian.Platform.InboxHandlerResolver.GetHandler(string! topic) -> Bravellian.Platform.IInboxHandler!
+Bravellian.Platform.InboxHandlerResolver.InboxHandlerResolver(System.Collections.Generic.IEnumerable<Bravellian.Platform.IInboxHandler!>! handlers) -> void
+Bravellian.Platform.InboxMessage
+Bravellian.Platform.InboxMessage.<Clone>$() -> Bravellian.Platform.InboxMessage!
+Bravellian.Platform.InboxMessage.Attempt.get -> int
+Bravellian.Platform.InboxMessage.Equals(Bravellian.Platform.InboxMessage? other) -> bool
+Bravellian.Platform.InboxMessage.FirstSeenUtc.get -> System.DateTimeOffset
+Bravellian.Platform.InboxMessage.Hash.get -> byte[]?
+Bravellian.Platform.InboxMessage.InboxMessage() -> void
+Bravellian.Platform.InboxMessage.LastSeenUtc.get -> System.DateTimeOffset
+Bravellian.Platform.InboxMessage.MessageId.get -> string!
+Bravellian.Platform.InboxMessage.Payload.get -> string!
+Bravellian.Platform.InboxMessage.Source.get -> string!
+Bravellian.Platform.InboxMessage.Topic.get -> string!
+Bravellian.Platform.InboxPollingService
+Bravellian.Platform.InboxPollingService.InboxPollingService(Bravellian.Platform.InboxDispatcher! dispatcher, Bravellian.Platform.IMonotonicClock! mono, Microsoft.Extensions.Logging.ILogger<Bravellian.Platform.InboxPollingService!>! logger, double intervalSeconds = 0.25, int batchSize = 50, Bravellian.Platform.IDatabaseSchemaCompletion? schemaCompletion = null) -> void
+Bravellian.Platform.IOutbox.AbandonAsync(System.Guid ownerToken, System.Collections.Generic.IEnumerable<System.Guid>! ids, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Bravellian.Platform.IOutbox.AckAsync(System.Guid ownerToken, System.Collections.Generic.IEnumerable<System.Guid>! ids, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Bravellian.Platform.IOutbox.ClaimAsync(System.Guid ownerToken, int leaseSeconds, int batchSize, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<System.Guid>!>!
+Bravellian.Platform.IOutbox.FailAsync(System.Guid ownerToken, System.Collections.Generic.IEnumerable<System.Guid>! ids, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Bravellian.Platform.IOutbox.ReapExpiredAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Bravellian.Platform.IOutboxHandler
 Bravellian.Platform.IOutboxHandler.HandleAsync(Bravellian.Platform.OutboxMessage! message, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
 Bravellian.Platform.IOutboxHandler.Topic.get -> string!
@@ -20,13 +124,19 @@ Bravellian.Platform.IOutbox
 Bravellian.Platform.IOutbox.EnqueueAsync(string! topic, string! payload, string? correlationId = null) -> System.Threading.Tasks.Task!
 Bravellian.Platform.IOutbox.EnqueueAsync(string! topic, string! payload, System.Data.IDbTransaction! transaction, string? correlationId = null) -> System.Threading.Tasks.Task!
 Bravellian.Platform.ISchedulerClient
+Bravellian.Platform.ISchedulerClient.AbandonJobRunsAsync(System.Guid ownerToken, System.Collections.Generic.IEnumerable<System.Guid>! ids, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Bravellian.Platform.ISchedulerClient.AbandonTimersAsync(System.Guid ownerToken, System.Collections.Generic.IEnumerable<System.Guid>! ids, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Bravellian.Platform.ISchedulerClient.AckJobRunsAsync(System.Guid ownerToken, System.Collections.Generic.IEnumerable<System.Guid>! ids, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Bravellian.Platform.ISchedulerClient.AckTimersAsync(System.Guid ownerToken, System.Collections.Generic.IEnumerable<System.Guid>! ids, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Bravellian.Platform.ISchedulerClient.CancelTimerAsync(string! timerId) -> System.Threading.Tasks.Task<bool>!
+Bravellian.Platform.ISchedulerClient.ClaimJobRunsAsync(System.Guid ownerToken, int leaseSeconds, int batchSize, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<System.Guid>!>!
+Bravellian.Platform.ISchedulerClient.ClaimTimersAsync(System.Guid ownerToken, int leaseSeconds, int batchSize, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<System.Guid>!>!
 Bravellian.Platform.ISchedulerClient.CreateOrUpdateJobAsync(string! jobName, string! topic, string! cronSchedule, string? payload = null) -> System.Threading.Tasks.Task!
 Bravellian.Platform.ISchedulerClient.DeleteJobAsync(string! jobName) -> System.Threading.Tasks.Task!
+Bravellian.Platform.ISchedulerClient.ReapExpiredJobRunsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Bravellian.Platform.ISchedulerClient.ReapExpiredTimersAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Bravellian.Platform.ISchedulerClient.ScheduleTimerAsync(string! topic, string! payload, System.DateTimeOffset dueTime) -> System.Threading.Tasks.Task<string!>!
 Bravellian.Platform.ISchedulerClient.TriggerJobAsync(string! jobName) -> System.Threading.Tasks.Task!
-Bravellian.Platform.ISqlDistributedLock
-Bravellian.Platform.ISqlDistributedLock.AcquireAsync(string resource, System.TimeSpan timeout, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.IAsyncDisposable>
 Bravellian.Platform.ISystemLease
 Bravellian.Platform.ISystemLease.CancellationToken.get -> System.Threading.CancellationToken
 Bravellian.Platform.ISystemLease.FencingToken.get -> long
@@ -36,25 +146,66 @@ Bravellian.Platform.ISystemLease.ThrowIfLost() -> void
 Bravellian.Platform.ISystemLease.TryRenewNowAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 Bravellian.Platform.ISystemLeaseFactory
 Bravellian.Platform.ISystemLeaseFactory.AcquireAsync(string! resourceName, System.TimeSpan leaseDuration, string? contextJson = null, System.Guid? ownerToken = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Bravellian.Platform.ISystemLease?>!
+Bravellian.Platform.LeaseAcquireResult
+Bravellian.Platform.LeaseAcquireResult.Acquired.get -> bool
+Bravellian.Platform.LeaseAcquireResult.Acquired.init -> void
+Bravellian.Platform.LeaseAcquireResult.Deconstruct(out bool Acquired, out System.DateTime ServerUtcNow, out System.DateTime? LeaseUntilUtc) -> void
+Bravellian.Platform.LeaseAcquireResult.Equals(Bravellian.Platform.LeaseAcquireResult other) -> bool
+Bravellian.Platform.LeaseAcquireResult.LeaseAcquireResult() -> void
+Bravellian.Platform.LeaseAcquireResult.LeaseAcquireResult(bool Acquired, System.DateTime ServerUtcNow, System.DateTime? LeaseUntilUtc) -> void
+Bravellian.Platform.LeaseAcquireResult.LeaseUntilUtc.get -> System.DateTime?
+Bravellian.Platform.LeaseAcquireResult.LeaseUntilUtc.init -> void
+Bravellian.Platform.LeaseAcquireResult.ServerUtcNow.get -> System.DateTime
+Bravellian.Platform.LeaseAcquireResult.ServerUtcNow.init -> void
+Bravellian.Platform.LeaseApi
+Bravellian.Platform.LeaseApi.AcquireAsync(string! name, string! owner, int leaseSeconds, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Bravellian.Platform.LeaseAcquireResult>!
+Bravellian.Platform.LeaseApi.LeaseApi(string! connectionString, string! schemaName = "dbo") -> void
+Bravellian.Platform.LeaseApi.RenewAsync(string! name, string! owner, int leaseSeconds, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Bravellian.Platform.LeaseRenewResult>!
+Bravellian.Platform.LeaseRenewResult
+Bravellian.Platform.LeaseRenewResult.Deconstruct(out bool Renewed, out System.DateTime ServerUtcNow, out System.DateTime? LeaseUntilUtc) -> void
+Bravellian.Platform.LeaseRenewResult.Equals(Bravellian.Platform.LeaseRenewResult other) -> bool
+Bravellian.Platform.LeaseRenewResult.LeaseRenewResult() -> void
+Bravellian.Platform.LeaseRenewResult.LeaseRenewResult(bool Renewed, System.DateTime ServerUtcNow, System.DateTime? LeaseUntilUtc) -> void
+Bravellian.Platform.LeaseRenewResult.LeaseUntilUtc.get -> System.DateTime?
+Bravellian.Platform.LeaseRenewResult.LeaseUntilUtc.init -> void
+Bravellian.Platform.LeaseRenewResult.Renewed.get -> bool
+Bravellian.Platform.LeaseRenewResult.Renewed.init -> void
+Bravellian.Platform.LeaseRenewResult.ServerUtcNow.get -> System.DateTime
+Bravellian.Platform.LeaseRenewResult.ServerUtcNow.init -> void
+Bravellian.Platform.LeaseRunner
+Bravellian.Platform.LeaseRunner.CancellationToken.get -> System.Threading.CancellationToken
+Bravellian.Platform.LeaseRunner.DisposeAsync() -> System.Threading.Tasks.ValueTask
+Bravellian.Platform.LeaseRunner.IsLost.get -> bool
+Bravellian.Platform.LeaseRunner.LeaseName.get -> string!
+Bravellian.Platform.LeaseRunner.Owner.get -> string!
+Bravellian.Platform.LeaseRunner.ThrowIfLost() -> void
+Bravellian.Platform.LeaseRunner.TryRenewNowAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 Bravellian.Platform.LostLeaseException
+Bravellian.Platform.LostLeaseException.LostLeaseException() -> void
+Bravellian.Platform.LostLeaseException.LostLeaseException(string! leaseName, string! owner) -> void
 Bravellian.Platform.LostLeaseException.LostLeaseException(string! resourceName, System.Guid ownerToken) -> void
+Bravellian.Platform.LostLeaseException.LostLeaseException(string? message) -> void
+Bravellian.Platform.LostLeaseException.LostLeaseException(string? message, System.Exception? innerException) -> void
+Bravellian.Platform.LostLeaseException.Owner.get -> string?
 Bravellian.Platform.LostLeaseException.OwnerToken.get -> System.Guid
 Bravellian.Platform.LostLeaseException.ResourceName.get -> string!
 Bravellian.Platform.MonoDeadline
 Bravellian.Platform.MonoDeadline.AtSeconds.get -> double
+Bravellian.Platform.MonoDeadline.AtSeconds.init -> void
+Bravellian.Platform.MonoDeadline.Deconstruct(out double AtSeconds) -> void
+Bravellian.Platform.MonoDeadline.Equals(Bravellian.Platform.MonoDeadline other) -> bool
 Bravellian.Platform.MonoDeadline.Expired(Bravellian.Platform.IMonotonicClock! clock) -> bool
+Bravellian.Platform.MonoDeadline.MonoDeadline() -> void
 Bravellian.Platform.MonoDeadline.MonoDeadline(double AtSeconds) -> void
 Bravellian.Platform.OutboxDispatcher
-Bravellian.Platform.OutboxDispatcher.DefaultBackoff(int attempt) -> System.TimeSpan
-Bravellian.Platform.OutboxDispatcher.OutboxDispatcher(Bravellian.Platform.IOutboxStore! store, Bravellian.Platform.IOutboxHandlerResolver! resolver, System.Func<int, System.TimeSpan>? backoffPolicy = null) -> void
+Bravellian.Platform.OutboxDispatcher.OutboxDispatcher(Bravellian.Platform.IOutboxStore! store, Bravellian.Platform.IOutboxHandlerResolver! resolver, Microsoft.Extensions.Logging.ILogger<Bravellian.Platform.OutboxDispatcher!>! logger, System.Func<int, System.TimeSpan>? backoffPolicy = null) -> void
 Bravellian.Platform.OutboxDispatcher.RunOnceAsync(int batchSize, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<int>!
 Bravellian.Platform.OutboxHandlerResolver
 Bravellian.Platform.OutboxHandlerResolver.OutboxHandlerResolver(System.Collections.Generic.IEnumerable<Bravellian.Platform.IOutboxHandler!>! handlers) -> void
 Bravellian.Platform.OutboxHandlerResolver.TryGet(string! topic, out Bravellian.Platform.IOutboxHandler! handler) -> bool
 Bravellian.Platform.OutboxMessage
-Bravellian.Platform.OutboxMessage.<Clone>$() -> Bravellian.Platform.OutboxMessage!
+Bravellian.Platform.OutboxMessage.CorrelationId.get -> string?
 Bravellian.Platform.OutboxMessage.CreatedAt.get -> System.DateTimeOffset
-Bravellian.Platform.OutboxMessage.Equals(Bravellian.Platform.OutboxMessage? other) -> bool
 Bravellian.Platform.OutboxMessage.Id.get -> System.Guid
 Bravellian.Platform.OutboxMessage.IsProcessed.get -> bool
 Bravellian.Platform.OutboxMessage.LastError.get -> string
@@ -67,17 +218,40 @@ Bravellian.Platform.OutboxMessage.ProcessedBy.get -> string
 Bravellian.Platform.OutboxMessage.RetryCount.get -> int
 Bravellian.Platform.OutboxMessage.Topic.get -> string
 Bravellian.Platform.OutboxPollingService
-Bravellian.Platform.OutboxPollingService.OutboxPollingService(Bravellian.Platform.OutboxDispatcher! dispatcher, Bravellian.Platform.IMonotonicClock! mono, double intervalSeconds = 0.25, int batchSize = 50, Bravellian.Platform.IDatabaseSchemaCompletion? schemaCompletion = null) -> void
+Bravellian.Platform.OutboxPollingService.OutboxPollingService(Bravellian.Platform.OutboxDispatcher! dispatcher, Bravellian.Platform.IMonotonicClock! mono, Microsoft.Extensions.Logging.ILogger<Bravellian.Platform.OutboxPollingService!>! logger, double intervalSeconds = 0.25, int batchSize = 50, Bravellian.Platform.IDatabaseSchemaCompletion? schemaCompletion = null) -> void
 Bravellian.Platform.SchedulerServiceCollectionExtensions
+Bravellian.Platform.SqlFanoutOptions
+Bravellian.Platform.SqlFanoutOptions.ConnectionString.get -> string!
+Bravellian.Platform.SqlFanoutOptions.ConnectionString.set -> void
+Bravellian.Platform.SqlFanoutOptions.CursorTableName.get -> string!
+Bravellian.Platform.SqlFanoutOptions.CursorTableName.set -> void
+Bravellian.Platform.SqlFanoutOptions.EnableSchemaDeployment.get -> bool
+Bravellian.Platform.SqlFanoutOptions.EnableSchemaDeployment.set -> void
+Bravellian.Platform.SqlFanoutOptions.PolicyTableName.get -> string!
+Bravellian.Platform.SqlFanoutOptions.PolicyTableName.set -> void
+Bravellian.Platform.SqlFanoutOptions.SchemaName.get -> string!
+Bravellian.Platform.SqlFanoutOptions.SchemaName.set -> void
+Bravellian.Platform.SqlFanoutOptions.SqlFanoutOptions() -> void
 Bravellian.Platform.SqlInboxOptions
 Bravellian.Platform.SqlInboxOptions.ConnectionString.get -> string!
 Bravellian.Platform.SqlInboxOptions.ConnectionString.set -> void
+Bravellian.Platform.SqlInboxOptions.LeaseSeconds.get -> int
+Bravellian.Platform.SqlInboxOptions.LeaseSeconds.set -> void
+Bravellian.Platform.SqlInboxOptions.MaxAttempts.get -> int
+Bravellian.Platform.SqlInboxOptions.MaxAttempts.set -> void
 Bravellian.Platform.SqlInboxOptions.SchemaName.get -> string!
 Bravellian.Platform.SqlInboxOptions.SchemaName.set -> void
 Bravellian.Platform.SqlInboxOptions.SqlInboxOptions() -> void
 Bravellian.Platform.SqlInboxOptions.TableName.get -> string!
 Bravellian.Platform.SqlInboxOptions.TableName.set -> void
-Bravellian.Platform.SqlDistributedLockOptions
+Bravellian.Platform.SqlOutboxOptions
+Bravellian.Platform.SqlOutboxOptions.ConnectionString.get -> string!
+Bravellian.Platform.SqlOutboxOptions.ConnectionString.set -> void
+Bravellian.Platform.SqlOutboxOptions.SchemaName.get -> string!
+Bravellian.Platform.SqlOutboxOptions.SchemaName.set -> void
+Bravellian.Platform.SqlOutboxOptions.SqlOutboxOptions() -> void
+Bravellian.Platform.SqlOutboxOptions.TableName.get -> string!
+Bravellian.Platform.SqlOutboxOptions.TableName.set -> void
 Bravellian.Platform.SqlSchedulerOptions
 Bravellian.Platform.SqlSchedulerOptions.ConnectionString.get -> string!
 Bravellian.Platform.SqlSchedulerOptions.ConnectionString.set -> void
@@ -101,14 +275,53 @@ Bravellian.Platform.SystemLeaseOptions.SystemLeaseOptions() -> void
 Bravellian.Platform.SystemLeaseOptions.UseGate.get -> bool
 Bravellian.Platform.SystemLeaseOptions.UseGate.set -> void
 const Bravellian.Platform.SqlSchedulerOptions.SectionName = "SqlScheduler" -> string!
+override Bravellian.Platform.Examples.TenantInfo.Equals(object? obj) -> bool
+override Bravellian.Platform.Examples.TenantInfo.GetHashCode() -> int
+override Bravellian.Platform.Examples.TenantInfo.ToString() -> string!
+override Bravellian.Platform.FanoutSlice.Equals(object? obj) -> bool
+override Bravellian.Platform.FanoutSlice.GetHashCode() -> int
+override Bravellian.Platform.FanoutSlice.ToString() -> string!
+override Bravellian.Platform.InboxMessage.Equals(object? obj) -> bool
+override Bravellian.Platform.InboxMessage.GetHashCode() -> int
+override Bravellian.Platform.InboxMessage.ToString() -> string!
+override Bravellian.Platform.LeaseAcquireResult.GetHashCode() -> int
+override Bravellian.Platform.LeaseRenewResult.GetHashCode() -> int
+override Bravellian.Platform.MonoDeadline.GetHashCode() -> int
+override Bravellian.Platform.OutboxMessage.Equals(object? obj) -> bool
+override Bravellian.Platform.OutboxMessage.GetHashCode() -> int
+override Bravellian.Platform.OutboxMessage.ToString() -> string!
+static Bravellian.Platform.Examples.TenantInfo.operator !=(Bravellian.Platform.Examples.TenantInfo? left, Bravellian.Platform.Examples.TenantInfo? right) -> bool
+static Bravellian.Platform.Examples.TenantInfo.operator ==(Bravellian.Platform.Examples.TenantInfo? left, Bravellian.Platform.Examples.TenantInfo? right) -> bool
+static Bravellian.Platform.FanoutSlice.operator !=(Bravellian.Platform.FanoutSlice? left, Bravellian.Platform.FanoutSlice? right) -> bool
+static Bravellian.Platform.FanoutSlice.operator ==(Bravellian.Platform.FanoutSlice? left, Bravellian.Platform.FanoutSlice? right) -> bool
+static Bravellian.Platform.InboxDispatcher.DefaultBackoff(int attempt) -> System.TimeSpan
+static Bravellian.Platform.InboxMessage.operator !=(Bravellian.Platform.InboxMessage? left, Bravellian.Platform.InboxMessage? right) -> bool
+static Bravellian.Platform.InboxMessage.operator ==(Bravellian.Platform.InboxMessage? left, Bravellian.Platform.InboxMessage? right) -> bool
+static Bravellian.Platform.LeaseAcquireResult.operator !=(Bravellian.Platform.LeaseAcquireResult left, Bravellian.Platform.LeaseAcquireResult right) -> bool
+static Bravellian.Platform.LeaseAcquireResult.operator ==(Bravellian.Platform.LeaseAcquireResult left, Bravellian.Platform.LeaseAcquireResult right) -> bool
+static Bravellian.Platform.LeaseRenewResult.operator !=(Bravellian.Platform.LeaseRenewResult left, Bravellian.Platform.LeaseRenewResult right) -> bool
+static Bravellian.Platform.LeaseRenewResult.operator ==(Bravellian.Platform.LeaseRenewResult left, Bravellian.Platform.LeaseRenewResult right) -> bool
+static Bravellian.Platform.LeaseRunner.AcquireAsync(Bravellian.Platform.LeaseApi! leaseApi, Bravellian.Platform.IMonotonicClock! monotonicClock, System.TimeProvider! timeProvider, string! leaseName, string! owner, System.TimeSpan leaseDuration, double renewPercent = 0.6, Microsoft.Extensions.Logging.ILogger? logger = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Bravellian.Platform.LeaseRunner?>!
+static Bravellian.Platform.MonoDeadline.operator !=(Bravellian.Platform.MonoDeadline left, Bravellian.Platform.MonoDeadline right) -> bool
+static Bravellian.Platform.MonoDeadline.operator ==(Bravellian.Platform.MonoDeadline left, Bravellian.Platform.MonoDeadline right) -> bool
+static Bravellian.Platform.OutboxDispatcher.DefaultBackoff(int attempt) -> System.TimeSpan
+static Bravellian.Platform.OutboxMessage.operator !=(Bravellian.Platform.OutboxMessage? left, Bravellian.Platform.OutboxMessage? right) -> bool
+static Bravellian.Platform.OutboxMessage.operator ==(Bravellian.Platform.OutboxMessage? left, Bravellian.Platform.OutboxMessage? right) -> bool
+static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddFanoutTopic<TPlanner>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Bravellian.Platform.FanoutTopicOptions! options) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddInboxHandler(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Func<System.IServiceProvider!, Bravellian.Platform.IInboxHandler!>! factory) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddInboxHandler<THandler>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddOutboxHandler(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Func<System.IServiceProvider!, Bravellian.Platform.IOutboxHandler!>! factory) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddOutboxHandler<THandler>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddSqlFanout(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Bravellian.Platform.SqlFanoutOptions! options) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddSqlFanout(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! connectionString, string! schemaName = "dbo", string! policyTableName = "FanoutPolicy", string! cursorTableName = "FanoutCursor") -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddSqlInbox(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Bravellian.Platform.SqlInboxOptions! options) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddSqlInbox(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! connectionString, string! schemaName = "dbo", string! tableName = "Inbox") -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddSqlOutbox(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Bravellian.Platform.SqlOutboxOptions! options) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddSqlOutbox(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! connectionString, string! schemaName = "dbo", string! tableName = "Outbox") -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddSqlScheduler(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddSqlScheduler(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Bravellian.Platform.SqlSchedulerOptions! options) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddSqlScheduler(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! connectionString, string! schemaName = "dbo", string! jobsTableName = "Jobs", string! jobRunsTableName = "JobRuns", string! timersTableName = "Timers") -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddSqlSchedulerHealthCheck(this Microsoft.Extensions.DependencyInjection.IHealthChecksBuilder! builder, string! name = "sql_scheduler", Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus? failureStatus = null, System.Collections.Generic.IEnumerable<string!>? tags = null) -> Microsoft.Extensions.DependencyInjection.IHealthChecksBuilder!
 static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddSystemLeases(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Bravellian.Platform.SystemLeaseOptions! options) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddSystemLeases(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! connectionString, string! schemaName = "dbo") -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddTimeAbstractions(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.TimeProvider? timeProvider = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
@@ -131,3 +344,9 @@ Bravellian.Platform.SqlSchedulerOptions.TimersTableName.get -> string!
 Bravellian.Platform.SqlSchedulerOptions.TimersTableName.set -> void
 Bravellian.Platform.SystemLeaseOptions.EnableSchemaDeployment.get -> bool
 Bravellian.Platform.SystemLeaseOptions.EnableSchemaDeployment.set -> void
+~override Bravellian.Platform.LeaseAcquireResult.Equals(object obj) -> bool
+~override Bravellian.Platform.LeaseAcquireResult.ToString() -> string
+~override Bravellian.Platform.LeaseRenewResult.Equals(object obj) -> bool
+~override Bravellian.Platform.LeaseRenewResult.ToString() -> string
+~override Bravellian.Platform.MonoDeadline.Equals(object obj) -> bool
+~override Bravellian.Platform.MonoDeadline.ToString() -> string

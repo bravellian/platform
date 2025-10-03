@@ -1,10 +1,23 @@
+// Copyright (c) Bravellian
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 namespace Bravellian.Platform.Tests;
 
 using Bravellian.Platform.Tests.TestUtilities;
 using Dapper;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Microsoft.Data.SqlClient;
 using Shouldly;
@@ -14,19 +27,20 @@ public class OutboxWorkerTests : SqlServerTestBase
     private SqlOutboxService? outboxService;
     private TestOutboxWorker? worker;
 
-    public OutboxWorkerTests(ITestOutputHelper testOutputHelper) : base(testOutputHelper)
+    public OutboxWorkerTests(ITestOutputHelper testOutputHelper)
+        : base(testOutputHelper)
     {
     }
 
     public override async ValueTask InitializeAsync()
     {
-        await base.InitializeAsync();
+        await base.InitializeAsync().ConfigureAwait(false);
 
         // Test connection with retry logic for CI stability
-        await WaitForDatabaseReadyAsync(this.ConnectionString);
+        await this.WaitForDatabaseReadyAsync(this.ConnectionString).ConfigureAwait(false);
 
         // Ensure work queue schema is set up
-        await DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(this.ConnectionString);
+        await DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(this.ConnectionString).ConfigureAwait(false);
 
         var options = Options.Create(new SqlOutboxOptions
         {
@@ -47,18 +61,24 @@ public class OutboxWorkerTests : SqlServerTestBase
         {
             try
             {
-                await using var connection = new SqlConnection(connectionString);
-                await connection.OpenAsync();
+                var connection = new SqlConnection(connectionString);
+                await using (connection.ConfigureAwait(false))
+                {
+                    await connection.OpenAsync();
                 await using var command = new SqlCommand("SELECT 1", connection);
                 await command.ExecuteScalarAsync();
                 return; // Success
+                }
             }
             catch (Exception ex)
             {
                 this.TestOutputHelper.WriteLine($"Database connection attempt {i + 1} failed: {ex.Message}");
                 if (i == maxRetries - 1)
+                {
                     throw new InvalidOperationException($"Database not ready after {maxRetries} attempts", ex);
-                await Task.Delay(delayMs);
+                }
+
+                await Task.Delay(delayMs).ConfigureAwait(false);
             }
         }
     }
@@ -261,33 +281,40 @@ public class OutboxWorkerTests : SqlServerTestBase
     {
         var ids = new List<Guid>();
 
-        await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        var connection = new SqlConnection(this.ConnectionString);
+        await using (connection.ConfigureAwait(false))
+        {
+            await connection.OpenAsync();
 
         for (int i = 0; i < count; i++)
         {
             var id = Guid.NewGuid();
             ids.Add(id);
 
-            await connection.ExecuteAsync(@"
+            await connection.ExecuteAsync(
+                @"
                 INSERT INTO dbo.Outbox (Id, Topic, Payload, Status, CreatedAt)
                 VALUES (@Id, @Topic, @Payload, 0, SYSUTCDATETIME())",
                 new { Id = id, Topic = "test", Payload = $"payload{i}" });
         }
 
         return ids;
+        }
     }
 
     private async Task VerifyOutboxStatusAsync(IEnumerable<Guid> ids, int expectedStatus)
     {
-        await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        var connection = new SqlConnection(this.ConnectionString);
+        await using (connection.ConfigureAwait(false))
+        {
+            await connection.OpenAsync();
 
         foreach (var id in ids)
         {
             var status = await connection.ExecuteScalarAsync<int>(
                 "SELECT Status FROM dbo.Outbox WHERE Id = @Id", new { Id = id });
             status.ShouldBe(expectedStatus);
+        }
         }
     }
 
@@ -303,9 +330,12 @@ public class OutboxWorkerTests : SqlServerTestBase
             this.logger = logger;
         }
 
-        public List<Guid> ProcessedItems { get; } = new();
+        public List<Guid> ProcessedItems { get; } = new ();
+
         public bool ShouldFailProcessing { get; set; }
+
         public TimeSpan ProcessingDelay { get; set; } = TimeSpan.FromMilliseconds(100);
+
         public bool RunOnce { get; set; }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -314,13 +344,17 @@ public class OutboxWorkerTests : SqlServerTestBase
             {
                 try
                 {
-                    var claimedIds = await this.outbox.ClaimAsync(this.ownerToken, 30, 10, stoppingToken);
+                    var claimedIds = await this.outbox.ClaimAsync(this.ownerToken, 30, 10, stoppingToken).ConfigureAwait(false);
                     this.logger.LogInformation("Worker claimed {Count} items", claimedIds.Count);
 
                     if (claimedIds.Count == 0)
                     {
-                        if (this.RunOnce) break;
-                        await Task.Delay(TimeSpan.FromMilliseconds(100), stoppingToken);
+                        if (this.RunOnce)
+                        {
+                            break;
+                        }
+
+                        await Task.Delay(TimeSpan.FromMilliseconds(100), stoppingToken).ConfigureAwait(false);
                         continue;
                     }
 
@@ -331,7 +365,7 @@ public class OutboxWorkerTests : SqlServerTestBase
                     {
                         try
                         {
-                            await Task.Delay(this.ProcessingDelay, stoppingToken);
+                            await Task.Delay(this.ProcessingDelay, stoppingToken).ConfigureAwait(false);
 
                             if (this.ShouldFailProcessing)
                             {
@@ -353,13 +387,13 @@ public class OutboxWorkerTests : SqlServerTestBase
                     if (succeededIds.Count > 0)
                     {
                         this.logger.LogInformation("Acknowledging {Count} successful items", succeededIds.Count);
-                        await this.outbox.AckAsync(this.ownerToken, succeededIds, stoppingToken);
+                        await this.outbox.AckAsync(this.ownerToken, succeededIds, stoppingToken).ConfigureAwait(false);
                     }
 
                     if (failedIds.Count > 0)
                     {
                         this.logger.LogInformation("Abandoning {Count} failed items", failedIds.Count);
-                        await this.outbox.AbandonAsync(this.ownerToken, failedIds, stoppingToken);
+                        await this.outbox.AbandonAsync(this.ownerToken, failedIds, stoppingToken).ConfigureAwait(false);
                     }
 
                     if (this.RunOnce)
@@ -375,10 +409,9 @@ public class OutboxWorkerTests : SqlServerTestBase
                 catch (Exception ex)
                 {
                     this.logger.LogError(ex, "Error in outbox processing loop");
-                    await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
+                    await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken).ConfigureAwait(false);
                 }
             }
         }
     }
-
 }

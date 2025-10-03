@@ -1,3 +1,17 @@
+// Copyright (c) Bravellian
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 namespace Bravellian.Platform.Tests;
 
 using Bravellian.Platform.Tests.TestUtilities;
@@ -15,7 +29,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
     public async Task ClaimAsync_WithNoMessages_ReturnsEmpty()
     {
         // Arrange
-        var store = CreateInboxWorkStore();
+        var store = this.CreateInboxWorkStore();
         var ownerToken = Guid.NewGuid();
 
         // Act
@@ -29,8 +43,8 @@ public class InboxWorkStoreTests : SqlServerTestBase
     public async Task ClaimAsync_WithAvailableMessage_ClaimsSuccessfully()
     {
         // Arrange
-        var inbox = CreateInboxService();
-        var store = CreateInboxWorkStore();
+        var inbox = this.CreateInboxService();
+        var store = this.CreateInboxWorkStore();
         var ownerToken = Guid.NewGuid();
 
         // Enqueue a test message
@@ -59,8 +73,8 @@ public class InboxWorkStoreTests : SqlServerTestBase
     public async Task ClaimAsync_WithConcurrentWorkers_EnsuresExclusiveClaims()
     {
         // Arrange
-        var inbox = CreateInboxService();
-        var store = CreateInboxWorkStore();
+        var inbox = this.CreateInboxService();
+        var store = this.CreateInboxWorkStore();
         var owner1 = Guid.NewGuid();
         var owner2 = Guid.NewGuid();
 
@@ -86,8 +100,8 @@ public class InboxWorkStoreTests : SqlServerTestBase
     public async Task AckAsync_WithClaimedMessage_MarksAsDone()
     {
         // Arrange
-        var inbox = CreateInboxService();
-        var store = CreateInboxWorkStore();
+        var inbox = this.CreateInboxService();
+        var store = this.CreateInboxWorkStore();
         var ownerToken = Guid.NewGuid();
 
         // Enqueue and claim a message
@@ -115,8 +129,8 @@ public class InboxWorkStoreTests : SqlServerTestBase
     public async Task AbandonAsync_WithClaimedMessage_ReturnsToSeen()
     {
         // Arrange
-        var inbox = CreateInboxService();
-        var store = CreateInboxWorkStore();
+        var inbox = this.CreateInboxService();
+        var store = this.CreateInboxWorkStore();
         var ownerToken = Guid.NewGuid();
 
         // Enqueue and claim a message
@@ -143,8 +157,8 @@ public class InboxWorkStoreTests : SqlServerTestBase
     public async Task FailAsync_WithClaimedMessage_MarksAsDead()
     {
         // Arrange
-        var inbox = CreateInboxService();
-        var store = CreateInboxWorkStore();
+        var inbox = this.CreateInboxService();
+        var store = this.CreateInboxWorkStore();
         var ownerToken = Guid.NewGuid();
 
         // Enqueue and claim a message
@@ -171,8 +185,8 @@ public class InboxWorkStoreTests : SqlServerTestBase
     public async Task OwnerTokenEnforcement_OnlyAllowsOperationsByOwner()
     {
         // Arrange
-        var inbox = CreateInboxService();
-        var store = CreateInboxWorkStore();
+        var inbox = this.CreateInboxService();
+        var store = this.CreateInboxWorkStore();
         var rightOwner = Guid.NewGuid();
         var wrongOwner = Guid.NewGuid();
 
@@ -200,8 +214,8 @@ public class InboxWorkStoreTests : SqlServerTestBase
     public async Task GetAsync_WithValidMessageId_ReturnsMessage()
     {
         // Arrange
-        var inbox = CreateInboxService();
-        var store = CreateInboxWorkStore();
+        var inbox = this.CreateInboxService();
+        var store = this.CreateInboxWorkStore();
 
         // Enqueue a test message
         await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload");
@@ -222,7 +236,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
     public async Task GetAsync_WithInvalidMessageId_ThrowsException()
     {
         // Arrange
-        var store = CreateInboxWorkStore();
+        var store = this.CreateInboxWorkStore();
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(

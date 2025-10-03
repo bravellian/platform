@@ -1,8 +1,21 @@
+// Copyright (c) Bravellian
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 namespace Bravellian.Platform.Tests;
 
 using Bravellian.Platform.Tests.TestUtilities;
 using Dapper;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Threading.Tasks;
 
@@ -17,7 +30,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
     public async Task AlreadyProcessedAsync_WithNewMessage_ReturnsFalseAndRecordsMessage()
     {
         // Arrange
-        var inbox = CreateInboxService();
+        var inbox = this.CreateInboxService();
         var messageId = "test-message-1";
         var source = "test-source";
 
@@ -42,7 +55,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
     public async Task AlreadyProcessedAsync_WithProcessedMessage_ReturnsTrue()
     {
         // Arrange
-        var inbox = CreateInboxService();
+        var inbox = this.CreateInboxService();
         var messageId = "test-message-2";
         var source = "test-source";
 
@@ -61,7 +74,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
     public async Task MarkProcessedAsync_SetsProcessedUtcAndStatus()
     {
         // Arrange
-        var inbox = CreateInboxService();
+        var inbox = this.CreateInboxService();
         var messageId = "test-message-3";
         var source = "test-source";
 
@@ -87,7 +100,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
     public async Task MarkProcessingAsync_UpdatesStatus()
     {
         // Arrange
-        var inbox = CreateInboxService();
+        var inbox = this.CreateInboxService();
         var messageId = "test-message-4";
         var source = "test-source";
 
@@ -112,7 +125,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
     public async Task MarkDeadAsync_UpdatesStatus()
     {
         // Arrange
-        var inbox = CreateInboxService();
+        var inbox = this.CreateInboxService();
         var messageId = "test-message-5";
         var source = "test-source";
 
@@ -137,7 +150,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
     public async Task ConcurrentAlreadyProcessedAsync_WithSameMessage_HandledCorrectly()
     {
         // Arrange
-        var inbox = CreateInboxService();
+        var inbox = this.CreateInboxService();
         var messageId = "concurrent-test-message";
         var source = "test-source";
 
@@ -175,7 +188,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
     public async Task AlreadyProcessedAsync_WithHash_StoresHashCorrectly()
     {
         // Arrange
-        var inbox = CreateInboxService();
+        var inbox = this.CreateInboxService();
         var messageId = "test-message-with-hash";
         var source = "test-source";
         var hash = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32 };
@@ -200,7 +213,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
     public async Task AlreadyProcessedAsync_WithInvalidMessageId_ThrowsArgumentException(string? invalidMessageId)
     {
         // Arrange
-        var inbox = CreateInboxService();
+        var inbox = this.CreateInboxService();
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(() =>
@@ -213,7 +226,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
     public async Task AlreadyProcessedAsync_WithInvalidSource_ThrowsArgumentException(string? invalidSource)
     {
         // Arrange
-        var inbox = CreateInboxService();
+        var inbox = this.CreateInboxService();
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(() =>
@@ -233,4 +246,3 @@ public class SqlInboxServiceTests : SqlServerTestBase
         return new SqlInboxService(options, logger);
     }
 }
-

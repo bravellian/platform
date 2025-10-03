@@ -24,81 +24,82 @@ using Microsoft.Extensions.Logging;
 /// </summary>
 public sealed class OutboxPollingService : BackgroundService
 {
-    private readonly OutboxDispatcher _dispatcher;
-    private readonly IMonotonicClock _mono;
-    private readonly IDatabaseSchemaCompletion? _schemaCompletion;
-    private readonly double _intervalSeconds;
-    private readonly int _batchSize;
-    private readonly ILogger<OutboxPollingService> _logger;
+    private readonly OutboxDispatcher dispatcher;
+    private readonly IMonotonicClock mono;
+    private readonly IDatabaseSchemaCompletion? schemaCompletion;
+    private readonly double intervalSeconds;
+    private readonly int batchSize;
+    private readonly ILogger<OutboxPollingService> logger;
 
     public OutboxPollingService(
-        OutboxDispatcher dispatcher, 
+        OutboxDispatcher dispatcher,
         IMonotonicClock mono,
         ILogger<OutboxPollingService> logger,
         double intervalSeconds = 0.25, // 250ms default
         int batchSize = 50,
         IDatabaseSchemaCompletion? schemaCompletion = null)
     {
-        _dispatcher = dispatcher;
-        _mono = mono;
-        _logger = logger;
-        _schemaCompletion = schemaCompletion;
-        _intervalSeconds = intervalSeconds;
-        _batchSize = batchSize;
+        this.dispatcher = dispatcher;
+        this.mono = mono;
+        this.logger = logger;
+        this.schemaCompletion = schemaCompletion;
+        this.intervalSeconds = intervalSeconds;
+        this.batchSize = batchSize;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("Starting outbox polling service with {IntervalMs}ms interval and batch size {BatchSize}", 
-            _intervalSeconds * 1000, _batchSize);
-        
+        this.logger.LogInformation(
+            "Starting outbox polling service with {IntervalMs}ms interval and batch size {BatchSize}",
+            this.intervalSeconds * 1000, this.batchSize);
+
         // Wait for schema deployment to complete if available
-        if (_schemaCompletion != null)
+        if (this.schemaCompletion != null)
         {
-            _logger.LogDebug("Waiting for database schema deployment to complete");
+            this.logger.LogDebug("Waiting for database schema deployment to complete");
             try
             {
-                await _schemaCompletion.SchemaDeploymentCompleted.ConfigureAwait(false);
-                _logger.LogInformation("Database schema deployment completed successfully");
+                await this.schemaCompletion.SchemaDeploymentCompleted.ConfigureAwait(false);
+                this.logger.LogInformation("Database schema deployment completed successfully");
             }
             catch (Exception ex)
             {
                 // Log and continue - schema deployment errors should not prevent outbox processing
-                _logger.LogWarning(ex, "Schema deployment failed, but continuing with outbox processing");
+                this.logger.LogWarning(ex, "Schema deployment failed, but continuing with outbox processing");
             }
         }
-        
+
         while (!stoppingToken.IsCancellationRequested)
         {
-            var next = _mono.Seconds + _intervalSeconds;
-            
+            var next = this.mono.Seconds + this.intervalSeconds;
+
             try
             {
-                var processedCount = await _dispatcher.RunOnceAsync(_batchSize, stoppingToken).ConfigureAwait(false);
+                var processedCount = await this.dispatcher.RunOnceAsync(this.batchSize, stoppingToken).ConfigureAwait(false);
                 if (processedCount > 0)
                 {
-                    _logger.LogDebug("Outbox polling iteration completed: {ProcessedCount} messages processed", processedCount);
+                    this.logger.LogDebug("Outbox polling iteration completed: {ProcessedCount} messages processed", processedCount);
                 }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
-                _logger.LogDebug("Outbox polling service stopped due to cancellation");
+                this.logger.LogDebug("Outbox polling service stopped due to cancellation");
                 break;
             }
             catch (Exception ex)
             {
                 // Log and continue - don't let processing errors stop the service
-                _logger.LogError(ex, "Error in outbox polling iteration - continuing with next iteration");
+                this.logger.LogError(ex, "Error in outbox polling iteration - continuing with next iteration");
             }
 
             // Sleep until next interval, using monotonic clock to avoid time jumps
-            var sleep = Math.Max(0, next - _mono.Seconds);
+            var sleep = Math.Max(0, next - this.mono.Seconds);
             if (sleep > 0)
             {
                 await Task.Delay(TimeSpan.FromSeconds(sleep), stoppingToken).ConfigureAwait(false);
             }
         }
-        
-        _logger.LogInformation("Outbox polling service stopped");
+
+        this.logger.LogInformation("Outbox polling service stopped");
     }
 }

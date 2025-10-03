@@ -89,7 +89,8 @@ internal sealed class SqlLease : ISystemLease
         // Start the renewal timer
         this.renewTimer = new Timer(this.RenewTimerCallback, null, renewInterval, renewInterval);
 
-        this.logger.LogInformation("Acquired lease for resource '{ResourceName}' with owner token '{OwnerToken}' and fencing token {FencingToken}",
+        this.logger.LogInformation(
+            "Acquired lease for resource '{ResourceName}' with owner token '{OwnerToken}' and fencing token {FencingToken}",
             resourceName, ownerToken, fencingToken);
     }
 
@@ -161,7 +162,8 @@ internal sealed class SqlLease : ISystemLease
         var acquired = (bool)acquiredParam.Value;
         if (!acquired)
         {
-            logger.LogDebug("Failed to acquire lease for resource '{ResourceName}' with owner token '{OwnerToken}'",
+            logger.LogDebug(
+                "Failed to acquire lease for resource '{ResourceName}' with owner token '{OwnerToken}'",
                 resourceName, token);
             return null;
         }
@@ -234,7 +236,8 @@ internal sealed class SqlLease : ISystemLease
         this.linkedCts.Dispose();
         this.internalCts.Dispose();
 
-        this.logger.LogInformation("Disposed lease for resource '{ResourceName}' with owner token '{OwnerToken}'",
+        this.logger.LogInformation(
+            "Disposed lease for resource '{ResourceName}' with owner token '{OwnerToken}'",
             this.ResourceName, this.OwnerToken);
     }
 
@@ -297,13 +300,15 @@ internal sealed class SqlLease : ISystemLease
                     this.FencingToken = (long)fencingTokenParam.Value;
                 }
 
-                this.logger.LogDebug("Renewed lease for resource '{ResourceName}' with owner token '{OwnerToken}' and fencing token {FencingToken}",
+                this.logger.LogDebug(
+                    "Renewed lease for resource '{ResourceName}' with owner token '{OwnerToken}' and fencing token {FencingToken}",
                     this.ResourceName, this.OwnerToken, this.FencingToken);
                 return true;
             }
             else
             {
-                this.logger.LogWarning("Failed to renew lease for resource '{ResourceName}' with owner token '{OwnerToken}' - lease may have expired",
+                this.logger.LogWarning(
+                    "Failed to renew lease for resource '{ResourceName}' with owner token '{OwnerToken}' - lease may have expired",
                     this.ResourceName, this.OwnerToken);
                 return false;
             }
@@ -330,7 +335,8 @@ internal sealed class SqlLease : ISystemLease
 
         await command.ExecuteNonQueryAsync().ConfigureAwait(false);
 
-        this.logger.LogDebug("Released lease for resource '{ResourceName}' with owner token '{OwnerToken}'",
+        this.logger.LogDebug(
+            "Released lease for resource '{ResourceName}' with owner token '{OwnerToken}'",
             this.ResourceName, this.OwnerToken);
     }
 
@@ -344,7 +350,8 @@ internal sealed class SqlLease : ISystemLease
         this.isLost = true;
         this.internalCts.Cancel();
 
-        this.logger.LogWarning("Lease lost for resource '{ResourceName}' with owner token '{OwnerToken}'",
+        this.logger.LogWarning(
+            "Lease lost for resource '{ResourceName}' with owner token '{OwnerToken}'",
             this.ResourceName, this.OwnerToken);
     }
 }

@@ -54,25 +54,33 @@ internal class SqlOutboxService : IOutbox
             this.options.TableName).ConfigureAwait(false);
 
         // Create our own connection and transaction for reliability
-        await using var connection = new SqlConnection(this.connectionString);
-        await connection.OpenAsync().ConfigureAwait(false);
-        
-        await using var transaction = connection.BeginTransaction();
-        try
-        {
-            await connection.ExecuteAsync(this.enqueueSql, new
-            {
-                Topic = topic,
-                Payload = payload,
-                CorrelationId = correlationId,
-            }, transaction: transaction).ConfigureAwait(false);
+        var connection = new SqlConnection(this.connectionString);
 
-            await transaction.CommitAsync().ConfigureAwait(false);
-        }
-        catch
+        // Create our own connection and transaction for reliability
+        await using (connection.ConfigureAwait(false))
         {
-            await transaction.RollbackAsync().ConfigureAwait(false);
-            throw;
+            await connection.OpenAsync().ConfigureAwait(false);
+
+            var transaction = connection.BeginTransaction();
+            await using (transaction.ConfigureAwait(false))
+            {
+                try
+                {
+                    await connection.ExecuteAsync(this.enqueueSql, new
+                    {
+                        Topic = topic,
+                        Payload = payload,
+                        CorrelationId = correlationId,
+                    }, transaction: transaction).ConfigureAwait(false);
+
+                    await transaction.CommitAsync().ConfigureAwait(false);
+                }
+                catch
+                {
+                    await transaction.RollbackAsync().ConfigureAwait(false);
+                    throw;
+                }
+            }
         }
     }
 
@@ -102,27 +110,30 @@ internal class SqlOutboxService : IOutbox
 
         try
         {
-            await using var connection = new SqlConnection(this.connectionString);
-            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-
-            await using var command = new SqlCommand("dbo.Outbox_Claim", connection)
+            var connection = new SqlConnection(this.connectionString);
+            await using (connection.ConfigureAwait(false))
             {
-                CommandType = CommandType.StoredProcedure,
-            };
+                await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-            command.Parameters.AddWithValue("@OwnerToken", ownerToken);
-            command.Parameters.AddWithValue("@LeaseSeconds", leaseSeconds);
-            command.Parameters.AddWithValue("@BatchSize", batchSize);
+                await using var command = new SqlCommand("dbo.Outbox_Claim", connection)
+                {
+                    CommandType = CommandType.StoredProcedure,
+                };
 
-            using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-            {
-                result.Add((Guid)reader.GetValue(0));
+                command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+                command.Parameters.AddWithValue("@LeaseSeconds", leaseSeconds);
+                command.Parameters.AddWithValue("@BatchSize", batchSize);
+
+                using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    result.Add((Guid)reader.GetValue(0));
+                }
+
+                this.logger.LogDebug("Claimed {Count} outbox items with owner {OwnerToken}", result.Count, ownerToken);
+                SchedulerMetrics.OutboxItemsClaimed.Add(result.Count);
+                return result;
             }
-
-            this.logger.LogDebug("Claimed {Count} outbox items with owner {OwnerToken}", result.Count, ownerToken);
-            SchedulerMetrics.OutboxItemsClaimed.Add(result.Count);
-            return result;
         }
         catch (Exception ex)
         {
@@ -139,7 +150,10 @@ internal class SqlOutboxService : IOutbox
         using var activity = SchedulerMetrics.StartActivity("outbox.ack");
         var idList = ids.ToList();
 
-        if (idList.Count == 0) return;
+        if (idList.Count == 0)
+        {
+            return;
+        }
 
         try
         {
@@ -162,7 +176,10 @@ internal class SqlOutboxService : IOutbox
         using var activity = SchedulerMetrics.StartActivity("outbox.abandon");
         var idList = ids.ToList();
 
-        if (idList.Count == 0) return;
+        if (idList.Count == 0)
+        {
+            return;
+        }
 
         try
         {
@@ -185,7 +202,10 @@ internal class SqlOutboxService : IOutbox
         using var activity = SchedulerMetrics.StartActivity("outbox.fail");
         var idList = ids.ToList();
 
-        if (idList.Count == 0) return;
+        if (idList.Count == 0)
+        {
+            return;
+        }
 
         try
         {
@@ -206,19 +226,22 @@ internal class SqlOutboxService : IOutbox
 
         try
         {
-            await using var connection = new SqlConnection(this.connectionString);
-            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-
-            await using var command = new SqlCommand("dbo.Outbox_ReapExpired", connection)
+            var connection = new SqlConnection(this.connectionString);
+            await using (connection.ConfigureAwait(false))
             {
-                CommandType = CommandType.StoredProcedure,
-            };
+                await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-            var reapedCount = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
-            var count = Convert.ToInt32(reapedCount ?? 0);
+                await using var command = new SqlCommand("dbo.Outbox_ReapExpired", connection)
+                {
+                    CommandType = CommandType.StoredProcedure,
+                };
 
-            this.logger.LogDebug("Reaped {Count} expired outbox items", count);
-            SchedulerMetrics.OutboxItemsReaped.Add(count);
+                var reapedCount = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+                var count = Convert.ToInt32(reapedCount ?? 0);
+
+                this.logger.LogDebug("Reaped {Count} expired outbox items", count);
+                SchedulerMetrics.OutboxItemsReaped.Add(count);
+            }
         }
         catch (Exception ex)
         {
@@ -246,19 +269,22 @@ internal class SqlOutboxService : IOutbox
             tvp.Rows.Add(id);
         }
 
-        await using var connection = new SqlConnection(this.connectionString);
-        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-
-        await using var command = new SqlCommand(procedure, connection)
+        var connection = new SqlConnection(this.connectionString);
+        await using (connection.ConfigureAwait(false))
         {
-            CommandType = CommandType.StoredProcedure,
-        };
+            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-        command.Parameters.AddWithValue("@OwnerToken", ownerToken);
-        var parameter = command.Parameters.AddWithValue("@Ids", tvp);
-        parameter.SqlDbType = SqlDbType.Structured;
-        parameter.TypeName = "dbo.GuidIdList";
+            await using var command = new SqlCommand(procedure, connection)
+            {
+                CommandType = CommandType.StoredProcedure,
+            };
 
-        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+            var parameter = command.Parameters.AddWithValue("@Ids", tvp);
+            parameter.SqlDbType = SqlDbType.Structured;
+            parameter.TypeName = "dbo.GuidIdList";
+
+            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
     }
 }

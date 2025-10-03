@@ -1,3 +1,17 @@
+// Copyright (c) Bravellian
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 namespace Bravellian.Platform.Tests;
 
 using Dapper;
@@ -8,15 +22,16 @@ using Microsoft.Extensions.Time.Testing;
 public class SqlSchedulerClientTests : SqlServerTestBase
 {
     private SqlSchedulerClient? schedulerClient;
-    private readonly SqlSchedulerOptions defaultOptions = new() { ConnectionString = "", SchemaName = "dbo", JobsTableName = "Jobs", JobRunsTableName = "JobRuns", TimersTableName = "Timers" };
+    private readonly SqlSchedulerOptions defaultOptions = new () { ConnectionString = string.Empty, SchemaName = "dbo", JobsTableName = "Jobs", JobRunsTableName = "JobRuns", TimersTableName = "Timers" };
 
-    public SqlSchedulerClientTests(ITestOutputHelper testOutputHelper) : base(testOutputHelper)
+    public SqlSchedulerClientTests(ITestOutputHelper testOutputHelper)
+        : base(testOutputHelper)
     {
     }
 
     public override async ValueTask InitializeAsync()
     {
-        await base.InitializeAsync();
+        await base.InitializeAsync().ConfigureAwait(false);
         this.defaultOptions.ConnectionString = this.ConnectionString;
         this.schedulerClient = new SqlSchedulerClient(Options.Create(this.defaultOptions), FakeTimeProvider.System);
     }
@@ -134,7 +149,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         // Assert default values
         reader.GetString(0).ShouldBe("Pending"); // Status
         reader.IsDBNull(1).ShouldBeTrue(); // ClaimedBy
-        reader.IsDBNull(2).ShouldBeTrue(); // ClaimedAt  
+        reader.IsDBNull(2).ShouldBeTrue(); // ClaimedAt
         reader.GetInt32(3).ShouldBe(0); // RetryCount
         reader.GetDateTimeOffset(4).ShouldBeGreaterThan(DateTimeOffset.Now.AddMinutes(-1)); // CreatedAt
     }

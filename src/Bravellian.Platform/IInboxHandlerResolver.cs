@@ -33,14 +33,14 @@ public interface IInboxHandlerResolver
 /// </summary>
 public sealed class InboxHandlerResolver : IInboxHandlerResolver
 {
-    private readonly IReadOnlyDictionary<string, IInboxHandler> _byTopic;
+    private readonly IReadOnlyDictionary<string, IInboxHandler> byTopic;
 
     public InboxHandlerResolver(IEnumerable<IInboxHandler> handlers)
-        => _byTopic = handlers.ToDictionary(h => h.Topic, StringComparer.OrdinalIgnoreCase);
+        => this.byTopic = handlers.ToDictionary(h => h.Topic, StringComparer.OrdinalIgnoreCase);
 
     public IInboxHandler GetHandler(string topic)
     {
-        if (!_byTopic.TryGetValue(topic, out var handler))
+        if (!this.byTopic.TryGetValue(topic, out var handler))
         {
             throw new InvalidOperationException($"No handler registered for topic '{topic}'");
         }

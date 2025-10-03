@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System.Text.Json;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -59,12 +58,12 @@ internal sealed class FanoutJobRegistrationService : BackgroundService
             using var scope = this.serviceProvider.CreateScope();
             var scheduler = scope.ServiceProvider.GetRequiredService<ISchedulerClient>();
 
-            var jobName = this.options.WorkKey is null 
+            var jobName = this.options.WorkKey is null
                 ? $"fanout-{this.options.FanoutTopic}"
                 : $"fanout-{this.options.FanoutTopic}-{this.options.WorkKey}";
 
             var payload = JsonSerializer.Serialize(new FanoutJobHandler.FanoutJobPayload(
-                this.options.FanoutTopic, 
+                this.options.FanoutTopic,
                 this.options.WorkKey));
 
             await scheduler.CreateOrUpdateJobAsync(
@@ -83,9 +82,9 @@ internal sealed class FanoutJobRegistrationService : BackgroundService
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Failed to register fanout job for topic {FanoutTopic}:{WorkKey}", 
+            this.logger.LogError(ex, "Failed to register fanout job for topic {FanoutTopic}:{WorkKey}",
                 this.options.FanoutTopic, this.options.WorkKey);
-            
+
             // Don't rethrow - we don't want to crash the application, just log the error
         }
     }
@@ -96,21 +95,22 @@ internal sealed class FanoutJobRegistrationService : BackgroundService
         {
             // Check if policy already exists - if so, we're done
             var existing = await policyRepository.GetCadenceAsync(
-                this.options.FanoutTopic, 
-                this.options.WorkKey ?? "default", 
+                this.options.FanoutTopic,
+                this.options.WorkKey ?? "default",
                 cancellationToken).ConfigureAwait(false);
 
             // Policy already exists, no need to insert
             if (existing.everySeconds > 0)
             {
-                this.logger.LogDebug("Fanout policy already exists for {FanoutTopic}:{WorkKey}", 
+                this.logger.LogDebug(
+                    "Fanout policy already exists for {FanoutTopic}:{WorkKey}",
                     this.options.FanoutTopic, this.options.WorkKey);
                 return;
             }
         }
         catch (Exception ex)
         {
-            this.logger.LogDebug(ex, "Policy check failed, will attempt to insert policy for {FanoutTopic}:{WorkKey}", 
+            this.logger.LogDebug(ex, "Policy check failed, will attempt to insert policy for {FanoutTopic}:{WorkKey}",
                 this.options.FanoutTopic, this.options.WorkKey);
         }
 
@@ -118,12 +118,13 @@ internal sealed class FanoutJobRegistrationService : BackgroundService
         try
         {
             await this.InsertPolicyAsync(policyRepository, cancellationToken).ConfigureAwait(false);
-            this.logger.LogDebug("Ensured fanout policy exists for {FanoutTopic}:{WorkKey}", 
+            this.logger.LogDebug(
+                "Ensured fanout policy exists for {FanoutTopic}:{WorkKey}",
                 this.options.FanoutTopic, this.options.WorkKey);
         }
         catch (Exception ex)
         {
-            this.logger.LogWarning(ex, "Failed to ensure fanout policy for {FanoutTopic}:{WorkKey}", 
+            this.logger.LogWarning(ex, "Failed to ensure fanout policy for {FanoutTopic}:{WorkKey}",
                 this.options.FanoutTopic, this.options.WorkKey);
         }
     }
@@ -136,10 +137,12 @@ internal sealed class FanoutJobRegistrationService : BackgroundService
         var schemaName = this.serviceProvider.GetRequiredService<IOptionsSnapshot<SqlFanoutOptions>>().Value.SchemaName;
         var tableName = this.serviceProvider.GetRequiredService<IOptionsSnapshot<SqlFanoutOptions>>().Value.PolicyTableName;
 
-        await using var connection = new SqlConnection(connectionString);
-        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        var connection = new SqlConnection(connectionString);
+        await using (connection.ConfigureAwait(false))
+        {
+            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-        var sql = $"""
+            var sql = $"""
 
                         INSERT INTO [{schemaName}].[{tableName}] 
                             (FanoutTopic, WorkKey, DefaultEverySeconds, JitterSeconds, CreatedAt, UpdatedAt)
@@ -150,12 +153,13 @@ internal sealed class FanoutJobRegistrationService : BackgroundService
                         )
             """;
 
-        await using var command = new SqlCommand(sql, connection);
-        command.Parameters.AddWithValue("@FanoutTopic", this.options.FanoutTopic);
-        command.Parameters.AddWithValue("@WorkKey", this.options.WorkKey ?? "default");
-        command.Parameters.AddWithValue("@DefaultEverySeconds", this.options.DefaultEverySeconds);
-        command.Parameters.AddWithValue("@JitterSeconds", this.options.JitterSeconds);
+            await using var command = new SqlCommand(sql, connection);
+            command.Parameters.AddWithValue("@FanoutTopic", this.options.FanoutTopic);
+            command.Parameters.AddWithValue("@WorkKey", this.options.WorkKey ?? "default");
+            command.Parameters.AddWithValue("@DefaultEverySeconds", this.options.DefaultEverySeconds);
+            command.Parameters.AddWithValue("@JitterSeconds", this.options.JitterSeconds);
 
-        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
     }
 }

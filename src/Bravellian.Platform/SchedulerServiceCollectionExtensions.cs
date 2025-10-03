@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+namespace Bravellian.Platform;
+
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-
-namespace Bravellian.Platform;
 
 public static class SchedulerServiceCollectionExtensions
 {
@@ -85,7 +85,7 @@ public static class SchedulerServiceCollectionExtensions
         {
             services.TryAddSingleton<DatabaseSchemaCompletion>();
             services.TryAddSingleton<IDatabaseSchemaCompletion>(provider => provider.GetRequiredService<DatabaseSchemaCompletion>());
-            
+
             // Only add hosted service if not already registered using TryAddEnumerable
             services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, DatabaseSchemaBackgroundService>());
         }
@@ -138,7 +138,7 @@ public static class SchedulerServiceCollectionExtensions
         {
             services.TryAddSingleton<DatabaseSchemaCompletion>();
             services.TryAddSingleton<IDatabaseSchemaCompletion>(provider => provider.GetRequiredService<DatabaseSchemaCompletion>());
-            
+
             // Only add hosted service if not already registered using TryAddEnumerable
             services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, DatabaseSchemaBackgroundService>());
         }
@@ -234,7 +234,7 @@ public static class SchedulerServiceCollectionExtensions
         {
             services.TryAddSingleton<DatabaseSchemaCompletion>();
             services.TryAddSingleton<IDatabaseSchemaCompletion>(provider => provider.GetRequiredService<DatabaseSchemaCompletion>());
-            
+
             // Only add hosted service if not already registered using TryAddEnumerable
             services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, DatabaseSchemaBackgroundService>());
         }
@@ -298,6 +298,31 @@ public static class SchedulerServiceCollectionExtensions
     }
 
     /// <summary>
+    /// Registers an inbox handler for a specific topic.
+    /// </summary>
+    /// <typeparam name="THandler">The inbox handler implementation type.</typeparam>
+    /// <param name="services">The IServiceCollection to add services to.</param>
+    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
+    public static IServiceCollection AddInboxHandler<THandler>(this IServiceCollection services)
+        where THandler : class, IInboxHandler
+    {
+        services.AddSingleton<IInboxHandler, THandler>();
+        return services;
+    }
+
+    /// <summary>
+    /// Registers an inbox handler using a factory function.
+    /// </summary>
+    /// <param name="services">The IServiceCollection to add services to.</param>
+    /// <param name="factory">Factory function to create the handler instance.</param>
+    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
+    public static IServiceCollection AddInboxHandler(this IServiceCollection services, Func<IServiceProvider, IInboxHandler> factory)
+    {
+        services.AddSingleton(factory);
+        return services;
+    }
+
+    /// <summary>
     /// Adds SQL fanout functionality with SQL Server backend.
     /// </summary>
     /// <param name="services">The IServiceCollection to add services to.</param>
@@ -329,7 +354,7 @@ public static class SchedulerServiceCollectionExtensions
         {
             services.TryAddSingleton<DatabaseSchemaCompletion>();
             services.TryAddSingleton<IDatabaseSchemaCompletion>(provider => provider.GetRequiredService<DatabaseSchemaCompletion>());
-            
+
             // Only add hosted service if not already registered using TryAddEnumerable
             services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, DatabaseSchemaBackgroundService>());
         }
@@ -347,10 +372,10 @@ public static class SchedulerServiceCollectionExtensions
     /// <param name="cursorTableName">The cursor table name (default: "FanoutCursor").</param>
     /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
     public static IServiceCollection AddSqlFanout(
-        this IServiceCollection services, 
-        string connectionString, 
-        string schemaName = "dbo", 
-        string policyTableName = "FanoutPolicy", 
+        this IServiceCollection services,
+        string connectionString,
+        string schemaName = "dbo",
+        string policyTableName = "FanoutPolicy",
         string cursorTableName = "FanoutCursor")
     {
         return services.AddSqlFanout(new SqlFanoutOptions
@@ -380,11 +405,11 @@ public static class SchedulerServiceCollectionExtensions
 
         // Register the planner for this topic (scoped to allow for stateful planners)
         services.AddScoped<TPlanner>();
-        
+
         // Register a keyed scoped service for this specific topic/workkey combination
         var key = options.WorkKey is null ? options.FanoutTopic : $"{options.FanoutTopic}:{options.WorkKey}";
         services.AddKeyedScoped<IFanoutPlanner, TPlanner>(key);
-        
+
         // Register the coordinator for this topic
         services.AddKeyedScoped<IFanoutCoordinator>(key, (provider, key) =>
         {
@@ -392,21 +417,21 @@ public static class SchedulerServiceCollectionExtensions
             var dispatcher = provider.GetRequiredService<IFanoutDispatcher>();
             var leaseFactory = provider.GetRequiredService<ISystemLeaseFactory>();
             var logger = provider.GetRequiredService<ILogger<FanoutCoordinator>>();
-            
+
             return new FanoutCoordinator(planner, dispatcher, leaseFactory, logger);
         });
 
         // Register the recurring job with the scheduler using a hosted service
         services.AddSingleton<IHostedService>(provider => new FanoutJobRegistrationService(provider, options));
-        
+
         return services;
     }
 
-    /// Adds SQL inbox functionality for at-most-once message processing.
-    /// </summary>
-    /// <param name="services">The IServiceCollection to add services to.</param>
-    /// <param name="options">The configuration, used to set the options.</param>
-    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
+    // Adds SQL inbox functionality for at-most-once message processing.
+    // </summary>
+    // <param name="services">The IServiceCollection to add services to.</param>
+    // <param name="options">The configuration, used to set the options.</param>
+    // <returns>The IServiceCollection so that additional calls can be chained.</returns>
     public static IServiceCollection AddSqlInbox(this IServiceCollection services, SqlInboxOptions options)
     {
         services.Configure<SqlInboxOptions>(o =>
@@ -418,13 +443,17 @@ public static class SchedulerServiceCollectionExtensions
         });
 
         services.AddSingleton<IInbox, SqlInboxService>();
+        services.AddSingleton<IInboxWorkStore, SqlInboxWorkStore>();
+        services.AddSingleton<IInboxHandlerResolver, InboxHandlerResolver>();
+        services.AddSingleton<InboxDispatcher>();
+        services.AddHostedService<InboxPollingService>();
 
         // Register schema deployment service if enabled (only register once per service collection)
         if (options.EnableSchemaDeployment)
         {
             services.TryAddSingleton<DatabaseSchemaCompletion>();
             services.TryAddSingleton<IDatabaseSchemaCompletion>(provider => provider.GetRequiredService<DatabaseSchemaCompletion>());
-            
+
             // Only add hosted service if not already registered using TryAddEnumerable
             services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, DatabaseSchemaBackgroundService>());
         }
@@ -446,7 +475,7 @@ public static class SchedulerServiceCollectionExtensions
         {
             ConnectionString = connectionString,
             SchemaName = schemaName,
-            TableName = tableName
+            TableName = tableName,
         });
     }
 }

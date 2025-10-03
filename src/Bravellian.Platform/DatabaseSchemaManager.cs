@@ -1156,6 +1156,7 @@ internal static class DatabaseSchemaManager
             END
             """;
     }
+
     /// <summary>
     /// Gets the SQL script to create the FanoutPolicy table.
     /// </summary>

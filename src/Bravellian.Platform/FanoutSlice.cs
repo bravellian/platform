@@ -19,8 +19,8 @@ namespace Bravellian.Platform;
 /// The unit combines a fanout topic, shard key, work key, and optional window information.
 /// </summary>
 public sealed record FanoutSlice(
-    string FanoutTopic,
-    string ShardKey,
-    string WorkKey,
-    DateTimeOffset? WindowStart = null,
-    string? CorrelationId = null);
+    string fanoutTopic,
+    string shardKey,
+    string workKey,
+    DateTimeOffset? windowStart = null,
+    string? correlationId = null);

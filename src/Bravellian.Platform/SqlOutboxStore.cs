@@ -43,7 +43,7 @@ internal class SqlOutboxStore : IOutboxStore
     public async Task<IReadOnlyList<OutboxMessage>> ClaimDueAsync(int limit, CancellationToken cancellationToken)
     {
         this.logger.LogDebug("Claiming up to {Limit} outbox messages for processing", limit);
-        
+
         // Use READPAST to skip locked rows, UPDLOCK to prevent other readers from claiming same rows
         var sql = $"""
 
@@ -58,10 +58,10 @@ internal class SqlOutboxStore : IOutboxStore
         {
             using var connection = new SqlConnection(this.connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-            
+
             var messages = await connection.QueryAsync<OutboxMessage>(sql).ConfigureAwait(false);
             var messageList = messages.ToList();
-            
+
             this.logger.LogDebug("Successfully claimed {ClaimedCount} outbox messages for processing", messageList.Count);
             return messageList;
         }
@@ -75,7 +75,7 @@ internal class SqlOutboxStore : IOutboxStore
     public async Task MarkDispatchedAsync(Guid id, CancellationToken cancellationToken)
     {
         this.logger.LogDebug("Marking outbox message {MessageId} as dispatched", id);
-        
+
         var sql = $"""
 
                         UPDATE [{this.schemaName}].[{this.tableName}]
@@ -89,13 +89,13 @@ internal class SqlOutboxStore : IOutboxStore
         {
             using var connection = new SqlConnection(this.connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-            
+
             await connection.ExecuteAsync(sql, new
             {
                 Id = id,
-                ProcessedBy = Environment.MachineName
+                ProcessedBy = Environment.MachineName,
             }).ConfigureAwait(false);
-            
+
             this.logger.LogDebug("Successfully marked outbox message {MessageId} as dispatched", id);
         }
         catch (Exception ex)
@@ -108,10 +108,11 @@ internal class SqlOutboxStore : IOutboxStore
     public async Task RescheduleAsync(Guid id, TimeSpan delay, string lastError, CancellationToken cancellationToken)
     {
         var nextAttempt = this.timeProvider.GetUtcNow().Add(delay);
-        
-        this.logger.LogDebug("Rescheduling outbox message {MessageId} for next attempt at {NextAttempt} due to error: {Error}", 
+
+        this.logger.LogDebug(
+            "Rescheduling outbox message {MessageId} for next attempt at {NextAttempt} due to error: {Error}",
             id, nextAttempt, lastError);
-        
+
         var sql = $"""
 
                         UPDATE [{this.schemaName}].[{this.tableName}]
@@ -125,14 +126,14 @@ internal class SqlOutboxStore : IOutboxStore
         {
             using var connection = new SqlConnection(this.connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-            
+
             await connection.ExecuteAsync(sql, new
             {
                 Id = id,
                 LastError = lastError,
-                NextAttemptAt = nextAttempt
+                NextAttemptAt = nextAttempt,
             }).ConfigureAwait(false);
-            
+
             this.logger.LogDebug("Successfully rescheduled outbox message {MessageId} for {NextAttempt}", id, nextAttempt);
         }
         catch (Exception ex)
@@ -145,7 +146,7 @@ internal class SqlOutboxStore : IOutboxStore
     public async Task FailAsync(Guid id, string lastError, CancellationToken cancellationToken)
     {
         this.logger.LogWarning("Permanently failing outbox message {MessageId} due to error: {Error}", id, lastError);
-        
+
         var sql = $"""
 
                         UPDATE [{this.schemaName}].[{this.tableName}]
@@ -160,14 +161,14 @@ internal class SqlOutboxStore : IOutboxStore
         {
             using var connection = new SqlConnection(this.connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-            
+
             await connection.ExecuteAsync(sql, new
             {
                 Id = id,
                 ProcessedBy = $"{Environment.MachineName}:FAILED",
-                LastError = lastError
+                LastError = lastError,
             }).ConfigureAwait(false);
-            
+
             this.logger.LogWarning("Successfully marked outbox message {MessageId} as permanently failed", id);
         }
         catch (Exception ex)

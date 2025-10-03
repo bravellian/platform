@@ -34,7 +34,7 @@ public interface IOutbox
     Task EnqueueAsync(
         string topic,
         string payload,
-        string? correlationId = null);
+        string? correlationId);
 
     /// <summary>
     /// Enqueues a message into the outbox table within the context

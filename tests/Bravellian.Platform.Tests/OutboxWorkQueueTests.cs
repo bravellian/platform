@@ -1,3 +1,17 @@
+// Copyright (c) Bravellian
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 namespace Bravellian.Platform.Tests;
 
 using Dapper;
@@ -10,16 +24,17 @@ public class OutboxWorkQueueTests : SqlServerTestBase
 {
     private SqlOutboxService? outboxService;
 
-    public OutboxWorkQueueTests(ITestOutputHelper testOutputHelper) : base(testOutputHelper)
+    public OutboxWorkQueueTests(ITestOutputHelper testOutputHelper)
+        : base(testOutputHelper)
     {
     }
 
     public override async ValueTask InitializeAsync()
     {
-        await base.InitializeAsync();
+        await base.InitializeAsync().ConfigureAwait(false);
 
         // Ensure work queue schema is set up
-        await DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(this.ConnectionString);
+        await DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(this.ConnectionString).ConfigureAwait(false);
 
         var options = Options.Create(new SqlOutboxOptions
         {
@@ -168,27 +183,33 @@ public class OutboxWorkQueueTests : SqlServerTestBase
     {
         var ids = new List<Guid>();
 
-        await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        var connection = new SqlConnection(this.ConnectionString);
+        await using (connection.ConfigureAwait(false))
+        {
+            await connection.OpenAsync();
 
         for (int i = 0; i < count; i++)
         {
             var id = Guid.NewGuid();
             ids.Add(id);
 
-            await connection.ExecuteAsync(@"
+            await connection.ExecuteAsync(
+                @"
                 INSERT INTO dbo.Outbox (Id, Topic, Payload, Status, CreatedAt)
                 VALUES (@Id, @Topic, @Payload, 0, SYSUTCDATETIME())",
                 new { Id = id, Topic = "test", Payload = $"payload{i}" });
         }
 
         return ids;
+        }
     }
 
     private async Task VerifyOutboxStatusAsync(IEnumerable<Guid> ids, int expectedStatus)
     {
-        await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        var connection = new SqlConnection(this.ConnectionString);
+        await using (connection.ConfigureAwait(false))
+        {
+            await connection.OpenAsync();
 
         foreach (var id in ids)
         {
@@ -196,18 +217,22 @@ public class OutboxWorkQueueTests : SqlServerTestBase
                 "SELECT Status FROM dbo.Outbox WHERE Id = @Id", new { Id = id });
             status.ShouldBe(expectedStatus);
         }
+        }
     }
 
     private async Task VerifyOutboxProcessedAsync(IEnumerable<Guid> ids, bool expectedProcessed)
     {
-        await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        var connection = new SqlConnection(this.ConnectionString);
+        await using (connection.ConfigureAwait(false))
+        {
+            await connection.OpenAsync();
 
         foreach (var id in ids)
         {
             var isProcessed = await connection.ExecuteScalarAsync<bool>(
                 "SELECT IsProcessed FROM dbo.Outbox WHERE Id = @Id", new { Id = id });
             isProcessed.ShouldBe(expectedProcessed);
+        }
         }
     }
 }

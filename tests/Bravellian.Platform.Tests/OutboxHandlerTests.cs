@@ -1,9 +1,22 @@
+// Copyright (c) Bravellian
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 namespace Bravellian.Platform.Tests;
 
 using Bravellian.Platform.Tests.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using System.Linq;
 
@@ -11,13 +24,14 @@ public class OutboxHandlerTests : SqlServerTestBase
 {
     private FakeTimeProvider timeProvider = default!;
 
-    public OutboxHandlerTests(ITestOutputHelper testOutputHelper) : base(testOutputHelper)
+    public OutboxHandlerTests(ITestOutputHelper testOutputHelper)
+        : base(testOutputHelper)
     {
     }
 
     public override async ValueTask InitializeAsync()
     {
-        await base.InitializeAsync();
+        await base.InitializeAsync().ConfigureAwait(false);
         this.timeProvider = new FakeTimeProvider();
     }
 
@@ -270,16 +284,18 @@ public class OutboxHandlerTests : SqlServerTestBase
     // Simple logger that captures log entries for testing
     private class CapturingLogger<T> : ILogger<T>
     {
-        public List<(LogLevel Level, string Message, Exception? Exception)> LogEntries { get; } = new();
+        public List<(LogLevel Level, string Message, Exception? Exception)> LogEntries { get; } = new ();
 
-        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull
+            => null;
 
         public bool IsEnabled(LogLevel logLevel) => true;
 
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
         {
             var message = formatter(state, exception);
-            LogEntries.Add((logLevel, message, exception));
+            this.LogEntries.Add((logLevel, message, exception));
         }
     }
 
@@ -301,7 +317,7 @@ public class OutboxHandlerTests : SqlServerTestBase
         delay2.ShouldBeGreaterThanOrEqualTo(TimeSpan.FromMilliseconds(1000));
         delay2.ShouldBeLessThan(TimeSpan.FromMilliseconds(1250));
 
-        // For attempt 3: base = 2000ms, jitter = 0-249ms, so range is 2000-2249ms  
+        // For attempt 3: base = 2000ms, jitter = 0-249ms, so range is 2000-2249ms
         delay3.ShouldBeGreaterThanOrEqualTo(TimeSpan.FromMilliseconds(2000));
         delay3.ShouldBeLessThan(TimeSpan.FromMilliseconds(2250));
 
@@ -347,21 +363,24 @@ public class OutboxHandlerTests : SqlServerTestBase
     private class TestHandler : IOutboxHandler
     {
         public List<OutboxMessage> HandledMessages { get; } = new List<OutboxMessage>();
+
         public bool ShouldThrow { get; set; }
 
         public TestHandler(string topic)
         {
-            Topic = topic;
+            this.Topic = topic;
         }
 
         public string Topic { get; }
 
         public Task HandleAsync(OutboxMessage message, CancellationToken cancellationToken)
         {
-            HandledMessages.Add(message);
+            this.HandledMessages.Add(message);
 
-            if (ShouldThrow)
+            if (this.ShouldThrow)
+            {
                 throw new Exception("Test exception");
+            }
 
             return Task.CompletedTask;
         }
@@ -370,38 +389,40 @@ public class OutboxHandlerTests : SqlServerTestBase
     // Test implementation of IOutboxStore
     private class TestOutboxStore : IOutboxStore
     {
-        private readonly List<OutboxMessage> _messages = new List<OutboxMessage>();
+        private readonly List<OutboxMessage> messages = new List<OutboxMessage>();
 
         public List<Guid> DispatchedMessages { get; } = new List<Guid>();
+
         public List<KeyValuePair<Guid, string>> FailedMessages { get; } = new List<KeyValuePair<Guid, string>>();
+
         public List<KeyValuePair<Guid, (TimeSpan Delay, string Error)>> RescheduledMessages { get; } = new List<KeyValuePair<Guid, (TimeSpan Delay, string Error)>>();
 
         public void AddMessage(OutboxMessage message)
         {
-            _messages.Add(message);
+            this.messages.Add(message);
         }
 
         public Task<IReadOnlyList<OutboxMessage>> ClaimDueAsync(int limit, CancellationToken cancellationToken)
         {
-            var claimed = _messages.Take(limit).ToList();
+            var claimed = this.messages.Take(limit).ToList();
             return Task.FromResult<IReadOnlyList<OutboxMessage>>(claimed);
         }
 
         public Task MarkDispatchedAsync(Guid id, CancellationToken cancellationToken)
         {
-            DispatchedMessages.Add(id);
+            this.DispatchedMessages.Add(id);
             return Task.CompletedTask;
         }
 
         public Task FailAsync(Guid id, string lastError, CancellationToken cancellationToken)
         {
-            FailedMessages.Add(new KeyValuePair<Guid, string>(id, lastError));
+            this.FailedMessages.Add(new KeyValuePair<Guid, string>(id, lastError));
             return Task.CompletedTask;
         }
 
         public Task RescheduleAsync(Guid id, TimeSpan delay, string lastError, CancellationToken cancellationToken)
         {
-            RescheduledMessages.Add(new KeyValuePair<Guid, (TimeSpan, string)>(id, (delay, lastError)));
+            this.RescheduledMessages.Add(new KeyValuePair<Guid, (TimeSpan, string)>(id, (delay, lastError)));
             return Task.CompletedTask;
         }
     }

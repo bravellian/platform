@@ -14,7 +14,6 @@
 
 namespace Bravellian.Platform.Tests;
 
-using System.Data;
 using Dapper;
 using Microsoft.Data.SqlClient;
 
@@ -63,6 +62,7 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
 
         // Assert - Check essential columns exist with correct types
         var expectedColumns = new Dictionary<string, string>
+(StringComparer.Ordinal)
         {
             ["Id"] = "uniqueidentifier",
             ["Payload"] = "nvarchar",
@@ -76,6 +76,7 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
             ["NextAttemptAt"] = "datetimeoffset",
             ["MessageId"] = "uniqueidentifier",
             ["CorrelationId"] = "nvarchar",
+
             // Work queue columns added by migration
             ["Status"] = "tinyint",
             ["LockedUntil"] = "datetime2",
@@ -97,6 +98,7 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
 
         // Assert
         var expectedColumns = new Dictionary<string, string>
+(StringComparer.Ordinal)
         {
             ["Id"] = "uniqueidentifier",
             ["JobName"] = "nvarchar",
@@ -124,6 +126,7 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
 
         // Assert
         var expectedColumns = new Dictionary<string, string>
+(StringComparer.Ordinal)
         {
             ["Id"] = "uniqueidentifier",
             ["DueTime"] = "datetimeoffset",
@@ -154,6 +157,7 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
 
         // Assert
         var expectedColumns = new Dictionary<string, string>
+(StringComparer.Ordinal)
         {
             ["Id"] = "uniqueidentifier",
             ["JobId"] = "uniqueidentifier",
@@ -183,6 +187,7 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
 
         // Assert
         var expectedColumns = new Dictionary<string, string>
+(StringComparer.Ordinal)
         {
             ["MessageId"] = "varchar",
             ["Source"] = "varchar",
@@ -291,7 +296,7 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
             FROM INFORMATION_SCHEMA.TABLES 
             WHERE TABLE_SCHEMA = @SchemaName AND TABLE_NAME = @TableName";
 
-        var count = await connection.QuerySingleAsync<int>(sql, new { SchemaName = schemaName, TableName = tableName });
+        var count = await connection.QuerySingleAsync<int>(sql, new { SchemaName = schemaName, TableName = tableName }).ConfigureAwait(false);
         return count > 0;
     }
 
@@ -300,8 +305,10 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
     /// </summary>
     private async Task<Dictionary<string, string>> GetTableColumnsAsync(string schemaName, string tableName)
     {
-        await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        var connection = new SqlConnection(this.ConnectionString);
+        await using (connection.ConfigureAwait(false))
+        {
+            await connection.OpenAsync();
 
         const string sql = @"
             SELECT COLUMN_NAME, DATA_TYPE 
@@ -311,7 +318,8 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
         var columns = await connection.QueryAsync<(string ColumnName, string DataType)>(
             sql, new { SchemaName = schemaName, TableName = tableName });
 
-        return columns.ToDictionary(c => c.ColumnName, c => c.DataType);
+        return columns.ToDictionary(c => c.ColumnName, c => c.DataType, StringComparer.Ordinal);
+        }
     }
 
     /// <summary>
@@ -328,7 +336,7 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
               AND t.name = @TableName 
               AND i.name = @IndexName";
 
-        var count = await connection.QuerySingleAsync<int>(sql, new { SchemaName = schemaName, TableName = tableName, IndexName = indexName });
+        var count = await connection.QuerySingleAsync<int>(sql, new { SchemaName = schemaName, TableName = tableName, IndexName = indexName }).ConfigureAwait(false);
         return count > 0;
     }
 }

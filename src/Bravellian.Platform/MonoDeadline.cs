@@ -18,15 +18,15 @@ namespace Bravellian.Platform;
 /// Represents a monotonic deadline that can be used to check if a certain point in time has been reached.
 /// This is useful for timeouts and scheduling that should not be affected by system clock adjustments.
 /// </summary>
-/// <param name="AtSeconds">The target time in monotonic seconds.</param>
-public readonly record struct MonoDeadline(double AtSeconds)
+/// <param name="atSeconds">The target time in monotonic seconds.</param>
+public readonly record struct MonoDeadline(double atSeconds)
 {
     /// <summary>
     /// Checks if this deadline has expired based on the current monotonic clock time.
     /// </summary>
     /// <param name="clock">The monotonic clock to check against.</param>
     /// <returns>True if the deadline has expired; otherwise, false.</returns>
-    public bool Expired(IMonotonicClock clock) => clock.Seconds >= this.AtSeconds;
+    public bool Expired(IMonotonicClock clock) => clock.Seconds >= this.atSeconds;
 
     /// <summary>
     /// Creates a new deadline that will expire after the specified time span from the current monotonic time.

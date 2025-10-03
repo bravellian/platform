@@ -39,13 +39,13 @@ internal class SqlInboxWorkStore : IInboxWorkStore
     }
 
     public async Task<IReadOnlyList<string>> ClaimAsync(
-        Guid ownerToken, 
-        int leaseSeconds, 
-        int batchSize, 
+        Guid ownerToken,
+        int leaseSeconds,
+        int batchSize,
         CancellationToken cancellationToken)
     {
         this.logger.LogDebug(
-            "Claiming up to {BatchSize} inbox messages with {LeaseSeconds}s lease for owner {OwnerToken}", 
+            "Claiming up to {BatchSize} inbox messages with {LeaseSeconds}s lease for owner {OwnerToken}",
             batchSize, leaseSeconds, ownerToken);
 
         try
@@ -59,29 +59,30 @@ internal class SqlInboxWorkStore : IInboxWorkStore
                 {
                     OwnerToken = ownerToken,
                     LeaseSeconds = leaseSeconds,
-                    BatchSize = batchSize
+                    BatchSize = batchSize,
                 },
                 commandType: System.Data.CommandType.StoredProcedure).ConfigureAwait(false);
 
             var result = messageIds.ToList();
             this.logger.LogDebug(
-                "Successfully claimed {ClaimedCount} inbox messages for owner {OwnerToken}", 
+                "Successfully claimed {ClaimedCount} inbox messages for owner {OwnerToken}",
                 result.Count, ownerToken);
 
             return result;
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, 
-                "Failed to claim inbox messages for owner {OwnerToken}", 
+            this.logger.LogError(
+                ex,
+                "Failed to claim inbox messages for owner {OwnerToken}",
                 ownerToken);
             throw;
         }
     }
 
     public async Task AckAsync(
-        Guid ownerToken, 
-        IEnumerable<string> messageIds, 
+        Guid ownerToken,
+        IEnumerable<string> messageIds,
         CancellationToken cancellationToken)
     {
         var messageIdList = messageIds.ToList();
@@ -91,7 +92,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
         }
 
         this.logger.LogDebug(
-            "Acknowledging {MessageCount} inbox messages for owner {OwnerToken}", 
+            "Acknowledging {MessageCount} inbox messages for owner {OwnerToken}",
             messageIdList.Count, ownerToken);
 
         try
@@ -105,26 +106,27 @@ internal class SqlInboxWorkStore : IInboxWorkStore
                 new
                 {
                     OwnerToken = ownerToken,
-                    Ids = idsTable
+                    Ids = idsTable,
                 },
                 commandType: System.Data.CommandType.StoredProcedure).ConfigureAwait(false);
 
             this.logger.LogDebug(
-                "Successfully acknowledged {MessageCount} inbox messages for owner {OwnerToken}", 
+                "Successfully acknowledged {MessageCount} inbox messages for owner {OwnerToken}",
                 messageIdList.Count, ownerToken);
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, 
-                "Failed to acknowledge inbox messages for owner {OwnerToken}", 
+            this.logger.LogError(
+                ex,
+                "Failed to acknowledge inbox messages for owner {OwnerToken}",
                 ownerToken);
             throw;
         }
     }
 
     public async Task AbandonAsync(
-        Guid ownerToken, 
-        IEnumerable<string> messageIds, 
+        Guid ownerToken,
+        IEnumerable<string> messageIds,
         CancellationToken cancellationToken)
     {
         var messageIdList = messageIds.ToList();
@@ -134,7 +136,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
         }
 
         this.logger.LogDebug(
-            "Abandoning {MessageCount} inbox messages for owner {OwnerToken}", 
+            "Abandoning {MessageCount} inbox messages for owner {OwnerToken}",
             messageIdList.Count, ownerToken);
 
         try
@@ -148,27 +150,28 @@ internal class SqlInboxWorkStore : IInboxWorkStore
                 new
                 {
                     OwnerToken = ownerToken,
-                    Ids = idsTable
+                    Ids = idsTable,
                 },
                 commandType: System.Data.CommandType.StoredProcedure).ConfigureAwait(false);
 
             this.logger.LogDebug(
-                "Successfully abandoned {MessageCount} inbox messages for owner {OwnerToken}", 
+                "Successfully abandoned {MessageCount} inbox messages for owner {OwnerToken}",
                 messageIdList.Count, ownerToken);
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, 
-                "Failed to abandon inbox messages for owner {OwnerToken}", 
+            this.logger.LogError(
+                ex,
+                "Failed to abandon inbox messages for owner {OwnerToken}",
                 ownerToken);
             throw;
         }
     }
 
     public async Task FailAsync(
-        Guid ownerToken, 
-        IEnumerable<string> messageIds, 
-        string error, 
+        Guid ownerToken,
+        IEnumerable<string> messageIds,
+        string error,
         CancellationToken cancellationToken)
     {
         var messageIdList = messageIds.ToList();
@@ -178,7 +181,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
         }
 
         this.logger.LogDebug(
-            "Failing {MessageCount} inbox messages for owner {OwnerToken}: {Error}", 
+            "Failing {MessageCount} inbox messages for owner {OwnerToken}: {Error}",
             messageIdList.Count, ownerToken, error);
 
         try
@@ -193,18 +196,19 @@ internal class SqlInboxWorkStore : IInboxWorkStore
                 {
                     OwnerToken = ownerToken,
                     Ids = idsTable,
-                    Reason = error
+                    Reason = error,
                 },
                 commandType: System.Data.CommandType.StoredProcedure).ConfigureAwait(false);
 
             this.logger.LogWarning(
-                "Failed {MessageCount} inbox messages for owner {OwnerToken}: {Error}", 
+                "Failed {MessageCount} inbox messages for owner {OwnerToken}: {Error}",
                 messageIdList.Count, ownerToken, error);
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, 
-                "Failed to mark inbox messages as failed for owner {OwnerToken}", 
+            this.logger.LogError(
+                ex,
+                "Failed to mark inbox messages as failed for owner {OwnerToken}",
                 ownerToken);
             throw;
         }
@@ -226,7 +230,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
             if (result > 0)
             {
                 this.logger.LogInformation(
-                    "Reaped {ReapedCount} expired inbox leases", 
+                    "Reaped {ReapedCount} expired inbox leases",
                     result);
             }
             else
@@ -263,7 +267,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
                 """;
 
             var row = await connection.QuerySingleOrDefaultAsync(sql, new { MessageId = messageId }).ConfigureAwait(false);
-            
+
             if (row == null)
             {
                 throw new InvalidOperationException($"Inbox message '{messageId}' not found");
@@ -278,7 +282,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
                 Hash = row.Hash,
                 Attempt = row.Attempts,
                 FirstSeenUtc = row.FirstSeenUtc,
-                LastSeenUtc = row.LastSeenUtc
+                LastSeenUtc = row.LastSeenUtc,
             };
         }
         catch (Exception ex)
@@ -292,7 +296,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
     {
         var table = new System.Data.DataTable();
         table.Columns.Add("Id", typeof(string));
-        
+
         // Pre-size the table to avoid dynamic resizing
         table.MinimumCapacity = ids.Count;
 

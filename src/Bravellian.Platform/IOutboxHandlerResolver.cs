@@ -36,11 +36,11 @@ public interface IOutboxHandlerResolver
 /// </summary>
 public sealed class OutboxHandlerResolver : IOutboxHandlerResolver
 {
-    private readonly IReadOnlyDictionary<string, IOutboxHandler> _byTopic;
+    private readonly IReadOnlyDictionary<string, IOutboxHandler> byTopic;
 
     public OutboxHandlerResolver(IEnumerable<IOutboxHandler> handlers)
-        => _byTopic = handlers.ToDictionary(h => h.Topic, StringComparer.OrdinalIgnoreCase);
+        => this.byTopic = handlers.ToDictionary(h => h.Topic, StringComparer.OrdinalIgnoreCase);
 
     public bool TryGet(string topic, out IOutboxHandler handler)
-        => _byTopic.TryGetValue(topic, out handler!);
+        => this.byTopic.TryGetValue(topic, out handler!);
 }

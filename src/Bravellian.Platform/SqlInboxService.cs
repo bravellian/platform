@@ -140,8 +140,9 @@ internal class SqlInboxService : IInbox
         }
         catch (SqlException ex)
         {
-            this.logger.LogError(ex, 
-                "Failed to check/record message {MessageId} from {Source}", 
+            this.logger.LogError(
+                ex,
+                "Failed to check/record message {MessageId} from {Source}",
                 messageId, source);
             throw;
         }
@@ -180,8 +181,9 @@ internal class SqlInboxService : IInbox
         }
         catch (SqlException ex)
         {
-            this.logger.LogError(ex, 
-                "Failed to mark message {MessageId} as processed", 
+            this.logger.LogError(
+                ex,
+                "Failed to mark message {MessageId} as processed",
                 messageId);
             throw;
         }
@@ -211,8 +213,9 @@ internal class SqlInboxService : IInbox
         }
         catch (SqlException ex)
         {
-            this.logger.LogError(ex, 
-                "Failed to mark message {MessageId} as processing", 
+            this.logger.LogError(
+                ex,
+                "Failed to mark message {MessageId} as processing",
                 messageId);
             throw;
         }
@@ -242,8 +245,9 @@ internal class SqlInboxService : IInbox
         }
         catch (SqlException ex)
         {
-            this.logger.LogError(ex, 
-                "Failed to mark message {MessageId} as dead", 
+            this.logger.LogError(
+                ex,
+                "Failed to mark message {MessageId} as dead",
                 messageId);
             throw;
         }
@@ -284,13 +288,13 @@ internal class SqlInboxService : IInbox
 
             await connection.ExecuteAsync(
                 this.enqueueSql,
-                new 
-                { 
-                    MessageId = messageId, 
-                    Source = source, 
-                    Topic = topic, 
-                    Payload = payload, 
-                    Hash = hash 
+                new
+                {
+                    MessageId = messageId,
+                    Source = source,
+                    Topic = topic,
+                    Payload = payload,
+                    Hash = hash,
                 }).ConfigureAwait(false);
 
             this.logger.LogDebug(
@@ -299,8 +303,9 @@ internal class SqlInboxService : IInbox
         }
         catch (SqlException ex)
         {
-            this.logger.LogError(ex, 
-                "Failed to enqueue message {MessageId} with topic '{Topic}' from source '{Source}'", 
+            this.logger.LogError(
+                ex,
+                "Failed to enqueue message {MessageId} with topic '{Topic}' from source '{Source}'",
                 messageId, topic, source);
             throw;
         }

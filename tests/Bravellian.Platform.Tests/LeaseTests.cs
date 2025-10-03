@@ -15,7 +15,6 @@
 namespace Bravellian.Platform.Tests;
 
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Time.Testing;
 using Shouldly;
 using Xunit;
 
@@ -23,7 +22,8 @@ public class LeaseTests : SqlServerTestBase
 {
     private LeaseApi? leaseApi;
 
-    public LeaseTests(ITestOutputHelper testOutputHelper) : base(testOutputHelper)
+    public LeaseTests(ITestOutputHelper testOutputHelper)
+        : base(testOutputHelper)
     {
     }
 
@@ -49,13 +49,13 @@ public class LeaseTests : SqlServerTestBase
         var result = await this.leaseApi!.AcquireAsync(leaseName, owner, leaseSeconds);
 
         // Assert
-        result.Acquired.ShouldBeTrue();
-        result.ServerUtcNow.ShouldNotBe(default(DateTime));
-        result.LeaseUntilUtc.ShouldNotBeNull();
-        result.LeaseUntilUtc.Value.ShouldBeGreaterThan(result.ServerUtcNow);
+        result.acquired.ShouldBeTrue();
+        result.serverUtcNow.ShouldNotBe(default(DateTime));
+        result.leaseUntilUtc.ShouldNotBeNull();
+        result.leaseUntilUtc.Value.ShouldBeGreaterThan(result.serverUtcNow);
 
-        var expectedExpiry = result.ServerUtcNow.AddSeconds(leaseSeconds);
-        var timeDiff = Math.Abs((result.LeaseUntilUtc.Value - expectedExpiry).TotalSeconds);
+        var expectedExpiry = result.serverUtcNow.AddSeconds(leaseSeconds);
+        var timeDiff = Math.Abs((result.leaseUntilUtc.Value - expectedExpiry).TotalSeconds);
         timeDiff.ShouldBeLessThan(1); // Allow for small timing differences
     }
 
@@ -70,15 +70,15 @@ public class LeaseTests : SqlServerTestBase
 
         // First acquisition
         var firstResult = await this.leaseApi!.AcquireAsync(leaseName, owner1, leaseSeconds);
-        firstResult.Acquired.ShouldBeTrue();
+        firstResult.acquired.ShouldBeTrue();
 
         // Act - Second acquisition attempt
         var secondResult = await this.leaseApi.AcquireAsync(leaseName, owner2, leaseSeconds);
 
         // Assert
-        secondResult.Acquired.ShouldBeFalse();
-        secondResult.ServerUtcNow.ShouldNotBe(default(DateTime));
-        secondResult.LeaseUntilUtc.ShouldBeNull();
+        secondResult.acquired.ShouldBeFalse();
+        secondResult.serverUtcNow.ShouldNotBe(default(DateTime));
+        secondResult.leaseUntilUtc.ShouldBeNull();
     }
 
     [Fact]
@@ -92,7 +92,7 @@ public class LeaseTests : SqlServerTestBase
 
         // First acquisition with short lease
         var firstResult = await this.leaseApi!.AcquireAsync(leaseName, owner1, shortLeaseSeconds);
-        firstResult.Acquired.ShouldBeTrue();
+        firstResult.acquired.ShouldBeTrue();
 
         // Wait for lease to expire
         await Task.Delay(TimeSpan.FromSeconds(2));
@@ -101,10 +101,10 @@ public class LeaseTests : SqlServerTestBase
         var secondResult = await this.leaseApi.AcquireAsync(leaseName, owner2, 30);
 
         // Assert
-        secondResult.Acquired.ShouldBeTrue();
-        secondResult.ServerUtcNow.ShouldNotBe(default(DateTime));
-        secondResult.LeaseUntilUtc.ShouldNotBeNull();
-        secondResult.LeaseUntilUtc.Value.ShouldBeGreaterThan(secondResult.ServerUtcNow);
+        secondResult.acquired.ShouldBeTrue();
+        secondResult.serverUtcNow.ShouldNotBe(default(DateTime));
+        secondResult.leaseUntilUtc.ShouldNotBeNull();
+        secondResult.leaseUntilUtc.Value.ShouldBeGreaterThan(secondResult.serverUtcNow);
     }
 
     [Fact]
@@ -117,7 +117,7 @@ public class LeaseTests : SqlServerTestBase
 
         // Acquire lease first
         var acquireResult = await this.leaseApi!.AcquireAsync(leaseName, owner, leaseSeconds);
-        acquireResult.Acquired.ShouldBeTrue();
+        acquireResult.acquired.ShouldBeTrue();
 
         // Wait a moment
         await Task.Delay(TimeSpan.FromSeconds(1));
@@ -126,11 +126,11 @@ public class LeaseTests : SqlServerTestBase
         var renewResult = await this.leaseApi.RenewAsync(leaseName, owner, leaseSeconds);
 
         // Assert
-        renewResult.Renewed.ShouldBeTrue();
-        renewResult.ServerUtcNow.ShouldNotBe(default(DateTime));
-        renewResult.LeaseUntilUtc.ShouldNotBeNull();
-        renewResult.ServerUtcNow.ShouldBeGreaterThan(acquireResult.ServerUtcNow);
-        renewResult.LeaseUntilUtc.Value.ShouldBeGreaterThan(acquireResult.LeaseUntilUtc!.Value);
+        renewResult.renewed.ShouldBeTrue();
+        renewResult.serverUtcNow.ShouldNotBe(default(DateTime));
+        renewResult.leaseUntilUtc.ShouldNotBeNull();
+        renewResult.serverUtcNow.ShouldBeGreaterThan(acquireResult.serverUtcNow);
+        renewResult.leaseUntilUtc.Value.ShouldBeGreaterThan(acquireResult.leaseUntilUtc!.Value);
     }
 
     [Fact]
@@ -144,15 +144,15 @@ public class LeaseTests : SqlServerTestBase
 
         // Acquire lease with owner1
         var acquireResult = await this.leaseApi!.AcquireAsync(leaseName, owner1, leaseSeconds);
-        acquireResult.Acquired.ShouldBeTrue();
+        acquireResult.acquired.ShouldBeTrue();
 
         // Act - Try to renew with owner2
         var renewResult = await this.leaseApi.RenewAsync(leaseName, owner2, leaseSeconds);
 
         // Assert
-        renewResult.Renewed.ShouldBeFalse();
-        renewResult.ServerUtcNow.ShouldNotBe(default(DateTime));
-        renewResult.LeaseUntilUtc.ShouldBeNull();
+        renewResult.renewed.ShouldBeFalse();
+        renewResult.serverUtcNow.ShouldNotBe(default(DateTime));
+        renewResult.leaseUntilUtc.ShouldBeNull();
     }
 
     [Fact]
@@ -165,7 +165,7 @@ public class LeaseTests : SqlServerTestBase
 
         // Acquire lease with short duration
         var acquireResult = await this.leaseApi!.AcquireAsync(leaseName, owner, shortLeaseSeconds);
-        acquireResult.Acquired.ShouldBeTrue();
+        acquireResult.acquired.ShouldBeTrue();
 
         // Wait for lease to expire
         await Task.Delay(TimeSpan.FromSeconds(2));
@@ -174,9 +174,9 @@ public class LeaseTests : SqlServerTestBase
         var renewResult = await this.leaseApi.RenewAsync(leaseName, owner, 30);
 
         // Assert
-        renewResult.Renewed.ShouldBeFalse();
-        renewResult.ServerUtcNow.ShouldNotBe(default(DateTime));
-        renewResult.LeaseUntilUtc.ShouldBeNull();
+        renewResult.renewed.ShouldBeFalse();
+        renewResult.serverUtcNow.ShouldNotBe(default(DateTime));
+        renewResult.leaseUntilUtc.ShouldBeNull();
     }
 }
 
@@ -184,7 +184,8 @@ public class LeaseRunnerTests : SqlServerTestBase
 {
     private LeaseApi? leaseApi;
 
-    public LeaseRunnerTests(ITestOutputHelper testOutputHelper) : base(testOutputHelper)
+    public LeaseRunnerTests(ITestOutputHelper testOutputHelper)
+        : base(testOutputHelper)
     {
     }
 

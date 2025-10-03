@@ -20,7 +20,7 @@ namespace Bravellian.Platform;
 /// </summary>
 public interface IOutboxHandler
 {
-    /// <summary>Topic this handler serves (e.g., "Email.Send").</summary>
+    /// <summary>Gets topic this handler serves (e.g., "Email.Send").</summary>
     string Topic { get; }
 
     /// <summary>Perform the work. Throw for transient/permanent failures (we'll backoff or dead-letter).</summary>

@@ -84,7 +84,8 @@ public sealed class LeaseRunner : IAsyncDisposable
         // Start the renewal timer
         this.renewTimer = new Timer(this.RenewTimerCallback, null, initialDelay, renewInterval);
 
-        this.logger.LogInformation("Lease runner started for '{LeaseName}' with owner '{Owner}', renew at {RenewPercent:P1}",
+        this.logger.LogInformation(
+            "Lease runner started for '{LeaseName}' with owner '{Owner}', renew at {RenewPercent:P1}",
             leaseName, owner, renewPercent);
     }
 
@@ -137,17 +138,18 @@ public sealed class LeaseRunner : IAsyncDisposable
         var leaseSeconds = (int)Math.Ceiling(leaseDuration.TotalSeconds);
         var result = await leaseApi.AcquireAsync(leaseName, owner, leaseSeconds, cancellationToken).ConfigureAwait(false);
 
-        if (!result.Acquired)
+        if (!result.acquired)
         {
             logger.LogDebug("Failed to acquire lease '{LeaseName}' for owner '{Owner}'", leaseName, owner);
             return null;
         }
 
-        logger.LogInformation("Acquired lease '{LeaseName}' for owner '{Owner}', expires at {LeaseUntilUtc:yyyy-MM-dd HH:mm:ss.fff} UTC",
-            leaseName, owner, result.LeaseUntilUtc);
+        logger.LogInformation(
+            "Acquired lease '{LeaseName}' for owner '{Owner}', expires at {LeaseUntilUtc:yyyy-MM-dd HH:mm:ss.fff} UTC",
+            leaseName, owner, result.leaseUntilUtc);
 
         var runner = new LeaseRunner(leaseApi, monotonicClock, timeProvider, leaseName, owner, leaseDuration, renewPercent, logger);
-        runner.UpdateLeaseExpiry(result.ServerUtcNow, result.LeaseUntilUtc);
+        runner.UpdateLeaseExpiry(result.serverUtcNow, result.leaseUntilUtc);
         return runner;
     }
 
@@ -204,7 +206,7 @@ public sealed class LeaseRunner : IAsyncDisposable
         lock (this.lockObject)
         {
             this.leaseUntilUtc = leaseUntilUtc;
-            
+
             if (leaseUntilUtc.HasValue)
             {
                 // Calculate when to next renew based on monotonic time
@@ -252,16 +254,18 @@ public sealed class LeaseRunner : IAsyncDisposable
         var leaseSeconds = (int)Math.Ceiling(this.leaseDuration.TotalSeconds);
         var result = await this.leaseApi.RenewAsync(this.leaseName, this.owner, leaseSeconds, cancellationToken).ConfigureAwait(false);
 
-        if (result.Renewed)
+        if (result.renewed)
         {
-            this.UpdateLeaseExpiry(result.ServerUtcNow, result.LeaseUntilUtc);
-            this.logger.LogDebug("Renewed lease '{LeaseName}' for owner '{Owner}', expires at {LeaseUntilUtc:yyyy-MM-dd HH:mm:ss.fff} UTC",
-                this.leaseName, this.owner, result.LeaseUntilUtc);
+            this.UpdateLeaseExpiry(result.serverUtcNow, result.leaseUntilUtc);
+            this.logger.LogDebug(
+                "Renewed lease '{LeaseName}' for owner '{Owner}', expires at {LeaseUntilUtc:yyyy-MM-dd HH:mm:ss.fff} UTC",
+                this.leaseName, this.owner, result.leaseUntilUtc);
             return true;
         }
         else
         {
-            this.logger.LogWarning("Failed to renew lease '{LeaseName}' for owner '{Owner}' - lease may have expired",
+            this.logger.LogWarning(
+                "Failed to renew lease '{LeaseName}' for owner '{Owner}' - lease may have expired",
                 this.leaseName, this.owner);
             return false;
         }

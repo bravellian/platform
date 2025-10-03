@@ -45,7 +45,7 @@ public class SystemLeaseOptions
     public double RenewPercent { get; set; } = 0.6;
 
     /// <summary>
-    /// Gets or sets whether to use the short sp_getapplock gate to reduce contention.
+    /// Gets or sets a value indicating whether gets or sets whether to use the short sp_getapplock gate to reduce contention.
     /// Default is false.
     /// </summary>
     public bool UseGate { get; set; } = false;

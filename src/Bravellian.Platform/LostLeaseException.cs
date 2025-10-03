@@ -45,6 +45,18 @@ public class LostLeaseException : InvalidOperationException
         this.Owner = owner;
     }
 
+    public LostLeaseException() : base()
+    {
+    }
+
+    public LostLeaseException(string? message) : base(message)
+    {
+    }
+
+    public LostLeaseException(string? message, Exception? innerException) : base(message, innerException)
+    {
+    }
+
     /// <summary>
     /// Gets the name of the resource whose lease was lost.
     /// </summary>

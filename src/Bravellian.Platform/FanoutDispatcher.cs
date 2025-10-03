@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System.Text.Json;
-
 namespace Bravellian.Platform;
 
 /// <summary>
@@ -39,10 +37,10 @@ internal sealed class FanoutDispatcher : IFanoutDispatcher
         var count = 0;
         foreach (var slice in slices)
         {
-            var topic = $"fanout:{slice.FanoutTopic}:{slice.WorkKey}";
+            var topic = $"fanout:{slice.fanoutTopic}:{slice.workKey}";
             var payload = JsonSerializer.Serialize(slice);
-            
-            await this.outbox.EnqueueAsync(topic, payload, slice.CorrelationId).ConfigureAwait(false);
+
+            await this.outbox.EnqueueAsync(topic, payload, slice.correlationId).ConfigureAwait(false);
             count++;
         }
 

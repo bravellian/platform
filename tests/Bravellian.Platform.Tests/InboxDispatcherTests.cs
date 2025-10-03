@@ -1,3 +1,17 @@
+// Copyright (c) Bravellian
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 namespace Bravellian.Platform.Tests;
 
 using Bravellian.Platform.Tests.TestUtilities;
@@ -15,9 +29,9 @@ public class InboxDispatcherTests : SqlServerTestBase
     public async Task RunOnceAsync_WithNoMessages_ReturnsZero()
     {
         // Arrange
-        var store = CreateInboxWorkStore();
-        var resolver = CreateHandlerResolver();
-        var dispatcher = CreateDispatcher(store, resolver);
+        var store = this.CreateInboxWorkStore();
+        var resolver = this.CreateHandlerResolver();
+        var dispatcher = this.CreateDispatcher(store, resolver);
 
         // Act
         var processedCount = await dispatcher.RunOnceAsync(batchSize: 10, CancellationToken.None);
@@ -30,10 +44,10 @@ public class InboxDispatcherTests : SqlServerTestBase
     public async Task RunOnceAsync_WithValidMessage_ProcessesSuccessfully()
     {
         // Arrange
-        var inbox = CreateInboxService();
-        var store = CreateInboxWorkStore();
-        var resolver = CreateHandlerResolver(new TestInboxHandler("test-topic"));
-        var dispatcher = CreateDispatcher(store, resolver);
+        var inbox = this.CreateInboxService();
+        var store = this.CreateInboxWorkStore();
+        var resolver = this.CreateHandlerResolver(new TestInboxHandler("test-topic"));
+        var dispatcher = this.CreateDispatcher(store, resolver);
 
         // Enqueue a test message
         await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload");
@@ -59,10 +73,10 @@ public class InboxDispatcherTests : SqlServerTestBase
     public async Task RunOnceAsync_WithNoHandlerForTopic_MarksMessageAsDead()
     {
         // Arrange
-        var inbox = CreateInboxService();
-        var store = CreateInboxWorkStore();
-        var resolver = CreateHandlerResolver(); // No handlers registered
-        var dispatcher = CreateDispatcher(store, resolver);
+        var inbox = this.CreateInboxService();
+        var store = this.CreateInboxWorkStore();
+        var resolver = this.CreateHandlerResolver(); // No handlers registered
+        var dispatcher = this.CreateDispatcher(store, resolver);
 
         // Enqueue a test message with unknown topic
         await inbox.EnqueueAsync("unknown-topic", "test-source", "msg-2", "test payload");
@@ -88,11 +102,11 @@ public class InboxDispatcherTests : SqlServerTestBase
     public async Task RunOnceAsync_WithFailingHandler_RetriesWithBackoff()
     {
         // Arrange
-        var inbox = CreateInboxService();
-        var store = CreateInboxWorkStore();
+        var inbox = this.CreateInboxService();
+        var store = this.CreateInboxWorkStore();
         var failingHandler = new FailingInboxHandler("failing-topic", shouldFail: true);
-        var resolver = CreateHandlerResolver(failingHandler);
-        var dispatcher = CreateDispatcher(store, resolver);
+        var resolver = this.CreateHandlerResolver(failingHandler);
+        var dispatcher = this.CreateDispatcher(store, resolver);
 
         // Enqueue a test message
         await inbox.EnqueueAsync("failing-topic", "test-source", "msg-3", "test payload");
@@ -158,7 +172,7 @@ public class InboxDispatcherTests : SqlServerTestBase
     {
         public TestInboxHandler(string topic)
         {
-            Topic = topic;
+            this.Topic = topic;
         }
 
         public string Topic { get; }
@@ -179,7 +193,7 @@ public class InboxDispatcherTests : SqlServerTestBase
 
         public FailingInboxHandler(string topic, bool shouldFail)
         {
-            Topic = topic;
+            this.Topic = topic;
             this.shouldFail = shouldFail;
         }
 

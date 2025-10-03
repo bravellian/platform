@@ -32,6 +32,6 @@ public sealed class SqlFanoutOptions
     /// <summary>Gets or sets the table name for fanout cursors.</summary>
     public string CursorTableName { get; set; } = "FanoutCursor";
 
-    /// <summary>Gets or sets whether to automatically deploy database schema.</summary>
+    /// <summary>Gets or sets a value indicating whether gets or sets whether to automatically deploy database schema.</summary>
     public bool EnableSchemaDeployment { get; set; } = true;
 }

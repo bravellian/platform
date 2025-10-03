@@ -20,21 +20,21 @@ namespace Bravellian.Platform;
 /// </summary>
 public sealed class FanoutTopicOptions
 {
-    /// <summary>Gets or sets the fanout topic name (e.g., "etl", "reports").</summary>
+    /// <summary>Gets the fanout topic name (e.g., "etl", "reports").</summary>
     public required string FanoutTopic { get; init; }
 
-    /// <summary>Gets or sets the optional work key to filter planning (e.g., "payments", "vendors").</summary>
+    /// <summary>Gets the optional work key to filter planning (e.g., "payments", "vendors").</summary>
     public string? WorkKey { get; init; }
 
-    /// <summary>Gets or sets the cron schedule for the fanout (e.g., "*/5 * * * *" for every 5 minutes).</summary>
+    /// <summary>Gets the cron schedule for the fanout (e.g., "*/5 * * * *" for every 5 minutes).</summary>
     public string Cron { get; init; } = "*/5 * * * *";
 
-    /// <summary>Gets or sets the default cadence in seconds if cron is not used.</summary>
+    /// <summary>Gets the default cadence in seconds if cron is not used.</summary>
     public int DefaultEverySeconds { get; init; } = 300;
 
-    /// <summary>Gets or sets the jitter in seconds to prevent thundering herd problems.</summary>
+    /// <summary>Gets the jitter in seconds to prevent thundering herd problems.</summary>
     public int JitterSeconds { get; init; } = 60;
 
-    /// <summary>Gets or sets the duration to hold the coordination lease.</summary>
+    /// <summary>Gets the duration to hold the coordination lease.</summary>
     public TimeSpan LeaseDuration { get; init; } = TimeSpan.FromSeconds(90);
 }

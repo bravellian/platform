@@ -47,30 +47,35 @@ internal sealed class SqlFanoutCursorRepository : IFanoutCursorRepository
             this.options.PolicyTableName,
             this.options.CursorTableName).ConfigureAwait(false);
 
-        await using var connection = new SqlConnection(this.connectionString);
-        await connection.OpenAsync(ct).ConfigureAwait(false);
+        var connection = new SqlConnection(this.connectionString);
+        await using (connection.ConfigureAwait(false))
+        {
+            await connection.OpenAsync(ct).ConfigureAwait(false);
 
-        var sql = $"""
+            var sql = $"""
 
                         SELECT LastCompletedAt 
                         FROM [{this.options.SchemaName}].[{this.options.CursorTableName}]
                         WHERE FanoutTopic = @FanoutTopic AND WorkKey = @WorkKey AND ShardKey = @ShardKey
             """;
 
-        var result = await connection.QueryFirstOrDefaultAsync<DateTimeOffset?>(
-            sql,
-            new { FanoutTopic = fanoutTopic, WorkKey = workKey, ShardKey = shardKey }).ConfigureAwait(false);
+            var result = await connection.QueryFirstOrDefaultAsync<DateTimeOffset?>(
+                sql,
+                new { FanoutTopic = fanoutTopic, WorkKey = workKey, ShardKey = shardKey }).ConfigureAwait(false);
 
-        return result;
+            return result;
+        }
     }
 
     /// <inheritdoc/>
     public async Task MarkCompletedAsync(string fanoutTopic, string workKey, string shardKey, DateTimeOffset completedAt, CancellationToken ct)
     {
-        await using var connection = new SqlConnection(this.connectionString);
-        await connection.OpenAsync(ct).ConfigureAwait(false);
+        var connection = new SqlConnection(this.connectionString);
+        await using (connection.ConfigureAwait(false))
+        {
+            await connection.OpenAsync(ct).ConfigureAwait(false);
 
-        var sql = $"""
+            var sql = $"""
 
                         MERGE [{this.options.SchemaName}].[{this.options.CursorTableName}] AS target
                         USING (VALUES (@FanoutTopic, @WorkKey, @ShardKey, @LastCompletedAt)) AS source (FanoutTopic, WorkKey, ShardKey, LastCompletedAt)
@@ -82,14 +87,15 @@ internal sealed class SqlFanoutCursorRepository : IFanoutCursorRepository
                             VALUES (source.FanoutTopic, source.WorkKey, source.ShardKey, source.LastCompletedAt);
             """;
 
-        await connection.ExecuteAsync(
-            sql,
-            new 
-            { 
-                FanoutTopic = fanoutTopic, 
-                WorkKey = workKey, 
-                ShardKey = shardKey, 
-                LastCompletedAt = completedAt 
-            }).ConfigureAwait(false);
+            await connection.ExecuteAsync(
+                sql,
+                new
+                {
+                    FanoutTopic = fanoutTopic,
+                    WorkKey = workKey,
+                    ShardKey = shardKey,
+                    LastCompletedAt = completedAt,
+                }).ConfigureAwait(false);
+        }
     }
 }

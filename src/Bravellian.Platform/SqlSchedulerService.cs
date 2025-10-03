@@ -102,7 +102,7 @@ internal class SqlSchedulerService : BackgroundService
                         WHEN NOT MATCHED THEN
                             INSERT (Id, CurrentFencingToken, LastRunAt) VALUES (1, @FencingToken, @LastRunAt);
             """;
-        
+
         this.createJobRunsSql = $"""
 
                         WITH DueJobs AS (

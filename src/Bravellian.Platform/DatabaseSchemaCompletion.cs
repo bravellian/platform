@@ -23,19 +23,19 @@ using System.Threading.Tasks;
 /// </summary>
 internal sealed class DatabaseSchemaCompletion : IDatabaseSchemaCompletion
 {
-    private readonly TaskCompletionSource<bool> _completionSource = new();
+    private readonly TaskCompletionSource<bool> completionSource = new();
 
     /// <summary>
     /// Gets a task that completes when database schema deployment is finished.
     /// </summary>
-    public Task SchemaDeploymentCompleted => _completionSource.Task;
+    public Task SchemaDeploymentCompleted => this.completionSource.Task;
 
     /// <summary>
     /// Marks the schema deployment as completed successfully.
     /// </summary>
     public void SetCompleted()
     {
-        _completionSource.SetResult(true);
+        this.completionSource.SetResult(true);
     }
 
     /// <summary>
@@ -44,7 +44,7 @@ internal sealed class DatabaseSchemaCompletion : IDatabaseSchemaCompletion
     /// <param name="cancellationToken">The cancellation token that was triggered.</param>
     public void SetCancelled(CancellationToken cancellationToken)
     {
-        _completionSource.SetCanceled(cancellationToken);
+        this.completionSource.SetCanceled(cancellationToken);
     }
 
     /// <summary>
@@ -53,6 +53,6 @@ internal sealed class DatabaseSchemaCompletion : IDatabaseSchemaCompletion
     /// <param name="exception">The exception that caused the failure.</param>
     public void SetException(System.Exception exception)
     {
-        _completionSource.SetException(exception);
+        this.completionSource.SetException(exception);
     }
 }

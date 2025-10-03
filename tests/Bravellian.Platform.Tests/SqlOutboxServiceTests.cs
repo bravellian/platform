@@ -1,3 +1,17 @@
+// Copyright (c) Bravellian
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 namespace Bravellian.Platform.Tests;
 
 using Dapper;
@@ -9,15 +23,16 @@ using System.Data;
 public class SqlOutboxServiceTests : SqlServerTestBase
 {
     private SqlOutboxService? outboxService;
-    private readonly SqlOutboxOptions defaultOptions = new() { ConnectionString = "", SchemaName = "dbo", TableName = "Outbox" };
+    private readonly SqlOutboxOptions defaultOptions = new () { ConnectionString = string.Empty, SchemaName = "dbo", TableName = "Outbox" };
 
-    public SqlOutboxServiceTests(ITestOutputHelper testOutputHelper) : base(testOutputHelper)
+    public SqlOutboxServiceTests(ITestOutputHelper testOutputHelper)
+        : base(testOutputHelper)
     {
     }
 
     public override async ValueTask InitializeAsync()
     {
-        await base.InitializeAsync();
+        await base.InitializeAsync().ConfigureAwait(false);
         this.defaultOptions.ConnectionString = this.ConnectionString;
         this.outboxService = new SqlOutboxService(Options.Create(this.defaultOptions), NullLogger<SqlOutboxService>.Instance);
     }
