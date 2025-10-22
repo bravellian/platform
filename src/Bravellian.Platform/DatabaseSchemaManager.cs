@@ -36,6 +36,9 @@ internal static class DatabaseSchemaManager
         using var connection = new SqlConnection(connectionString);
         await connection.OpenAsync().ConfigureAwait(false);
 
+        // Ensure schema exists
+        await EnsureSchemaExistsAsync(connection, schemaName).ConfigureAwait(false);
+
         // Check if table exists
         var tableExists = await TableExistsAsync(connection, schemaName, tableName).ConfigureAwait(false);
         if (!tableExists)
@@ -119,6 +122,9 @@ internal static class DatabaseSchemaManager
         using var connection = new SqlConnection(connectionString);
         await connection.OpenAsync().ConfigureAwait(false);
 
+        // Ensure schema exists
+        await EnsureSchemaExistsAsync(connection, schemaName).ConfigureAwait(false);
+
         // Check if table exists
         var tableExists = await TableExistsAsync(connection, schemaName, tableName).ConfigureAwait(false);
         if (!tableExists)
@@ -141,6 +147,9 @@ internal static class DatabaseSchemaManager
     {
         using var connection = new SqlConnection(connectionString);
         await connection.OpenAsync().ConfigureAwait(false);
+
+        // Ensure schema exists
+        await EnsureSchemaExistsAsync(connection, schemaName).ConfigureAwait(false);
 
         // Create Jobs table first (referenced by JobRuns)
         var jobsExists = await TableExistsAsync(connection, schemaName, jobsTableName).ConfigureAwait(false);
@@ -187,6 +196,9 @@ internal static class DatabaseSchemaManager
     {
         using var connection = new SqlConnection(connectionString);
         await connection.OpenAsync().ConfigureAwait(false);
+
+        // Ensure schema exists
+        await EnsureSchemaExistsAsync(connection, schemaName).ConfigureAwait(false);
 
         // Create FanoutPolicy table first (no dependencies)
         var policyExists = await TableExistsAsync(connection, schemaName, policyTableName).ConfigureAwait(false);
@@ -862,12 +874,15 @@ internal static class DatabaseSchemaManager
             using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync().ConfigureAwait(false);
 
+            // Ensure schema exists
+            await EnsureSchemaExistsAsync(connection, schemaName).ConfigureAwait(false);
+
             // Apply work queue migration (columns and types)
-            var migrationScript = GetWorkQueueMigrationInlineScript();
+            var migrationScript = GetWorkQueueMigrationInlineScript(schemaName);
             await ExecuteScriptAsync(connection, migrationScript).ConfigureAwait(false);
 
             // Create each stored procedure individually to avoid batch issues
-            await CreateOutboxProceduresAsync(connection).ConfigureAwait(false);
+            await CreateOutboxProceduresAsync(connection, schemaName).ConfigureAwait(false);
         }
         catch (SqlException sqlEx)
         {
@@ -883,14 +898,15 @@ internal static class DatabaseSchemaManager
     /// Creates the Outbox work queue stored procedures individually.
     /// </summary>
     /// <param name="connection">The SQL connection.</param>
+    /// <param name="schemaName">The schema name.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    private static async Task CreateOutboxProceduresAsync(SqlConnection connection)
+    private static async Task CreateOutboxProceduresAsync(SqlConnection connection, string schemaName)
     {
         // Create procedures one by one to avoid batch execution issues
         var procedures = new[]
         {
-            """
-            CREATE OR ALTER PROCEDURE dbo.Outbox_Claim
+            $"""
+            CREATE OR ALTER PROCEDURE [{schemaName}].[Outbox_Claim]
                             @OwnerToken UNIQUEIDENTIFIER,
                             @LeaseSeconds INT,
                             @BatchSize INT = 50
@@ -902,61 +918,61 @@ internal static class DatabaseSchemaManager
 
                             WITH cte AS (
                                 SELECT TOP (@BatchSize) Id
-                                FROM dbo.Outbox WITH (READPAST, UPDLOCK, ROWLOCK)
+                                FROM [{schemaName}].[Outbox] WITH (READPAST, UPDLOCK, ROWLOCK)
                                 WHERE Status = 0 AND (LockedUntil IS NULL OR LockedUntil <= @now)
                                 ORDER BY CreatedAt
                             )
                             UPDATE o SET Status = 1, OwnerToken = @OwnerToken, LockedUntil = @until
                             OUTPUT inserted.Id
-                            FROM dbo.Outbox o JOIN cte ON cte.Id = o.Id;
+                            FROM [{schemaName}].[Outbox] o JOIN cte ON cte.Id = o.Id;
                           END
             """,
 
-            """
-            CREATE OR ALTER PROCEDURE dbo.Outbox_Ack
+            $"""
+            CREATE OR ALTER PROCEDURE [{schemaName}].[Outbox_Ack]
                             @OwnerToken UNIQUEIDENTIFIER,
-                            @Ids dbo.GuidIdList READONLY
+                            @Ids [{schemaName}].[GuidIdList] READONLY
                           AS
                           BEGIN
                             SET NOCOUNT ON;
                             UPDATE o SET Status = 2, OwnerToken = NULL, LockedUntil = NULL, IsProcessed = 1, ProcessedAt = SYSUTCDATETIME()
-                            FROM dbo.Outbox o JOIN @Ids i ON i.Id = o.Id
+                            FROM [{schemaName}].[Outbox] o JOIN @Ids i ON i.Id = o.Id
                             WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
                           END
             """,
 
-            """
-            CREATE OR ALTER PROCEDURE dbo.Outbox_Abandon
+            $"""
+            CREATE OR ALTER PROCEDURE [{schemaName}].[Outbox_Abandon]
                             @OwnerToken UNIQUEIDENTIFIER,
-                            @Ids dbo.GuidIdList READONLY
+                            @Ids [{schemaName}].[GuidIdList] READONLY
                           AS
                           BEGIN
                             SET NOCOUNT ON;
                             UPDATE o SET Status = 0, OwnerToken = NULL, LockedUntil = NULL
-                            FROM dbo.Outbox o JOIN @Ids i ON i.Id = o.Id
+                            FROM [{schemaName}].[Outbox] o JOIN @Ids i ON i.Id = o.Id
                             WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
                           END
             """,
 
-            """
-            CREATE OR ALTER PROCEDURE dbo.Outbox_Fail
+            $"""
+            CREATE OR ALTER PROCEDURE [{schemaName}].[Outbox_Fail]
                             @OwnerToken UNIQUEIDENTIFIER,
-                            @Ids dbo.GuidIdList READONLY
+                            @Ids [{schemaName}].[GuidIdList] READONLY
                           AS
                           BEGIN
                             SET NOCOUNT ON;
                             UPDATE o SET Status = 3, OwnerToken = NULL, LockedUntil = NULL
-                            FROM dbo.Outbox o JOIN @Ids i ON i.Id = o.Id
+                            FROM [{schemaName}].[Outbox] o JOIN @Ids i ON i.Id = o.Id
                             WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
                           END
             """,
 
-            """
-            CREATE OR ALTER PROCEDURE dbo.Outbox_ReapExpired
+            $"""
+            CREATE OR ALTER PROCEDURE [{schemaName}].[Outbox_ReapExpired]
                           AS
                           BEGIN
                             SET NOCOUNT ON;
-                            UPDATE dbo.Outbox SET Status = 0, OwnerToken = NULL, LockedUntil = NULL
+                            UPDATE [{schemaName}].[Outbox] SET Status = 0, OwnerToken = NULL, LockedUntil = NULL
                             WHERE Status = 1 AND LockedUntil IS NOT NULL AND LockedUntil <= SYSUTCDATETIME();
                             SELECT @@ROWCOUNT AS ReapedCount;
                           END
@@ -973,14 +989,15 @@ internal static class DatabaseSchemaManager
     /// Creates the Inbox work queue stored procedures individually.
     /// </summary>
     /// <param name="connection">The SQL connection.</param>
+    /// <param name="schemaName">The schema name.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    private static async Task CreateInboxProceduresAsync(SqlConnection connection)
+    private static async Task CreateInboxProceduresAsync(SqlConnection connection, string schemaName)
     {
         // Create procedures one by one to avoid batch execution issues
         var procedures = new[]
         {
-            """
-            CREATE OR ALTER PROCEDURE dbo.Inbox_Claim
+            $"""
+            CREATE OR ALTER PROCEDURE [{schemaName}].[Inbox_Claim]
                             @OwnerToken UNIQUEIDENTIFIER,
                             @LeaseSeconds INT,
                             @BatchSize INT = 50
@@ -992,62 +1009,62 @@ internal static class DatabaseSchemaManager
 
                             WITH cte AS (
                                 SELECT TOP (@BatchSize) MessageId
-                                FROM dbo.Inbox WITH (READPAST, UPDLOCK, ROWLOCK)
+                                FROM [{schemaName}].[Inbox] WITH (READPAST, UPDLOCK, ROWLOCK)
                                 WHERE Status IN ('Seen', 'Processing') AND (LockedUntil IS NULL OR LockedUntil <= @now)
                                 ORDER BY LastSeenUtc
                             )
                             UPDATE i SET Status = 'Processing', OwnerToken = @OwnerToken, LockedUntil = @until, LastSeenUtc = @now
                             OUTPUT inserted.MessageId
-                            FROM dbo.Inbox i JOIN cte ON cte.MessageId = i.MessageId;
+                            FROM [{schemaName}].[Inbox] i JOIN cte ON cte.MessageId = i.MessageId;
                           END
             """,
 
-            """
-            CREATE OR ALTER PROCEDURE dbo.Inbox_Ack
+            $"""
+            CREATE OR ALTER PROCEDURE [{schemaName}].[Inbox_Ack]
                             @OwnerToken UNIQUEIDENTIFIER,
-                            @Ids dbo.StringIdList READONLY
+                            @Ids [{schemaName}].[StringIdList] READONLY
                           AS
                           BEGIN
                             SET NOCOUNT ON;
                             UPDATE i SET Status = 'Done', OwnerToken = NULL, LockedUntil = NULL, ProcessedUtc = SYSUTCDATETIME(), LastSeenUtc = SYSUTCDATETIME()
-                            FROM dbo.Inbox i JOIN @Ids ids ON ids.Id = i.MessageId
+                            FROM [{schemaName}].[Inbox] i JOIN @Ids ids ON ids.Id = i.MessageId
                             WHERE i.OwnerToken = @OwnerToken AND i.Status = 'Processing';
                           END
             """,
 
-            """
-            CREATE OR ALTER PROCEDURE dbo.Inbox_Abandon
+            $"""
+            CREATE OR ALTER PROCEDURE [{schemaName}].[Inbox_Abandon]
                             @OwnerToken UNIQUEIDENTIFIER,
-                            @Ids dbo.StringIdList READONLY
+                            @Ids [{schemaName}].[StringIdList] READONLY
                           AS
                           BEGIN
                             SET NOCOUNT ON;
                             UPDATE i SET Status = 'Seen', OwnerToken = NULL, LockedUntil = NULL, LastSeenUtc = SYSUTCDATETIME()
-                            FROM dbo.Inbox i JOIN @Ids ids ON ids.Id = i.MessageId
+                            FROM [{schemaName}].[Inbox] i JOIN @Ids ids ON ids.Id = i.MessageId
                             WHERE i.OwnerToken = @OwnerToken AND i.Status = 'Processing';
                           END
             """,
 
-            """
-            CREATE OR ALTER PROCEDURE dbo.Inbox_Fail
+            $"""
+            CREATE OR ALTER PROCEDURE [{schemaName}].[Inbox_Fail]
                             @OwnerToken UNIQUEIDENTIFIER,
-                            @Ids dbo.StringIdList READONLY,
+                            @Ids [{schemaName}].[StringIdList] READONLY,
                             @Reason NVARCHAR(MAX) = NULL
                           AS
                           BEGIN
                             SET NOCOUNT ON;
                             UPDATE i SET Status = 'Dead', OwnerToken = NULL, LockedUntil = NULL, LastSeenUtc = SYSUTCDATETIME()
-                            FROM dbo.Inbox i JOIN @Ids ids ON ids.Id = i.MessageId
+                            FROM [{schemaName}].[Inbox] i JOIN @Ids ids ON ids.Id = i.MessageId
                             WHERE i.OwnerToken = @OwnerToken AND i.Status = 'Processing';
                           END
             """,
 
-            """
-            CREATE OR ALTER PROCEDURE dbo.Inbox_ReapExpired
+            $"""
+            CREATE OR ALTER PROCEDURE [{schemaName}].[Inbox_ReapExpired]
                           AS
                           BEGIN
                             SET NOCOUNT ON;
-                            UPDATE dbo.Inbox SET Status = 'Seen', OwnerToken = NULL, LockedUntil = NULL, LastSeenUtc = SYSUTCDATETIME()
+                            UPDATE [{schemaName}].[Inbox] SET Status = 'Seen', OwnerToken = NULL, LockedUntil = NULL, LastSeenUtc = SYSUTCDATETIME()
                             WHERE Status = 'Processing' AND LockedUntil IS NOT NULL AND LockedUntil <= SYSUTCDATETIME();
                             SELECT @@ROWCOUNT AS ReapedCount;
                           END
@@ -1073,12 +1090,15 @@ internal static class DatabaseSchemaManager
             using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync().ConfigureAwait(false);
 
+            // Ensure schema exists
+            await EnsureSchemaExistsAsync(connection, schemaName).ConfigureAwait(false);
+
             // Apply inbox work queue migration (columns and types)
-            var migrationScript = GetInboxWorkQueueMigrationInlineScript();
+            var migrationScript = GetInboxWorkQueueMigrationInlineScript(schemaName);
             await ExecuteScriptAsync(connection, migrationScript).ConfigureAwait(false);
 
             // Create each stored procedure individually to avoid batch issues
-            await CreateInboxProceduresAsync(connection).ConfigureAwait(false);
+            await CreateInboxProceduresAsync(connection, schemaName).ConfigureAwait(false);
         }
         catch (SqlException sqlEx)
         {
@@ -1093,64 +1113,65 @@ internal static class DatabaseSchemaManager
     /// <summary>
     /// Gets the work queue migration script.
     /// </summary>
+    /// <param name="schemaName">The schema name.</param>
     /// <returns>The SQL migration script.</returns>
-    private static string GetWorkQueueMigrationScript()
+    private static string GetWorkQueueMigrationScript(string schemaName)
     {
-        return GetWorkQueueMigrationInlineScript();
+        return GetWorkQueueMigrationInlineScript(schemaName);
     }
 
-    private static string GetWorkQueueMigrationInlineScript()
+    private static string GetWorkQueueMigrationInlineScript(string schemaName)
     {
-        return """
+        return $"""
 
             -- Create table-valued parameter types if they don't exist
-            IF TYPE_ID('dbo.GuidIdList') IS NULL
+            IF TYPE_ID('[{schemaName}].[GuidIdList]') IS NULL
             BEGIN
-                CREATE TYPE dbo.GuidIdList AS TABLE (
+                CREATE TYPE [{schemaName}].[GuidIdList] AS TABLE (
                     Id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY
                 );
             END
 
             -- Add work queue columns to Outbox if they don't exist
-            IF COL_LENGTH('dbo.Outbox', 'Status') IS NULL
-                ALTER TABLE dbo.Outbox ADD Status TINYINT NOT NULL CONSTRAINT DF_Outbox_Status DEFAULT(0);
+            IF COL_LENGTH('[{schemaName}].[Outbox]', 'Status') IS NULL
+                ALTER TABLE [{schemaName}].[Outbox] ADD Status TINYINT NOT NULL CONSTRAINT DF_Outbox_Status DEFAULT(0);
 
-            IF COL_LENGTH('dbo.Outbox', 'LockedUntil') IS NULL
-                ALTER TABLE dbo.Outbox ADD LockedUntil DATETIME2(3) NULL;
+            IF COL_LENGTH('[{schemaName}].[Outbox]', 'LockedUntil') IS NULL
+                ALTER TABLE [{schemaName}].[Outbox] ADD LockedUntil DATETIME2(3) NULL;
 
-            IF COL_LENGTH('dbo.Outbox', 'OwnerToken') IS NULL
-                ALTER TABLE dbo.Outbox ADD OwnerToken UNIQUEIDENTIFIER NULL;
+            IF COL_LENGTH('[{schemaName}].[Outbox]', 'OwnerToken') IS NULL
+                ALTER TABLE [{schemaName}].[Outbox] ADD OwnerToken UNIQUEIDENTIFIER NULL;
             """;
     }
 
-    private static string GetInboxWorkQueueMigrationInlineScript()
+    private static string GetInboxWorkQueueMigrationInlineScript(string schemaName)
     {
-        return """
+        return $"""
             -- Create table-valued parameter types if they don't exist
-            IF TYPE_ID('dbo.StringIdList') IS NULL
+            IF TYPE_ID('[{schemaName}].[StringIdList]') IS NULL
             BEGIN
-                CREATE TYPE dbo.StringIdList AS TABLE (
+                CREATE TYPE [{schemaName}].[StringIdList] AS TABLE (
                     Id VARCHAR(64) NOT NULL PRIMARY KEY
                 );
             END
 
             -- Add work queue columns to Inbox if they don't exist
-            IF COL_LENGTH('dbo.Inbox', 'LockedUntil') IS NULL
-                ALTER TABLE dbo.Inbox ADD LockedUntil DATETIME2(3) NULL;
+            IF COL_LENGTH('[{schemaName}].[Inbox]', 'LockedUntil') IS NULL
+                ALTER TABLE [{schemaName}].[Inbox] ADD LockedUntil DATETIME2(3) NULL;
 
-            IF COL_LENGTH('dbo.Inbox', 'OwnerToken') IS NULL
-                ALTER TABLE dbo.Inbox ADD OwnerToken UNIQUEIDENTIFIER NULL;
+            IF COL_LENGTH('[{schemaName}].[Inbox]', 'OwnerToken') IS NULL
+                ALTER TABLE [{schemaName}].[Inbox] ADD OwnerToken UNIQUEIDENTIFIER NULL;
 
-            IF COL_LENGTH('dbo.Inbox', 'Topic') IS NULL
-                ALTER TABLE dbo.Inbox ADD Topic VARCHAR(128) NULL;
+            IF COL_LENGTH('[{schemaName}].[Inbox]', 'Topic') IS NULL
+                ALTER TABLE [{schemaName}].[Inbox] ADD Topic VARCHAR(128) NULL;
 
-            IF COL_LENGTH('dbo.Inbox', 'Payload') IS NULL
-                ALTER TABLE dbo.Inbox ADD Payload NVARCHAR(MAX) NULL;
+            IF COL_LENGTH('[{schemaName}].[Inbox]', 'Payload') IS NULL
+                ALTER TABLE [{schemaName}].[Inbox] ADD Payload NVARCHAR(MAX) NULL;
 
             -- Create work queue index for Inbox if it doesn't exist
-            IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name='IX_Inbox_WorkQueue' AND object_id=OBJECT_ID('dbo.Inbox'))
+            IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name='IX_Inbox_WorkQueue' AND object_id=OBJECT_ID('[{schemaName}].[Inbox]'))
             BEGIN
-                CREATE INDEX IX_Inbox_WorkQueue ON dbo.Inbox(Status, LastSeenUtc)
+                CREATE INDEX IX_Inbox_WorkQueue ON [{schemaName}].[Inbox](Status, LastSeenUtc)
                     INCLUDE(MessageId, OwnerToken)
                     WHERE Status IN ('Seen', 'Processing');
             END

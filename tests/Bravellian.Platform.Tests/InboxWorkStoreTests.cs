@@ -25,6 +25,14 @@ public class InboxWorkStoreTests : SqlServerTestBase
     {
     }
 
+    public override async ValueTask InitializeAsync()
+    {
+        await base.InitializeAsync().ConfigureAwait(false);
+
+        // Ensure inbox work queue schema is set up (stored procedures and types)
+        await DatabaseSchemaManager.EnsureInboxWorkQueueSchemaAsync(this.ConnectionString).ConfigureAwait(false);
+    }
+
     [Fact]
     public async Task ClaimAsync_WithNoMessages_ReturnsEmpty()
     {

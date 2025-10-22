@@ -115,7 +115,7 @@ internal class SqlOutboxService : IOutbox
             {
                 await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-                await using var command = new SqlCommand("dbo.Outbox_Claim", connection)
+                await using var command = new SqlCommand($"[{this.options.SchemaName}].[Outbox_Claim]", connection)
                 {
                     CommandType = CommandType.StoredProcedure,
                 };
@@ -157,7 +157,7 @@ internal class SqlOutboxService : IOutbox
 
         try
         {
-            await this.ExecuteWithIdsAsync("dbo.Outbox_Ack", ownerToken, idList, cancellationToken).ConfigureAwait(false);
+            await this.ExecuteWithIdsAsync($"[{this.options.SchemaName}].[Outbox_Ack]", ownerToken, idList, cancellationToken).ConfigureAwait(false);
             this.logger.LogDebug("Acknowledged {Count} outbox items with owner {OwnerToken}", idList.Count, ownerToken);
             SchedulerMetrics.OutboxItemsAcknowledged.Add(idList.Count);
         }
@@ -183,7 +183,7 @@ internal class SqlOutboxService : IOutbox
 
         try
         {
-            await this.ExecuteWithIdsAsync("dbo.Outbox_Abandon", ownerToken, idList, cancellationToken).ConfigureAwait(false);
+            await this.ExecuteWithIdsAsync($"[{this.options.SchemaName}].[Outbox_Abandon]", ownerToken, idList, cancellationToken).ConfigureAwait(false);
             this.logger.LogDebug("Abandoned {Count} outbox items with owner {OwnerToken}", idList.Count, ownerToken);
             SchedulerMetrics.OutboxItemsAbandoned.Add(idList.Count);
         }
@@ -209,7 +209,7 @@ internal class SqlOutboxService : IOutbox
 
         try
         {
-            await this.ExecuteWithIdsAsync("dbo.Outbox_Fail", ownerToken, idList, cancellationToken).ConfigureAwait(false);
+            await this.ExecuteWithIdsAsync($"[{this.options.SchemaName}].[Outbox_Fail]", ownerToken, idList, cancellationToken).ConfigureAwait(false);
             this.logger.LogDebug("Failed {Count} outbox items with owner {OwnerToken}", idList.Count, ownerToken);
             SchedulerMetrics.OutboxItemsFailed.Add(idList.Count);
         }
@@ -231,7 +231,7 @@ internal class SqlOutboxService : IOutbox
             {
                 await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-                await using var command = new SqlCommand("dbo.Outbox_ReapExpired", connection)
+                await using var command = new SqlCommand($"[{this.options.SchemaName}].[Outbox_ReapExpired]", connection)
                 {
                     CommandType = CommandType.StoredProcedure,
                 };
@@ -282,7 +282,7 @@ internal class SqlOutboxService : IOutbox
             command.Parameters.AddWithValue("@OwnerToken", ownerToken);
             var parameter = command.Parameters.AddWithValue("@Ids", tvp);
             parameter.SqlDbType = SqlDbType.Structured;
-            parameter.TypeName = "dbo.GuidIdList";
+            parameter.TypeName = $"[{this.options.SchemaName}].[GuidIdList]";
 
             await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }

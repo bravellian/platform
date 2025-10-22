@@ -67,9 +67,12 @@ public abstract class SqlServerTestBase : IAsyncLifetime
 
         // Create the database schema in the correct order (due to foreign key dependencies)
         await this.ExecuteSqlScript(connection, this.GetOutboxTableScript());
+        await this.ExecuteSqlScript(connection, this.GetOutboxStateTableScript());
+        await this.ExecuteSqlScript(connection, this.GetInboxTableScript());
         await this.ExecuteSqlScript(connection, this.GetTimersTableScript());
         await this.ExecuteSqlScript(connection, this.GetJobsTableScript());
         await this.ExecuteSqlScript(connection, this.GetJobRunsTableScript());
+        await this.ExecuteSqlScript(connection, this.GetSchedulerStateTableScript());
 
         this.TestOutputHelper.WriteLine($"Database schema created successfully on {connection.DataSource}");
         }
@@ -182,6 +185,64 @@ GO
 
 -- Unique index to prevent duplicate job definitions
 CREATE UNIQUE INDEX UQ_Jobs_JobName ON dbo.Jobs(JobName);
+GO";
+    }
+
+    private string GetInboxTableScript()
+    {
+        return @"
+CREATE TABLE dbo.Inbox (
+    -- Core Fields
+    MessageId VARCHAR(64) NOT NULL PRIMARY KEY,
+    Source VARCHAR(64) NOT NULL,
+    Hash BINARY(32) NULL,
+    FirstSeenUtc DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
+    LastSeenUtc DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
+    ProcessedUtc DATETIME2(3) NULL,
+    Attempts INT NOT NULL DEFAULT 0,
+    Status VARCHAR(16) NOT NULL DEFAULT 'Seen', -- Seen, Processing, Done, Dead
+    
+    -- Optional work queue columns (for advanced scenarios)
+    Topic VARCHAR(128) NULL,
+    Payload NVARCHAR(MAX) NULL
+);
+GO
+
+-- Index for efficiently finding messages to process
+CREATE INDEX IX_Inbox_Processing ON dbo.Inbox(Status, LastSeenUtc)
+    WHERE Status IN ('Seen', 'Processing');
+GO";
+    }
+
+    private string GetOutboxStateTableScript()
+    {
+        return @"
+CREATE TABLE dbo.OutboxState (
+    Id INT NOT NULL CONSTRAINT PK_OutboxState PRIMARY KEY,
+    CurrentFencingToken BIGINT NOT NULL DEFAULT(0),
+    LastDispatchAt DATETIME2(3) NULL
+);
+GO
+
+-- Insert initial state row
+INSERT dbo.OutboxState (Id, CurrentFencingToken, LastDispatchAt) 
+VALUES (1, 0, NULL);
+GO";
+    }
+
+    private string GetSchedulerStateTableScript()
+    {
+        return @"
+CREATE TABLE dbo.SchedulerState (
+    Id INT NOT NULL CONSTRAINT PK_SchedulerState PRIMARY KEY,
+    CurrentFencingToken BIGINT NOT NULL DEFAULT(0),
+    LastRunAt DATETIME2(3) NULL
+);
+GO
+
+-- Insert initial state row
+INSERT dbo.SchedulerState (Id, CurrentFencingToken, LastRunAt) 
+VALUES (1, 0, NULL);
 GO";
     }
 

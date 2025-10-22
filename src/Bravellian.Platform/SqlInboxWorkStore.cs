@@ -14,6 +14,7 @@
 
 namespace Bravellian.Platform;
 
+using System;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
@@ -101,14 +102,16 @@ internal class SqlInboxWorkStore : IInboxWorkStore
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             var idsTable = CreateStringIdTable(messageIdList);
-            await connection.ExecuteAsync(
-                $"[{this.schemaName}].[{this.tableName}_Ack]",
-                new
-                {
-                    OwnerToken = ownerToken,
-                    Ids = idsTable,
-                },
-                commandType: System.Data.CommandType.StoredProcedure).ConfigureAwait(false);
+            using var command = new SqlCommand($"[{this.schemaName}].[{this.tableName}_Ack]", connection)
+            {
+                CommandType = System.Data.CommandType.StoredProcedure,
+            };
+            command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+            var parameter = command.Parameters.AddWithValue("@Ids", idsTable);
+            parameter.SqlDbType = System.Data.SqlDbType.Structured;
+            parameter.TypeName = $"[{this.schemaName}].[StringIdList]";
+            
+            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
 
             this.logger.LogDebug(
                 "Successfully acknowledged {MessageCount} inbox messages for owner {OwnerToken}",
@@ -145,14 +148,16 @@ internal class SqlInboxWorkStore : IInboxWorkStore
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             var idsTable = CreateStringIdTable(messageIdList);
-            await connection.ExecuteAsync(
-                $"[{this.schemaName}].[{this.tableName}_Abandon]",
-                new
-                {
-                    OwnerToken = ownerToken,
-                    Ids = idsTable,
-                },
-                commandType: System.Data.CommandType.StoredProcedure).ConfigureAwait(false);
+            using var command = new SqlCommand($"[{this.schemaName}].[{this.tableName}_Abandon]", connection)
+            {
+                CommandType = System.Data.CommandType.StoredProcedure,
+            };
+            command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+            var parameter = command.Parameters.AddWithValue("@Ids", idsTable);
+            parameter.SqlDbType = System.Data.SqlDbType.Structured;
+            parameter.TypeName = $"[{this.schemaName}].[StringIdList]";
+            
+            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
 
             this.logger.LogDebug(
                 "Successfully abandoned {MessageCount} inbox messages for owner {OwnerToken}",
@@ -190,15 +195,17 @@ internal class SqlInboxWorkStore : IInboxWorkStore
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             var idsTable = CreateStringIdTable(messageIdList);
-            await connection.ExecuteAsync(
-                $"[{this.schemaName}].[{this.tableName}_Fail]",
-                new
-                {
-                    OwnerToken = ownerToken,
-                    Ids = idsTable,
-                    Reason = error,
-                },
-                commandType: System.Data.CommandType.StoredProcedure).ConfigureAwait(false);
+            using var command = new SqlCommand($"[{this.schemaName}].[{this.tableName}_Fail]", connection)
+            {
+                CommandType = System.Data.CommandType.StoredProcedure,
+            };
+            command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+            var parameter = command.Parameters.AddWithValue("@Ids", idsTable);
+            parameter.SqlDbType = System.Data.SqlDbType.Structured;
+            parameter.TypeName = $"[{this.schemaName}].[StringIdList]";
+            command.Parameters.AddWithValue("@Reason", error ?? (object)DBNull.Value);
+            
+            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
 
             this.logger.LogWarning(
                 "Failed {MessageCount} inbox messages for owner {OwnerToken}: {Error}",
