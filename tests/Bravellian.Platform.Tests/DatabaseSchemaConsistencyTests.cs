@@ -28,6 +28,15 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
     {
     }
 
+    public override async ValueTask InitializeAsync()
+    {
+        await base.InitializeAsync().ConfigureAwait(false);
+
+        // Apply work queue migrations to add Status, LockedUntil, OwnerToken columns
+        await DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(this.ConnectionString).ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureInboxWorkQueueSchemaAsync(this.ConnectionString).ConfigureAwait(false);
+    }
+
     [Fact]
     public async Task DatabaseSchema_AllRequiredTablesExist()
     {
