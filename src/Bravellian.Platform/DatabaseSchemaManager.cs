@@ -36,6 +36,9 @@ internal static class DatabaseSchemaManager
         using var connection = new SqlConnection(connectionString);
         await connection.OpenAsync().ConfigureAwait(false);
 
+        // Ensure schema exists
+        await EnsureSchemaExistsAsync(connection, schemaName).ConfigureAwait(false);
+
         // Check if table exists
         var tableExists = await TableExistsAsync(connection, schemaName, tableName).ConfigureAwait(false);
         if (!tableExists)
@@ -119,6 +122,9 @@ internal static class DatabaseSchemaManager
         using var connection = new SqlConnection(connectionString);
         await connection.OpenAsync().ConfigureAwait(false);
 
+        // Ensure schema exists
+        await EnsureSchemaExistsAsync(connection, schemaName).ConfigureAwait(false);
+
         // Check if table exists
         var tableExists = await TableExistsAsync(connection, schemaName, tableName).ConfigureAwait(false);
         if (!tableExists)
@@ -141,6 +147,9 @@ internal static class DatabaseSchemaManager
     {
         using var connection = new SqlConnection(connectionString);
         await connection.OpenAsync().ConfigureAwait(false);
+
+        // Ensure schema exists
+        await EnsureSchemaExistsAsync(connection, schemaName).ConfigureAwait(false);
 
         // Create Jobs table first (referenced by JobRuns)
         var jobsExists = await TableExistsAsync(connection, schemaName, jobsTableName).ConfigureAwait(false);
@@ -187,6 +196,9 @@ internal static class DatabaseSchemaManager
     {
         using var connection = new SqlConnection(connectionString);
         await connection.OpenAsync().ConfigureAwait(false);
+
+        // Ensure schema exists
+        await EnsureSchemaExistsAsync(connection, schemaName).ConfigureAwait(false);
 
         // Create FanoutPolicy table first (no dependencies)
         var policyExists = await TableExistsAsync(connection, schemaName, policyTableName).ConfigureAwait(false);
@@ -862,6 +874,9 @@ internal static class DatabaseSchemaManager
             using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync().ConfigureAwait(false);
 
+            // Ensure schema exists
+            await EnsureSchemaExistsAsync(connection, schemaName).ConfigureAwait(false);
+
             // Apply work queue migration (columns and types)
             var migrationScript = GetWorkQueueMigrationInlineScript(schemaName);
             await ExecuteScriptAsync(connection, migrationScript).ConfigureAwait(false);
@@ -1074,6 +1089,9 @@ internal static class DatabaseSchemaManager
         {
             using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync().ConfigureAwait(false);
+
+            // Ensure schema exists
+            await EnsureSchemaExistsAsync(connection, schemaName).ConfigureAwait(false);
 
             // Apply inbox work queue migration (columns and types)
             var migrationScript = GetInboxWorkQueueMigrationInlineScript(schemaName);
