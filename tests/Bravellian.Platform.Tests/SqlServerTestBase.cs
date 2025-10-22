@@ -67,6 +67,7 @@ public abstract class SqlServerTestBase : IAsyncLifetime
 
         // Create the database schema in the correct order (due to foreign key dependencies)
         await this.ExecuteSqlScript(connection, this.GetOutboxTableScript());
+        await this.ExecuteSqlScript(connection, this.GetInboxTableScript());
         await this.ExecuteSqlScript(connection, this.GetTimersTableScript());
         await this.ExecuteSqlScript(connection, this.GetJobsTableScript());
         await this.ExecuteSqlScript(connection, this.GetJobRunsTableScript());
@@ -182,6 +183,32 @@ GO
 
 -- Unique index to prevent duplicate job definitions
 CREATE UNIQUE INDEX UQ_Jobs_JobName ON dbo.Jobs(JobName);
+GO";
+    }
+
+    private string GetInboxTableScript()
+    {
+        return @"
+CREATE TABLE dbo.Inbox (
+    -- Core Fields
+    MessageId VARCHAR(64) NOT NULL PRIMARY KEY,
+    Source VARCHAR(64) NOT NULL,
+    Hash BINARY(32) NULL,
+    FirstSeenUtc DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
+    LastSeenUtc DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
+    ProcessedUtc DATETIME2(3) NULL,
+    Attempts INT NOT NULL DEFAULT 0,
+    Status VARCHAR(16) NOT NULL DEFAULT 'Seen', -- Seen, Processing, Done, Dead
+    
+    -- Optional work queue columns (for advanced scenarios)
+    Topic VARCHAR(128) NULL,
+    Payload NVARCHAR(MAX) NULL
+);
+GO
+
+-- Index for efficiently finding messages to process
+CREATE INDEX IX_Inbox_Processing ON dbo.Inbox(Status, LastSeenUtc)
+    WHERE Status IN ('Seen', 'Processing');
 GO";
     }
 
