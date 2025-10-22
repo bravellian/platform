@@ -293,7 +293,7 @@ internal class SqlSchedulerClient : ISchedulerClient
             command.Parameters.AddWithValue("@OwnerToken", ownerToken);
             var parameter = command.Parameters.AddWithValue("@Ids", tvp);
             parameter.SqlDbType = SqlDbType.Structured;
-            parameter.TypeName = "dbo.GuidIdList";
+            parameter.TypeName = $"[{this.options.SchemaName}].[GuidIdList]";
 
             await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
