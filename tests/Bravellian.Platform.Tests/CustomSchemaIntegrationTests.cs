@@ -17,6 +17,8 @@ namespace Bravellian.Platform.Tests;
 using System;
 using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 /// <summary>
@@ -246,6 +248,34 @@ public class CustomSchemaIntegrationTests : SqlServerTestBase
 
         var cursorExists = await this.TableExistsAsync(connection, CustomSchema, "FanoutCursor").ConfigureAwait(false);
         Assert.True(cursorExists, $"FanoutCursor table should exist in {CustomSchema} schema");
+    }
+
+    [Fact]
+    public void AddSqlScheduler_WithCustomSchema_RegistersLeaseFactory()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        var options = new SqlSchedulerOptions
+        {
+            ConnectionString = this.ConnectionString,
+            SchemaName = CustomSchema,
+            EnableSchemaDeployment = false, // Prevent actual deployment during test
+        };
+
+        // Act
+        services.AddSqlScheduler(options);
+
+        // Assert - Verify that ISystemLeaseFactory is registered (which means AddSystemLeases was called)
+        var leaseFactoryDescriptor = services.FirstOrDefault(s =>
+            s.ServiceType == typeof(ISystemLeaseFactory));
+
+        Assert.NotNull(leaseFactoryDescriptor);
+
+        // Verify that SystemLeaseOptions configuration was registered
+        var optionsDescriptor = services.FirstOrDefault(s =>
+            s.ServiceType == typeof(IConfigureOptions<SystemLeaseOptions>));
+
+        Assert.NotNull(optionsDescriptor);
     }
 
     private async Task<bool> TableExistsAsync(SqlConnection connection, string schemaName, string tableName)
