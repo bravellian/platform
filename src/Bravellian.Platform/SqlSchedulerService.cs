@@ -31,7 +31,7 @@ internal class SqlSchedulerService : BackgroundService
     private readonly TimeProvider timeProvider;
 
     // This is the key tunable parameter.
-    private readonly TimeSpan maxWaitTime = TimeSpan.FromSeconds(30);
+    private readonly TimeSpan maxWaitTime;
     private readonly string instanceId = $"{Environment.MachineName}:{Guid.NewGuid()}";
 
     // Pre-built SQL queries using configured table names
@@ -49,6 +49,7 @@ internal class SqlSchedulerService : BackgroundService
         this.options = options.Value;
         this.connectionString = this.options.ConnectionString;
         this.timeProvider = timeProvider;
+        this.maxWaitTime = this.options.MaxPollingInterval;
 
         // Build SQL queries using configured schema and table names
         this.claimTimersSql = $"""
@@ -143,7 +144,6 @@ internal class SqlSchedulerService : BackgroundService
         while (!stoppingToken.IsCancellationRequested)
         {
             await this.SchedulerLoopAsync(stoppingToken).ConfigureAwait(false);
-            await Task.Delay(30_000, stoppingToken).ConfigureAwait(false); // Poll every 30 seconds
         }
     }
 
