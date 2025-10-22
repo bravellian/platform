@@ -114,7 +114,7 @@ public static class SchedulerServiceCollectionExtensions
         services.AddSystemLeases(new SystemLeaseOptions
         {
             ConnectionString = options.ConnectionString,
-            SchemaName = "dbo", // Use dbo schema for distributed locks
+            SchemaName = options.SchemaName,
         });
 
         services.Configure<SqlSchedulerOptions>(o =>

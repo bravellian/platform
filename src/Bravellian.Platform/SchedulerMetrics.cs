@@ -56,18 +56,9 @@ internal static class SchedulerMetrics
     public static readonly Histogram<double> WorkQueueAbandonDuration = Meter.CreateHistogram<double>("workqueue.abandon.duration", "ms", "Duration of work queue abandon operations.");
 
     // Gauges: To report current state
-    static SchedulerMetrics()
-    {
-        Meter.CreateObservableGauge("scheduler.outbox.pending.gauge", () => GetPendingCount("dbo.Outbox", "IsProcessed = 0"), "messages", "Number of pending messages in the outbox.");
-        Meter.CreateObservableGauge("scheduler.timers.pending.gauge", () => GetPendingCount("dbo.Timers", "Status = 'Pending'"), "timers", "Number of pending timers.");
-        Meter.CreateObservableGauge("scheduler.jobs.pending.gauge", () => GetPendingCount("dbo.JobRuns", "Status = 'Pending'"), "jobs", "Number of pending job runs.");
-
-        // Work queue status gauges
-        Meter.CreateObservableGauge("outbox.ready.gauge", () => GetPendingCount("dbo.Outbox", "Status = 0"), "items", "Number of ready outbox items.");
-        Meter.CreateObservableGauge("outbox.inprogress.gauge", () => GetPendingCount("dbo.Outbox", "Status = 1"), "items", "Number of in-progress outbox items.");
-        Meter.CreateObservableGauge("timers.ready.gauge", () => GetPendingCount("dbo.Timers", "StatusCode = 0"), "items", "Number of ready timer items.");
-        Meter.CreateObservableGauge("timers.inprogress.gauge", () => GetPendingCount("dbo.Timers", "StatusCode = 1"), "items", "Number of in-progress timer items.");
-    }
+    // Note: Observable gauges for pending counts have been removed as they require
+    // schema-specific configuration and active database connections. Applications
+    // should implement these metrics in their own services with appropriate schema context.
 
     /// <summary>
     /// Starts a new activity for tracing work queue operations.
@@ -77,14 +68,5 @@ internal static class SchedulerMetrics
     public static Activity? StartActivity(string operationName)
     {
         return ActivitySource.StartActivity(operationName);
-    }
-
-    private static long GetPendingCount(string table, string whereClause)
-    {
-        // This method would contain the Dapper logic to run:
-        // SELECT COUNT(*) FROM {table} WHERE {whereClause}
-        // NOTE: This should be implemented with a connection string.
-        // For brevity, the implementation is omitted here.
-        return 0; // Replace with actual DB call
     }
 }
