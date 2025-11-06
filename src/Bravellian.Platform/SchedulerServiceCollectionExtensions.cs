@@ -478,4 +478,72 @@ public static class SchedulerServiceCollectionExtensions
             TableName = tableName,
         });
     }
+
+    /// <summary>
+    /// Adds SQL multi-outbox functionality with support for processing messages across multiple databases.
+    /// This enables a single worker to process outbox messages from multiple customer databases.
+    /// </summary>
+    /// <param name="services">The IServiceCollection to add services to.</param>
+    /// <param name="outboxOptions">List of outbox options, one for each database to poll.</param>
+    /// <param name="selectionStrategy">Optional selection strategy. Defaults to RoundRobinOutboxSelectionStrategy.</param>
+    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
+    public static IServiceCollection AddMultiSqlOutbox(
+        this IServiceCollection services,
+        IEnumerable<SqlOutboxOptions> outboxOptions,
+        IOutboxSelectionStrategy? selectionStrategy = null)
+    {
+        // Add time abstractions
+        services.AddTimeAbstractions();
+
+        // Register the store provider with the list of outbox options
+        services.AddSingleton<IOutboxStoreProvider>(provider =>
+        {
+            var timeProvider = provider.GetRequiredService<TimeProvider>();
+            var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
+            return new ConfiguredOutboxStoreProvider(outboxOptions, timeProvider, loggerFactory);
+        });
+
+        // Register the selection strategy
+        services.AddSingleton<IOutboxSelectionStrategy>(selectionStrategy ?? new RoundRobinOutboxSelectionStrategy());
+
+        // Register shared components
+        services.AddSingleton<IOutboxHandlerResolver, OutboxHandlerResolver>();
+        services.AddSingleton<MultiOutboxDispatcher>();
+        services.AddHostedService<MultiOutboxPollingService>();
+
+        // Note: IOutbox is not registered for multi-outbox mode as each database would need its own instance
+        // Users should use the individual SqlOutboxService instances directly if needed
+
+        return services;
+    }
+
+    /// <summary>
+    /// Adds SQL multi-outbox functionality using a custom store provider.
+    /// This allows for dynamic discovery of outbox databases at runtime.
+    /// </summary>
+    /// <param name="services">The IServiceCollection to add services to.</param>
+    /// <param name="storeProviderFactory">Factory function to create the store provider.</param>
+    /// <param name="selectionStrategy">Optional selection strategy. Defaults to RoundRobinOutboxSelectionStrategy.</param>
+    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
+    public static IServiceCollection AddMultiSqlOutbox(
+        this IServiceCollection services,
+        Func<IServiceProvider, IOutboxStoreProvider> storeProviderFactory,
+        IOutboxSelectionStrategy? selectionStrategy = null)
+    {
+        // Add time abstractions
+        services.AddTimeAbstractions();
+
+        // Register the custom store provider
+        services.AddSingleton(storeProviderFactory);
+
+        // Register the selection strategy
+        services.AddSingleton<IOutboxSelectionStrategy>(selectionStrategy ?? new RoundRobinOutboxSelectionStrategy());
+
+        // Register shared components
+        services.AddSingleton<IOutboxHandlerResolver, OutboxHandlerResolver>();
+        services.AddSingleton<MultiOutboxDispatcher>();
+        services.AddHostedService<MultiOutboxPollingService>();
+
+        return services;
+    }
 }
