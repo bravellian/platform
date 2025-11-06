@@ -171,6 +171,9 @@ public class MultiOutboxDispatcherTests : SqlServerTestBase
         }
 
         // Create outbox stores
+        // Note: Both stores point to the same table, which is intentional for this test.
+        // We're testing that the drain-first strategy keeps processing from the same store
+        // until it's empty, not necessarily that they're different physical stores.
         // Create logger
         var storeLogger = new TestLogger<SqlOutboxStore>(this.TestOutputHelper);
 

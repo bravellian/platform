@@ -92,29 +92,6 @@ public class RoundRobinSelectionStrategyTests
         result.ShouldBe(this.mockStores[0]);
     }
 
-    private class MockOutboxStore : IOutboxStore
-    {
-        private readonly string name;
-
-        public MockOutboxStore(string name)
-        {
-            this.name = name;
-        }
-
-        public Task<IReadOnlyList<OutboxMessage>> ClaimDueAsync(int limit, CancellationToken cancellationToken)
-            => Task.FromResult<IReadOnlyList<OutboxMessage>>(new List<OutboxMessage>());
-
-        public Task MarkDispatchedAsync(Guid id, CancellationToken cancellationToken)
-            => Task.CompletedTask;
-
-        public Task RescheduleAsync(Guid id, TimeSpan delay, string lastError, CancellationToken cancellationToken)
-            => Task.CompletedTask;
-
-        public Task FailAsync(Guid id, string lastError, CancellationToken cancellationToken)
-            => Task.CompletedTask;
-
-        public override string ToString() => this.name;
-    }
 }
 
 public class DrainFirstSelectionStrategyTests
@@ -217,27 +194,4 @@ public class DrainFirstSelectionStrategyTests
         fifth.ShouldBe(this.mockStores[2]);
     }
 
-    private class MockOutboxStore : IOutboxStore
-    {
-        private readonly string name;
-
-        public MockOutboxStore(string name)
-        {
-            this.name = name;
-        }
-
-        public Task<IReadOnlyList<OutboxMessage>> ClaimDueAsync(int limit, CancellationToken cancellationToken)
-            => Task.FromResult<IReadOnlyList<OutboxMessage>>(new List<OutboxMessage>());
-
-        public Task MarkDispatchedAsync(Guid id, CancellationToken cancellationToken)
-            => Task.CompletedTask;
-
-        public Task RescheduleAsync(Guid id, TimeSpan delay, string lastError, CancellationToken cancellationToken)
-            => Task.CompletedTask;
-
-        public Task FailAsync(Guid id, string lastError, CancellationToken cancellationToken)
-            => Task.CompletedTask;
-
-        public override string ToString() => this.name;
-    }
 }

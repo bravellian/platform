@@ -69,22 +69,14 @@ public sealed class ConfiguredOutboxStoreProvider : IOutboxStoreProvider
 
     private static string ExtractDatabaseName(string connectionString)
     {
-        // Simple extraction - could be made more robust
-        var parts = connectionString.Split(';');
-        foreach (var part in parts)
+        try
         {
-            var trimmed = part.Trim();
-            if (trimmed.StartsWith("Database=", StringComparison.OrdinalIgnoreCase) ||
-                trimmed.StartsWith("Initial Catalog=", StringComparison.OrdinalIgnoreCase))
-            {
-                var equalIndex = trimmed.IndexOf('=');
-                if (equalIndex >= 0 && equalIndex < trimmed.Length - 1)
-                {
-                    return trimmed.Substring(equalIndex + 1).Trim();
-                }
-            }
+            var builder = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(connectionString);
+            return string.IsNullOrEmpty(builder.InitialCatalog) ? "UnknownDB" : builder.InitialCatalog;
         }
-
-        return "UnknownDB";
+        catch
+        {
+            return "UnknownDB";
+        }
     }
 }
