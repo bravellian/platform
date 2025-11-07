@@ -13,7 +13,7 @@ jobs:
     name: Standard Commit - Build, Test, and Scan
     runs-on: ubuntu-latest
     concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}
+      group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
       cancel-in-progress: true
     steps:
     - name: Checkout code
