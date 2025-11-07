@@ -63,7 +63,7 @@ public class SystemLeaseTests : SqlServerTestBase
         var leaseDuration = TimeSpan.FromSeconds(30);
 
         // Act
-        var lease = await this.leaseFactory!.AcquireAsync(resourceName, leaseDuration);
+        var lease = await this.leaseFactory!.AcquireAsync(resourceName, leaseDuration, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         lease.ShouldNotBeNull();
@@ -84,8 +84,8 @@ public class SystemLeaseTests : SqlServerTestBase
         var leaseDuration = TimeSpan.FromSeconds(30);
 
         // Act
-        var firstLease = await this.leaseFactory!.AcquireAsync(resourceName, leaseDuration);
-        var secondLease = await this.leaseFactory.AcquireAsync(resourceName, leaseDuration);
+        var firstLease = await this.leaseFactory!.AcquireAsync(resourceName, leaseDuration, cancellationToken: TestContext.Current.CancellationToken);
+        var secondLease = await this.leaseFactory.AcquireAsync(resourceName, leaseDuration, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         firstLease.ShouldNotBeNull();
@@ -103,7 +103,7 @@ public class SystemLeaseTests : SqlServerTestBase
         var leaseDuration = TimeSpan.FromSeconds(30);
 
         // Act & Assert - First acquisition
-        var firstLease = await this.leaseFactory!.AcquireAsync(resourceName, leaseDuration);
+        var firstLease = await this.leaseFactory!.AcquireAsync(resourceName, leaseDuration, cancellationToken: TestContext.Current.CancellationToken);
         firstLease.ShouldNotBeNull();
 
         var firstFencingToken = firstLease.FencingToken;
@@ -112,7 +112,7 @@ public class SystemLeaseTests : SqlServerTestBase
         await firstLease.DisposeAsync();
 
         // Second acquisition should succeed with higher fencing token
-        var secondLease = await this.leaseFactory.AcquireAsync(resourceName, leaseDuration);
+        var secondLease = await this.leaseFactory.AcquireAsync(resourceName, leaseDuration, cancellationToken: TestContext.Current.CancellationToken);
         secondLease.ShouldNotBeNull();
         secondLease.FencingToken.ShouldBeGreaterThan(firstFencingToken);
 
@@ -127,13 +127,13 @@ public class SystemLeaseTests : SqlServerTestBase
         var resourceName = $"test-resource-{Guid.NewGuid():N}";
         var leaseDuration = TimeSpan.FromSeconds(30);
 
-        var lease = await this.leaseFactory!.AcquireAsync(resourceName, leaseDuration);
+        var lease = await this.leaseFactory!.AcquireAsync(resourceName, leaseDuration, cancellationToken: TestContext.Current.CancellationToken);
         lease.ShouldNotBeNull();
 
         var originalFencingToken = lease.FencingToken;
 
         // Act
-        var renewed = await lease.TryRenewNowAsync();
+        var renewed = await lease.TryRenewNowAsync(TestContext.Current.CancellationToken);
 
         // Assert
         renewed.ShouldBeTrue();
@@ -150,7 +150,7 @@ public class SystemLeaseTests : SqlServerTestBase
         var resourceName = $"test-resource-{Guid.NewGuid():N}";
         var leaseDuration = TimeSpan.FromSeconds(30);
 
-        var lease = await this.leaseFactory!.AcquireAsync(resourceName, leaseDuration);
+        var lease = await this.leaseFactory!.AcquireAsync(resourceName, leaseDuration, cancellationToken: TestContext.Current.CancellationToken);
         lease.ShouldNotBeNull();
 
         // Act & Assert
@@ -169,8 +169,8 @@ public class SystemLeaseTests : SqlServerTestBase
         var leaseDuration = TimeSpan.FromSeconds(30);
 
         // Act
-        var lease1 = await this.leaseFactory!.AcquireAsync(resource1, leaseDuration);
-        var lease2 = await this.leaseFactory.AcquireAsync(resource2, leaseDuration);
+        var lease1 = await this.leaseFactory!.AcquireAsync(resource1, leaseDuration, cancellationToken: TestContext.Current.CancellationToken);
+        var lease2 = await this.leaseFactory.AcquireAsync(resource2, leaseDuration, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         lease1.ShouldNotBeNull();
@@ -193,10 +193,9 @@ public class SystemLeaseTests : SqlServerTestBase
         var customOwnerToken = Guid.NewGuid();
 
         // Act
-        var lease = await this.leaseFactory!.AcquireAsync(
-            resourceName,
+        var lease = await this.leaseFactory!.AcquireAsync(resourceName,
             leaseDuration,
-            ownerToken: customOwnerToken);
+            ownerToken: customOwnerToken, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         lease.ShouldNotBeNull();
@@ -215,15 +214,13 @@ public class SystemLeaseTests : SqlServerTestBase
         var ownerToken = Guid.NewGuid();
 
         // Act
-        var firstLease = await this.leaseFactory!.AcquireAsync(
-            resourceName,
+        var firstLease = await this.leaseFactory!.AcquireAsync(resourceName,
             leaseDuration,
-            ownerToken: ownerToken);
+            ownerToken: ownerToken, cancellationToken: TestContext.Current.CancellationToken);
 
-        var secondLease = await this.leaseFactory.AcquireAsync(
-            resourceName,
+        var secondLease = await this.leaseFactory.AcquireAsync(resourceName,
             leaseDuration,
-            ownerToken: ownerToken);
+            ownerToken: ownerToken, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         firstLease.ShouldNotBeNull();

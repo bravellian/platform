@@ -112,7 +112,7 @@ public class DynamicOutboxStoreProviderTests
         });
 
         var loggerFactory = this.CreateLoggerFactory();
-        
+
         var logger = new TestLogger<DynamicOutboxStoreProvider>(this.testOutputHelper);
 
         var provider = new DynamicOutboxStoreProvider(
@@ -133,7 +133,7 @@ public class DynamicOutboxStoreProviderTests
         });
 
         // Act - Force refresh
-        await provider.RefreshAsync();
+        await provider.RefreshAsync(TestContext.Current.CancellationToken);
         var updatedStores = provider.GetAllStores();
 
         // Assert
@@ -161,7 +161,7 @@ public class DynamicOutboxStoreProviderTests
         });
 
         var loggerFactory = this.CreateLoggerFactory();
-        
+
         var logger = new TestLogger<DynamicOutboxStoreProvider>(this.testOutputHelper);
 
         var provider = new DynamicOutboxStoreProvider(
@@ -178,7 +178,7 @@ public class DynamicOutboxStoreProviderTests
         discovery.RemoveDatabase("Customer2");
 
         // Act - Force refresh
-        await provider.RefreshAsync();
+        await provider.RefreshAsync(TestContext.Current.CancellationToken);
         var updatedStores = provider.GetAllStores();
 
         // Assert
@@ -200,7 +200,7 @@ public class DynamicOutboxStoreProviderTests
         });
 
         var loggerFactory = this.CreateLoggerFactory();
-        
+
         var logger = new TestLogger<DynamicOutboxStoreProvider>(this.testOutputHelper);
 
         var provider = new DynamicOutboxStoreProvider(

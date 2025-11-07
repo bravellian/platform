@@ -41,7 +41,7 @@ public class MultiOutboxDispatcherTests : SqlServerTestBase
 
         // Create schema2 if it doesn't exist
         await using var setupConnection = new SqlConnection(this.ConnectionString);
-        await setupConnection.OpenAsync();
+        await setupConnection.OpenAsync(TestContext.Current.CancellationToken);
         await setupConnection.ExecuteAsync($"IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = '{schema2}') EXEC('CREATE SCHEMA [{schema2}]')");
 
         // Create outbox tables in both schemas
@@ -53,7 +53,7 @@ public class MultiOutboxDispatcherTests : SqlServerTestBase
         var message2Id = Guid.NewGuid();
 
         await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         await connection.ExecuteAsync(
             $@"INSERT INTO [{schema1}].[Outbox] 
@@ -152,7 +152,7 @@ public class MultiOutboxDispatcherTests : SqlServerTestBase
 
         // Insert 3 messages into the first outbox
         await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         for (int i = 0; i < 3; i++)
         {

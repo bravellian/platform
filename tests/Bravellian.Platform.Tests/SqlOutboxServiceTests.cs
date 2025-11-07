@@ -23,7 +23,7 @@ using System.Data;
 public class SqlOutboxServiceTests : SqlServerTestBase
 {
     private SqlOutboxService? outboxService;
-    private readonly SqlOutboxOptions defaultOptions = new () { ConnectionString = string.Empty, SchemaName = "dbo", TableName = "Outbox" };
+    private readonly SqlOutboxOptions defaultOptions = new() { ConnectionString = string.Empty, SchemaName = "dbo", TableName = "Outbox" };
 
     public SqlOutboxServiceTests(ITestOutputHelper testOutputHelper)
         : base(testOutputHelper)
@@ -53,7 +53,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
     {
         // Arrange
         await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
         await using var transaction = connection.BeginTransaction();
 
         string topic = "test-topic";
@@ -69,7 +69,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         command.Parameters.AddWithValue("@Topic", topic);
         command.Parameters.AddWithValue("@Payload", payload);
 
-        var count = (int)await command.ExecuteScalarAsync();
+        var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
 
         // Assert
         count.ShouldBe(1);
@@ -91,7 +91,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
 
         // Create the custom table for this test
         await using var setupConnection = new SqlConnection(this.ConnectionString);
-        await setupConnection.OpenAsync();
+        await setupConnection.OpenAsync(TestContext.Current.CancellationToken);
 
         // Create custom schema if it doesn't exist
         await setupConnection.ExecuteAsync("IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'custom') EXEC('CREATE SCHEMA custom')");
@@ -102,7 +102,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         var customOutboxService = new SqlOutboxService(Options.Create(customOptions), NullLogger<SqlOutboxService>.Instance);
 
         await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
         await using var transaction = connection.BeginTransaction();
 
         string topic = "test-topic-custom";
@@ -117,7 +117,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         command.Parameters.AddWithValue("@Topic", topic);
         command.Parameters.AddWithValue("@Payload", payload);
 
-        var count = (int)await command.ExecuteScalarAsync();
+        var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
 
         // Assert
         count.ShouldBe(1);
@@ -131,7 +131,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
     {
         // Arrange
         await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
         await using var transaction = connection.BeginTransaction();
 
         string topic = "test-topic-null-correlation";
@@ -146,7 +146,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         command.Parameters.AddWithValue("@Topic", topic);
         command.Parameters.AddWithValue("@Payload", payload);
 
-        var count = (int)await command.ExecuteScalarAsync();
+        var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
 
         // Assert
         count.ShouldBe(1);
@@ -160,7 +160,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
     {
         // Arrange
         await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
         await using var transaction = connection.BeginTransaction();
 
         string topic = "test-topic-defaults";
@@ -179,7 +179,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
             command.Parameters.AddWithValue("@Topic", topic);
             command.Parameters.AddWithValue("@Payload", payload);
 
-            await using var reader = await command.ExecuteReaderAsync();
+            await using var reader = await command.ExecuteReaderAsync(TestContext.Current.CancellationToken);
             reader.Read().ShouldBeTrue();
 
             // Assert default values
@@ -201,7 +201,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
     {
         // Arrange
         await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
         await using var transaction = connection.BeginTransaction();
 
         // Act - Insert multiple messages
@@ -212,7 +212,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         // Verify all messages were inserted
         var sql = "SELECT COUNT(*) FROM dbo.Outbox";
         await using var command = new SqlCommand(sql, connection, transaction);
-        var count = (int)await command.ExecuteScalarAsync();
+        var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
 
         // Assert
         count.ShouldBe(3);
@@ -250,14 +250,14 @@ public class SqlOutboxServiceTests : SqlServerTestBase
 
         // Verify the message was inserted by querying the database directly
         await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
         var sql = "SELECT COUNT(*) FROM dbo.Outbox WHERE Topic = @Topic AND Payload = @Payload AND CorrelationId = @CorrelationId";
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.AddWithValue("@Topic", topic);
         command.Parameters.AddWithValue("@Payload", payload);
         command.Parameters.AddWithValue("@CorrelationId", correlationId);
 
-        var count = (int)await command.ExecuteScalarAsync();
+        var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
 
         // Assert
         count.ShouldBe(1);
@@ -267,7 +267,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         await using var deleteCommand = new SqlCommand(deleteSql, connection);
         deleteCommand.Parameters.AddWithValue("@Topic", topic);
         deleteCommand.Parameters.AddWithValue("@Payload", payload);
-        await deleteCommand.ExecuteNonQueryAsync();
+        await deleteCommand.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -282,13 +282,13 @@ public class SqlOutboxServiceTests : SqlServerTestBase
 
         // Verify the message was inserted
         await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
         var sql = "SELECT COUNT(*) FROM dbo.Outbox WHERE Topic = @Topic AND Payload = @Payload";
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.AddWithValue("@Topic", topic);
         command.Parameters.AddWithValue("@Payload", payload);
 
-        var count = (int)await command.ExecuteScalarAsync();
+        var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
 
         // Assert
         count.ShouldBe(1);
@@ -298,7 +298,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         await using var deleteCommand = new SqlCommand(deleteSql, connection);
         deleteCommand.Parameters.AddWithValue("@Topic", topic);
         deleteCommand.Parameters.AddWithValue("@Payload", payload);
-        await deleteCommand.ExecuteNonQueryAsync();
+        await deleteCommand.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -318,11 +318,11 @@ public class SqlOutboxServiceTests : SqlServerTestBase
 
             // Verify all messages were inserted
             await using var connection = new SqlConnection(this.ConnectionString);
-            await connection.OpenAsync();
+            await connection.OpenAsync(TestContext.Current.CancellationToken);
             var sql = "SELECT COUNT(*) FROM dbo.Outbox WHERE Topic LIKE @TopicPattern";
             await using var command = new SqlCommand(sql, connection);
             command.Parameters.AddWithValue("@TopicPattern", $"%-{testId}");
-            var count = (int)await command.ExecuteScalarAsync();
+            var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
 
             // Assert
             count.ShouldBe(3);
@@ -331,11 +331,11 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         {
             // Clean up
             await using var connection = new SqlConnection(this.ConnectionString);
-            await connection.OpenAsync();
+            await connection.OpenAsync(TestContext.Current.CancellationToken);
             var deleteSql = "DELETE FROM dbo.Outbox WHERE Topic LIKE @TopicPattern";
             await using var deleteCommand = new SqlCommand(deleteSql, connection);
             deleteCommand.Parameters.AddWithValue("@TopicPattern", $"%-{testId}");
-            await deleteCommand.ExecuteNonQueryAsync();
+            await deleteCommand.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
         }
     }
 
@@ -354,7 +354,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
 
         // First, ensure the custom table doesn't exist
         await using var setupConnection = new SqlConnection(this.ConnectionString);
-        await setupConnection.OpenAsync();
+        await setupConnection.OpenAsync(TestContext.Current.CancellationToken);
         await setupConnection.ExecuteAsync("IF OBJECT_ID('dbo.TestOutbox_StandaloneEnsure', 'U') IS NOT NULL DROP TABLE dbo.TestOutbox_StandaloneEnsure");
 
         string topic = "test-topic-ensure";
@@ -371,7 +371,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
             command.Parameters.AddWithValue("@Topic", topic);
             command.Parameters.AddWithValue("@Payload", payload);
 
-            var count = (int)await command.ExecuteScalarAsync();
+            var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
 
             // Assert
             count.ShouldBe(1);

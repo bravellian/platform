@@ -45,7 +45,7 @@ public abstract class SqlServerTestBase : IAsyncLifetime
 
     public virtual async ValueTask InitializeAsync()
     {
-        await this.msSqlContainer.StartAsync().ConfigureAwait(false);
+        await this.msSqlContainer.StartAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
         this.connectionString = this.msSqlContainer.GetConnectionString();
         await this.SetupDatabaseSchema().ConfigureAwait(false);
     }
@@ -63,18 +63,18 @@ public abstract class SqlServerTestBase : IAsyncLifetime
         var connection = new SqlConnection(this.connectionString);
         await using (connection.ConfigureAwait(false))
         {
-            await connection.OpenAsync();
+            await connection.OpenAsync(TestContext.Current.CancellationToken);
 
-        // Create the database schema in the correct order (due to foreign key dependencies)
-        await this.ExecuteSqlScript(connection, this.GetOutboxTableScript());
-        await this.ExecuteSqlScript(connection, this.GetOutboxStateTableScript());
-        await this.ExecuteSqlScript(connection, this.GetInboxTableScript());
-        await this.ExecuteSqlScript(connection, this.GetTimersTableScript());
-        await this.ExecuteSqlScript(connection, this.GetJobsTableScript());
-        await this.ExecuteSqlScript(connection, this.GetJobRunsTableScript());
-        await this.ExecuteSqlScript(connection, this.GetSchedulerStateTableScript());
+            // Create the database schema in the correct order (due to foreign key dependencies)
+            await this.ExecuteSqlScript(connection, this.GetOutboxTableScript());
+            await this.ExecuteSqlScript(connection, this.GetOutboxStateTableScript());
+            await this.ExecuteSqlScript(connection, this.GetInboxTableScript());
+            await this.ExecuteSqlScript(connection, this.GetTimersTableScript());
+            await this.ExecuteSqlScript(connection, this.GetJobsTableScript());
+            await this.ExecuteSqlScript(connection, this.GetJobRunsTableScript());
+            await this.ExecuteSqlScript(connection, this.GetSchedulerStateTableScript());
 
-        this.TestOutputHelper.WriteLine($"Database schema created successfully on {connection.DataSource}");
+            this.TestOutputHelper.WriteLine($"Database schema created successfully on {connection.DataSource}");
         }
     }
 
@@ -93,7 +93,7 @@ public abstract class SqlServerTestBase : IAsyncLifetime
                 var command = new SqlCommand(trimmedBatch, connection);
                 await using (command.ConfigureAwait(false))
                 {
-                    await command.ExecuteNonQueryAsync();
+                    await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
                 }
             }
         }

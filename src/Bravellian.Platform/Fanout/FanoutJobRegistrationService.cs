@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+namespace Bravellian.Platform;
+
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-
-namespace Bravellian.Platform;
 
 /// <summary>
 /// Background service that registers fanout topics as recurring jobs with the scheduler.
@@ -74,7 +74,10 @@ internal sealed class FanoutJobRegistrationService : BackgroundService
 
             this.logger.LogInformation(
                 "Registered fanout job {JobName} for topic {FanoutTopic}:{WorkKey} with schedule {CronSchedule}",
-                jobName, this.options.FanoutTopic, this.options.WorkKey, this.options.Cron);
+                jobName,
+                this.options.FanoutTopic,
+                this.options.WorkKey,
+                this.options.Cron);
 
             // Store the policy in the database for the planner to use
             var policyRepository = scope.ServiceProvider.GetRequiredService<IFanoutPolicyRepository>();
@@ -82,8 +85,11 @@ internal sealed class FanoutJobRegistrationService : BackgroundService
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Failed to register fanout job for topic {FanoutTopic}:{WorkKey}",
-                this.options.FanoutTopic, this.options.WorkKey);
+            this.logger.LogError(
+                ex,
+                "Failed to register fanout job for topic {FanoutTopic}:{WorkKey}",
+                this.options.FanoutTopic,
+                this.options.WorkKey);
 
             // Don't rethrow - we don't want to crash the application, just log the error
         }
@@ -104,14 +110,18 @@ internal sealed class FanoutJobRegistrationService : BackgroundService
             {
                 this.logger.LogDebug(
                     "Fanout policy already exists for {FanoutTopic}:{WorkKey}",
-                    this.options.FanoutTopic, this.options.WorkKey);
+                    this.options.FanoutTopic,
+                    this.options.WorkKey);
                 return;
             }
         }
         catch (Exception ex)
         {
-            this.logger.LogDebug(ex, "Policy check failed, will attempt to insert policy for {FanoutTopic}:{WorkKey}",
-                this.options.FanoutTopic, this.options.WorkKey);
+            this.logger.LogDebug(
+                ex,
+                "Policy check failed, will attempt to insert policy for {FanoutTopic}:{WorkKey}",
+                this.options.FanoutTopic,
+                this.options.WorkKey);
         }
 
         // Insert the policy (this method should handle upserts or ignore conflicts)
@@ -120,12 +130,16 @@ internal sealed class FanoutJobRegistrationService : BackgroundService
             await this.InsertPolicyAsync(policyRepository, cancellationToken).ConfigureAwait(false);
             this.logger.LogDebug(
                 "Ensured fanout policy exists for {FanoutTopic}:{WorkKey}",
-                this.options.FanoutTopic, this.options.WorkKey);
+                this.options.FanoutTopic,
+                this.options.WorkKey);
         }
         catch (Exception ex)
         {
-            this.logger.LogWarning(ex, "Failed to ensure fanout policy for {FanoutTopic}:{WorkKey}",
-                this.options.FanoutTopic, this.options.WorkKey);
+            this.logger.LogWarning(
+                ex,
+                "Failed to ensure fanout policy for {FanoutTopic}:{WorkKey}",
+                this.options.FanoutTopic,
+                this.options.WorkKey);
         }
     }
 
@@ -153,7 +167,7 @@ internal sealed class FanoutJobRegistrationService : BackgroundService
                         )
             """;
 
-            await using var command = new SqlCommand(sql, connection);
+            using var command = new SqlCommand(sql, connection);
             command.Parameters.AddWithValue("@FanoutTopic", this.options.FanoutTopic);
             command.Parameters.AddWithValue("@WorkKey", this.options.WorkKey ?? "default");
             command.Parameters.AddWithValue("@DefaultEverySeconds", this.options.DefaultEverySeconds);

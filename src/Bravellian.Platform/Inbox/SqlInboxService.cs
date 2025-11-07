@@ -143,7 +143,8 @@ internal class SqlInboxService : IInbox
             this.logger.LogError(
                 ex,
                 "Failed to check/record message {MessageId} from {Source}",
-                messageId, source);
+                messageId,
+                source);
             throw;
         }
     }
@@ -209,7 +210,8 @@ internal class SqlInboxService : IInbox
 
             this.logger.LogDebug(
                 "Message {MessageId} marked as processing (rows affected: {RowsAffected})",
-                messageId, rowsAffected);
+                messageId,
+                rowsAffected);
         }
         catch (SqlException ex)
         {
@@ -241,7 +243,8 @@ internal class SqlInboxService : IInbox
 
             this.logger.LogWarning(
                 "Message {MessageId} marked as dead/poison (rows affected: {RowsAffected})",
-                messageId, rowsAffected);
+                messageId,
+                rowsAffected);
         }
         catch (SqlException ex)
         {
@@ -299,14 +302,18 @@ internal class SqlInboxService : IInbox
 
             this.logger.LogDebug(
                 "Enqueued message {MessageId} with topic '{Topic}' from source '{Source}'",
-                messageId, topic, source);
+                messageId,
+                topic,
+                source);
         }
         catch (SqlException ex)
         {
             this.logger.LogError(
                 ex,
                 "Failed to enqueue message {MessageId} with topic '{Topic}' from source '{Source}'",
-                messageId, topic, source);
+                messageId,
+                topic,
+                source);
             throw;
         }
     }

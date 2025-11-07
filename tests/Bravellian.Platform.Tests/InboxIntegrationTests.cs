@@ -47,17 +47,17 @@ public class InboxIntegrationTests : SqlServerTestBase
         var hash = System.Text.Encoding.UTF8.GetBytes("test-content-hash");
 
         // Act & Assert - First processing attempt
-        var alreadyProcessed1 = await inbox.AlreadyProcessedAsync(messageId, source, hash);
+        var alreadyProcessed1 = await inbox.AlreadyProcessedAsync(messageId, source, hash, TestContext.Current.CancellationToken);
         Assert.False(alreadyProcessed1, "First check should return false");
 
         // Simulate processing workflow
-        await inbox.MarkProcessingAsync(messageId);
+        await inbox.MarkProcessingAsync(messageId, TestContext.Current.CancellationToken);
 
         // Complete processing
-        await inbox.MarkProcessedAsync(messageId);
+        await inbox.MarkProcessedAsync(messageId, TestContext.Current.CancellationToken);
 
         // Subsequent attempts should return true
-        var alreadyProcessed2 = await inbox.AlreadyProcessedAsync(messageId, source, hash);
+        var alreadyProcessed2 = await inbox.AlreadyProcessedAsync(messageId, source, hash, TestContext.Current.CancellationToken);
         Assert.True(alreadyProcessed2, "Subsequent check should return true");
 
         // Verify the message state in database
@@ -82,13 +82,13 @@ public class InboxIntegrationTests : SqlServerTestBase
         var source = "PoisonTestSource";
 
         // Act - Simulate failed processing workflow
-        var alreadyProcessed = await inbox.AlreadyProcessedAsync(messageId, source);
+        var alreadyProcessed = await inbox.AlreadyProcessedAsync(messageId, source, cancellationToken: TestContext.Current.CancellationToken);
         Assert.False(alreadyProcessed);
 
-        await inbox.MarkProcessingAsync(messageId);
+        await inbox.MarkProcessingAsync(messageId, TestContext.Current.CancellationToken);
 
         // Mark as dead (poison message)
-        await inbox.MarkDeadAsync(messageId);
+        await inbox.MarkDeadAsync(messageId, TestContext.Current.CancellationToken);
 
         // Assert - Verify state
         await this.VerifyMessageState(messageId, "Dead", processedUtc: false);
@@ -117,7 +117,7 @@ public class InboxIntegrationTests : SqlServerTestBase
 
                 var logger = new TestLogger<SqlInboxService>(this.TestOutputHelper);
                 var inboxInstance = new SqlInboxService(options, logger);
-                return await inboxInstance.AlreadyProcessedAsync(messageId, source).ConfigureAwait(false);
+                return await inboxInstance.AlreadyProcessedAsync(messageId, source, cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(false);
             }));
         }
 
@@ -128,7 +128,7 @@ public class InboxIntegrationTests : SqlServerTestBase
 
         // Verify only one record exists and attempts were tracked
         await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var (count, attempts) = await connection.QuerySingleAsync<(int Count, int Attempts)>(
             "SELECT COUNT(*) as Count, MAX(Attempts) as Attempts FROM dbo.Inbox WHERE MessageId = @MessageId",
@@ -143,22 +143,22 @@ public class InboxIntegrationTests : SqlServerTestBase
         var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
         await using (connection.ConfigureAwait(false))
         {
-            await connection.OpenAsync();
+            await connection.OpenAsync(TestContext.Current.CancellationToken);
 
-        var result = await connection.QuerySingleAsync<(string Status, DateTime? ProcessedUtc)>(
-            "SELECT Status, ProcessedUtc FROM dbo.Inbox WHERE MessageId = @MessageId",
-            new { MessageId = messageId });
+            var result = await connection.QuerySingleAsync<(string Status, DateTime? ProcessedUtc)>(
+                "SELECT Status, ProcessedUtc FROM dbo.Inbox WHERE MessageId = @MessageId",
+                new { MessageId = messageId });
 
-        Assert.Equal(expectedStatus, result.Status);
+            Assert.Equal(expectedStatus, result.Status);
 
-        if (processedUtc)
-        {
-            Assert.NotNull(result.ProcessedUtc);
-        }
-        else
-        {
-            Assert.Null(result.ProcessedUtc);
-        }
+            if (processedUtc)
+            {
+                Assert.NotNull(result.ProcessedUtc);
+            }
+            else
+            {
+                Assert.Null(result.ProcessedUtc);
+            }
         }
     }
 }

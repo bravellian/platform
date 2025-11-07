@@ -46,7 +46,7 @@ public class LeaseTests : SqlServerTestBase
         var leaseSeconds = 30;
 
         // Act
-        var result = await this.leaseApi!.AcquireAsync(leaseName, owner, leaseSeconds);
+        var result = await this.leaseApi!.AcquireAsync(leaseName, owner, leaseSeconds, TestContext.Current.CancellationToken);
 
         // Assert
         result.acquired.ShouldBeTrue();
@@ -69,11 +69,11 @@ public class LeaseTests : SqlServerTestBase
         var leaseSeconds = 30;
 
         // First acquisition
-        var firstResult = await this.leaseApi!.AcquireAsync(leaseName, owner1, leaseSeconds);
+        var firstResult = await this.leaseApi!.AcquireAsync(leaseName, owner1, leaseSeconds, TestContext.Current.CancellationToken);
         firstResult.acquired.ShouldBeTrue();
 
         // Act - Second acquisition attempt
-        var secondResult = await this.leaseApi.AcquireAsync(leaseName, owner2, leaseSeconds);
+        var secondResult = await this.leaseApi.AcquireAsync(leaseName, owner2, leaseSeconds, TestContext.Current.CancellationToken);
 
         // Assert
         secondResult.acquired.ShouldBeFalse();
@@ -91,14 +91,14 @@ public class LeaseTests : SqlServerTestBase
         var shortLeaseSeconds = 1; // Very short lease
 
         // First acquisition with short lease
-        var firstResult = await this.leaseApi!.AcquireAsync(leaseName, owner1, shortLeaseSeconds);
+        var firstResult = await this.leaseApi!.AcquireAsync(leaseName, owner1, shortLeaseSeconds, TestContext.Current.CancellationToken);
         firstResult.acquired.ShouldBeTrue();
 
         // Wait for lease to expire
-        await Task.Delay(TimeSpan.FromSeconds(2));
+        await Task.Delay(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         // Act - Second acquisition after expiry
-        var secondResult = await this.leaseApi.AcquireAsync(leaseName, owner2, 30);
+        var secondResult = await this.leaseApi.AcquireAsync(leaseName, owner2, 30, TestContext.Current.CancellationToken);
 
         // Assert
         secondResult.acquired.ShouldBeTrue();
@@ -116,14 +116,14 @@ public class LeaseTests : SqlServerTestBase
         var leaseSeconds = 30;
 
         // Acquire lease first
-        var acquireResult = await this.leaseApi!.AcquireAsync(leaseName, owner, leaseSeconds);
+        var acquireResult = await this.leaseApi!.AcquireAsync(leaseName, owner, leaseSeconds, TestContext.Current.CancellationToken);
         acquireResult.acquired.ShouldBeTrue();
 
         // Wait a moment
-        await Task.Delay(TimeSpan.FromSeconds(1));
+        await Task.Delay(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken);
 
         // Act - Renew the lease
-        var renewResult = await this.leaseApi.RenewAsync(leaseName, owner, leaseSeconds);
+        var renewResult = await this.leaseApi.RenewAsync(leaseName, owner, leaseSeconds, TestContext.Current.CancellationToken);
 
         // Assert
         renewResult.renewed.ShouldBeTrue();
@@ -143,11 +143,11 @@ public class LeaseTests : SqlServerTestBase
         var leaseSeconds = 30;
 
         // Acquire lease with owner1
-        var acquireResult = await this.leaseApi!.AcquireAsync(leaseName, owner1, leaseSeconds);
+        var acquireResult = await this.leaseApi!.AcquireAsync(leaseName, owner1, leaseSeconds, TestContext.Current.CancellationToken);
         acquireResult.acquired.ShouldBeTrue();
 
         // Act - Try to renew with owner2
-        var renewResult = await this.leaseApi.RenewAsync(leaseName, owner2, leaseSeconds);
+        var renewResult = await this.leaseApi.RenewAsync(leaseName, owner2, leaseSeconds, TestContext.Current.CancellationToken);
 
         // Assert
         renewResult.renewed.ShouldBeFalse();
@@ -164,14 +164,14 @@ public class LeaseTests : SqlServerTestBase
         var shortLeaseSeconds = 1;
 
         // Acquire lease with short duration
-        var acquireResult = await this.leaseApi!.AcquireAsync(leaseName, owner, shortLeaseSeconds);
+        var acquireResult = await this.leaseApi!.AcquireAsync(leaseName, owner, shortLeaseSeconds, TestContext.Current.CancellationToken);
         acquireResult.acquired.ShouldBeTrue();
 
         // Wait for lease to expire
-        await Task.Delay(TimeSpan.FromSeconds(2));
+        await Task.Delay(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         // Act - Try to renew expired lease
-        var renewResult = await this.leaseApi.RenewAsync(leaseName, owner, 30);
+        var renewResult = await this.leaseApi.RenewAsync(leaseName, owner, 30, TestContext.Current.CancellationToken);
 
         // Assert
         renewResult.renewed.ShouldBeFalse();
@@ -211,14 +211,13 @@ public class LeaseRunnerTests : SqlServerTestBase
         var logger = NullLogger.Instance;
 
         // Act
-        var runner = await LeaseRunner.AcquireAsync(
-            this.leaseApi!,
+        var runner = await LeaseRunner.AcquireAsync(this.leaseApi!,
             monotonicClock,
             timeProvider,
             leaseName,
             owner,
             leaseDuration,
-            logger: logger);
+            logger: logger, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         runner.ShouldNotBeNull();
@@ -251,7 +250,8 @@ public class LeaseRunnerTests : SqlServerTestBase
             leaseName,
             owner1,
             leaseDuration,
-            logger: logger);
+            logger: logger,
+            cancellationToken: TestContext.Current.CancellationToken);
 
         runner1.ShouldNotBeNull();
 
@@ -263,7 +263,8 @@ public class LeaseRunnerTests : SqlServerTestBase
             leaseName,
             owner2,
             leaseDuration,
-            logger: logger);
+            logger: logger,
+            cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         runner2.ShouldBeNull();
@@ -283,19 +284,18 @@ public class LeaseRunnerTests : SqlServerTestBase
         var timeProvider = TimeProvider.System;
         var logger = NullLogger.Instance;
 
-        var runner = await LeaseRunner.AcquireAsync(
-            this.leaseApi!,
+        var runner = await LeaseRunner.AcquireAsync(this.leaseApi!,
             monotonicClock,
             timeProvider,
             leaseName,
             owner,
             leaseDuration,
-            logger: logger);
+            logger: logger, cancellationToken: TestContext.Current.CancellationToken);
 
         runner.ShouldNotBeNull();
 
         // Act
-        var renewed = await runner.TryRenewNowAsync();
+        var renewed = await runner.TryRenewNowAsync(TestContext.Current.CancellationToken);
 
         // Assert
         renewed.ShouldBeTrue();
@@ -316,14 +316,13 @@ public class LeaseRunnerTests : SqlServerTestBase
         var timeProvider = TimeProvider.System;
         var logger = NullLogger.Instance;
 
-        var runner = await LeaseRunner.AcquireAsync(
-            this.leaseApi!,
+        var runner = await LeaseRunner.AcquireAsync(this.leaseApi!,
             monotonicClock,
             timeProvider,
             leaseName,
             owner,
             leaseDuration,
-            logger: logger);
+            logger: logger, cancellationToken: TestContext.Current.CancellationToken);
 
         runner.ShouldNotBeNull();
 
@@ -346,20 +345,19 @@ public class LeaseRunnerTests : SqlServerTestBase
         var timeProvider = TimeProvider.System;
         var logger = NullLogger.Instance;
 
-        var runner = await LeaseRunner.AcquireAsync(
-            this.leaseApi!,
+        var runner = await LeaseRunner.AcquireAsync(this.leaseApi!,
             monotonicClock,
             timeProvider,
             leaseName,
             owner,
             leaseDuration,
             renewPercent,
-            logger: logger);
+            logger: logger, TestContext.Current.CancellationToken);
 
         runner.ShouldNotBeNull();
 
         // Act - Wait for potential renewal
-        await Task.Delay(TimeSpan.FromSeconds(6)); // Wait past 50% of lease duration
+        await Task.Delay(TimeSpan.FromSeconds(6), TestContext.Current.CancellationToken); // Wait past 50% of lease duration
 
         // Assert - Runner should still be valid (automatic renewals should have occurred)
         runner.IsLost.ShouldBeFalse();
@@ -380,14 +378,13 @@ public class LeaseRunnerTests : SqlServerTestBase
         var timeProvider = TimeProvider.System;
         var logger = NullLogger.Instance;
 
-        var runner = await LeaseRunner.AcquireAsync(
-            this.leaseApi!,
+        var runner = await LeaseRunner.AcquireAsync(this.leaseApi!,
             monotonicClock,
             timeProvider,
             leaseName,
             owner,
             leaseDuration,
-            logger: logger);
+            logger: logger, cancellationToken: TestContext.Current.CancellationToken);
 
         runner.ShouldNotBeNull();
 
@@ -395,7 +392,7 @@ public class LeaseRunnerTests : SqlServerTestBase
         await runner.DisposeAsync();
 
         // Assert - TryRenewNowAsync should return false after disposal
-        var renewed = await runner.TryRenewNowAsync();
+        var renewed = await runner.TryRenewNowAsync(TestContext.Current.CancellationToken);
         renewed.ShouldBeFalse();
     }
 }

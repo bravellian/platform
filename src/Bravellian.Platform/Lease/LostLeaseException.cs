@@ -45,15 +45,17 @@ public class LostLeaseException : InvalidOperationException
         this.Owner = owner;
     }
 
-    public LostLeaseException() : base()
+    public LostLeaseException()
     {
     }
 
-    public LostLeaseException(string? message) : base(message)
+    public LostLeaseException(string? message)
+        : base(message)
     {
     }
 
-    public LostLeaseException(string? message, Exception? innerException) : base(message, innerException)
+    public LostLeaseException(string? message, Exception? innerException)
+        : base(message, innerException)
     {
     }
 

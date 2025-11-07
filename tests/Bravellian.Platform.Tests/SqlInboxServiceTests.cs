@@ -35,14 +35,14 @@ public class SqlInboxServiceTests : SqlServerTestBase
         var source = "test-source";
 
         // Act
-        var alreadyProcessed = await inbox.AlreadyProcessedAsync(messageId, source);
+        var alreadyProcessed = await inbox.AlreadyProcessedAsync(messageId, source, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.False(alreadyProcessed);
 
         // Verify the message was recorded in the database
         await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var count = await connection.QuerySingleAsync<int>(
             "SELECT COUNT(*) FROM dbo.Inbox WHERE MessageId = @MessageId",
@@ -60,11 +60,11 @@ public class SqlInboxServiceTests : SqlServerTestBase
         var source = "test-source";
 
         // First, record and process the message
-        await inbox.AlreadyProcessedAsync(messageId, source);
-        await inbox.MarkProcessedAsync(messageId);
+        await inbox.AlreadyProcessedAsync(messageId, source, cancellationToken: TestContext.Current.CancellationToken);
+        await inbox.MarkProcessedAsync(messageId, TestContext.Current.CancellationToken);
 
         // Act
-        var alreadyProcessed = await inbox.AlreadyProcessedAsync(messageId, source);
+        var alreadyProcessed = await inbox.AlreadyProcessedAsync(messageId, source, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.True(alreadyProcessed);
@@ -79,14 +79,14 @@ public class SqlInboxServiceTests : SqlServerTestBase
         var source = "test-source";
 
         // Record the message first
-        await inbox.AlreadyProcessedAsync(messageId, source);
+        await inbox.AlreadyProcessedAsync(messageId, source, cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
-        await inbox.MarkProcessedAsync(messageId);
+        await inbox.MarkProcessedAsync(messageId, TestContext.Current.CancellationToken);
 
         // Assert
         await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var result = await connection.QuerySingleAsync<(DateTime? ProcessedUtc, string Status)>(
             "SELECT ProcessedUtc, Status FROM dbo.Inbox WHERE MessageId = @MessageId",
@@ -105,14 +105,14 @@ public class SqlInboxServiceTests : SqlServerTestBase
         var source = "test-source";
 
         // Record the message first
-        await inbox.AlreadyProcessedAsync(messageId, source);
+        await inbox.AlreadyProcessedAsync(messageId, source, cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
-        await inbox.MarkProcessingAsync(messageId);
+        await inbox.MarkProcessingAsync(messageId, TestContext.Current.CancellationToken);
 
         // Assert
         await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var status = await connection.QuerySingleAsync<string>(
             "SELECT Status FROM dbo.Inbox WHERE MessageId = @MessageId",
@@ -130,14 +130,14 @@ public class SqlInboxServiceTests : SqlServerTestBase
         var source = "test-source";
 
         // Record the message first
-        await inbox.AlreadyProcessedAsync(messageId, source);
+        await inbox.AlreadyProcessedAsync(messageId, source, cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
-        await inbox.MarkDeadAsync(messageId);
+        await inbox.MarkDeadAsync(messageId, TestContext.Current.CancellationToken);
 
         // Assert
         await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var status = await connection.QuerySingleAsync<string>(
             "SELECT Status FROM dbo.Inbox WHERE MessageId = @MessageId",
@@ -158,7 +158,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
         var tasks = new List<Task<bool>>();
         for (int i = 0; i < 5; i++)
         {
-            tasks.Add(inbox.AlreadyProcessedAsync(messageId, source));
+            tasks.Add(inbox.AlreadyProcessedAsync(messageId, source, cancellationToken: TestContext.Current.CancellationToken));
         }
 
         var results = await Task.WhenAll(tasks);
@@ -168,7 +168,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
 
         // Verify only one record was created in the database
         await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var count = await connection.QuerySingleAsync<int>(
             "SELECT COUNT(*) FROM dbo.Inbox WHERE MessageId = @MessageId",
@@ -194,11 +194,11 @@ public class SqlInboxServiceTests : SqlServerTestBase
         var hash = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32 };
 
         // Act
-        await inbox.AlreadyProcessedAsync(messageId, source, hash);
+        await inbox.AlreadyProcessedAsync(messageId, source, hash, TestContext.Current.CancellationToken);
 
         // Assert
         await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var storedHash = await connection.QuerySingleAsync<byte[]>(
             "SELECT Hash FROM dbo.Inbox WHERE MessageId = @MessageId",
@@ -217,7 +217,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(() =>
-            inbox.AlreadyProcessedAsync(invalidMessageId!, "test-source"));
+            inbox.AlreadyProcessedAsync(invalidMessageId!, "test-source", cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Theory]
@@ -230,7 +230,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(() =>
-            inbox.AlreadyProcessedAsync("test-message", invalidSource!));
+            inbox.AlreadyProcessedAsync("test-message", invalidSource!, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     private SqlInboxService CreateInboxService()

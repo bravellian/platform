@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+namespace Bravellian.Platform;
+
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-
-namespace Bravellian.Platform;
 
 /// <summary>
 /// Outbox handler that processes fanout coordination jobs.
@@ -55,7 +55,8 @@ internal sealed class FanoutJobHandler : IOutboxHandler
 
             this.logger.LogDebug(
                 "Processing fanout job for topic {FanoutTopic}, workKey {WorkKey}",
-                payload.fanoutTopic, payload.workKey);
+                payload.fanoutTopic,
+                payload.workKey);
 
             // Create a scope to resolve the coordinator
             using var scope = this.serviceProvider.CreateScope();
@@ -75,7 +76,9 @@ internal sealed class FanoutJobHandler : IOutboxHandler
 
             this.logger.LogInformation(
                 "Fanout coordination completed for {FanoutTopic}:{WorkKey}, processed {Count} slices",
-                payload.fanoutTopic, payload.workKey, processedCount);
+                payload.fanoutTopic,
+                payload.workKey,
+                processedCount);
         }
         catch (Exception ex)
         {

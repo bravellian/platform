@@ -47,7 +47,9 @@ internal class SqlInboxWorkStore : IInboxWorkStore
     {
         this.logger.LogDebug(
             "Claiming up to {BatchSize} inbox messages with {LeaseSeconds}s lease for owner {OwnerToken}",
-            batchSize, leaseSeconds, ownerToken);
+            batchSize,
+            leaseSeconds,
+            ownerToken);
 
         try
         {
@@ -67,7 +69,8 @@ internal class SqlInboxWorkStore : IInboxWorkStore
             var result = messageIds.ToList();
             this.logger.LogDebug(
                 "Successfully claimed {ClaimedCount} inbox messages for owner {OwnerToken}",
-                result.Count, ownerToken);
+                result.Count,
+                ownerToken);
 
             return result;
         }
@@ -94,7 +97,8 @@ internal class SqlInboxWorkStore : IInboxWorkStore
 
         this.logger.LogDebug(
             "Acknowledging {MessageCount} inbox messages for owner {OwnerToken}",
-            messageIdList.Count, ownerToken);
+            messageIdList.Count,
+            ownerToken);
 
         try
         {
@@ -110,12 +114,13 @@ internal class SqlInboxWorkStore : IInboxWorkStore
             var parameter = command.Parameters.AddWithValue("@Ids", idsTable);
             parameter.SqlDbType = System.Data.SqlDbType.Structured;
             parameter.TypeName = $"[{this.schemaName}].[StringIdList]";
-            
+
             await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
 
             this.logger.LogDebug(
                 "Successfully acknowledged {MessageCount} inbox messages for owner {OwnerToken}",
-                messageIdList.Count, ownerToken);
+                messageIdList.Count,
+                ownerToken);
         }
         catch (Exception ex)
         {
@@ -140,7 +145,8 @@ internal class SqlInboxWorkStore : IInboxWorkStore
 
         this.logger.LogDebug(
             "Abandoning {MessageCount} inbox messages for owner {OwnerToken}",
-            messageIdList.Count, ownerToken);
+            messageIdList.Count,
+            ownerToken);
 
         try
         {
@@ -156,12 +162,13 @@ internal class SqlInboxWorkStore : IInboxWorkStore
             var parameter = command.Parameters.AddWithValue("@Ids", idsTable);
             parameter.SqlDbType = System.Data.SqlDbType.Structured;
             parameter.TypeName = $"[{this.schemaName}].[StringIdList]";
-            
+
             await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
 
             this.logger.LogDebug(
                 "Successfully abandoned {MessageCount} inbox messages for owner {OwnerToken}",
-                messageIdList.Count, ownerToken);
+                messageIdList.Count,
+                ownerToken);
         }
         catch (Exception ex)
         {
@@ -187,7 +194,9 @@ internal class SqlInboxWorkStore : IInboxWorkStore
 
         this.logger.LogDebug(
             "Failing {MessageCount} inbox messages for owner {OwnerToken}: {Error}",
-            messageIdList.Count, ownerToken, error);
+            messageIdList.Count,
+            ownerToken,
+            error);
 
         try
         {
@@ -204,12 +213,14 @@ internal class SqlInboxWorkStore : IInboxWorkStore
             parameter.SqlDbType = System.Data.SqlDbType.Structured;
             parameter.TypeName = $"[{this.schemaName}].[StringIdList]";
             command.Parameters.AddWithValue("@Reason", error ?? (object)DBNull.Value);
-            
+
             await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
 
             this.logger.LogWarning(
                 "Failed {MessageCount} inbox messages for owner {OwnerToken}: {Error}",
-                messageIdList.Count, ownerToken, error);
+                messageIdList.Count,
+                ownerToken,
+                error);
         }
         catch (Exception ex)
         {

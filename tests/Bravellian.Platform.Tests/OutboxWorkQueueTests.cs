@@ -53,7 +53,7 @@ public class OutboxWorkQueueTests : SqlServerTestBase
         var ownerToken = Guid.NewGuid();
 
         // Act
-        var claimedIds = await this.outboxService!.ClaimAsync(ownerToken, 30, 10);
+        var claimedIds = await this.outboxService!.ClaimAsync(ownerToken, 30, 10, TestContext.Current.CancellationToken);
 
         // Assert
         claimedIds.ShouldNotBeEmpty();
@@ -69,7 +69,7 @@ public class OutboxWorkQueueTests : SqlServerTestBase
         var ownerToken = Guid.NewGuid();
 
         // Act
-        var claimedIds = await this.outboxService!.ClaimAsync(ownerToken, 30, 2);
+        var claimedIds = await this.outboxService!.ClaimAsync(ownerToken, 30, 2, TestContext.Current.CancellationToken);
 
         // Assert
         claimedIds.Count.ShouldBe(2);
@@ -81,10 +81,10 @@ public class OutboxWorkQueueTests : SqlServerTestBase
         // Arrange
         var testIds = await this.CreateTestOutboxItemsAsync(2);
         var ownerToken = Guid.NewGuid();
-        var claimedIds = await this.outboxService!.ClaimAsync(ownerToken, 30, 10);
+        var claimedIds = await this.outboxService!.ClaimAsync(ownerToken, 30, 10, TestContext.Current.CancellationToken);
 
         // Act
-        await this.outboxService.AckAsync(ownerToken, claimedIds);
+        await this.outboxService.AckAsync(ownerToken, claimedIds, TestContext.Current.CancellationToken);
 
         // Assert
         await this.VerifyOutboxStatusAsync(claimedIds, 2); // Status = Done
@@ -97,10 +97,10 @@ public class OutboxWorkQueueTests : SqlServerTestBase
         // Arrange
         var testIds = await this.CreateTestOutboxItemsAsync(2);
         var ownerToken = Guid.NewGuid();
-        var claimedIds = await this.outboxService!.ClaimAsync(ownerToken, 30, 10);
+        var claimedIds = await this.outboxService!.ClaimAsync(ownerToken, 30, 10, TestContext.Current.CancellationToken);
 
         // Act
-        await this.outboxService.AbandonAsync(ownerToken, claimedIds);
+        await this.outboxService.AbandonAsync(ownerToken, claimedIds, TestContext.Current.CancellationToken);
 
         // Assert
         await this.VerifyOutboxStatusAsync(claimedIds, 0); // Status = Ready
@@ -112,10 +112,10 @@ public class OutboxWorkQueueTests : SqlServerTestBase
         // Arrange
         var testIds = await this.CreateTestOutboxItemsAsync(1);
         var ownerToken = Guid.NewGuid();
-        var claimedIds = await this.outboxService!.ClaimAsync(ownerToken, 30, 10);
+        var claimedIds = await this.outboxService!.ClaimAsync(ownerToken, 30, 10, TestContext.Current.CancellationToken);
 
         // Act
-        await this.outboxService.FailAsync(ownerToken, claimedIds);
+        await this.outboxService.FailAsync(ownerToken, claimedIds, TestContext.Current.CancellationToken);
 
         // Assert
         await this.VerifyOutboxStatusAsync(claimedIds, 3); // Status = Failed
@@ -127,13 +127,13 @@ public class OutboxWorkQueueTests : SqlServerTestBase
         // Arrange
         var testIds = await this.CreateTestOutboxItemsAsync(1);
         var ownerToken = Guid.NewGuid();
-        await this.outboxService!.ClaimAsync(ownerToken, 1, 10); // 1 second lease
+        await this.outboxService!.ClaimAsync(ownerToken, 1, 10, TestContext.Current.CancellationToken); // 1 second lease
 
         // Wait for lease to expire
-        await Task.Delay(1500);
+        await Task.Delay(1500, TestContext.Current.CancellationToken);
 
         // Act
-        await this.outboxService.ReapExpiredAsync();
+        await this.outboxService.ReapExpiredAsync(TestContext.Current.CancellationToken);
 
         // Assert
         await this.VerifyOutboxStatusAsync(testIds, 0); // Status = Ready
@@ -148,8 +148,8 @@ public class OutboxWorkQueueTests : SqlServerTestBase
         var worker2Token = Guid.NewGuid();
 
         // Act - simulate concurrent claims
-        var claimTask1 = this.outboxService!.ClaimAsync(worker1Token, 30, 5);
-        var claimTask2 = this.outboxService.ClaimAsync(worker2Token, 30, 5);
+        var claimTask1 = this.outboxService!.ClaimAsync(worker1Token, 30, 5, TestContext.Current.CancellationToken);
+        var claimTask2 = this.outboxService.ClaimAsync(worker2Token, 30, 5, TestContext.Current.CancellationToken);
 
         var results = await Task.WhenAll(claimTask1, claimTask2);
         var claimed1 = results[0];
@@ -170,10 +170,10 @@ public class OutboxWorkQueueTests : SqlServerTestBase
         var testIds = await this.CreateTestOutboxItemsAsync(1);
         var ownerToken = Guid.NewGuid();
         var invalidToken = Guid.NewGuid();
-        var claimedIds = await this.outboxService!.ClaimAsync(ownerToken, 30, 10);
+        var claimedIds = await this.outboxService!.ClaimAsync(ownerToken, 30, 10, TestContext.Current.CancellationToken);
 
         // Act - try to ack with wrong owner
-        await this.outboxService.AckAsync(invalidToken, claimedIds);
+        await this.outboxService.AckAsync(invalidToken, claimedIds, TestContext.Current.CancellationToken);
 
         // Assert - items should still be in claimed state
         await this.VerifyOutboxStatusAsync(claimedIds, 1); // Status = InProgress
@@ -186,21 +186,21 @@ public class OutboxWorkQueueTests : SqlServerTestBase
         var connection = new SqlConnection(this.ConnectionString);
         await using (connection.ConfigureAwait(false))
         {
-            await connection.OpenAsync();
+            await connection.OpenAsync(TestContext.Current.CancellationToken);
 
-        for (int i = 0; i < count; i++)
-        {
-            var id = Guid.NewGuid();
-            ids.Add(id);
+            for (int i = 0; i < count; i++)
+            {
+                var id = Guid.NewGuid();
+                ids.Add(id);
 
-            await connection.ExecuteAsync(
-                @"
+                await connection.ExecuteAsync(
+                    @"
                 INSERT INTO dbo.Outbox (Id, Topic, Payload, Status, CreatedAt)
                 VALUES (@Id, @Topic, @Payload, 0, SYSUTCDATETIME())",
-                new { Id = id, Topic = "test", Payload = $"payload{i}" });
-        }
+                    new { Id = id, Topic = "test", Payload = $"payload{i}" });
+            }
 
-        return ids;
+            return ids;
         }
     }
 
@@ -209,14 +209,14 @@ public class OutboxWorkQueueTests : SqlServerTestBase
         var connection = new SqlConnection(this.ConnectionString);
         await using (connection.ConfigureAwait(false))
         {
-            await connection.OpenAsync();
+            await connection.OpenAsync(TestContext.Current.CancellationToken);
 
-        foreach (var id in ids)
-        {
-            var status = await connection.ExecuteScalarAsync<int>(
-                "SELECT Status FROM dbo.Outbox WHERE Id = @Id", new { Id = id });
-            status.ShouldBe(expectedStatus);
-        }
+            foreach (var id in ids)
+            {
+                var status = await connection.ExecuteScalarAsync<int>(
+                    "SELECT Status FROM dbo.Outbox WHERE Id = @Id", new { Id = id });
+                status.ShouldBe(expectedStatus);
+            }
         }
     }
 
@@ -225,14 +225,14 @@ public class OutboxWorkQueueTests : SqlServerTestBase
         var connection = new SqlConnection(this.ConnectionString);
         await using (connection.ConfigureAwait(false))
         {
-            await connection.OpenAsync();
+            await connection.OpenAsync(TestContext.Current.CancellationToken);
 
-        foreach (var id in ids)
-        {
-            var isProcessed = await connection.ExecuteScalarAsync<bool>(
-                "SELECT IsProcessed FROM dbo.Outbox WHERE Id = @Id", new { Id = id });
-            isProcessed.ShouldBe(expectedProcessed);
-        }
+            foreach (var id in ids)
+            {
+                var isProcessed = await connection.ExecuteScalarAsync<bool>(
+                    "SELECT IsProcessed FROM dbo.Outbox WHERE Id = @Id", new { Id = id });
+                isProcessed.ShouldBe(expectedProcessed);
+            }
         }
     }
 }

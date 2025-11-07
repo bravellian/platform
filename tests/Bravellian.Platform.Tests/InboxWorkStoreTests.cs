@@ -56,7 +56,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
         var ownerToken = Guid.NewGuid();
 
         // Enqueue a test message
-        await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload");
+        await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload", cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
         var claimedIds = await store.ClaimAsync(ownerToken, leaseSeconds: 30, batchSize: 10, CancellationToken.None);
@@ -67,7 +67,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
 
         // Verify message status is Processing and has owner token
         await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var result = await connection.QuerySingleAsync(
             "SELECT Status, OwnerToken FROM dbo.Inbox WHERE MessageId = @MessageId",
@@ -87,7 +87,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
         var owner2 = Guid.NewGuid();
 
         // Enqueue a single message
-        await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload");
+        await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload", cancellationToken: TestContext.Current.CancellationToken);
 
         // Act - Two workers try to claim the same message
         var claims1Task = store.ClaimAsync(owner1, leaseSeconds: 30, batchSize: 10, CancellationToken.None);
@@ -113,7 +113,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
         var ownerToken = Guid.NewGuid();
 
         // Enqueue and claim a message
-        await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload");
+        await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload", cancellationToken: TestContext.Current.CancellationToken);
         var claimedIds = await store.ClaimAsync(ownerToken, leaseSeconds: 30, batchSize: 10, CancellationToken.None);
         Assert.Single(claimedIds);
 
@@ -122,7 +122,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
 
         // Assert
         await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var result = await connection.QuerySingleAsync(
             "SELECT Status, OwnerToken, ProcessedUtc FROM dbo.Inbox WHERE MessageId = @MessageId",
@@ -142,7 +142,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
         var ownerToken = Guid.NewGuid();
 
         // Enqueue and claim a message
-        await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload");
+        await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload", cancellationToken: TestContext.Current.CancellationToken);
         var claimedIds = await store.ClaimAsync(ownerToken, leaseSeconds: 30, batchSize: 10, CancellationToken.None);
         Assert.Single(claimedIds);
 
@@ -151,7 +151,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
 
         // Assert
         await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var result = await connection.QuerySingleAsync(
             "SELECT Status, OwnerToken FROM dbo.Inbox WHERE MessageId = @MessageId",
@@ -170,7 +170,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
         var ownerToken = Guid.NewGuid();
 
         // Enqueue and claim a message
-        await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload");
+        await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload", cancellationToken: TestContext.Current.CancellationToken);
         var claimedIds = await store.ClaimAsync(ownerToken, leaseSeconds: 30, batchSize: 10, CancellationToken.None);
         Assert.Single(claimedIds);
 
@@ -179,7 +179,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
 
         // Assert
         await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var result = await connection.QuerySingleAsync(
             "SELECT Status, OwnerToken FROM dbo.Inbox WHERE MessageId = @MessageId",
@@ -199,7 +199,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
         var wrongOwner = Guid.NewGuid();
 
         // Enqueue and claim a message with rightOwner
-        await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload");
+        await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload", cancellationToken: TestContext.Current.CancellationToken);
         var claimedIds = await store.ClaimAsync(rightOwner, leaseSeconds: 30, batchSize: 10, CancellationToken.None);
         Assert.Single(claimedIds);
 
@@ -208,7 +208,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
 
         // Assert - Message should still be Processing (ack should have been ignored)
         await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var result = await connection.QuerySingleAsync(
             "SELECT Status, OwnerToken FROM dbo.Inbox WHERE MessageId = @MessageId",
@@ -226,7 +226,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
         var store = this.CreateInboxWorkStore();
 
         // Enqueue a test message
-        await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload");
+        await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload", cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
         var message = await store.GetAsync("msg-1", CancellationToken.None);

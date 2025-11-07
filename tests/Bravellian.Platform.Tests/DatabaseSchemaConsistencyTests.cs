@@ -54,7 +54,7 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
 
         // Act & Assert
         await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         foreach (var tableName in expectedTables)
         {
@@ -220,7 +220,7 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
     {
         // Act & Assert
         await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         // Check critical indexes exist
         var indexExists = await this.IndexExistsAsync(connection, "dbo", "Outbox", "IX_Outbox_GetNext");
@@ -245,7 +245,7 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
 
         // Create the custom schema first
         await using var setupConnection = new SqlConnection(customConnectionString);
-        await setupConnection.OpenAsync();
+        await setupConnection.OpenAsync(TestContext.Current.CancellationToken);
         await setupConnection.ExecuteAsync($"IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = '{customSchema}') EXEC('CREATE SCHEMA [{customSchema}]')");
 
         // Act - Create schema using DatabaseSchemaManager with custom schema name
@@ -258,7 +258,7 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
 
         // Assert
         await using var connection = new SqlConnection(customConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var tablesExist = await this.TableExistsAsync(connection, customSchema, "CustomJobs");
         tablesExist.ShouldBeTrue($"Custom table {customSchema}.CustomJobs should exist");
@@ -287,7 +287,7 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
 
         // Check that the type dbo.GuidIdList exists
         await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var typeExists = await connection.QuerySingleOrDefaultAsync<int>(
             "SELECT COUNT(*) FROM sys.types WHERE name = 'GuidIdList' AND schema_id = SCHEMA_ID('dbo')");
@@ -317,17 +317,17 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
         var connection = new SqlConnection(this.ConnectionString);
         await using (connection.ConfigureAwait(false))
         {
-            await connection.OpenAsync();
+            await connection.OpenAsync(TestContext.Current.CancellationToken);
 
-        const string sql = @"
+            const string sql = @"
             SELECT COLUMN_NAME, DATA_TYPE 
             FROM INFORMATION_SCHEMA.COLUMNS 
             WHERE TABLE_SCHEMA = @SchemaName AND TABLE_NAME = @TableName";
 
-        var columns = await connection.QueryAsync<(string ColumnName, string DataType)>(
-            sql, new { SchemaName = schemaName, TableName = tableName });
+            var columns = await connection.QueryAsync<(string ColumnName, string DataType)>(
+                sql, new { SchemaName = schemaName, TableName = tableName });
 
-        return columns.ToDictionary(c => c.ColumnName, c => c.DataType, StringComparer.Ordinal);
+            return columns.ToDictionary(c => c.ColumnName, c => c.DataType, StringComparer.Ordinal);
         }
     }
 

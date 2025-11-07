@@ -115,7 +115,7 @@ public class TimeAbstractionTests
     {
         private double currentSeconds = 1000.0; // Start at some arbitrary time
 
-        public long Ticks => (long)(this.currentSeconds * System.Diagnostics.Stopwatch.Frequency);
+        public long Ticks => (long)(this.currentSeconds * Stopwatch.Frequency);
 
         public double Seconds => this.currentSeconds;
 
