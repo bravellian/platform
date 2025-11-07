@@ -511,8 +511,8 @@ public static class SchedulerServiceCollectionExtensions
         services.AddSingleton<MultiOutboxDispatcher>();
         services.AddHostedService<MultiOutboxPollingService>();
 
-        // Note: IOutbox is not registered for multi-outbox mode as each database would need its own instance
-        // Users should create individual outbox service instances for each database if needed
+        // Register the outbox router for write operations
+        services.AddSingleton<IOutboxRouter, OutboxRouter>();
 
         return services;
     }
@@ -543,6 +543,9 @@ public static class SchedulerServiceCollectionExtensions
         services.AddSingleton<IOutboxHandlerResolver, OutboxHandlerResolver>();
         services.AddSingleton<MultiOutboxDispatcher>();
         services.AddHostedService<MultiOutboxPollingService>();
+
+        // Register the outbox router for write operations
+        services.AddSingleton<IOutboxRouter, OutboxRouter>();
 
         return services;
     }
@@ -585,6 +588,9 @@ public static class SchedulerServiceCollectionExtensions
         services.AddSingleton<IOutboxHandlerResolver, OutboxHandlerResolver>();
         services.AddSingleton<MultiOutboxDispatcher>();
         services.AddHostedService<MultiOutboxPollingService>();
+
+        // Register the outbox router for write operations
+        services.AddSingleton<IOutboxRouter, OutboxRouter>();
 
         return services;
     }
