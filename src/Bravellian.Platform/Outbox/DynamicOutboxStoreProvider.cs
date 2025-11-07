@@ -98,22 +98,25 @@ public sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDisposab
     }
 
     /// <inheritdoc/>
-    public IReadOnlyList<IOutboxStore> GetAllStores()
+    public async Task<IReadOnlyList<IOutboxStore>> GetAllStoresAsync(CancellationToken cancellationToken = default)
     {
+        // Use lock only for updating shared state, not for awaiting
+        var now = this.timeProvider.GetUtcNow();
+        bool needsRefresh;
         lock (this.lockObject)
         {
-            // Refresh if needed
-            var now = this.timeProvider.GetUtcNow();
-            if (now - this.lastRefresh >= this.refreshInterval)
+            needsRefresh = (now - this.lastRefresh >= this.refreshInterval);
+        }
+        if (needsRefresh)
+        {
+            await this.RefreshStoresAsync(cancellationToken).ConfigureAwait(false);
+            lock (this.lockObject)
             {
-                // Refresh asynchronously - we use GetAwaiter().GetResult() here
-                // because this is a synchronous interface method.
-                // In practice, discovery should be fast (cached, in-memory registry, etc.)
-                // ConfigureAwait(false) is used to avoid potential deadlocks.
-                this.RefreshStoresAsync(CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
                 this.lastRefresh = now;
             }
-
+        }
+        lock (this.lockObject)
+        {
             return this.currentStores;
         }
     }
