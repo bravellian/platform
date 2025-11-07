@@ -337,6 +337,9 @@ public sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, IDi
                         identifier);
 
                     var entry = this.storesByIdentifier[identifier];
+                    // Dispose of Store and Inbox if they implement IDisposable
+                    (entry.Store as IDisposable)?.Dispose();
+                    (entry.Inbox as IDisposable)?.Dispose();
                     
                     // Dispose old instances if they implement IDisposable
                     (entry.Store as IDisposable)?.Dispose();
