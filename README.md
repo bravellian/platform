@@ -87,6 +87,27 @@ src/Bravellian.Platform.Database/
 
 **Work Queue Enhancement**: All tables include work queue columns (`Status`, `LockedUntil`, `OwnerToken`) for atomic claim-and-process semantics.
 
+## 📚 Documentation
+
+**Quick Start Guides:**
+- [Outbox Pattern Quick Start](docs/outbox-quickstart.md) - Reliable message publishing
+- [Inbox Pattern Quick Start](docs/inbox-quickstart.md) - Idempotent message processing
+- [Monotonic Clock Guide](docs/monotonic-clock-guide.md) - Stable timing for timeouts and measurements
+
+**Core Concepts:**
+- [Time Abstractions](docs/time-abstractions.md) - TimeProvider vs IMonotonicClock
+- [Work Queue Pattern](docs/work-queue-pattern.md) - Claim-ack-abandon semantics
+
+**Multi-Tenant Scenarios:**
+- [Outbox Router](docs/OutboxRouter.md) - Multi-database outbox routing
+- [Inbox Router](docs/InboxRouter.md) - Multi-database inbox routing
+- [Multi-Database Pattern](docs/multi-database-pattern.md) - Comprehensive guide
+
+**Additional Resources:**
+- [Documentation Index](docs/INDEX.md) - Complete documentation catalog
+- [Lease System v2](docs/lease-v2-usage.md) - Distributed locking
+- [Schema Configuration](docs/schema-configuration.md) - Database setup
+
 ## Architecture Deep Dive
 
 ### Work Queue Pattern Implementation
