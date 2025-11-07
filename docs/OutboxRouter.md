@@ -94,7 +94,7 @@ public class MyTenantDatabaseDiscovery : IOutboxDatabaseDiscovery
     public async Task<IEnumerable<OutboxDatabaseConfig>> DiscoverDatabasesAsync(CancellationToken cancellationToken)
     {
         // Query your tenant registry/database to get current tenants
-        var tenants = await GetActivTenantsAsync();
+        var tenants = await GetActiveTenantsAsync();
         
         return tenants.Select(t => new OutboxDatabaseConfig
         {
