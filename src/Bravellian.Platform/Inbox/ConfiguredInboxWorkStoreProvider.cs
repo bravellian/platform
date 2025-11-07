@@ -72,10 +72,9 @@ public sealed class ConfiguredInboxWorkStoreProvider : IInboxWorkStoreProvider
             var builder = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(connectionString);
             return string.IsNullOrEmpty(builder.InitialCatalog) ? "UnknownDB" : builder.InitialCatalog;
         }
-        catch (Exception ex)
+        catch
         {
-            // Log the exception details for diagnostics
-            System.Diagnostics.Debug.WriteLine($"Failed to extract database name from connection string: {ex.Message}");
+            // Return fallback value on any parsing error
             return "UnknownDB";
         }
     }

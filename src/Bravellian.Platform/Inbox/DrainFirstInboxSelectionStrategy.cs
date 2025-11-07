@@ -58,7 +58,17 @@ public sealed class DrainFirstInboxSelectionStrategy : IInboxSelectionStrategy
             }
         }
 
-        return stores[System.Threading.Interlocked.CompareExchange(ref this.currentIndex, this.currentIndex, this.currentIndex)];
+        // Atomically get and validate the current index
+        var index = System.Threading.Interlocked.CompareExchange(ref this.currentIndex, this.currentIndex, this.currentIndex);
+        
+        // Bounds check in case stores changed
+        if (index >= stores.Count)
+        {
+            index = 0;
+            System.Threading.Interlocked.Exchange(ref this.currentIndex, 0);
+        }
+
+        return stores[index];
     }
 
     /// <inheritdoc/>

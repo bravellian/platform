@@ -46,8 +46,16 @@ public sealed class RoundRobinInboxSelectionStrategy : IInboxSelectionStrategy
             }
         }
 
-        // Atomically get the current index and increment it
-        var index = this.currentIndex;
+        // Atomically get and validate the current index
+        var index = System.Threading.Interlocked.CompareExchange(ref this.currentIndex, this.currentIndex, this.currentIndex);
+        
+        // Bounds check in case stores changed
+        if (index >= stores.Count)
+        {
+            index = 0;
+            System.Threading.Interlocked.Exchange(ref this.currentIndex, 0);
+        }
+
         var selected = stores[index];
         System.Threading.Interlocked.CompareExchange(ref this.currentIndex, (index + 1) % stores.Count, index);
         return selected;
