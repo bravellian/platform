@@ -90,7 +90,7 @@ public class DynamicOutboxStoreProviderTests
             refreshInterval: TimeSpan.FromMinutes(5));
 
         // Act
-        var stores = await provider.GetAllStoresAsync();
+        var stores = await provider.GetAllStoresAsync(TestContext.Current.CancellationToken);
 
         // Assert
         stores.Count.ShouldBe(2);
@@ -122,7 +122,7 @@ public class DynamicOutboxStoreProviderTests
             logger,
             refreshInterval: TimeSpan.FromMinutes(5));
 
-        var initialStores = await provider.GetAllStoresAsync();
+        var initialStores = await provider.GetAllStoresAsync(TestContext.Current.CancellationToken);
         initialStores.Count.ShouldBe(1);
 
         // Add a new database
@@ -134,7 +134,7 @@ public class DynamicOutboxStoreProviderTests
 
         // Act - Force refresh
         await provider.RefreshAsync(TestContext.Current.CancellationToken);
-        var updatedStores = await provider.GetAllStoresAsync();
+        var updatedStores = await provider.GetAllStoresAsync(TestContext.Current.CancellationToken);
 
         // Assert
         updatedStores.Count.ShouldBe(2);
@@ -171,7 +171,7 @@ public class DynamicOutboxStoreProviderTests
             logger,
             refreshInterval: TimeSpan.FromMinutes(5));
 
-        var initialStores = await provider.GetAllStoresAsync();
+        var initialStores = await provider.GetAllStoresAsync(TestContext.Current.CancellationToken);
         initialStores.Count.ShouldBe(2);
 
         // Remove a database
@@ -179,7 +179,7 @@ public class DynamicOutboxStoreProviderTests
 
         // Act - Force refresh
         await provider.RefreshAsync(TestContext.Current.CancellationToken);
-        var updatedStores = await provider.GetAllStoresAsync();
+        var updatedStores = await provider.GetAllStoresAsync(TestContext.Current.CancellationToken);
 
         // Assert
         updatedStores.Count.ShouldBe(1);
@@ -210,7 +210,7 @@ public class DynamicOutboxStoreProviderTests
             logger,
             refreshInterval: TimeSpan.FromMinutes(5));
 
-        var initialStores = await provider.GetAllStoresAsync();
+        var initialStores = await provider.GetAllStoresAsync(TestContext.Current.CancellationToken);
         initialStores.Count.ShouldBe(1);
 
         // Add a new database
@@ -222,7 +222,7 @@ public class DynamicOutboxStoreProviderTests
 
         // Act - Advance time past refresh interval
         this.timeProvider.Advance(TimeSpan.FromMinutes(6));
-        var updatedStores = await provider.GetAllStoresAsync();
+        var updatedStores = await provider.GetAllStoresAsync(TestContext.Current.CancellationToken);
 
         // Assert - Should automatically refresh
         updatedStores.Count.ShouldBe(2);
