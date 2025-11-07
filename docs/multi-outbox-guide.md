@@ -82,11 +82,67 @@ services.AddOutboxHandler<NotificationOutboxHandler>();
 
 ### Advanced Setup (Dynamic Database Discovery)
 
-When databases are discovered at runtime (e.g., from a configuration service):
+When databases are discovered at runtime (e.g., from a global database or configuration service):
+
+#### Option 1: Using the Built-in Dynamic Provider (Recommended)
+
+The framework provides a `DynamicOutboxStoreProvider` that automatically detects new or removed databases. You only need to implement the `IOutboxDatabaseDiscovery` interface:
 
 ```csharp
-// Create a custom store provider
-public class DynamicOutboxStoreProvider : IOutboxStoreProvider
+// 1. Implement the discovery interface
+public class GlobalDatabaseOutboxDiscovery : IOutboxDatabaseDiscovery
+{
+    private readonly string globalConnectionString;
+
+    public GlobalDatabaseOutboxDiscovery(IConfiguration configuration)
+    {
+        this.globalConnectionString = configuration.GetConnectionString("GlobalDatabase");
+    }
+
+    public async Task<IEnumerable<OutboxDatabaseConfig>> DiscoverDatabasesAsync(
+        CancellationToken cancellationToken = default)
+    {
+        // Query your global database for active customers
+        using var connection = new SqlConnection(this.globalConnectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        var customers = await connection.QueryAsync<CustomerDatabase>(
+            "SELECT CustomerId, ConnectionString FROM Customers WHERE IsActive = 1");
+
+        return customers.Select(c => new OutboxDatabaseConfig
+        {
+            Identifier = c.CustomerId,
+            ConnectionString = c.ConnectionString,
+            SchemaName = "dbo",
+            TableName = "Outbox",
+        });
+    }
+}
+
+// 2. Register the discovery service and dynamic provider
+services.AddSingleton<IOutboxDatabaseDiscovery, GlobalDatabaseOutboxDiscovery>();
+services.AddDynamicMultiSqlOutbox(
+    selectionStrategy: new RoundRobinOutboxSelectionStrategy(),
+    refreshInterval: TimeSpan.FromMinutes(5)); // Checks for new/removed databases every 5 minutes
+
+// 3. Register your handlers
+services.AddOutboxHandler<EmailOutboxHandler>();
+```
+
+The `DynamicOutboxStoreProvider` will:
+- ✅ Query the discovery service periodically (default: 5 minutes)
+- ✅ Automatically create stores for new databases
+- ✅ Remove stores for databases that no longer exist
+- ✅ Update stores if database configuration changes
+- ✅ Manage store lifecycle efficiently (no unnecessary recreations)
+
+#### Option 2: Custom Store Provider
+
+For advanced scenarios, you can create a fully custom provider:
+
+```csharp
+// Create a custom store provider implementation
+public class CustomOutboxStoreProvider : IOutboxStoreProvider
 {
     private readonly ICustomerDatabaseRegistry registry;
     private readonly TimeProvider timeProvider;
@@ -94,7 +150,7 @@ public class DynamicOutboxStoreProvider : IOutboxStoreProvider
     private readonly List<IOutboxStore> stores = new();
     private readonly Dictionary<IOutboxStore, string> identifiers = new();
 
-    public DynamicOutboxStoreProvider(
+    public CustomOutboxStoreProvider(
         ICustomerDatabaseRegistry registry,
         TimeProvider timeProvider,
         ILoggerFactory loggerFactory)
@@ -145,7 +201,7 @@ public class DynamicOutboxStoreProvider : IOutboxStoreProvider
 
 // Register with custom provider
 services.AddMultiSqlOutbox(
-    provider => new DynamicOutboxStoreProvider(
+    provider => new CustomOutboxStoreProvider(
         provider.GetRequiredService<ICustomerDatabaseRegistry>(),
         provider.GetRequiredService<TimeProvider>(),
         provider.GetRequiredService<ILoggerFactory>()),

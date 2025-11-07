@@ -546,4 +546,46 @@ public static class SchedulerServiceCollectionExtensions
 
         return services;
     }
+
+    /// <summary>
+    /// Adds SQL multi-outbox functionality with dynamic database discovery.
+    /// This enables automatic detection of new or removed customer databases at runtime.
+    /// </summary>
+    /// <param name="services">The IServiceCollection to add services to.</param>
+    /// <param name="selectionStrategy">Optional selection strategy. Defaults to RoundRobinOutboxSelectionStrategy.</param>
+    /// <param name="refreshInterval">Optional interval for refreshing the database list. Defaults to 5 minutes.</param>
+    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
+    /// <remarks>
+    /// Requires an implementation of IOutboxDatabaseDiscovery to be registered in the service collection.
+    /// The discovery service is responsible for querying a registry, database, or configuration service
+    /// to get the current list of customer databases.
+    /// </remarks>
+    public static IServiceCollection AddDynamicMultiSqlOutbox(
+        this IServiceCollection services,
+        IOutboxSelectionStrategy? selectionStrategy = null,
+        TimeSpan? refreshInterval = null)
+    {
+        // Add time abstractions
+        services.AddTimeAbstractions();
+
+        // Register the dynamic store provider
+        services.AddSingleton<IOutboxStoreProvider>(provider =>
+        {
+            var discovery = provider.GetRequiredService<IOutboxDatabaseDiscovery>();
+            var timeProvider = provider.GetRequiredService<TimeProvider>();
+            var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
+            var logger = provider.GetRequiredService<ILogger<DynamicOutboxStoreProvider>>();
+            return new DynamicOutboxStoreProvider(discovery, timeProvider, loggerFactory, logger, refreshInterval);
+        });
+
+        // Register the selection strategy
+        services.AddSingleton<IOutboxSelectionStrategy>(selectionStrategy ?? new RoundRobinOutboxSelectionStrategy());
+
+        // Register shared components
+        services.AddSingleton<IOutboxHandlerResolver, OutboxHandlerResolver>();
+        services.AddSingleton<MultiOutboxDispatcher>();
+        services.AddHostedService<MultiOutboxPollingService>();
+
+        return services;
+    }
 }
