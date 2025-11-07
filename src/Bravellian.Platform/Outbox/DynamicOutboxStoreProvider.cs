@@ -98,6 +98,53 @@ public sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDisposab
     }
 
     /// <inheritdoc/>
+    public IOutboxStore GetStore(object key)
+    {
+        // This uses GetAwaiter().GetResult() which can cause deadlocks in certain contexts.
+        // Consider using GetStoreAsync when possible.
+        return this.GetStoreAsync(key, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+    }
+
+    /// <summary>
+    /// Asynchronously gets a specific outbox store by its key.
+    /// </summary>
+    /// <param name="key">The key to identify the outbox store.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The <see cref="IOutboxStore"/> associated with the key.</returns>
+    public async Task<IOutboxStore> GetStoreAsync(object key, CancellationToken cancellationToken = default)
+    {
+        if (key is not string identifier)
+        {
+            throw new ArgumentException("The key must be a string identifier.", nameof(key));
+        }
+
+        // First, try to get from the current cache
+        lock (this.lockObject)
+        {
+            if (this.storesByIdentifier.TryGetValue(identifier, out var entry))
+            {
+                return entry.Store;
+            }
+        }
+
+        // If not found, it might be a new database. Force a refresh.
+        this.logger.LogInformation("Outbox store for identifier '{Identifier}' not found in cache. Triggering refresh.", identifier);
+        await this.RefreshAsync(cancellationToken).ConfigureAwait(false);
+
+        // Try again after the refresh
+        lock (this.lockObject)
+        {
+            if (this.storesByIdentifier.TryGetValue(identifier, out var entry))
+            {
+                return entry.Store;
+            }
+        }
+
+        // If it's still not found, then it really doesn't exist.
+        throw new KeyNotFoundException($"No outbox store found with the identifier '{identifier}'.");
+    }
+
+    /// <inheritdoc/>
     public IReadOnlyList<IOutboxStore> GetAllStores()
     {
         // Synchronous version that triggers refresh if needed

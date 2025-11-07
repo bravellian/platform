@@ -52,6 +52,38 @@ public interface IOutbox
         string? correlationId = null);
 
     /// <summary>
+    /// Enqueues a message into a specific outbox, identified by a key.
+    /// This method creates its own connection and transaction.
+    /// </summary>
+    /// <param name="key">The key identifying the target outbox store.</param>
+    /// <param name="topic">The topic or type of the message, used for routing.</param>
+    /// <param name="payload">The message content, typically serialized as a string (e.g., JSON).</param>
+    /// <param name="correlationId">An optional ID to trace the message back to its source.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    Task EnqueueAsync(
+        object key,
+        string topic,
+        string payload,
+        string? correlationId);
+
+    /// <summary>
+    /// Enqueues a message into a specific outbox, identified by a key,
+    /// within the context of an existing database transaction.
+    /// </summary>
+    /// <param name="key">The key identifying the target outbox store.</param>
+    /// <param name="topic">The topic or type of the message, used for routing.</param>
+    /// <param name="payload">The message content, typically serialized as a string (e.g., JSON).</param>
+    /// <param name="transaction">The database transaction to participate in.</param>
+    /// <param name="correlationId">An optional ID to trace the message back to its source.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    Task EnqueueAsync(
+        object key,
+        string topic,
+        string payload,
+        IDbTransaction transaction,
+        string? correlationId = null);
+
+    /// <summary>
     /// Claims ready outbox messages atomically with a lease for processing.
     /// </summary>
     /// <param name="ownerToken">The unique token identifying the claiming process.</param>

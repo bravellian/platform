@@ -14,6 +14,9 @@
 
 namespace Bravellian.Platform;
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -25,6 +28,7 @@ public sealed class ConfiguredOutboxStoreProvider : IOutboxStoreProvider
 {
     private readonly IReadOnlyList<IOutboxStore> stores;
     private readonly IReadOnlyDictionary<IOutboxStore, string> storeIdentifiers;
+    private readonly IReadOnlyDictionary<string, IOutboxStore> storesByIdentifier;
 
     public ConfiguredOutboxStoreProvider(
         IEnumerable<SqlOutboxOptions> outboxOptions,
@@ -33,6 +37,7 @@ public sealed class ConfiguredOutboxStoreProvider : IOutboxStoreProvider
     {
         var storesList = new List<IOutboxStore>();
         var identifiersDict = new Dictionary<IOutboxStore, string>();
+        var storesByIdentifierDict = new Dictionary<string, IOutboxStore>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var options in outboxOptions)
         {
@@ -50,10 +55,28 @@ public sealed class ConfiguredOutboxStoreProvider : IOutboxStoreProvider
                 : $"{options.SchemaName}.{options.TableName}";
 
             identifiersDict[store] = identifier;
+            storesByIdentifierDict[identifier] = store;
         }
 
         this.stores = storesList;
         this.storeIdentifiers = identifiersDict;
+        this.storesByIdentifier = storesByIdentifierDict;
+    }
+
+    /// <inheritdoc/>
+    public IOutboxStore GetStore(object key)
+    {
+        if (key is not string identifier)
+        {
+            throw new ArgumentException("The key must be a string identifier.", nameof(key));
+        }
+
+        if (this.storesByIdentifier.TryGetValue(identifier, out var store))
+        {
+            return store;
+        }
+
+        throw new KeyNotFoundException($"No outbox store found with the identifier '{identifier}'.");
     }
 
     /// <inheritdoc/>

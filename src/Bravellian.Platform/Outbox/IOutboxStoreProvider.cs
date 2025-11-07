@@ -22,6 +22,13 @@ namespace Bravellian.Platform;
 public interface IOutboxStoreProvider
 {
     /// <summary>
+    /// Gets a specific outbox store by key.
+    /// </summary>
+    /// <param name="key">The key to identify the outbox store.</param>
+    /// <returns>The <see cref="IOutboxStore"/> associated with the key.</returns>
+    IOutboxStore GetStore(object key);
+
+    /// <summary>
     /// Gets all available outbox stores that should be processed.
     /// Each store represents a separate database/tenant with its own outbox.
     /// </summary>
