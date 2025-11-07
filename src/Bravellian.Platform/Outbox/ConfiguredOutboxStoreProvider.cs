@@ -25,6 +25,8 @@ public sealed class ConfiguredOutboxStoreProvider : IOutboxStoreProvider
 {
     private readonly IReadOnlyList<IOutboxStore> stores;
     private readonly IReadOnlyDictionary<IOutboxStore, string> storeIdentifiers;
+    private readonly IReadOnlyDictionary<string, IOutboxStore> storesByKey;
+    private readonly IReadOnlyDictionary<string, IOutbox> outboxesByKey;
 
     public ConfiguredOutboxStoreProvider(
         IEnumerable<SqlOutboxOptions> outboxOptions,
@@ -33,14 +35,21 @@ public sealed class ConfiguredOutboxStoreProvider : IOutboxStoreProvider
     {
         var storesList = new List<IOutboxStore>();
         var identifiersDict = new Dictionary<IOutboxStore, string>();
+        var keyDict = new Dictionary<string, IOutboxStore>();
+        var outboxDict = new Dictionary<string, IOutbox>();
 
         foreach (var options in outboxOptions)
         {
-            var logger = loggerFactory.CreateLogger<SqlOutboxStore>();
+            var storeLogger = loggerFactory.CreateLogger<SqlOutboxStore>();
             var store = new SqlOutboxStore(
                 Options.Create(options),
                 timeProvider,
-                logger);
+                storeLogger);
+
+            var outboxLogger = loggerFactory.CreateLogger<SqlOutboxService>();
+            var outbox = new SqlOutboxService(
+                Options.Create(options),
+                outboxLogger);
 
             storesList.Add(store);
 
@@ -50,10 +59,14 @@ public sealed class ConfiguredOutboxStoreProvider : IOutboxStoreProvider
                 : $"{options.SchemaName}.{options.TableName}";
 
             identifiersDict[store] = identifier;
+            keyDict[identifier] = store;
+            outboxDict[identifier] = outbox;
         }
 
         this.stores = storesList;
         this.storeIdentifiers = identifiersDict;
+        this.storesByKey = keyDict;
+        this.outboxesByKey = outboxDict;
     }
 
     /// <inheritdoc/>
@@ -65,6 +78,18 @@ public sealed class ConfiguredOutboxStoreProvider : IOutboxStoreProvider
         return this.storeIdentifiers.TryGetValue(store, out var identifier)
             ? identifier
             : "Unknown";
+    }
+
+    /// <inheritdoc/>
+    public IOutboxStore? GetStoreByKey(string key)
+    {
+        return this.storesByKey.TryGetValue(key, out var store) ? store : null;
+    }
+
+    /// <inheritdoc/>
+    public IOutbox? GetOutboxByKey(string key)
+    {
+        return this.outboxesByKey.TryGetValue(key, out var outbox) ? outbox : null;
     }
 
     private static string ExtractDatabaseName(string connectionString)

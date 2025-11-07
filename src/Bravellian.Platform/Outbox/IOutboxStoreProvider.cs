@@ -35,4 +35,20 @@ public interface IOutboxStoreProvider
     /// <param name="store">The outbox store.</param>
     /// <returns>A human-readable identifier for the store.</returns>
     string GetStoreIdentifier(IOutboxStore store);
+
+    /// <summary>
+    /// Gets an outbox store by its identifier key.
+    /// This is used for routing write operations to the correct database.
+    /// </summary>
+    /// <param name="key">The routing key (e.g., tenant ID, customer ID).</param>
+    /// <returns>The outbox store for the specified key, or null if not found.</returns>
+    IOutboxStore? GetStoreByKey(string key);
+
+    /// <summary>
+    /// Gets an outbox service instance for the specified routing key.
+    /// This is used for routing write operations to the correct database.
+    /// </summary>
+    /// <param name="key">The routing key (e.g., tenant ID, customer ID).</param>
+    /// <returns>The outbox service for the specified key, or null if not found.</returns>
+    IOutbox? GetOutboxByKey(string key);
 }

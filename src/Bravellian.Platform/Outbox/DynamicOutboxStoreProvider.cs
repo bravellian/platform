@@ -152,6 +152,34 @@ public sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDisposab
         }
     }
 
+    /// <inheritdoc/>
+    public IOutboxStore? GetStoreByKey(string key)
+    {
+        lock (this.lockObject)
+        {
+            if (this.storesByIdentifier.TryGetValue(key, out var entry))
+            {
+                return entry.Store;
+            }
+
+            return null;
+        }
+    }
+
+    /// <inheritdoc/>
+    public IOutbox? GetOutboxByKey(string key)
+    {
+        lock (this.lockObject)
+        {
+            if (this.storesByIdentifier.TryGetValue(key, out var entry))
+            {
+                return entry.Outbox;
+            }
+
+            return null;
+        }
+    }
+
     /// <summary>
     /// Forces an immediate refresh of the database list.
     /// </summary>
@@ -211,10 +239,21 @@ public sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDisposab
                             this.timeProvider,
                             storeLogger);
 
+                        var outboxLogger = this.loggerFactory.CreateLogger<SqlOutboxService>();
+                        var outbox = new SqlOutboxService(
+                            Options.Create(new SqlOutboxOptions
+                            {
+                                ConnectionString = config.ConnectionString,
+                                SchemaName = config.SchemaName,
+                                TableName = config.TableName,
+                            }),
+                            outboxLogger);
+
                         entry = new StoreEntry
                         {
                             Identifier = config.Identifier,
                             Store = store,
+                            Outbox = outbox,
                             Config = config,
                         };
 
@@ -243,7 +282,18 @@ public sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDisposab
                             this.timeProvider,
                             storeLogger);
 
+                        var outboxLogger = this.loggerFactory.CreateLogger<SqlOutboxService>();
+                        var outbox = new SqlOutboxService(
+                            Options.Create(new SqlOutboxOptions
+                            {
+                                ConnectionString = config.ConnectionString,
+                                SchemaName = config.SchemaName,
+                                TableName = config.TableName,
+                            }),
+                            outboxLogger);
+
                         entry.Store = store;
+                        entry.Outbox = outbox;
                         entry.Config = config;
 
                         this.currentStores.Add(store);
@@ -284,6 +334,8 @@ public sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDisposab
         public required string Identifier { get; set; }
 
         public required IOutboxStore Store { get; set; }
+
+        public required IOutbox Outbox { get; set; }
 
         public required OutboxDatabaseConfig Config { get; set; }
     }
