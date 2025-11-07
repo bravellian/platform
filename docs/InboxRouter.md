@@ -147,7 +147,7 @@ Note: GUID keys are converted to strings internally, so the identifier registere
 
 The router will throw exceptions in the following cases:
 
-- `ArgumentNullException`: If the routing key is null or empty
+- `ArgumentException`: If the routing key is null, empty, or whitespace
 - `InvalidOperationException`: If no inbox exists for the specified routing key
 
 ```csharp

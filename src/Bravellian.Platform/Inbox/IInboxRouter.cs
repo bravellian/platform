@@ -26,7 +26,7 @@ public interface IInboxRouter
     /// </summary>
     /// <param name="routingKey">The key used to determine which inbox to use (e.g., tenant ID, customer ID).</param>
     /// <returns>An inbox instance for the specified routing key.</returns>
-    /// <exception cref="ArgumentNullException">When routingKey is null.</exception>
+    /// <exception cref="ArgumentException">When routingKey is null, empty, or whitespace.</exception>
     /// <exception cref="InvalidOperationException">When no inbox can be found for the routing key.</exception>
     IInbox GetInbox(string routingKey);
 

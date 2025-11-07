@@ -24,6 +24,7 @@ namespace Bravellian.Platform;
 public sealed class DrainFirstInboxSelectionStrategy : IInboxSelectionStrategy
 {
     private int currentIndex = 0;
+    private readonly object lockObject = new();
 
     /// <inheritdoc/>
     public IInboxWorkStore? SelectNext(
@@ -31,50 +32,51 @@ public sealed class DrainFirstInboxSelectionStrategy : IInboxSelectionStrategy
         IInboxWorkStore? lastProcessedStore,
         int lastProcessedCount)
     {
-        if (stores.Count == 0)
+        lock (this.lockObject)
         {
-            return null;
-        }
-
-        // If the last store still had messages, keep processing it
-        if (lastProcessedStore != null && lastProcessedCount > 0)
-        {
-            var lastIndex = FindStoreIndex(stores, lastProcessedStore);
-            if (lastIndex >= 0)
+            if (stores.Count == 0)
             {
-                // Use Interlocked to ensure thread-safe update
-                System.Threading.Interlocked.Exchange(ref this.currentIndex, lastIndex);
-                return stores[this.currentIndex];
+                return null;
             }
-        }
 
-        // Last store was empty (or null), move to next store
-        if (lastProcessedStore != null)
-        {
-            var lastIndex = FindStoreIndex(stores, lastProcessedStore);
-            if (lastIndex >= 0)
+            // If the last store still had messages, keep processing it
+            if (lastProcessedStore != null && lastProcessedCount > 0)
             {
-                System.Threading.Interlocked.Exchange(ref this.currentIndex, (lastIndex + 1) % stores.Count);
+                var lastIndex = FindStoreIndex(stores, lastProcessedStore);
+                if (lastIndex >= 0)
+                {
+                    this.currentIndex = lastIndex;
+                    return stores[this.currentIndex];
+                }
             }
-        }
 
-        // Atomically get and validate the current index
-        var index = System.Threading.Interlocked.CompareExchange(ref this.currentIndex, this.currentIndex, this.currentIndex);
-        
-        // Bounds check in case stores changed
-        if (index >= stores.Count)
-        {
-            index = 0;
-            System.Threading.Interlocked.Exchange(ref this.currentIndex, 0);
-        }
+            // Last store was empty (or null), move to next store
+            if (lastProcessedStore != null)
+            {
+                var lastIndex = FindStoreIndex(stores, lastProcessedStore);
+                if (lastIndex >= 0)
+                {
+                    this.currentIndex = (lastIndex + 1) % stores.Count;
+                }
+            }
 
-        return stores[index];
+            // Bounds check in case stores changed
+            if (this.currentIndex >= stores.Count)
+            {
+                this.currentIndex = 0;
+            }
+
+            return stores[this.currentIndex];
+        }
     }
 
     /// <inheritdoc/>
     public void Reset()
     {
-        System.Threading.Interlocked.Exchange(ref this.currentIndex, 0);
+        lock (this.lockObject)
+        {
+            this.currentIndex = 0;
+        }
     }
 
     private static int FindStoreIndex(IReadOnlyList<IInboxWorkStore> stores, IInboxWorkStore store)

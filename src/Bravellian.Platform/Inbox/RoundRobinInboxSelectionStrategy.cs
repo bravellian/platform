@@ -23,6 +23,7 @@ namespace Bravellian.Platform;
 public sealed class RoundRobinInboxSelectionStrategy : IInboxSelectionStrategy
 {
     private int currentIndex = 0;
+    private readonly object lockObject = new();
 
     /// <inheritdoc/>
     public IInboxWorkStore? SelectNext(
@@ -30,41 +31,42 @@ public sealed class RoundRobinInboxSelectionStrategy : IInboxSelectionStrategy
         IInboxWorkStore? lastProcessedStore,
         int lastProcessedCount)
     {
-        if (stores.Count == 0)
+        lock (this.lockObject)
         {
-            return null;
-        }
-
-        // If we have a last processed store, find it and move to the next
-        if (lastProcessedStore != null)
-        {
-            var lastIndex = FindStoreIndex(stores, lastProcessedStore);
-            if (lastIndex >= 0)
+            if (stores.Count == 0)
             {
-                // Use Interlocked to ensure thread-safe update
-                System.Threading.Interlocked.Exchange(ref this.currentIndex, (lastIndex + 1) % stores.Count);
+                return null;
             }
-        }
 
-        // Atomically get and validate the current index
-        var index = System.Threading.Interlocked.CompareExchange(ref this.currentIndex, this.currentIndex, this.currentIndex);
-        
-        // Bounds check in case stores changed
-        if (index >= stores.Count)
-        {
-            index = 0;
-            System.Threading.Interlocked.Exchange(ref this.currentIndex, 0);
-        }
+            // If we have a last processed store, find it and move to the next
+            if (lastProcessedStore != null)
+            {
+                var lastIndex = FindStoreIndex(stores, lastProcessedStore);
+                if (lastIndex >= 0)
+                {
+                    this.currentIndex = (lastIndex + 1) % stores.Count;
+                }
+            }
 
-        var selected = stores[index];
-        System.Threading.Interlocked.CompareExchange(ref this.currentIndex, (index + 1) % stores.Count, index);
-        return selected;
+            // Bounds check in case stores changed
+            if (this.currentIndex >= stores.Count)
+            {
+                this.currentIndex = 0;
+            }
+
+            var selected = stores[this.currentIndex];
+            this.currentIndex = (this.currentIndex + 1) % stores.Count;
+            return selected;
+        }
     }
 
     /// <inheritdoc/>
     public void Reset()
     {
-        System.Threading.Interlocked.Exchange(ref this.currentIndex, 0);
+        lock (this.lockObject)
+        {
+            this.currentIndex = 0;
+        }
     }
 
     private static int FindStoreIndex(IReadOnlyList<IInboxWorkStore> stores, IInboxWorkStore store)

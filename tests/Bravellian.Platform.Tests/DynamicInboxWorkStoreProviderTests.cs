@@ -49,7 +49,7 @@ public class DynamicInboxWorkStoreProviderTests
 
         public ILogger CreateLogger(string categoryName)
         {
-            return new TestLogger<DynamicInboxWorkStoreProvider>(this.testOutputHelper);
+            return new TestLogger<object>(this.testOutputHelper);
         }
 
         public void Dispose()

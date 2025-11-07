@@ -31,6 +31,7 @@ public sealed class MultiInboxDispatcher
     private readonly ILogger<MultiInboxDispatcher> logger;
     private readonly int maxAttempts;
     private readonly int leaseSeconds;
+    private readonly object stateLock = new();
 
     private IInboxWorkStore? lastProcessedStore;
     private int lastProcessedCount;
@@ -56,6 +57,7 @@ public sealed class MultiInboxDispatcher
     /// <summary>
     /// Processes a single batch of inbox messages from the next selected store.
     /// Uses the selection strategy to determine which inbox to poll.
+    /// NOTE: This method is not thread-safe. It should be called by a single thread at a time.
     /// </summary>
     /// <param name="batchSize">Maximum number of messages to process in this batch.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -71,10 +73,14 @@ public sealed class MultiInboxDispatcher
         }
 
         // Use the selection strategy to pick the next store
-        var selectedStore = this.selectionStrategy.SelectNext(
-            stores,
-            this.lastProcessedStore,
-            this.lastProcessedCount);
+        IInboxWorkStore? selectedStore;
+        lock (this.stateLock)
+        {
+            selectedStore = this.selectionStrategy.SelectNext(
+                stores,
+                this.lastProcessedStore,
+                this.lastProcessedCount);
+        }
 
         if (selectedStore == null)
         {
@@ -160,8 +166,11 @@ public sealed class MultiInboxDispatcher
                 succeeded.Count,
                 failed.Count);
 
-            this.lastProcessedStore = selectedStore;
-            this.lastProcessedCount = claimedIds.Count;
+            lock (this.stateLock)
+            {
+                this.lastProcessedStore = selectedStore;
+                this.lastProcessedCount = claimedIds.Count;
+            }
 
             return claimedIds.Count;
         }

@@ -56,6 +56,13 @@ public sealed class ConfiguredInboxWorkStoreProvider : IInboxWorkStoreProvider
                 ? ExtractDatabaseName(options.ConnectionString)
                 : $"{options.SchemaName}.{options.TableName}";
 
+            // Check for duplicate identifiers
+            if (keyDict.ContainsKey(identifier))
+            {
+                throw new InvalidOperationException(
+                    $"Duplicate inbox identifier detected: '{identifier}'. Each inbox must have a unique identifier.");
+            }
+
             identifiersDict[store] = identifier;
             keyDict[identifier] = store;
             inboxDict[identifier] = inbox;
@@ -97,9 +104,9 @@ public sealed class ConfiguredInboxWorkStoreProvider : IInboxWorkStoreProvider
             var builder = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(connectionString);
             return string.IsNullOrEmpty(builder.InitialCatalog) ? "UnknownDB" : builder.InitialCatalog;
         }
-        catch
+        catch (ArgumentException)
         {
-            // Return fallback value on any parsing error
+            // Return fallback value on connection string parsing error
             return "UnknownDB";
         }
     }

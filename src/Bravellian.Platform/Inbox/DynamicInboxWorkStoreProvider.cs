@@ -70,6 +70,7 @@ public sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, IDi
     private readonly ILoggerFactory loggerFactory;
     private readonly ILogger<DynamicInboxWorkStoreProvider> logger;
     private readonly object lockObject = new();
+    private readonly SemaphoreSlim refreshSemaphore = new(1, 1);
     private readonly Dictionary<string, StoreEntry> storesByIdentifier = new();
     private readonly List<IInboxWorkStore> currentStores = new();
     private DateTimeOffset lastRefresh = DateTimeOffset.MinValue;
@@ -124,16 +125,28 @@ public sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, IDi
 
         if (needsRefresh)
         {
-            await this.RefreshStoresAsync(cancellationToken).ConfigureAwait(false);
-            lock (this.lockObject)
+            // Use semaphore to ensure only one thread performs refresh
+            if (await this.refreshSemaphore.WaitAsync(0, cancellationToken).ConfigureAwait(false))
             {
-                this.lastRefresh = now;
+                try
+                {
+                    await this.RefreshStoresAsync(cancellationToken).ConfigureAwait(false);
+                    lock (this.lockObject)
+                    {
+                        this.lastRefresh = now;
+                    }
+                }
+                finally
+                {
+                    this.refreshSemaphore.Release();
+                }
             }
         }
 
         lock (this.lockObject)
         {
-            return this.currentStores;
+            // Return defensive copy to prevent external mutation
+            return this.currentStores.ToList();
         }
     }
 
@@ -199,10 +212,18 @@ public sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, IDi
     {
         lock (this.lockObject)
         {
-            // Clean up any disposable resources in stores if needed
+            // Dispose all stores and inboxes
+            foreach (var entry in this.storesByIdentifier.Values)
+            {
+                (entry.Store as IDisposable)?.Dispose();
+                (entry.Inbox as IDisposable)?.Dispose();
+            }
+            
             this.storesByIdentifier.Clear();
             this.currentStores.Clear();
         }
+        
+        this.refreshSemaphore?.Dispose();
     }
 
     private async Task RefreshStoresAsync(CancellationToken cancellationToken)
@@ -272,6 +293,10 @@ public sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, IDi
 
                         this.currentStores.Remove(entry.Store);
 
+                        // Dispose old instances if they implement IDisposable
+                        (entry.Store as IDisposable)?.Dispose();
+                        (entry.Inbox as IDisposable)?.Dispose();
+
                         var storeLogger = this.loggerFactory.CreateLogger<SqlInboxWorkStore>();
                         var store = new SqlInboxWorkStore(
                             Options.Create(new SqlInboxOptions
@@ -312,6 +337,11 @@ public sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, IDi
                         identifier);
 
                     var entry = this.storesByIdentifier[identifier];
+                    
+                    // Dispose old instances if they implement IDisposable
+                    (entry.Store as IDisposable)?.Dispose();
+                    (entry.Inbox as IDisposable)?.Dispose();
+                    
                     this.currentStores.Remove(entry.Store);
                     this.storesByIdentifier.Remove(identifier);
                 }
