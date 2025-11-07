@@ -86,7 +86,9 @@ public sealed class LeaseRunner : IAsyncDisposable
 
         this.logger.LogInformation(
             "Lease runner started for '{LeaseName}' with owner '{Owner}', renew at {RenewPercent:P1}",
-            leaseName, owner, renewPercent);
+            leaseName,
+            owner,
+            renewPercent);
     }
 
     /// <summary>
@@ -146,7 +148,9 @@ public sealed class LeaseRunner : IAsyncDisposable
 
         logger.LogInformation(
             "Acquired lease '{LeaseName}' for owner '{Owner}', expires at {LeaseUntilUtc:yyyy-MM-dd HH:mm:ss.fff} UTC",
-            leaseName, owner, result.leaseUntilUtc);
+            leaseName,
+            owner,
+            result.leaseUntilUtc);
 
         var runner = new LeaseRunner(leaseApi, monotonicClock, timeProvider, leaseName, owner, leaseDuration, renewPercent, logger);
         runner.UpdateLeaseExpiry(result.serverUtcNow, result.leaseUntilUtc);
@@ -241,8 +245,11 @@ public sealed class LeaseRunner : IAsyncDisposable
         }
         catch (Exception ex)
         {
-            this.logger.LogWarning(ex, "Error during lease renewal for '{LeaseName}' with owner '{Owner}'",
-                this.leaseName, this.owner);
+            this.logger.LogWarning(
+                ex,
+                "Error during lease renewal for '{LeaseName}' with owner '{Owner}'",
+                this.leaseName,
+                this.owner);
 
             // Consider the lease lost on renewal errors
             this.MarkAsLost();
@@ -259,14 +266,17 @@ public sealed class LeaseRunner : IAsyncDisposable
             this.UpdateLeaseExpiry(result.serverUtcNow, result.leaseUntilUtc);
             this.logger.LogDebug(
                 "Renewed lease '{LeaseName}' for owner '{Owner}', expires at {LeaseUntilUtc:yyyy-MM-dd HH:mm:ss.fff} UTC",
-                this.leaseName, this.owner, result.leaseUntilUtc);
+                this.leaseName,
+                this.owner,
+                result.leaseUntilUtc);
             return true;
         }
         else
         {
             this.logger.LogWarning(
                 "Failed to renew lease '{LeaseName}' for owner '{Owner}' - lease may have expired",
-                this.leaseName, this.owner);
+                this.leaseName,
+                this.owner);
             return false;
         }
     }

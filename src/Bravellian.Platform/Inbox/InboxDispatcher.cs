@@ -59,7 +59,8 @@ public sealed class InboxDispatcher
 
         this.logger.LogDebug(
             "Starting inbox processing batch with owner {OwnerToken}, batch size {BatchSize}",
-            ownerToken, batchSize);
+            ownerToken,
+            batchSize);
 
         try
         {
@@ -112,7 +113,9 @@ public sealed class InboxDispatcher
 
             this.logger.LogDebug(
                 "Completed inbox processing batch: {TotalProcessed} messages, {Succeeded} succeeded, {Failed} failed",
-                claimedIds.Count, succeeded.Count, failed.Count);
+                claimedIds.Count,
+                succeeded.Count,
+                failed.Count);
 
             return claimedIds.Count;
         }
@@ -151,7 +154,9 @@ public sealed class InboxDispatcher
 
             this.logger.LogDebug(
                 "Processing inbox message {MessageId} with topic '{Topic}' (attempt {Attempt})",
-                message.MessageId, message.Topic, message.Attempt);
+                message.MessageId,
+                message.Topic,
+                message.Attempt);
 
             // Resolve handler for this topic
             IInboxHandler handler;
@@ -163,7 +168,8 @@ public sealed class InboxDispatcher
             {
                 this.logger.LogWarning(
                     "No handler registered for topic '{Topic}' - marking message {MessageId} as dead",
-                    message.Topic, message.MessageId);
+                    message.Topic,
+                    message.MessageId);
                 await this.store.FailAsync(ownerToken, new[] { messageId }, $"No handler registered for topic '{message.Topic}'", cancellationToken).ConfigureAwait(false);
                 return true; // Message was handled (failed immediately)
             }
@@ -173,7 +179,9 @@ public sealed class InboxDispatcher
 
             this.logger.LogDebug(
                 "Successfully processed inbox message {MessageId} with topic '{Topic}' in {ElapsedMs}ms",
-                message.MessageId, message.Topic, stopwatch.ElapsedMilliseconds);
+                message.MessageId,
+                message.Topic,
+                stopwatch.ElapsedMilliseconds);
 
             return true; // Message was handled successfully
         }
@@ -182,7 +190,8 @@ public sealed class InboxDispatcher
             this.logger.LogWarning(
                 ex,
                 "Handler failed for inbox message {MessageId}: {ErrorMessage}",
-                messageId, ex.Message);
+                messageId,
+                ex.Message);
             return false; // Message failed and needs retry logic
         }
         finally
@@ -210,7 +219,8 @@ public sealed class InboxDispatcher
                 {
                     this.logger.LogWarning(
                         "Inbox message {MessageId} has reached max attempts ({MaxAttempts}), marking as dead",
-                        messageId, this.maxAttempts);
+                        messageId,
+                        this.maxAttempts);
                     toFail.Add(messageId);
                 }
                 else
@@ -218,7 +228,9 @@ public sealed class InboxDispatcher
                     var delay = this.backoffPolicy(message.Attempt + 1);
                     this.logger.LogDebug(
                         "Inbox message {MessageId} will be retried after {DelayMs}ms delay (attempt {NextAttempt})",
-                        messageId, delay.TotalMilliseconds, message.Attempt + 1);
+                        messageId,
+                        delay.TotalMilliseconds,
+                        message.Attempt + 1);
                     toAbandon.Add(messageId);
                 }
             }

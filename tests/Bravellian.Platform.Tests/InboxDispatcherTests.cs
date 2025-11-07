@@ -58,7 +58,7 @@ public class InboxDispatcherTests : SqlServerTestBase
         var dispatcher = this.CreateDispatcher(store, resolver);
 
         // Enqueue a test message
-        await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload");
+        await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload", cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
         var processedCount = await dispatcher.RunOnceAsync(batchSize: 10, CancellationToken.None);
@@ -68,7 +68,7 @@ public class InboxDispatcherTests : SqlServerTestBase
 
         // Verify message was marked as Done
         await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var status = await connection.QuerySingleAsync<string>(
             "SELECT Status FROM dbo.Inbox WHERE MessageId = @MessageId",
@@ -87,7 +87,7 @@ public class InboxDispatcherTests : SqlServerTestBase
         var dispatcher = this.CreateDispatcher(store, resolver);
 
         // Enqueue a test message with unknown topic
-        await inbox.EnqueueAsync("unknown-topic", "test-source", "msg-2", "test payload");
+        await inbox.EnqueueAsync("unknown-topic", "test-source", "msg-2", "test payload", cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
         var processedCount = await dispatcher.RunOnceAsync(batchSize: 10, CancellationToken.None);
@@ -97,7 +97,7 @@ public class InboxDispatcherTests : SqlServerTestBase
 
         // Verify message was marked as Dead due to no handler
         await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var status = await connection.QuerySingleAsync<string>(
             "SELECT Status FROM dbo.Inbox WHERE MessageId = @MessageId",
@@ -117,7 +117,7 @@ public class InboxDispatcherTests : SqlServerTestBase
         var dispatcher = this.CreateDispatcher(store, resolver);
 
         // Enqueue a test message
-        await inbox.EnqueueAsync("failing-topic", "test-source", "msg-3", "test payload");
+        await inbox.EnqueueAsync("failing-topic", "test-source", "msg-3", "test payload", cancellationToken: TestContext.Current.CancellationToken);
 
         // Act - First attempt should fail and abandon
         var processedCount = await dispatcher.RunOnceAsync(batchSize: 10, CancellationToken.None);
@@ -127,7 +127,7 @@ public class InboxDispatcherTests : SqlServerTestBase
 
         // Verify message was abandoned (back to Seen status)
         await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var status = await connection.QuerySingleAsync<string>(
             "SELECT Status FROM dbo.Inbox WHERE MessageId = @MessageId",

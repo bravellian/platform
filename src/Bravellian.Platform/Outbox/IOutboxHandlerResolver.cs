@@ -14,9 +14,6 @@
 
 namespace Bravellian.Platform;
 
-using System.Collections.Generic;
-using System.Linq;
-
 /// <summary>
 /// Resolves outbox handlers by topic name.
 /// </summary>
@@ -29,18 +26,4 @@ public interface IOutboxHandlerResolver
     /// <param name="handler">The handler if found.</param>
     /// <returns>True if a handler was found, false otherwise.</returns>
     bool TryGet(string topic, out IOutboxHandler handler);
-}
-
-/// <summary>
-/// Default implementation of IOutboxHandlerResolver that maps handlers by topic.
-/// </summary>
-public sealed class OutboxHandlerResolver : IOutboxHandlerResolver
-{
-    private readonly IReadOnlyDictionary<string, IOutboxHandler> byTopic;
-
-    public OutboxHandlerResolver(IEnumerable<IOutboxHandler> handlers)
-        => this.byTopic = handlers.ToDictionary(h => h.Topic, StringComparer.OrdinalIgnoreCase);
-
-    public bool TryGet(string topic, out IOutboxHandler handler)
-        => this.byTopic.TryGetValue(topic, out handler!);
 }

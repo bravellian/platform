@@ -284,7 +284,7 @@ public class OutboxHandlerTests : SqlServerTestBase
     // Simple logger that captures log entries for testing
     private class CapturingLogger<T> : ILogger<T>
     {
-        public List<(LogLevel Level, string Message, Exception? Exception)> LogEntries { get; } = new ();
+        public List<(LogLevel Level, string Message, Exception? Exception)> LogEntries { get; } = new();
 
         public IDisposable? BeginScope<TState>(TState state)
             where TState : notnull

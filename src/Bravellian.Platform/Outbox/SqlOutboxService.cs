@@ -42,10 +42,18 @@ internal class SqlOutboxService : IOutbox
             """;
     }
 
+
+    public async Task EnqueueAsync(
+        string topic,
+        string payload)
+    {
+        await this.EnqueueAsync(topic, payload, null).ConfigureAwait(false);
+    }
+
     public async Task EnqueueAsync(
         string topic,
         string payload,
-        string? correlationId = null)
+        string? correlationId)
     {
         // Ensure outbox table exists before attempting to enqueue
         await DatabaseSchemaManager.EnsureOutboxSchemaAsync(

@@ -16,28 +16,9 @@ namespace Bravellian.Platform;
 
 using System;
 using System.Data;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
-
-/// <summary>
-/// Result of a lease acquire operation.
-/// </summary>
-[StructLayout(LayoutKind.Auto)]
-public readonly record struct LeaseAcquireResult(
-    bool acquired,
-    DateTime serverUtcNow,
-    DateTime? leaseUntilUtc);
-
-/// <summary>
-/// Result of a lease renew operation.
-/// </summary>
-[StructLayout(LayoutKind.Auto)]
-public readonly record struct LeaseRenewResult(
-    bool renewed,
-    DateTime serverUtcNow,
-    DateTime? leaseUntilUtc);
 
 /// <summary>
 /// Provides data access operations for the lease functionality.

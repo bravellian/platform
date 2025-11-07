@@ -128,7 +128,10 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
     {
         this.logger.LogDebug(
             "Deploying scheduler schema to {Schema} with tables {Jobs}, {JobRuns}, {Timers}",
-            options.SchemaName, options.JobsTableName, options.JobRunsTableName, options.TimersTableName);
+            options.SchemaName,
+            options.JobsTableName,
+            options.JobRunsTableName,
+            options.TimersTableName);
         await DatabaseSchemaManager.EnsureSchedulerSchemaAsync(
             options.ConnectionString,
             options.SchemaName,

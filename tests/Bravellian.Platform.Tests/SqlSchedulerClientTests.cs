@@ -22,7 +22,7 @@ using Microsoft.Extensions.Time.Testing;
 public class SqlSchedulerClientTests : SqlServerTestBase
 {
     private SqlSchedulerClient? schedulerClient;
-    private readonly SqlSchedulerOptions defaultOptions = new () { ConnectionString = string.Empty, SchemaName = "dbo", JobsTableName = "Jobs", JobRunsTableName = "JobRuns", TimersTableName = "Timers" };
+    private readonly SqlSchedulerOptions defaultOptions = new() { ConnectionString = string.Empty, SchemaName = "dbo", JobsTableName = "Jobs", JobRunsTableName = "JobRuns", TimersTableName = "Timers" };
 
     public SqlSchedulerClientTests(ITestOutputHelper testOutputHelper)
         : base(testOutputHelper)
@@ -33,14 +33,14 @@ public class SqlSchedulerClientTests : SqlServerTestBase
     {
         await base.InitializeAsync().ConfigureAwait(false);
         this.defaultOptions.ConnectionString = this.ConnectionString;
-        this.schedulerClient = new SqlSchedulerClient(Options.Create(this.defaultOptions), FakeTimeProvider.System);
+        this.schedulerClient = new SqlSchedulerClient(Options.Create(this.defaultOptions), TimeProvider.System);
     }
 
     [Fact]
     public void Constructor_WithValidConnectionString_CreatesInstance()
     {
         // Arrange & Act
-        var client = new SqlSchedulerClient(Options.Create(this.defaultOptions), FakeTimeProvider.System);
+        var client = new SqlSchedulerClient(Options.Create(this.defaultOptions), TimeProvider.System);
 
         // Assert
         client.ShouldNotBeNull();
@@ -65,13 +65,13 @@ public class SqlSchedulerClientTests : SqlServerTestBase
 
         // Verify the timer was inserted
         await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
         var sql = "SELECT COUNT(*) FROM dbo.Timers WHERE Id = @Id AND Topic = @Topic";
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.AddWithValue("@Id", timerGuid);
         command.Parameters.AddWithValue("@Topic", topic);
 
-        var count = (int)await command.ExecuteScalarAsync();
+        var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
         count.ShouldBe(1);
     }
 
@@ -90,7 +90,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
 
         // Create the custom schema and tables for this test
         await using var setupConnection = new SqlConnection(this.ConnectionString);
-        await setupConnection.OpenAsync();
+        await setupConnection.OpenAsync(TestContext.Current.CancellationToken);
 
         // Create custom schema if it doesn't exist
         await setupConnection.ExecuteAsync("IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'custom') EXEC('CREATE SCHEMA custom')");
@@ -98,7 +98,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         // Create custom tables using DatabaseSchemaManager
         await DatabaseSchemaManager.EnsureSchedulerSchemaAsync(this.ConnectionString, "custom", "CustomJobs", "CustomJobRuns", "CustomTimers");
 
-        var customSchedulerClient = new SqlSchedulerClient(Options.Create(customOptions), FakeTimeProvider.System);
+        var customSchedulerClient = new SqlSchedulerClient(Options.Create(customOptions), TimeProvider.System);
 
         string topic = "test-timer-custom";
         string payload = "test timer custom payload";
@@ -113,13 +113,13 @@ public class SqlSchedulerClientTests : SqlServerTestBase
 
         // Verify the timer was inserted into the custom table
         await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
         var sql = "SELECT COUNT(*) FROM custom.CustomTimers WHERE Id = @Id AND Topic = @Topic";
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.AddWithValue("@Id", timerGuid);
         command.Parameters.AddWithValue("@Topic", topic);
 
-        var count = (int)await command.ExecuteScalarAsync();
+        var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
         count.ShouldBe(1);
     }
 
@@ -136,14 +136,14 @@ public class SqlSchedulerClientTests : SqlServerTestBase
 
         // Verify the timer has correct default values
         await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
         var sql = @"SELECT Status, ClaimedBy, ClaimedAt, RetryCount, CreatedAt 
                    FROM dbo.Timers 
                    WHERE Id = @Id";
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.AddWithValue("@Id", Guid.Parse(timerId));
 
-        await using var reader = await command.ExecuteReaderAsync();
+        await using var reader = await command.ExecuteReaderAsync(TestContext.Current.CancellationToken);
         reader.Read().ShouldBeTrue();
 
         // Assert default values
@@ -172,12 +172,12 @@ public class SqlSchedulerClientTests : SqlServerTestBase
 
         // Verify the timer status was updated
         await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
         var sql = "SELECT Status FROM dbo.Timers WHERE Id = @Id";
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.AddWithValue("@Id", Guid.Parse(timerId));
 
-        var status = (string?)await command.ExecuteScalarAsync();
+        var status = (string?)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
         status.ShouldBe("Cancelled");
     }
 
@@ -209,7 +209,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
 
         // Verify the job was inserted
         await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
         var sql = @"SELECT COUNT(*) FROM dbo.Jobs 
                    WHERE JobName = @JobName AND Topic = @Topic AND CronSchedule = @CronSchedule";
         await using var command = new SqlCommand(sql, connection);
@@ -217,7 +217,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         command.Parameters.AddWithValue("@Topic", topic);
         command.Parameters.AddWithValue("@CronSchedule", cronSchedule);
 
-        var count = (int)await command.ExecuteScalarAsync();
+        var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
         count.ShouldBe(1);
     }
 
@@ -234,12 +234,12 @@ public class SqlSchedulerClientTests : SqlServerTestBase
 
         // Verify the job was inserted with null payload
         await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
         var sql = @"SELECT Payload FROM dbo.Jobs WHERE JobName = @JobName";
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.AddWithValue("@JobName", jobName);
 
-        var result = await command.ExecuteScalarAsync();
+        var result = await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
         result.ShouldBe(DBNull.Value);
     }
 
@@ -260,12 +260,12 @@ public class SqlSchedulerClientTests : SqlServerTestBase
 
         // Verify the job was updated, not duplicated
         await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
         var countSql = "SELECT COUNT(*) FROM dbo.Jobs WHERE JobName = @JobName";
         await using var countCommand = new SqlCommand(countSql, connection);
         countCommand.Parameters.AddWithValue("@JobName", jobName);
 
-        var count = (int)await countCommand.ExecuteScalarAsync();
+        var count = (int)await countCommand.ExecuteScalarAsync(TestContext.Current.CancellationToken);
         count.ShouldBe(1);
 
         // Verify the topic was updated
@@ -273,7 +273,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         await using var topicCommand = new SqlCommand(topicSql, connection);
         topicCommand.Parameters.AddWithValue("@JobName", jobName);
 
-        var topic = (string)await topicCommand.ExecuteScalarAsync();
+        var topic = (string)await topicCommand.ExecuteScalarAsync(TestContext.Current.CancellationToken);
         topic.ShouldBe(updatedTopic);
     }
 
@@ -292,12 +292,12 @@ public class SqlSchedulerClientTests : SqlServerTestBase
 
         // Verify the job was deleted
         await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
         var sql = "SELECT COUNT(*) FROM dbo.Jobs WHERE JobName = @JobName";
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.AddWithValue("@JobName", jobName);
 
-        var count = (int)await command.ExecuteScalarAsync();
+        var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
         count.ShouldBe(0);
     }
 
@@ -316,14 +316,14 @@ public class SqlSchedulerClientTests : SqlServerTestBase
 
         // Verify a job run was created
         await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
         var sql = @"SELECT COUNT(*) FROM dbo.JobRuns jr
                    INNER JOIN dbo.Jobs j ON jr.JobId = j.Id 
                    WHERE j.JobName = @JobName";
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.AddWithValue("@JobName", jobName);
 
-        var count = (int)await command.ExecuteScalarAsync();
+        var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
         count.ShouldBeGreaterThan(0);
     }
 }

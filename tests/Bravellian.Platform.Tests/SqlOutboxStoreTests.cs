@@ -25,7 +25,7 @@ using System.Linq;
 public class SqlOutboxStoreTests : SqlServerTestBase
 {
     private SqlOutboxStore? outboxStore;
-    private readonly SqlOutboxOptions defaultOptions = new () { ConnectionString = string.Empty, SchemaName = "dbo", TableName = "Outbox" };
+    private readonly SqlOutboxOptions defaultOptions = new() { ConnectionString = string.Empty, SchemaName = "dbo", TableName = "Outbox" };
     private FakeTimeProvider timeProvider = default!;
 
     public SqlOutboxStoreTests(ITestOutputHelper testOutputHelper)
@@ -58,7 +58,7 @@ public class SqlOutboxStoreTests : SqlServerTestBase
         // Arrange - Add a message to the outbox
         var messageId = Guid.NewGuid();
         await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         await connection.ExecuteAsync(
             $@"
@@ -90,7 +90,7 @@ public class SqlOutboxStoreTests : SqlServerTestBase
         // Arrange - Add a message scheduled for the future
         var messageId = Guid.NewGuid();
         await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         await connection.ExecuteAsync(
             $@"
@@ -119,7 +119,7 @@ public class SqlOutboxStoreTests : SqlServerTestBase
         // Arrange - Add a message to the outbox
         var messageId = Guid.NewGuid();
         await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         await connection.ExecuteAsync(
             $@"
@@ -153,7 +153,7 @@ public class SqlOutboxStoreTests : SqlServerTestBase
         // Arrange - Add a message to the outbox
         var messageId = Guid.NewGuid();
         await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         await connection.ExecuteAsync(
             $@"
@@ -195,7 +195,7 @@ public class SqlOutboxStoreTests : SqlServerTestBase
         // Arrange - Add a message to the outbox
         var messageId = Guid.NewGuid();
         await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         await connection.ExecuteAsync(
             $@"

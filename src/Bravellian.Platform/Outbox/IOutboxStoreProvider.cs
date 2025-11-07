@@ -1,0 +1,38 @@
+// Copyright (c) Bravellian
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+namespace Bravellian.Platform;
+
+/// <summary>
+/// Provides access to multiple outbox stores, enabling cross-database outbox processing.
+/// This abstraction allows the system to poll and process messages from multiple customer
+/// databases, each with their own outbox table.
+/// </summary>
+public interface IOutboxStoreProvider
+{
+    /// <summary>
+    /// Gets all available outbox stores that should be processed.
+    /// Each store represents a separate database/tenant with its own outbox.
+    /// </summary>
+    /// <returns>A read-only list of outbox stores to poll.</returns>
+    IReadOnlyList<IOutboxStore> GetAllStores();
+
+    /// <summary>
+    /// Gets a unique identifier for an outbox store (e.g., database name, tenant ID).
+    /// This is used for logging and diagnostics.
+    /// </summary>
+    /// <param name="store">The outbox store.</param>
+    /// <returns>A human-readable identifier for the store.</returns>
+    string GetStoreIdentifier(IOutboxStore store);
+}

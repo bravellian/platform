@@ -41,26 +41,26 @@ public class CustomSchemaIntegrationTests : SqlServerTestBase
         await DatabaseSchemaManager.EnsureDistributedLockSchemaAsync(
             this.ConnectionString,
             CustomSchema,
-            "DistributedLock").ConfigureAwait(false);
+            "DistributedLock");
 
         // Assert - Verify table exists in custom schema
         await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync().ConfigureAwait(false);
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
-        var tableExists = await this.TableExistsAsync(connection, CustomSchema, "DistributedLock").ConfigureAwait(false);
+        var tableExists = await this.TableExistsAsync(connection, CustomSchema, "DistributedLock");
         Assert.True(tableExists, $"DistributedLock table should exist in {CustomSchema} schema");
 
         // Verify stored procedures exist in custom schema
-        var lockAcquireExists = await this.StoredProcedureExistsAsync(connection, CustomSchema, "Lock_Acquire").ConfigureAwait(false);
+        var lockAcquireExists = await this.StoredProcedureExistsAsync(connection, CustomSchema, "Lock_Acquire");
         Assert.True(lockAcquireExists, $"Lock_Acquire procedure should exist in {CustomSchema} schema");
 
-        var lockRenewExists = await this.StoredProcedureExistsAsync(connection, CustomSchema, "Lock_Renew").ConfigureAwait(false);
+        var lockRenewExists = await this.StoredProcedureExistsAsync(connection, CustomSchema, "Lock_Renew");
         Assert.True(lockRenewExists, $"Lock_Renew procedure should exist in {CustomSchema} schema");
 
-        var lockReleaseExists = await this.StoredProcedureExistsAsync(connection, CustomSchema, "Lock_Release").ConfigureAwait(false);
+        var lockReleaseExists = await this.StoredProcedureExistsAsync(connection, CustomSchema, "Lock_Release");
         Assert.True(lockReleaseExists, $"Lock_Release procedure should exist in {CustomSchema} schema");
 
-        var lockCleanupExists = await this.StoredProcedureExistsAsync(connection, CustomSchema, "Lock_CleanupExpired").ConfigureAwait(false);
+        var lockCleanupExists = await this.StoredProcedureExistsAsync(connection, CustomSchema, "Lock_CleanupExpired");
         Assert.True(lockCleanupExists, $"Lock_CleanupExpired procedure should exist in {CustomSchema} schema");
     }
 
@@ -71,20 +71,20 @@ public class CustomSchemaIntegrationTests : SqlServerTestBase
         await DatabaseSchemaManager.EnsureLeaseSchemaAsync(
             this.ConnectionString,
             CustomSchema,
-            "Lease").ConfigureAwait(false);
+            "Lease");
 
         // Assert - Verify table exists in custom schema
         await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync().ConfigureAwait(false);
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
-        var tableExists = await this.TableExistsAsync(connection, CustomSchema, "Lease").ConfigureAwait(false);
+        var tableExists = await this.TableExistsAsync(connection, CustomSchema, "Lease");
         Assert.True(tableExists, $"Lease table should exist in {CustomSchema} schema");
 
         // Verify stored procedures exist in custom schema
-        var leaseAcquireExists = await this.StoredProcedureExistsAsync(connection, CustomSchema, "Lease_Acquire").ConfigureAwait(false);
+        var leaseAcquireExists = await this.StoredProcedureExistsAsync(connection, CustomSchema, "Lease_Acquire");
         Assert.True(leaseAcquireExists, $"Lease_Acquire procedure should exist in {CustomSchema} schema");
 
-        var leaseRenewExists = await this.StoredProcedureExistsAsync(connection, CustomSchema, "Lease_Renew").ConfigureAwait(false);
+        var leaseRenewExists = await this.StoredProcedureExistsAsync(connection, CustomSchema, "Lease_Renew");
         Assert.True(leaseRenewExists, $"Lease_Renew procedure should exist in {CustomSchema} schema");
     }
 
@@ -95,16 +95,16 @@ public class CustomSchemaIntegrationTests : SqlServerTestBase
         await DatabaseSchemaManager.EnsureOutboxSchemaAsync(
             this.ConnectionString,
             CustomSchema,
-            "Outbox").ConfigureAwait(false);
+            "Outbox");
 
         // Assert - Verify tables exist in custom schema
         await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync().ConfigureAwait(false);
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
-        var outboxExists = await this.TableExistsAsync(connection, CustomSchema, "Outbox").ConfigureAwait(false);
+        var outboxExists = await this.TableExistsAsync(connection, CustomSchema, "Outbox");
         Assert.True(outboxExists, $"Outbox table should exist in {CustomSchema} schema");
 
-        var stateExists = await this.TableExistsAsync(connection, CustomSchema, "OutboxState").ConfigureAwait(false);
+        var stateExists = await this.TableExistsAsync(connection, CustomSchema, "OutboxState");
         Assert.True(stateExists, $"OutboxState table should exist in {CustomSchema} schema");
     }
 
@@ -115,13 +115,13 @@ public class CustomSchemaIntegrationTests : SqlServerTestBase
         await DatabaseSchemaManager.EnsureInboxSchemaAsync(
             this.ConnectionString,
             CustomSchema,
-            "Inbox").ConfigureAwait(false);
+            "Inbox");
 
         // Assert - Verify table exists in custom schema
         await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync().ConfigureAwait(false);
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
-        var tableExists = await this.TableExistsAsync(connection, CustomSchema, "Inbox").ConfigureAwait(false);
+        var tableExists = await this.TableExistsAsync(connection, CustomSchema, "Inbox");
         Assert.True(tableExists, $"Inbox table should exist in {CustomSchema} schema");
     }
 
@@ -134,22 +134,22 @@ public class CustomSchemaIntegrationTests : SqlServerTestBase
             CustomSchema,
             "Jobs",
             "JobRuns",
-            "Timers").ConfigureAwait(false);
+            "Timers");
 
         // Assert - Verify tables exist in custom schema
         await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync().ConfigureAwait(false);
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
-        var jobsExists = await this.TableExistsAsync(connection, CustomSchema, "Jobs").ConfigureAwait(false);
+        var jobsExists = await this.TableExistsAsync(connection, CustomSchema, "Jobs");
         Assert.True(jobsExists, $"Jobs table should exist in {CustomSchema} schema");
 
-        var timersExists = await this.TableExistsAsync(connection, CustomSchema, "Timers").ConfigureAwait(false);
+        var timersExists = await this.TableExistsAsync(connection, CustomSchema, "Timers");
         Assert.True(timersExists, $"Timers table should exist in {CustomSchema} schema");
 
-        var jobRunsExists = await this.TableExistsAsync(connection, CustomSchema, "JobRuns").ConfigureAwait(false);
+        var jobRunsExists = await this.TableExistsAsync(connection, CustomSchema, "JobRuns");
         Assert.True(jobRunsExists, $"JobRuns table should exist in {CustomSchema} schema");
 
-        var stateExists = await this.TableExistsAsync(connection, CustomSchema, "SchedulerState").ConfigureAwait(false);
+        var stateExists = await this.TableExistsAsync(connection, CustomSchema, "SchedulerState");
         Assert.True(stateExists, $"SchedulerState table should exist in {CustomSchema} schema");
     }
 
@@ -160,34 +160,34 @@ public class CustomSchemaIntegrationTests : SqlServerTestBase
         await DatabaseSchemaManager.EnsureOutboxSchemaAsync(
             this.ConnectionString,
             CustomSchema,
-            "Outbox").ConfigureAwait(false);
+            "Outbox");
 
         // Act
         await DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(
             this.ConnectionString,
-            CustomSchema).ConfigureAwait(false);
+            CustomSchema);
 
         // Assert - Verify type exists in custom schema
         await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync().ConfigureAwait(false);
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
-        var typeExists = await this.TypeExistsAsync(connection, CustomSchema, "GuidIdList").ConfigureAwait(false);
+        var typeExists = await this.TypeExistsAsync(connection, CustomSchema, "GuidIdList");
         Assert.True(typeExists, $"GuidIdList type should exist in {CustomSchema} schema");
 
         // Verify stored procedures exist in custom schema
-        var claimExists = await this.StoredProcedureExistsAsync(connection, CustomSchema, "Outbox_Claim").ConfigureAwait(false);
+        var claimExists = await this.StoredProcedureExistsAsync(connection, CustomSchema, "Outbox_Claim");
         Assert.True(claimExists, $"Outbox_Claim procedure should exist in {CustomSchema} schema");
 
-        var ackExists = await this.StoredProcedureExistsAsync(connection, CustomSchema, "Outbox_Ack").ConfigureAwait(false);
+        var ackExists = await this.StoredProcedureExistsAsync(connection, CustomSchema, "Outbox_Ack");
         Assert.True(ackExists, $"Outbox_Ack procedure should exist in {CustomSchema} schema");
 
-        var abandonExists = await this.StoredProcedureExistsAsync(connection, CustomSchema, "Outbox_Abandon").ConfigureAwait(false);
+        var abandonExists = await this.StoredProcedureExistsAsync(connection, CustomSchema, "Outbox_Abandon");
         Assert.True(abandonExists, $"Outbox_Abandon procedure should exist in {CustomSchema} schema");
 
-        var failExists = await this.StoredProcedureExistsAsync(connection, CustomSchema, "Outbox_Fail").ConfigureAwait(false);
+        var failExists = await this.StoredProcedureExistsAsync(connection, CustomSchema, "Outbox_Fail");
         Assert.True(failExists, $"Outbox_Fail procedure should exist in {CustomSchema} schema");
 
-        var reapExists = await this.StoredProcedureExistsAsync(connection, CustomSchema, "Outbox_ReapExpired").ConfigureAwait(false);
+        var reapExists = await this.StoredProcedureExistsAsync(connection, CustomSchema, "Outbox_ReapExpired");
         Assert.True(reapExists, $"Outbox_ReapExpired procedure should exist in {CustomSchema} schema");
     }
 
@@ -198,34 +198,34 @@ public class CustomSchemaIntegrationTests : SqlServerTestBase
         await DatabaseSchemaManager.EnsureInboxSchemaAsync(
             this.ConnectionString,
             CustomSchema,
-            "Inbox").ConfigureAwait(false);
+            "Inbox");
 
         // Act
         await DatabaseSchemaManager.EnsureInboxWorkQueueSchemaAsync(
             this.ConnectionString,
-            CustomSchema).ConfigureAwait(false);
+            CustomSchema);
 
         // Assert - Verify type exists in custom schema
         await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync().ConfigureAwait(false);
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
-        var typeExists = await this.TypeExistsAsync(connection, CustomSchema, "StringIdList").ConfigureAwait(false);
+        var typeExists = await this.TypeExistsAsync(connection, CustomSchema, "StringIdList");
         Assert.True(typeExists, $"StringIdList type should exist in {CustomSchema} schema");
 
         // Verify stored procedures exist in custom schema
-        var claimExists = await this.StoredProcedureExistsAsync(connection, CustomSchema, "Inbox_Claim").ConfigureAwait(false);
+        var claimExists = await this.StoredProcedureExistsAsync(connection, CustomSchema, "Inbox_Claim");
         Assert.True(claimExists, $"Inbox_Claim procedure should exist in {CustomSchema} schema");
 
-        var ackExists = await this.StoredProcedureExistsAsync(connection, CustomSchema, "Inbox_Ack").ConfigureAwait(false);
+        var ackExists = await this.StoredProcedureExistsAsync(connection, CustomSchema, "Inbox_Ack");
         Assert.True(ackExists, $"Inbox_Ack procedure should exist in {CustomSchema} schema");
 
-        var abandonExists = await this.StoredProcedureExistsAsync(connection, CustomSchema, "Inbox_Abandon").ConfigureAwait(false);
+        var abandonExists = await this.StoredProcedureExistsAsync(connection, CustomSchema, "Inbox_Abandon");
         Assert.True(abandonExists, $"Inbox_Abandon procedure should exist in {CustomSchema} schema");
 
-        var failExists = await this.StoredProcedureExistsAsync(connection, CustomSchema, "Inbox_Fail").ConfigureAwait(false);
+        var failExists = await this.StoredProcedureExistsAsync(connection, CustomSchema, "Inbox_Fail");
         Assert.True(failExists, $"Inbox_Fail procedure should exist in {CustomSchema} schema");
 
-        var reapExists = await this.StoredProcedureExistsAsync(connection, CustomSchema, "Inbox_ReapExpired").ConfigureAwait(false);
+        var reapExists = await this.StoredProcedureExistsAsync(connection, CustomSchema, "Inbox_ReapExpired");
         Assert.True(reapExists, $"Inbox_ReapExpired procedure should exist in {CustomSchema} schema");
     }
 
@@ -237,16 +237,16 @@ public class CustomSchemaIntegrationTests : SqlServerTestBase
             this.ConnectionString,
             CustomSchema,
             "FanoutPolicy",
-            "FanoutCursor").ConfigureAwait(false);
+            "FanoutCursor");
 
         // Assert - Verify tables exist in custom schema
         await using var connection = new SqlConnection(this.ConnectionString);
-        await connection.OpenAsync().ConfigureAwait(false);
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
-        var policyExists = await this.TableExistsAsync(connection, CustomSchema, "FanoutPolicy").ConfigureAwait(false);
+        var policyExists = await this.TableExistsAsync(connection, CustomSchema, "FanoutPolicy");
         Assert.True(policyExists, $"FanoutPolicy table should exist in {CustomSchema} schema");
 
-        var cursorExists = await this.TableExistsAsync(connection, CustomSchema, "FanoutCursor").ConfigureAwait(false);
+        var cursorExists = await this.TableExistsAsync(connection, CustomSchema, "FanoutCursor");
         Assert.True(cursorExists, $"FanoutCursor table should exist in {CustomSchema} schema");
     }
 
@@ -290,7 +290,7 @@ public class CustomSchemaIntegrationTests : SqlServerTestBase
         command.Parameters.AddWithValue("@SchemaName", schemaName);
         command.Parameters.AddWithValue("@TableName", tableName);
 
-        var count = (int)await command.ExecuteScalarAsync().ConfigureAwait(false);
+        var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
         return count > 0;
     }
 
@@ -306,7 +306,7 @@ public class CustomSchemaIntegrationTests : SqlServerTestBase
         command.Parameters.AddWithValue("@SchemaName", schemaName);
         command.Parameters.AddWithValue("@ProcedureName", procedureName);
 
-        var count = (int)await command.ExecuteScalarAsync().ConfigureAwait(false);
+        var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
         return count > 0;
     }
 
@@ -323,7 +323,7 @@ public class CustomSchemaIntegrationTests : SqlServerTestBase
         command.Parameters.AddWithValue("@SchemaName", schemaName);
         command.Parameters.AddWithValue("@TypeName", typeName);
 
-        var count = (int)await command.ExecuteScalarAsync().ConfigureAwait(false);
+        var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
         return count > 0;
     }
 }
