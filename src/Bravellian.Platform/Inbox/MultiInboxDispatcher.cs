@@ -57,7 +57,8 @@ public sealed class MultiInboxDispatcher
     /// <summary>
     /// Processes a single batch of inbox messages from the next selected store.
     /// Uses the selection strategy to determine which inbox to poll.
-    /// NOTE: This method is not thread-safe. It should be called by a single thread at a time.
+    /// This method is thread-safe and can be called concurrently, though it's typically
+    /// called by a single background thread in MultiInboxPollingService.
     /// </summary>
     /// <param name="batchSize">Maximum number of messages to process in this batch.</param>
     /// <param name="cancellationToken">Cancellation token.</param>

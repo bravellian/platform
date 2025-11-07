@@ -34,29 +34,6 @@ public class DynamicInboxWorkStoreProviderTests
         return new TestLoggerFactory(this.testOutputHelper);
     }
 
-    private class TestLoggerFactory : ILoggerFactory
-    {
-        private readonly ITestOutputHelper testOutputHelper;
-
-        public TestLoggerFactory(ITestOutputHelper testOutputHelper)
-        {
-            this.testOutputHelper = testOutputHelper;
-        }
-
-        public void AddProvider(ILoggerProvider provider)
-        {
-        }
-
-        public ILogger CreateLogger(string categoryName)
-        {
-            return new TestLogger<object>(this.testOutputHelper);
-        }
-
-        public void Dispose()
-        {
-        }
-    }
-
     [Fact]
     public async Task DynamicProvider_DiscoversInitialDatabases()
     {
