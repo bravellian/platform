@@ -80,7 +80,7 @@ public class DynamicOutboxStoreProviderTests
         });
 
         var loggerFactory = this.CreateLoggerFactory();
-        var logger = new TestLogger<DynamicOutboxStoreProvider>(this.testOutputHelper);
+        var logger = loggerFactory.CreateLogger<DynamicOutboxStoreProvider>();
 
         var provider = new DynamicOutboxStoreProvider(
             discovery,
@@ -90,7 +90,7 @@ public class DynamicOutboxStoreProviderTests
             refreshInterval: TimeSpan.FromMinutes(5));
 
         // Act
-        var stores = provider.GetAllStores();
+        var stores = await provider.GetAllStoresAsync();
 
         // Assert
         stores.Count.ShouldBe(2);
@@ -113,7 +113,7 @@ public class DynamicOutboxStoreProviderTests
 
         var loggerFactory = this.CreateLoggerFactory();
 
-        var logger = new TestLogger<DynamicOutboxStoreProvider>(this.testOutputHelper);
+        var logger = loggerFactory.CreateLogger<DynamicOutboxStoreProvider>();
 
         var provider = new DynamicOutboxStoreProvider(
             discovery,
@@ -122,7 +122,7 @@ public class DynamicOutboxStoreProviderTests
             logger,
             refreshInterval: TimeSpan.FromMinutes(5));
 
-        var initialStores = provider.GetAllStores();
+        var initialStores = await provider.GetAllStoresAsync();
         initialStores.Count.ShouldBe(1);
 
         // Add a new database
@@ -134,7 +134,7 @@ public class DynamicOutboxStoreProviderTests
 
         // Act - Force refresh
         await provider.RefreshAsync(TestContext.Current.CancellationToken);
-        var updatedStores = provider.GetAllStores();
+        var updatedStores = await provider.GetAllStoresAsync();
 
         // Assert
         updatedStores.Count.ShouldBe(2);
@@ -162,7 +162,7 @@ public class DynamicOutboxStoreProviderTests
 
         var loggerFactory = this.CreateLoggerFactory();
 
-        var logger = new TestLogger<DynamicOutboxStoreProvider>(this.testOutputHelper);
+        var logger = loggerFactory.CreateLogger<DynamicOutboxStoreProvider>();
 
         var provider = new DynamicOutboxStoreProvider(
             discovery,
@@ -171,7 +171,7 @@ public class DynamicOutboxStoreProviderTests
             logger,
             refreshInterval: TimeSpan.FromMinutes(5));
 
-        var initialStores = provider.GetAllStores();
+        var initialStores = await provider.GetAllStoresAsync();
         initialStores.Count.ShouldBe(2);
 
         // Remove a database
@@ -179,7 +179,7 @@ public class DynamicOutboxStoreProviderTests
 
         // Act - Force refresh
         await provider.RefreshAsync(TestContext.Current.CancellationToken);
-        var updatedStores = provider.GetAllStores();
+        var updatedStores = await provider.GetAllStoresAsync();
 
         // Assert
         updatedStores.Count.ShouldBe(1);
@@ -201,7 +201,7 @@ public class DynamicOutboxStoreProviderTests
 
         var loggerFactory = this.CreateLoggerFactory();
 
-        var logger = new TestLogger<DynamicOutboxStoreProvider>(this.testOutputHelper);
+        var logger = loggerFactory.CreateLogger<DynamicOutboxStoreProvider>();
 
         var provider = new DynamicOutboxStoreProvider(
             discovery,
@@ -210,7 +210,7 @@ public class DynamicOutboxStoreProviderTests
             logger,
             refreshInterval: TimeSpan.FromMinutes(5));
 
-        var initialStores = provider.GetAllStores();
+        var initialStores = await provider.GetAllStoresAsync();
         initialStores.Count.ShouldBe(1);
 
         // Add a new database
@@ -222,7 +222,7 @@ public class DynamicOutboxStoreProviderTests
 
         // Act - Advance time past refresh interval
         this.timeProvider.Advance(TimeSpan.FromMinutes(6));
-        var updatedStores = provider.GetAllStores();
+        var updatedStores = await provider.GetAllStoresAsync();
 
         // Assert - Should automatically refresh
         updatedStores.Count.ShouldBe(2);

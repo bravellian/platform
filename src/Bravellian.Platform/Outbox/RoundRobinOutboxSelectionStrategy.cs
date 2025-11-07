@@ -18,6 +18,7 @@ namespace Bravellian.Platform;
 /// Round-robin selection strategy that cycles through all outbox stores,
 /// processing one batch from each store before moving to the next.
 /// This ensures fair distribution of processing across all databases.
+/// This class is thread-safe.
 /// </summary>
 public sealed class RoundRobinOutboxSelectionStrategy : IOutboxSelectionStrategy
 {
@@ -40,19 +41,22 @@ public sealed class RoundRobinOutboxSelectionStrategy : IOutboxSelectionStrategy
             var lastIndex = FindStoreIndex(stores, lastProcessedStore);
             if (lastIndex >= 0)
             {
-                this.currentIndex = (lastIndex + 1) % stores.Count;
+                // Use Interlocked to ensure thread-safe update
+                System.Threading.Interlocked.Exchange(ref this.currentIndex, (lastIndex + 1) % stores.Count);
             }
         }
 
-        var selected = stores[this.currentIndex];
-        this.currentIndex = (this.currentIndex + 1) % stores.Count;
+        // Atomically get the current index and increment it
+        var index = this.currentIndex;
+        var selected = stores[index];
+        System.Threading.Interlocked.CompareExchange(ref this.currentIndex, (index + 1) % stores.Count, index);
         return selected;
     }
 
     /// <inheritdoc/>
     public void Reset()
     {
-        this.currentIndex = 0;
+        System.Threading.Interlocked.Exchange(ref this.currentIndex, 0);
     }
 
     private static int FindStoreIndex(IReadOnlyList<IOutboxStore> stores, IOutboxStore store)

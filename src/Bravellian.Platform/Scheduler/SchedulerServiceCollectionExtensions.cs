@@ -512,7 +512,7 @@ public static class SchedulerServiceCollectionExtensions
         services.AddHostedService<MultiOutboxPollingService>();
 
         // Note: IOutbox is not registered for multi-outbox mode as each database would need its own instance
-        // Users should use the individual SqlOutboxService instances directly if needed
+        // Users should create individual outbox service instances for each database if needed
 
         return services;
     }

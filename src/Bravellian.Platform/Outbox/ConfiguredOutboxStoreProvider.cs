@@ -74,8 +74,10 @@ public sealed class ConfiguredOutboxStoreProvider : IOutboxStoreProvider
             var builder = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(connectionString);
             return string.IsNullOrEmpty(builder.InitialCatalog) ? "UnknownDB" : builder.InitialCatalog;
         }
-        catch
+        catch (Exception ex)
         {
+            // Log the exception details for diagnostics
+            System.Diagnostics.Debug.WriteLine($"Failed to extract database name from connection string: {ex.Message}");
             return "UnknownDB";
         }
     }

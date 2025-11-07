@@ -19,6 +19,7 @@ namespace Bravellian.Platform;
 /// until it returns no messages, then moves to the next store.
 /// This is useful for prioritizing complete processing of one database before
 /// moving to others.
+/// This class is thread-safe.
 /// </summary>
 public sealed class DrainFirstOutboxSelectionStrategy : IOutboxSelectionStrategy
 {
@@ -41,7 +42,8 @@ public sealed class DrainFirstOutboxSelectionStrategy : IOutboxSelectionStrategy
             var lastIndex = FindStoreIndex(stores, lastProcessedStore);
             if (lastIndex >= 0)
             {
-                this.currentIndex = lastIndex;
+                // Use Interlocked to ensure thread-safe update
+                System.Threading.Interlocked.Exchange(ref this.currentIndex, lastIndex);
                 return stores[this.currentIndex];
             }
         }
@@ -52,17 +54,17 @@ public sealed class DrainFirstOutboxSelectionStrategy : IOutboxSelectionStrategy
             var lastIndex = FindStoreIndex(stores, lastProcessedStore);
             if (lastIndex >= 0)
             {
-                this.currentIndex = (lastIndex + 1) % stores.Count;
+                System.Threading.Interlocked.Exchange(ref this.currentIndex, (lastIndex + 1) % stores.Count);
             }
         }
 
-        return stores[this.currentIndex];
+        return stores[System.Threading.Interlocked.CompareExchange(ref this.currentIndex, this.currentIndex, this.currentIndex)];
     }
 
     /// <inheritdoc/>
     public void Reset()
     {
-        this.currentIndex = 0;
+        System.Threading.Interlocked.Exchange(ref this.currentIndex, 0);
     }
 
     private static int FindStoreIndex(IReadOnlyList<IOutboxStore> stores, IOutboxStore store)

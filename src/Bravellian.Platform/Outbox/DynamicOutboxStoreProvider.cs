@@ -98,6 +98,20 @@ public sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDisposab
     }
 
     /// <inheritdoc/>
+    public IReadOnlyList<IOutboxStore> GetAllStores()
+    {
+        // Synchronous version that triggers refresh if needed
+        // Note: This uses GetAwaiter().GetResult() which can cause deadlocks in certain contexts.
+        // Consider using GetAllStoresAsync when possible.
+        return this.GetAllStoresAsync(CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+    }
+
+    /// <summary>
+    /// Asynchronously gets all available outbox stores that should be processed.
+    /// This is the preferred method to avoid potential deadlocks.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A read-only list of outbox stores to poll.</returns>
     public async Task<IReadOnlyList<IOutboxStore>> GetAllStoresAsync(CancellationToken cancellationToken = default)
     {
         // Use lock only for updating shared state, not for awaiting
