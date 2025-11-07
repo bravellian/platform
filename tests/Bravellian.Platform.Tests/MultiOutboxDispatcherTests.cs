@@ -248,6 +248,26 @@ public class MultiOutboxDispatcherTests : SqlServerTestBase
 
             return "Unknown";
         }
+
+        public IOutboxStore? GetStoreByKey(string key)
+        {
+            // Simple implementation for testing
+            for (int i = 0; i < this.stores.Count; i++)
+            {
+                if ($"Store{i + 1}" == key)
+                {
+                    return this.stores[i];
+                }
+            }
+
+            return null;
+        }
+
+        public IOutbox? GetOutboxByKey(string key)
+        {
+            // Not used in these tests
+            return null;
+        }
     }
 
     private class TestOutboxHandler : IOutboxHandler
