@@ -36,7 +36,7 @@ public sealed class OutboxRouter : IOutboxRouter
     {
         if (string.IsNullOrWhiteSpace(routingKey))
         {
-            throw new ArgumentNullException(nameof(routingKey));
+            throw new ArgumentException("Routing key cannot be null, empty, or whitespace.", nameof(routingKey));
         }
 
         var outbox = this.storeProvider.GetOutboxByKey(routingKey);
