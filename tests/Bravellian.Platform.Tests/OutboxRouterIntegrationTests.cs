@@ -207,27 +207,4 @@ public class OutboxRouterIntegrationTests
 
         public decimal TotalAmount { get; set; }
     }
-
-    private class TestLoggerFactory : ILoggerFactory
-    {
-        private readonly ITestOutputHelper testOutputHelper;
-
-        public TestLoggerFactory(ITestOutputHelper testOutputHelper)
-        {
-            this.testOutputHelper = testOutputHelper;
-        }
-
-        public void AddProvider(ILoggerProvider provider)
-        {
-        }
-
-        public ILogger CreateLogger(string categoryName)
-        {
-            return new TestLogger<OutboxRouterIntegrationTests>(this.testOutputHelper);
-        }
-
-        public void Dispose()
-        {
-        }
-    }
 }

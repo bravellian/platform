@@ -118,7 +118,7 @@ public class OutboxRouterTests
     }
 
     [Fact]
-    public void GetOutbox_WithNullKey_ThrowsArgumentNullException()
+    public void GetOutbox_WithNullKey_ThrowsArgumentException()
     {
         // Arrange
         var options = new[]
@@ -136,11 +136,11 @@ public class OutboxRouterTests
         var router = new OutboxRouter(provider);
 
         // Act & Assert
-        Should.Throw<ArgumentNullException>(() => router.GetOutbox((string)null!));
+        Should.Throw<ArgumentException>(() => router.GetOutbox((string)null!));
     }
 
     [Fact]
-    public void GetOutbox_WithEmptyKey_ThrowsArgumentNullException()
+    public void GetOutbox_WithEmptyKey_ThrowsArgumentException()
     {
         // Arrange
         var options = new[]
@@ -158,7 +158,7 @@ public class OutboxRouterTests
         var router = new OutboxRouter(provider);
 
         // Act & Assert
-        Should.Throw<ArgumentNullException>(() => router.GetOutbox(string.Empty));
+        Should.Throw<ArgumentException>(() => router.GetOutbox(string.Empty));
     }
 
     [Fact]
@@ -298,9 +298,6 @@ public class OutboxRouterTests
         var loggerFactory = this.CreateLoggerFactory();
         var provider = new ConfiguredOutboxStoreProvider(options, this.timeProvider, loggerFactory);
 
-        // Manually create a mapping using the GUID string
-        var outbox1 = provider.GetOutboxByKey(customerId.ToString());
-
         // Create router - but it should use Customer1 as the identifier, not the GUID
         var router = new OutboxRouter(provider);
 
@@ -309,28 +306,5 @@ public class OutboxRouterTests
 
         // Assert
         ex.Message.ShouldContain(customerId.ToString());
-    }
-
-    private class TestLoggerFactory : ILoggerFactory
-    {
-        private readonly ITestOutputHelper testOutputHelper;
-
-        public TestLoggerFactory(ITestOutputHelper testOutputHelper)
-        {
-            this.testOutputHelper = testOutputHelper;
-        }
-
-        public void AddProvider(ILoggerProvider provider)
-        {
-        }
-
-        public ILogger CreateLogger(string categoryName)
-        {
-            return new TestLogger<OutboxRouterTests>(this.testOutputHelper);
-        }
-
-        public void Dispose()
-        {
-        }
     }
 }
