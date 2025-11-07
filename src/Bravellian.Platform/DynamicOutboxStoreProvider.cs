@@ -109,7 +109,8 @@ public sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDisposab
                 // Refresh asynchronously - we use GetAwaiter().GetResult() here
                 // because this is a synchronous interface method.
                 // In practice, discovery should be fast (cached, in-memory registry, etc.)
-                this.RefreshStoresAsync(CancellationToken.None).GetAwaiter().GetResult();
+                // ConfigureAwait(false) is used to avoid potential deadlocks.
+                this.RefreshStoresAsync(CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
                 this.lastRefresh = now;
             }
 

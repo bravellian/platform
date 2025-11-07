@@ -112,7 +112,7 @@ public class DynamicOutboxStoreProviderTests
         });
 
         var loggerFactory = this.CreateLoggerFactory();
-        // Logger factory created
+        
         var logger = new TestLogger<DynamicOutboxStoreProvider>(this.testOutputHelper);
 
         var provider = new DynamicOutboxStoreProvider(
@@ -161,7 +161,7 @@ public class DynamicOutboxStoreProviderTests
         });
 
         var loggerFactory = this.CreateLoggerFactory();
-        // Logger factory created
+        
         var logger = new TestLogger<DynamicOutboxStoreProvider>(this.testOutputHelper);
 
         var provider = new DynamicOutboxStoreProvider(
@@ -200,7 +200,7 @@ public class DynamicOutboxStoreProviderTests
         });
 
         var loggerFactory = this.CreateLoggerFactory();
-        // Logger factory created
+        
         var logger = new TestLogger<DynamicOutboxStoreProvider>(this.testOutputHelper);
 
         var provider = new DynamicOutboxStoreProvider(
