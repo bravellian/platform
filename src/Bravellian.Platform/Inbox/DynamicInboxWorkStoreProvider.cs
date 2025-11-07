@@ -154,6 +154,34 @@ public sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, IDi
         }
     }
 
+    /// <inheritdoc/>
+    public IInboxWorkStore? GetStoreByKey(string key)
+    {
+        lock (this.lockObject)
+        {
+            if (this.storesByIdentifier.TryGetValue(key, out var entry))
+            {
+                return entry.Store;
+            }
+
+            return null;
+        }
+    }
+
+    /// <inheritdoc/>
+    public IInbox? GetInboxByKey(string key)
+    {
+        lock (this.lockObject)
+        {
+            if (this.storesByIdentifier.TryGetValue(key, out var entry))
+            {
+                return entry.Inbox;
+            }
+
+            return null;
+        }
+    }
+
     /// <summary>
     /// Forces an immediate refresh of the database list.
     /// </summary>
@@ -212,10 +240,21 @@ public sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, IDi
                             }),
                             storeLogger);
 
+                        var inboxLogger = this.loggerFactory.CreateLogger<SqlInboxService>();
+                        var inbox = new SqlInboxService(
+                            Options.Create(new SqlInboxOptions
+                            {
+                                ConnectionString = config.ConnectionString,
+                                SchemaName = config.SchemaName,
+                                TableName = config.TableName,
+                            }),
+                            inboxLogger);
+
                         entry = new StoreEntry
                         {
                             Identifier = config.Identifier,
                             Store = store,
+                            Inbox = inbox,
                             Config = config,
                         };
 
@@ -243,7 +282,18 @@ public sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, IDi
                             }),
                             storeLogger);
 
+                        var inboxLogger = this.loggerFactory.CreateLogger<SqlInboxService>();
+                        var inbox = new SqlInboxService(
+                            Options.Create(new SqlInboxOptions
+                            {
+                                ConnectionString = config.ConnectionString,
+                                SchemaName = config.SchemaName,
+                                TableName = config.TableName,
+                            }),
+                            inboxLogger);
+
                         entry.Store = store;
+                        entry.Inbox = inbox;
                         entry.Config = config;
 
                         this.currentStores.Add(store);
@@ -284,6 +334,8 @@ public sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, IDi
         public required string Identifier { get; set; }
 
         public required IInboxWorkStore Store { get; set; }
+
+        public required IInbox Inbox { get; set; }
 
         public required InboxDatabaseConfig Config { get; set; }
     }

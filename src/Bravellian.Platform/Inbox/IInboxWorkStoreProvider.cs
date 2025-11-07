@@ -35,4 +35,20 @@ public interface IInboxWorkStoreProvider
     /// <param name="store">The inbox work store.</param>
     /// <returns>A human-readable identifier for the store.</returns>
     string GetStoreIdentifier(IInboxWorkStore store);
+
+    /// <summary>
+    /// Gets an inbox work store by its identifier key.
+    /// This is used for routing write operations to the correct database.
+    /// </summary>
+    /// <param name="key">The routing key (e.g., tenant ID, customer ID).</param>
+    /// <returns>The inbox work store for the specified key, or null if not found.</returns>
+    IInboxWorkStore? GetStoreByKey(string key);
+
+    /// <summary>
+    /// Gets an inbox service instance for the specified routing key.
+    /// This is used for routing write operations to the correct database.
+    /// </summary>
+    /// <param name="key">The routing key (e.g., tenant ID, customer ID).</param>
+    /// <returns>The inbox service for the specified key, or null if not found.</returns>
+    IInbox? GetInboxByKey(string key);
 }

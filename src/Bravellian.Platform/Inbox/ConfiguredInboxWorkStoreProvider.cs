@@ -25,6 +25,8 @@ public sealed class ConfiguredInboxWorkStoreProvider : IInboxWorkStoreProvider
 {
     private readonly IReadOnlyList<IInboxWorkStore> stores;
     private readonly IReadOnlyDictionary<IInboxWorkStore, string> storeIdentifiers;
+    private readonly IReadOnlyDictionary<string, IInboxWorkStore> storesByKey;
+    private readonly IReadOnlyDictionary<string, IInbox> inboxesByKey;
 
     public ConfiguredInboxWorkStoreProvider(
         IEnumerable<SqlInboxOptions> inboxOptions,
@@ -32,13 +34,20 @@ public sealed class ConfiguredInboxWorkStoreProvider : IInboxWorkStoreProvider
     {
         var storesList = new List<IInboxWorkStore>();
         var identifiersDict = new Dictionary<IInboxWorkStore, string>();
+        var keyDict = new Dictionary<string, IInboxWorkStore>();
+        var inboxDict = new Dictionary<string, IInbox>();
 
         foreach (var options in inboxOptions)
         {
-            var logger = loggerFactory.CreateLogger<SqlInboxWorkStore>();
+            var storeLogger = loggerFactory.CreateLogger<SqlInboxWorkStore>();
             var store = new SqlInboxWorkStore(
                 Options.Create(options),
-                logger);
+                storeLogger);
+
+            var inboxLogger = loggerFactory.CreateLogger<SqlInboxService>();
+            var inbox = new SqlInboxService(
+                Options.Create(options),
+                inboxLogger);
 
             storesList.Add(store);
 
@@ -48,10 +57,14 @@ public sealed class ConfiguredInboxWorkStoreProvider : IInboxWorkStoreProvider
                 : $"{options.SchemaName}.{options.TableName}";
 
             identifiersDict[store] = identifier;
+            keyDict[identifier] = store;
+            inboxDict[identifier] = inbox;
         }
 
         this.stores = storesList;
         this.storeIdentifiers = identifiersDict;
+        this.storesByKey = keyDict;
+        this.inboxesByKey = inboxDict;
     }
 
     /// <inheritdoc/>
@@ -63,6 +76,18 @@ public sealed class ConfiguredInboxWorkStoreProvider : IInboxWorkStoreProvider
         return this.storeIdentifiers.TryGetValue(store, out var identifier)
             ? identifier
             : "Unknown";
+    }
+
+    /// <inheritdoc/>
+    public IInboxWorkStore? GetStoreByKey(string key)
+    {
+        return this.storesByKey.TryGetValue(key, out var store) ? store : null;
+    }
+
+    /// <inheritdoc/>
+    public IInbox? GetInboxByKey(string key)
+    {
+        return this.inboxesByKey.TryGetValue(key, out var inbox) ? inbox : null;
     }
 
     private static string ExtractDatabaseName(string connectionString)
