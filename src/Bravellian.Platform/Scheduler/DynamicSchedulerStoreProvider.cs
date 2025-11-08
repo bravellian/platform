@@ -97,23 +97,20 @@ public sealed class DynamicSchedulerStoreProvider : ISchedulerStoreProvider, IDi
             needsRefresh = (now - this.lastRefresh >= this.refreshInterval);
         }
 
-        if (needsRefresh)
+        // Use semaphore to ensure only one thread performs refresh
+        if (needsRefresh && await this.refreshSemaphore.WaitAsync(0, cancellationToken).ConfigureAwait(false))
         {
-            // Use semaphore to ensure only one thread performs refresh
-            if (await this.refreshSemaphore.WaitAsync(0, cancellationToken).ConfigureAwait(false))
+            try
             {
-                try
+                await this.RefreshStoresAsync(cancellationToken).ConfigureAwait(false);
+                lock (this.lockObject)
                 {
-                    await this.RefreshStoresAsync(cancellationToken).ConfigureAwait(false);
-                    lock (this.lockObject)
-                    {
-                        this.lastRefresh = now;
-                    }
+                    this.lastRefresh = now;
                 }
-                finally
-                {
-                    this.refreshSemaphore.Release();
-                }
+            }
+            finally
+            {
+                this.refreshSemaphore.Release();
             }
         }
 
