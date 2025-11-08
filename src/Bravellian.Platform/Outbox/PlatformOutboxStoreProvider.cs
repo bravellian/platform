@@ -14,6 +14,7 @@
 
 namespace Bravellian.Platform;
 
+using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -31,7 +32,7 @@ internal sealed class PlatformOutboxStoreProvider : IOutboxStoreProvider
     private IReadOnlyList<IOutboxStore>? cachedStores;
     private readonly Dictionary<string, IOutboxStore> storesByKey = new();
     private readonly Dictionary<string, IOutbox> outboxesByKey = new();
-    private readonly HashSet<string> schemasDeployed = new();
+    private readonly ConcurrentDictionary<string, byte> schemasDeployed = new();
     private readonly bool enableSchemaDeployment;
 
     public PlatformOutboxStoreProvider(
@@ -86,10 +87,9 @@ internal sealed class PlatformOutboxStoreProvider : IOutboxStoreProvider
                         this.outboxesByKey[db.Name] = outbox;
 
                         // Track new databases for schema deployment
-                        if (this.enableSchemaDeployment && !this.schemasDeployed.Contains(db.Name))
+                        if (this.enableSchemaDeployment && this.schemasDeployed.TryAdd(db.Name, 0))
                         {
                             newDatabases.Add(db);
-                            this.schemasDeployed.Add(db.Name);
                         }
                     }
             
@@ -98,7 +98,7 @@ internal sealed class PlatformOutboxStoreProvider : IOutboxStoreProvider
                     // Deploy schemas for new databases outside the lock
                     if (newDatabases.Count > 0)
                     {
-                        Task.Run(async () =>
+                        _ = Task.Run(async () =>
                         {
                             foreach (var db in newDatabases)
                             {
@@ -129,7 +129,7 @@ internal sealed class PlatformOutboxStoreProvider : IOutboxStoreProvider
                                         db.Name);
                                 }
                             }
-                        }).ConfigureAwait(false);
+                        });
                     }
                 }
             }

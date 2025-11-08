@@ -14,6 +14,7 @@
 
 namespace Bravellian.Platform;
 
+using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -31,7 +32,7 @@ internal sealed class PlatformInboxWorkStoreProvider : IInboxWorkStoreProvider
     private IReadOnlyList<IInboxWorkStore>? cachedStores;
     private readonly Dictionary<string, IInboxWorkStore> storesByKey = new();
     private readonly Dictionary<string, IInbox> inboxesByKey = new();
-    private readonly HashSet<string> schemasDeployed = new();
+    private readonly ConcurrentDictionary<string, byte> schemasDeployed = new();
     private readonly bool enableSchemaDeployment;
 
     public PlatformInboxWorkStoreProvider(
@@ -85,10 +86,9 @@ internal sealed class PlatformInboxWorkStoreProvider : IInboxWorkStoreProvider
                         this.inboxesByKey[db.Name] = inbox;
 
                         // Track new databases for schema deployment
-                        if (this.enableSchemaDeployment && !this.schemasDeployed.Contains(db.Name))
+                        if (this.enableSchemaDeployment && this.schemasDeployed.TryAdd(db.Name, 0))
                         {
                             newDatabases.Add(db);
-                            this.schemasDeployed.Add(db.Name);
                         }
                     }
             
@@ -97,7 +97,7 @@ internal sealed class PlatformInboxWorkStoreProvider : IInboxWorkStoreProvider
                     // Deploy schemas for new databases outside the lock
                     if (newDatabases.Count > 0)
                     {
-                        Task.Run(async () =>
+                        _ = Task.Run(async () =>
                         {
                             foreach (var db in newDatabases)
                             {
@@ -128,7 +128,7 @@ internal sealed class PlatformInboxWorkStoreProvider : IInboxWorkStoreProvider
                                         db.Name);
                                 }
                             }
-                        }).ConfigureAwait(false);
+                        });
                     }
                 }
             }
