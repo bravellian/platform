@@ -1,0 +1,127 @@
+// Copyright (c) Bravellian
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+namespace Bravellian.Platform;
+
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+
+/// <summary>
+/// Outbox store provider that uses the unified platform database discovery.
+/// </summary>
+internal sealed class PlatformOutboxStoreProvider : IOutboxStoreProvider
+{
+    private readonly IPlatformDatabaseDiscovery discovery;
+    private readonly TimeProvider timeProvider;
+    private readonly ILoggerFactory loggerFactory;
+    private readonly string tableName;
+    private readonly object lockObject = new();
+    private IReadOnlyList<IOutboxStore>? cachedStores;
+    private readonly Dictionary<string, IOutboxStore> storesByKey = new();
+    private readonly Dictionary<string, IOutbox> outboxesByKey = new();
+
+    public PlatformOutboxStoreProvider(
+        IPlatformDatabaseDiscovery discovery,
+        TimeProvider timeProvider,
+        ILoggerFactory loggerFactory,
+        string tableName)
+    {
+        this.discovery = discovery;
+        this.timeProvider = timeProvider;
+        this.loggerFactory = loggerFactory;
+        this.tableName = tableName;
+    }
+
+    public IReadOnlyList<IOutboxStore> GetAllStores()
+    {
+        if (this.cachedStores == null)
+        {
+            lock (this.lockObject)
+            {
+                if (this.cachedStores == null)
+                {
+                    var databases = this.discovery.DiscoverDatabasesAsync().GetAwaiter().GetResult();
+                    var stores = new List<IOutboxStore>();
+            
+                    foreach (var db in databases)
+            {
+                var options = new SqlOutboxOptions
+                {
+                    ConnectionString = db.ConnectionString,
+                    SchemaName = db.SchemaName,
+                    TableName = this.tableName,
+                };
+                
+                var storeLogger = this.loggerFactory.CreateLogger<SqlOutboxStore>();
+                var store = new SqlOutboxStore(
+                    Options.Create(options),
+                    this.timeProvider,
+                    storeLogger);
+                
+                var outboxLogger = this.loggerFactory.CreateLogger<SqlOutboxService>();
+                var outbox = new SqlOutboxService(
+                    Options.Create(options),
+                    outboxLogger);
+                
+                    stores.Add(store);
+                    this.storesByKey[db.Name] = store;
+                    this.outboxesByKey[db.Name] = outbox;
+                }
+            
+                this.cachedStores = stores;
+                }
+            }
+        }
+        
+        return this.cachedStores;
+    }
+
+    public string GetStoreIdentifier(IOutboxStore store)
+    {
+        // Find the database name for this store
+        foreach (var kvp in this.storesByKey)
+        {
+            if (ReferenceEquals(kvp.Value, store))
+            {
+                return kvp.Key;
+            }
+        }
+        
+        return "unknown";
+    }
+
+    public IOutboxStore GetStoreByKey(string key)
+    {
+        if (this.cachedStores == null)
+        {
+            GetAllStores(); // Initialize stores
+        }
+        
+        return this.storesByKey.TryGetValue(key, out var store)
+            ? store
+            : throw new KeyNotFoundException($"No outbox store found for key: {key}");
+    }
+
+    public IOutbox GetOutboxByKey(string key)
+    {
+        if (this.cachedStores == null)
+        {
+            GetAllStores(); // Initialize stores
+        }
+        
+        return this.outboxesByKey.TryGetValue(key, out var outbox)
+            ? outbox
+            : throw new KeyNotFoundException($"No outbox found for key: {key}");
+    }
+}

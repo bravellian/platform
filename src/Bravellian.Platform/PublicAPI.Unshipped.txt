@@ -346,3 +346,21 @@ static Bravellian.Platform.LeaseServiceCollectionExtensions.AddDynamicMultiSyste
 static Bravellian.Platform.LeaseServiceCollectionExtensions.AddMultiSystemLeases(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Collections.Generic.IEnumerable<Bravellian.Platform.LeaseDatabaseConfig!>! leaseConfigs) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Bravellian.Platform.LeaseServiceCollectionExtensions.AddSystemLeases(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Bravellian.Platform.SystemLeaseOptions! options) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Bravellian.Platform.LeaseServiceCollectionExtensions.AddSystemLeases(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! connectionString, string! schemaName = "dbo") -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+Bravellian.Platform.IPlatformDatabaseDiscovery
+Bravellian.Platform.IPlatformDatabaseDiscovery.DiscoverDatabasesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyCollection<Bravellian.Platform.PlatformDatabase!>!>!
+Bravellian.Platform.PlatformDatabase
+Bravellian.Platform.PlatformDatabase.ConnectionString.get -> string!
+Bravellian.Platform.PlatformDatabase.ConnectionString.init -> void
+Bravellian.Platform.PlatformDatabase.Name.get -> string!
+Bravellian.Platform.PlatformDatabase.Name.init -> void
+Bravellian.Platform.PlatformDatabase.SchemaName.get -> string!
+Bravellian.Platform.PlatformDatabase.SchemaName.init -> void
+Bravellian.Platform.PlatformEnvironmentStyle
+Bravellian.Platform.PlatformEnvironmentStyle.MultiDatabaseNoControl = 1 -> Bravellian.Platform.PlatformEnvironmentStyle
+Bravellian.Platform.PlatformEnvironmentStyle.MultiDatabaseWithControl = 2 -> Bravellian.Platform.PlatformEnvironmentStyle
+Bravellian.Platform.PlatformEnvironmentStyle.SingleDatabase = 0 -> Bravellian.Platform.PlatformEnvironmentStyle
+static Bravellian.Platform.PlatformServiceCollectionExtensions.AddPlatformMultiDatabaseWithControlPlaneAndDiscovery(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! controlPlaneConnectionString, bool enableSchemaDeployment = false) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Bravellian.Platform.PlatformServiceCollectionExtensions.AddPlatformMultiDatabaseWithControlPlaneAndList(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Collections.Generic.IEnumerable<Bravellian.Platform.PlatformDatabase!>! databases, string! controlPlaneConnectionString, bool enableSchemaDeployment = false) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Bravellian.Platform.PlatformServiceCollectionExtensions.AddPlatformMultiDatabaseWithDiscovery(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, bool enableSchemaDeployment = false) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Bravellian.Platform.PlatformServiceCollectionExtensions.AddPlatformMultiDatabaseWithList(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Collections.Generic.IEnumerable<Bravellian.Platform.PlatformDatabase!>! databases, bool enableSchemaDeployment = false) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Bravellian.Platform.PlatformServiceCollectionExtensions.AddPlatformSingleDatabase(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! connectionString, string! databaseName = "default", string! schemaName = "dbo", bool enableSchemaDeployment = false) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
