@@ -25,12 +25,15 @@ using Xunit;
 /// Integration tests to verify that custom schemas (non-dbo) work correctly across all platform components.
 /// These tests ensure that schema configuration is respected during deployment and at runtime.
 /// </summary>
+[Collection(SqlServerCollection.Name)]
+[Trait("Category", "Integration")]
+[Trait("RequiresDocker", "true")]
 public class CustomSchemaIntegrationTests : SqlServerTestBase
 {
     private const string CustomSchema = "platform";
 
-    public CustomSchemaIntegrationTests(ITestOutputHelper testOutputHelper)
-        : base(testOutputHelper)
+    public CustomSchemaIntegrationTests(ITestOutputHelper testOutputHelper, SqlServerCollectionFixture fixture)
+        : base(testOutputHelper, fixture)
     {
     }
 

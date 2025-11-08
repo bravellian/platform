@@ -22,13 +22,16 @@ using Microsoft.Extensions.Options;
 using Microsoft.Data.SqlClient;
 using Shouldly;
 
+[Collection(SqlServerCollection.Name)]
+[Trait("Category", "Integration")]
+[Trait("RequiresDocker", "true")]
 public class OutboxWorkerTests : SqlServerTestBase
 {
     private SqlOutboxService? outboxService;
     private TestOutboxWorker? worker;
 
-    public OutboxWorkerTests(ITestOutputHelper testOutputHelper)
-        : base(testOutputHelper)
+    public OutboxWorkerTests(ITestOutputHelper testOutputHelper, SqlServerCollectionFixture fixture)
+        : base(testOutputHelper, fixture)
     {
     }
 

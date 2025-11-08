@@ -23,12 +23,15 @@ using Xunit;
 /// <summary>
 /// Tests for the distributed semaphore service.
 /// </summary>
+[Collection(SqlServerCollection.Name)]
+[Trait("Category", "Integration")]
+[Trait("RequiresDocker", "true")]
 public class SemaphoreServiceTests : SqlServerTestBase
 {
     private ISemaphoreService? semaphoreService;
 
-    public SemaphoreServiceTests(ITestOutputHelper testOutputHelper)
-        : base(testOutputHelper)
+    public SemaphoreServiceTests(ITestOutputHelper testOutputHelper, SqlServerCollectionFixture fixture)
+        : base(testOutputHelper, fixture)
     {
     }
 

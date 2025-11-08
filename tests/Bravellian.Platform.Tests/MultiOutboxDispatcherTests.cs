@@ -22,13 +22,16 @@ using Microsoft.Data.SqlClient;
 using Dapper;
 using System.Collections.Concurrent;
 
+[Collection(SqlServerCollection.Name)]
+[Trait("Category", "Integration")]
+[Trait("RequiresDocker", "true")]
 public class MultiOutboxDispatcherTests : SqlServerTestBase
 {
     private readonly FakeTimeProvider timeProvider = new();
     private readonly ConcurrentBag<string> processedMessages = new();
 
-    public MultiOutboxDispatcherTests(ITestOutputHelper testOutputHelper)
-        : base(testOutputHelper)
+    public MultiOutboxDispatcherTests(ITestOutputHelper testOutputHelper, SqlServerCollectionFixture fixture)
+        : base(testOutputHelper, fixture)
     {
     }
 

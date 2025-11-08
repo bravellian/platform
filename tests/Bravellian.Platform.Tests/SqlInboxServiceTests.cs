@@ -19,10 +19,13 @@ using Dapper;
 using Microsoft.Extensions.Options;
 using System.Threading.Tasks;
 
+[Collection(SqlServerCollection.Name)]
+[Trait("Category", "Integration")]
+[Trait("RequiresDocker", "true")]
 public class SqlInboxServiceTests : SqlServerTestBase
 {
-    public SqlInboxServiceTests(ITestOutputHelper testOutputHelper)
-        : base(testOutputHelper)
+    public SqlInboxServiceTests(ITestOutputHelper testOutputHelper, SqlServerCollectionFixture fixture)
+        : base(testOutputHelper, fixture)
     {
     }
 

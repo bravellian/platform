@@ -18,10 +18,13 @@ using Bravellian.Platform.Tests.TestUtilities;
 using Dapper;
 using Microsoft.Extensions.Options;
 
+[Collection(SqlServerCollection.Name)]
+[Trait("Category", "Integration")]
+[Trait("RequiresDocker", "true")]
 public class InboxDispatcherTests : SqlServerTestBase
 {
-    public InboxDispatcherTests(ITestOutputHelper testOutputHelper)
-        : base(testOutputHelper)
+    public InboxDispatcherTests(ITestOutputHelper testOutputHelper, SqlServerCollectionFixture fixture)
+        : base(testOutputHelper, fixture)
     {
     }
 
