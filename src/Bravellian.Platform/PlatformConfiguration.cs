@@ -38,9 +38,4 @@ internal sealed class PlatformConfiguration
     /// Gets whether schema deployment is enabled for platform tables.
     /// </summary>
     public bool EnableSchemaDeployment { get; init; }
-
-    /// <summary>
-    /// Gets whether schema deployment has been registered (prevents duplicate registration).
-    /// </summary>
-    public bool SchemaDeploymentRegistered { get; set; }
 }

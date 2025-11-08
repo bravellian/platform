@@ -24,6 +24,7 @@ internal sealed class PlatformLeaseFactoryProvider : ILeaseFactoryProvider
 {
     private readonly IPlatformDatabaseDiscovery discovery;
     private readonly ILoggerFactory loggerFactory;
+    private readonly object lockObject = new();
     private IReadOnlyList<ISystemLeaseFactory>? cachedFactories;
     private readonly Dictionary<string, ISystemLeaseFactory> factoriesByKey = new();
 
@@ -39,10 +40,14 @@ internal sealed class PlatformLeaseFactoryProvider : ILeaseFactoryProvider
     {
         if (this.cachedFactories == null)
         {
-            var databases = this.discovery.DiscoverDatabasesAsync().GetAwaiter().GetResult();
-            var factories = new List<ISystemLeaseFactory>();
+            lock (this.lockObject)
+            {
+                if (this.cachedFactories == null)
+                {
+                    var databases = this.discovery.DiscoverDatabasesAsync().GetAwaiter().GetResult();
+                    var factories = new List<ISystemLeaseFactory>();
             
-            foreach (var db in databases)
+                    foreach (var db in databases)
             {
                 var factoryLogger = this.loggerFactory.CreateLogger<SqlLeaseFactory>();
                 var factory = new SqlLeaseFactory(
@@ -53,11 +58,13 @@ internal sealed class PlatformLeaseFactoryProvider : ILeaseFactoryProvider
                     }),
                     factoryLogger);
                 
-                factories.Add(factory);
-                this.factoriesByKey[db.Name] = factory;
-            }
+                    factories.Add(factory);
+                    this.factoriesByKey[db.Name] = factory;
+                }
             
-            this.cachedFactories = factories;
+                this.cachedFactories = factories;
+                }
+            }
         }
         
         return this.cachedFactories;

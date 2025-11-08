@@ -24,6 +24,7 @@ internal sealed class PlatformFanoutRepositoryProvider : IFanoutRepositoryProvid
 {
     private readonly IPlatformDatabaseDiscovery discovery;
     private readonly ILoggerFactory loggerFactory;
+    private readonly SemaphoreSlim initializationSemaphore = new(1, 1);
     private IReadOnlyList<IFanoutPolicyRepository>? cachedPolicyRepositories;
     private IReadOnlyList<IFanoutCursorRepository>? cachedCursorRepositories;
     private readonly Dictionary<IFanoutPolicyRepository, string> policyIdentifiers = new();
@@ -61,32 +62,46 @@ internal sealed class PlatformFanoutRepositoryProvider : IFanoutRepositoryProvid
 
     private async Task InitializeAsync(CancellationToken cancellationToken)
     {
-        var databases = await this.discovery.DiscoverDatabasesAsync(cancellationToken);
-        var policyRepositories = new List<IFanoutPolicyRepository>();
-        var cursorRepositories = new List<IFanoutCursorRepository>();
-        
-        foreach (var db in databases)
+        await this.initializationSemaphore.WaitAsync(cancellationToken);
+        try
         {
-            var options = new SqlFanoutOptions
+            // Double-check after acquiring lock
+            if (this.cachedPolicyRepositories != null)
             {
-                ConnectionString = db.ConnectionString,
-                SchemaName = db.SchemaName,
-            };
-            
-            var policyRepo = new SqlFanoutPolicyRepository(Options.Create(options));
-            var cursorRepo = new SqlFanoutCursorRepository(Options.Create(options));
+                return;
+            }
 
-            policyRepositories.Add(policyRepo);
-            cursorRepositories.Add(cursorRepo);
-
-            this.policyIdentifiers[policyRepo] = db.Name;
-            this.cursorIdentifiers[cursorRepo] = db.Name;
-            this.policyRepositoriesByKey[db.Name] = policyRepo;
-            this.cursorRepositoriesByKey[db.Name] = cursorRepo;
-        }
+            var databases = await this.discovery.DiscoverDatabasesAsync(cancellationToken);
+            var policyRepositories = new List<IFanoutPolicyRepository>();
+            var cursorRepositories = new List<IFanoutCursorRepository>();
         
-        this.cachedPolicyRepositories = policyRepositories;
-        this.cachedCursorRepositories = cursorRepositories;
+            foreach (var db in databases)
+            {
+                var options = new SqlFanoutOptions
+                {
+                    ConnectionString = db.ConnectionString,
+                    SchemaName = db.SchemaName,
+                };
+            
+                var policyRepo = new SqlFanoutPolicyRepository(Options.Create(options));
+                var cursorRepo = new SqlFanoutCursorRepository(Options.Create(options));
+
+                policyRepositories.Add(policyRepo);
+                cursorRepositories.Add(cursorRepo);
+
+                this.policyIdentifiers[policyRepo] = db.Name;
+                this.cursorIdentifiers[cursorRepo] = db.Name;
+                this.policyRepositoriesByKey[db.Name] = policyRepo;
+                this.cursorRepositoriesByKey[db.Name] = cursorRepo;
+            }
+        
+            this.cachedPolicyRepositories = policyRepositories;
+            this.cachedCursorRepositories = cursorRepositories;
+        }
+        finally
+        {
+            this.initializationSemaphore.Release();
+        }
     }
 
     public IFanoutPolicyRepository GetPolicyRepositoryByKey(string key)

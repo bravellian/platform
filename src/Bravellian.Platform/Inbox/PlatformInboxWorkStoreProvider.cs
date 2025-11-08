@@ -26,6 +26,7 @@ internal sealed class PlatformInboxWorkStoreProvider : IInboxWorkStoreProvider
     private readonly TimeProvider timeProvider;
     private readonly ILoggerFactory loggerFactory;
     private readonly string tableName;
+    private readonly object lockObject = new();
     private IReadOnlyList<IInboxWorkStore>? cachedStores;
     private readonly Dictionary<string, IInboxWorkStore> storesByKey = new();
     private readonly Dictionary<string, IInbox> inboxesByKey = new();
@@ -46,10 +47,14 @@ internal sealed class PlatformInboxWorkStoreProvider : IInboxWorkStoreProvider
     {
         if (this.cachedStores == null)
         {
-            var databases = this.discovery.DiscoverDatabasesAsync().GetAwaiter().GetResult();
-            var stores = new List<IInboxWorkStore>();
+            lock (this.lockObject)
+            {
+                if (this.cachedStores == null)
+                {
+                    var databases = this.discovery.DiscoverDatabasesAsync().GetAwaiter().GetResult();
+                    var stores = new List<IInboxWorkStore>();
             
-            foreach (var db in databases)
+                    foreach (var db in databases)
             {
                 var options = new SqlInboxOptions
                 {
@@ -68,12 +73,14 @@ internal sealed class PlatformInboxWorkStoreProvider : IInboxWorkStoreProvider
                     Options.Create(options),
                     inboxLogger);
                 
-                stores.Add(store);
-                this.storesByKey[db.Name] = store;
-                this.inboxesByKey[db.Name] = inbox;
-            }
+                    stores.Add(store);
+                    this.storesByKey[db.Name] = store;
+                    this.inboxesByKey[db.Name] = inbox;
+                }
             
-            this.cachedStores = stores;
+                this.cachedStores = stores;
+                }
+            }
         }
         
         return this.cachedStores;

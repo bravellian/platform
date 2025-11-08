@@ -26,6 +26,7 @@ internal sealed class PlatformOutboxStoreProvider : IOutboxStoreProvider
     private readonly TimeProvider timeProvider;
     private readonly ILoggerFactory loggerFactory;
     private readonly string tableName;
+    private readonly object lockObject = new();
     private IReadOnlyList<IOutboxStore>? cachedStores;
     private readonly Dictionary<string, IOutboxStore> storesByKey = new();
     private readonly Dictionary<string, IOutbox> outboxesByKey = new();
@@ -46,10 +47,14 @@ internal sealed class PlatformOutboxStoreProvider : IOutboxStoreProvider
     {
         if (this.cachedStores == null)
         {
-            var databases = this.discovery.DiscoverDatabasesAsync().GetAwaiter().GetResult();
-            var stores = new List<IOutboxStore>();
+            lock (this.lockObject)
+            {
+                if (this.cachedStores == null)
+                {
+                    var databases = this.discovery.DiscoverDatabasesAsync().GetAwaiter().GetResult();
+                    var stores = new List<IOutboxStore>();
             
-            foreach (var db in databases)
+                    foreach (var db in databases)
             {
                 var options = new SqlOutboxOptions
                 {
@@ -69,12 +74,14 @@ internal sealed class PlatformOutboxStoreProvider : IOutboxStoreProvider
                     Options.Create(options),
                     outboxLogger);
                 
-                stores.Add(store);
-                this.storesByKey[db.Name] = store;
-                this.outboxesByKey[db.Name] = outbox;
-            }
+                    stores.Add(store);
+                    this.storesByKey[db.Name] = store;
+                    this.outboxesByKey[db.Name] = outbox;
+                }
             
-            this.cachedStores = stores;
+                this.cachedStores = stores;
+                }
+            }
         }
         
         return this.cachedStores;

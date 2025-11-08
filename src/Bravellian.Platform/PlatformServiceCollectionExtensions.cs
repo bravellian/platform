@@ -77,8 +77,6 @@ public static class PlatformServiceCollectionExtensions
         // Register core abstractions
         RegisterCoreServices(services, enableSchemaDeployment);
 
-        // Mark as registered
-        MarkAsRegistered(services);
 
         return services;
     }
@@ -127,8 +125,6 @@ public static class PlatformServiceCollectionExtensions
         // Register core abstractions
         RegisterCoreServices(services, enableSchemaDeployment);
 
-        // Mark as registered
-        MarkAsRegistered(services);
 
         return services;
     }
@@ -169,8 +165,6 @@ public static class PlatformServiceCollectionExtensions
         // Register core abstractions
         RegisterCoreServices(services, enableSchemaDeployment);
 
-        // Mark as registered
-        MarkAsRegistered(services);
 
         return services;
     }
@@ -223,8 +217,6 @@ public static class PlatformServiceCollectionExtensions
         // Register core abstractions
         RegisterCoreServices(services, enableSchemaDeployment);
 
-        // Mark as registered
-        MarkAsRegistered(services);
 
         return services;
     }
@@ -270,9 +262,6 @@ public static class PlatformServiceCollectionExtensions
         // Register core abstractions
         RegisterCoreServices(services, enableSchemaDeployment);
 
-        // Mark as registered
-        MarkAsRegistered(services);
-
         return services;
     }
 
@@ -288,11 +277,6 @@ public static class PlatformServiceCollectionExtensions
                 "AddPlatformMultiDatabaseWithDiscovery, AddPlatformMultiDatabaseWithControlPlaneAndList, or " +
                 "AddPlatformMultiDatabaseWithControlPlaneAndDiscovery.");
         }
-    }
-
-    private static void MarkAsRegistered(IServiceCollection services)
-    {
-        // This is handled by the PlatformConfiguration registration
     }
 
     private static void RegisterCoreServices(IServiceCollection services, bool enableSchemaDeployment)

@@ -25,6 +25,7 @@ internal sealed class PlatformSchedulerStoreProvider : ISchedulerStoreProvider
     private readonly IPlatformDatabaseDiscovery discovery;
     private readonly TimeProvider timeProvider;
     private readonly ILoggerFactory loggerFactory;
+    private readonly object lockObject = new();
     private IReadOnlyList<ISchedulerStore>? cachedStores;
     private readonly Dictionary<string, StoreEntry> storesByIdentifier = new();
 
@@ -50,10 +51,14 @@ internal sealed class PlatformSchedulerStoreProvider : ISchedulerStoreProvider
     {
         if (this.cachedStores == null)
         {
-            var databases = this.discovery.DiscoverDatabasesAsync().GetAwaiter().GetResult();
-            var stores = new List<ISchedulerStore>();
+            lock (this.lockObject)
+            {
+                if (this.cachedStores == null)
+                {
+                    var databases = this.discovery.DiscoverDatabasesAsync().GetAwaiter().GetResult();
+                    var stores = new List<ISchedulerStore>();
             
-            foreach (var db in databases)
+                    foreach (var db in databases)
             {
                 var store = new SqlSchedulerStore(
                     Options.Create(new SqlSchedulerOptions
@@ -89,11 +94,13 @@ internal sealed class PlatformSchedulerStoreProvider : ISchedulerStoreProvider
                     Outbox = outbox,
                 };
 
-                this.storesByIdentifier[db.Name] = entry;
-                stores.Add(store);
-            }
+                    this.storesByIdentifier[db.Name] = entry;
+                    stores.Add(store);
+                }
             
-            this.cachedStores = stores;
+                this.cachedStores = stores;
+                }
+            }
         }
         
         return this.cachedStores;
