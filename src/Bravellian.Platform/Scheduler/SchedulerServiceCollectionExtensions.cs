@@ -215,59 +215,6 @@ public static class SchedulerServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Adds system lease functionality with SQL Server backend.
-    /// </summary>
-    /// <param name="services">The IServiceCollection to add services to.</param>
-    /// <param name="options">The configuration options.</param>
-    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
-    public static IServiceCollection AddSystemLeases(this IServiceCollection services, SystemLeaseOptions options)
-    {
-        // Add time abstractions
-        services.AddTimeAbstractions();
-
-        services.Configure<SystemLeaseOptions>(o =>
-        {
-            o.ConnectionString = options.ConnectionString;
-            o.SchemaName = options.SchemaName;
-            o.DefaultLeaseDuration = options.DefaultLeaseDuration;
-            o.RenewPercent = options.RenewPercent;
-            o.UseGate = options.UseGate;
-            o.GateTimeoutMs = options.GateTimeoutMs;
-            o.EnableSchemaDeployment = options.EnableSchemaDeployment;
-        });
-
-        services.AddSingleton<ISystemLeaseFactory, SqlLeaseFactory>();
-
-        // Register schema deployment service if enabled (only register once per service collection)
-        if (options.EnableSchemaDeployment)
-        {
-            services.TryAddSingleton<DatabaseSchemaCompletion>();
-            services.TryAddSingleton<IDatabaseSchemaCompletion>(provider => provider.GetRequiredService<DatabaseSchemaCompletion>());
-
-            // Only add hosted service if not already registered using TryAddEnumerable
-            services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, DatabaseSchemaBackgroundService>());
-        }
-
-        return services;
-    }
-
-    /// <summary>
-    /// Adds system lease functionality with SQL Server backend.
-    /// </summary>
-    /// <param name="services">The IServiceCollection to add services to.</param>
-    /// <param name="connectionString">The database connection string.</param>
-    /// <param name="schemaName">The schema name (default: "dbo").</param>
-    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
-    public static IServiceCollection AddSystemLeases(this IServiceCollection services, string connectionString, string schemaName = "dbo")
-    {
-        return services.AddSystemLeases(new SystemLeaseOptions
-        {
-            ConnectionString = connectionString,
-            SchemaName = schemaName,
-        });
-    }
-
-    /// <summary>
     /// Adds time abstractions including TimeProvider and monotonic clock for the platform.
     /// </summary>
     /// <param name="services">The IServiceCollection to add services to.</param>
