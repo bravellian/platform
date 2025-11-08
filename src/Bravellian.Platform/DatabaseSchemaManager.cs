@@ -829,7 +829,7 @@ internal static class DatabaseSchemaManager
                 DECLARE @cutoffTime DATETIMEOFFSET = DATEADD(SECOND, -@RetentionSeconds, SYSDATETIMEOFFSET());
                 
                 DELETE FROM [{schemaName}].[{tableName}]
-                 WHERE Status = 2 /* Done */
+                 WHERE IsProcessed = 1
                    AND ProcessedAt IS NOT NULL
                    AND ProcessedAt < @cutoffTime;
                    

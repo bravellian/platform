@@ -48,8 +48,8 @@ public class OutboxCleanupTests : SqlServerTestBase
         await connection.ExecuteAsync(
             $@"
             INSERT INTO [{this.defaultOptions.SchemaName}].[{this.defaultOptions.TableName}] 
-            (Id, Topic, Payload, Status, IsProcessed, ProcessedAt, CreatedAt)
-            VALUES (@Id, @Topic, @Payload, 2, 1, @ProcessedAt, @CreatedAt)",
+            (Id, Topic, Payload, IsProcessed, ProcessedAt, CreatedAt)
+            VALUES (@Id, @Topic, @Payload, 1, @ProcessedAt, @CreatedAt)",
             new
             {
                 Id = oldMessageId,
@@ -63,8 +63,8 @@ public class OutboxCleanupTests : SqlServerTestBase
         await connection.ExecuteAsync(
             $@"
             INSERT INTO [{this.defaultOptions.SchemaName}].[{this.defaultOptions.TableName}] 
-            (Id, Topic, Payload, Status, IsProcessed, ProcessedAt, CreatedAt)
-            VALUES (@Id, @Topic, @Payload, 2, 1, @ProcessedAt, @CreatedAt)",
+            (Id, Topic, Payload, IsProcessed, ProcessedAt, CreatedAt)
+            VALUES (@Id, @Topic, @Payload, 1, @ProcessedAt, @CreatedAt)",
             new
             {
                 Id = recentMessageId,
@@ -78,8 +78,8 @@ public class OutboxCleanupTests : SqlServerTestBase
         await connection.ExecuteAsync(
             $@"
             INSERT INTO [{this.defaultOptions.SchemaName}].[{this.defaultOptions.TableName}] 
-            (Id, Topic, Payload, Status, IsProcessed, CreatedAt)
-            VALUES (@Id, @Topic, @Payload, 0, 0, @CreatedAt)",
+            (Id, Topic, Payload, IsProcessed, CreatedAt)
+            VALUES (@Id, @Topic, @Payload, 0, @CreatedAt)",
             new
             {
                 Id = unprocessedMessageId,
@@ -118,8 +118,8 @@ public class OutboxCleanupTests : SqlServerTestBase
         await connection.ExecuteAsync(
             $@"
             INSERT INTO [{this.defaultOptions.SchemaName}].[{this.defaultOptions.TableName}] 
-            (Id, Topic, Payload, Status, IsProcessed, ProcessedAt, CreatedAt)
-            VALUES (@Id, @Topic, @Payload, 2, 1, @ProcessedAt, @CreatedAt)",
+            (Id, Topic, Payload, IsProcessed, ProcessedAt, CreatedAt)
+            VALUES (@Id, @Topic, @Payload, 1, @ProcessedAt, @CreatedAt)",
             new
             {
                 Id = recentMessageId,
@@ -164,8 +164,8 @@ public class OutboxCleanupTests : SqlServerTestBase
             await connection.ExecuteAsync(
                 $@"
                 INSERT INTO [{this.defaultOptions.SchemaName}].[{this.defaultOptions.TableName}] 
-                (Id, Topic, Payload, Status, IsProcessed, ProcessedAt, CreatedAt)
-                VALUES (@Id, @Topic, @Payload, 2, 1, @ProcessedAt, @CreatedAt)",
+                (Id, Topic, Payload, IsProcessed, ProcessedAt, CreatedAt)
+                VALUES (@Id, @Topic, @Payload, 1, @ProcessedAt, @CreatedAt)",
                 new
                 {
                     Id = id,
