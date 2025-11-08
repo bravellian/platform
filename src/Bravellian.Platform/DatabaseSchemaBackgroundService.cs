@@ -34,6 +34,7 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
     private readonly IOptionsMonitor<SemaphoreOptions> semaphoreOptions;
     private readonly DatabaseSchemaCompletion schemaCompletion;
     private readonly PlatformConfiguration platformConfiguration;
+    private readonly IPlatformDatabaseDiscovery? databaseDiscovery;
 
     public DatabaseSchemaBackgroundService(
         ILogger<DatabaseSchemaBackgroundService> logger,
@@ -43,7 +44,8 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
         IOptionsMonitor<SqlInboxOptions> inboxOptions,
         IOptionsMonitor<SemaphoreOptions> semaphoreOptions,
         DatabaseSchemaCompletion schemaCompletion,
-        PlatformConfiguration platformConfiguration)
+        PlatformConfiguration platformConfiguration,
+        IPlatformDatabaseDiscovery? databaseDiscovery = null)
     {
         this.logger = logger;
         this.outboxOptions = outboxOptions;
@@ -53,6 +55,7 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
         this.semaphoreOptions = semaphoreOptions;
         this.schemaCompletion = schemaCompletion;
         this.platformConfiguration = platformConfiguration;
+        this.databaseDiscovery = databaseDiscovery;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -63,46 +66,58 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
 
             var deploymentTasks = new List<Task>();
 
-            // Deploy outbox schema if enabled
-            var outboxOpts = this.outboxOptions.CurrentValue;
-            if (outboxOpts.EnableSchemaDeployment && !string.IsNullOrEmpty(outboxOpts.ConnectionString))
+            // Check if we're in a multi-database environment
+            if (this.platformConfiguration.EnvironmentStyle == PlatformEnvironmentStyle.MultiDatabaseNoControl ||
+                this.platformConfiguration.EnvironmentStyle == PlatformEnvironmentStyle.MultiDatabaseWithControl)
             {
-                deploymentTasks.Add(this.DeployOutboxSchemaAsync(outboxOpts, stoppingToken));
-            }
+                // Multi-database environment - deploy to all discovered databases
+                if (this.platformConfiguration.EnableSchemaDeployment)
+                {
+                    deploymentTasks.Add(this.DeployMultiDatabaseSchemasAsync(stoppingToken));
+                }
 
-            // Deploy scheduler schema if enabled
-            var schedulerOpts = this.schedulerOptions.CurrentValue;
-            if (schedulerOpts.EnableSchemaDeployment && !string.IsNullOrEmpty(schedulerOpts.ConnectionString))
-            {
-                deploymentTasks.Add(this.DeploySchedulerSchemaAsync(schedulerOpts, stoppingToken));
-            }
-
-            // Deploy system lease schema if enabled
-            var systemLeaseOpts = this.systemLeaseOptions.CurrentValue;
-            if (systemLeaseOpts.EnableSchemaDeployment && !string.IsNullOrEmpty(systemLeaseOpts.ConnectionString))
-            {
-                deploymentTasks.Add(this.DeploySystemLeaseSchemaAsync(systemLeaseOpts, stoppingToken));
-            }
-
-            // Deploy inbox schema if enabled
-            var inboxOpts = this.inboxOptions.CurrentValue;
-            if (inboxOpts.EnableSchemaDeployment && !string.IsNullOrEmpty(inboxOpts.ConnectionString))
-            {
-                deploymentTasks.Add(this.DeployInboxSchemaAsync(inboxOpts, stoppingToken));
-            }
-
-            // Deploy semaphore schema if enabled
-            if (this.platformConfiguration.EnableSchemaDeployment)
-            {
-                if (this.platformConfiguration.EnvironmentStyle == PlatformEnvironmentStyle.MultiDatabaseWithControl &&
+                // Deploy semaphore schema to control plane if configured
+                if (this.platformConfiguration.EnableSchemaDeployment &&
+                    this.platformConfiguration.EnvironmentStyle == PlatformEnvironmentStyle.MultiDatabaseWithControl &&
                     !string.IsNullOrEmpty(this.platformConfiguration.ControlPlaneConnectionString))
                 {
-                    // For control plane mode, deploy to control plane database
                     deploymentTasks.Add(this.DeploySemaphoreSchemaAsync(stoppingToken));
                 }
-                else if (this.platformConfiguration.EnvironmentStyle == PlatformEnvironmentStyle.SingleDatabase)
+            }
+            else
+            {
+                // Single database environment - use the original logic
+                // Deploy outbox schema if enabled
+                var outboxOpts = this.outboxOptions.CurrentValue;
+                if (outboxOpts.EnableSchemaDeployment && !string.IsNullOrEmpty(outboxOpts.ConnectionString))
                 {
-                    // For single database mode, deploy to the application database
+                    deploymentTasks.Add(this.DeployOutboxSchemaAsync(outboxOpts, stoppingToken));
+                }
+
+                // Deploy scheduler schema if enabled
+                var schedulerOpts = this.schedulerOptions.CurrentValue;
+                if (schedulerOpts.EnableSchemaDeployment && !string.IsNullOrEmpty(schedulerOpts.ConnectionString))
+                {
+                    deploymentTasks.Add(this.DeploySchedulerSchemaAsync(schedulerOpts, stoppingToken));
+                }
+
+                // Deploy system lease schema if enabled
+                var systemLeaseOpts = this.systemLeaseOptions.CurrentValue;
+                if (systemLeaseOpts.EnableSchemaDeployment && !string.IsNullOrEmpty(systemLeaseOpts.ConnectionString))
+                {
+                    deploymentTasks.Add(this.DeploySystemLeaseSchemaAsync(systemLeaseOpts, stoppingToken));
+                }
+
+                // Deploy inbox schema if enabled
+                var inboxOpts = this.inboxOptions.CurrentValue;
+                if (inboxOpts.EnableSchemaDeployment && !string.IsNullOrEmpty(inboxOpts.ConnectionString))
+                {
+                    deploymentTasks.Add(this.DeployInboxSchemaAsync(inboxOpts, stoppingToken));
+                }
+
+                // Deploy semaphore schema if enabled
+                if (this.platformConfiguration.EnableSchemaDeployment)
+                {
                     deploymentTasks.Add(this.DeploySemaphoreSchemaAsync(stoppingToken));
                 }
             }
@@ -131,6 +146,98 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
             this.schemaCompletion.SetException(ex);
             throw; // Re-throw to stop the host if schema deployment fails
         }
+    }
+
+    private async Task DeployMultiDatabaseSchemasAsync(CancellationToken cancellationToken)
+    {
+        if (this.databaseDiscovery == null)
+        {
+            this.logger.LogWarning("Multi-database schema deployment requested but no database discovery service is available");
+            return;
+        }
+
+        this.logger.LogInformation("Discovering databases for schema deployment");
+        var databases = await this.databaseDiscovery.DiscoverDatabasesAsync(cancellationToken).ConfigureAwait(false);
+
+        if (databases.Count == 0)
+        {
+            this.logger.LogWarning("No databases discovered for schema deployment");
+            return;
+        }
+
+        this.logger.LogInformation("Deploying schemas to {DatabaseCount} database(s)", databases.Count);
+
+        var tasks = new List<Task>();
+        foreach (var database in databases)
+        {
+            tasks.Add(this.DeploySchemasToDatabaseAsync(database, cancellationToken));
+        }
+
+        await Task.WhenAll(tasks).ConfigureAwait(false);
+    }
+
+    private async Task DeploySchemasToDatabaseAsync(PlatformDatabase database, CancellationToken cancellationToken)
+    {
+        this.logger.LogInformation(
+            "Deploying platform schemas to database {DatabaseName} (Schema: {SchemaName})",
+            database.Name,
+            database.SchemaName);
+
+        var deploymentTasks = new List<Task>();
+
+        // Deploy Outbox schema
+        this.logger.LogDebug("Deploying outbox schema to database {DatabaseName}", database.Name);
+        deploymentTasks.Add(DatabaseSchemaManager.EnsureOutboxSchemaAsync(
+            database.ConnectionString,
+            database.SchemaName,
+            "Outbox"));
+
+        // Deploy Outbox work queue schema
+        deploymentTasks.Add(DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(
+            database.ConnectionString,
+            database.SchemaName));
+
+        // Deploy Inbox schema
+        this.logger.LogDebug("Deploying inbox schema to database {DatabaseName}", database.Name);
+        deploymentTasks.Add(DatabaseSchemaManager.EnsureInboxSchemaAsync(
+            database.ConnectionString,
+            database.SchemaName,
+            "Inbox"));
+
+        // Deploy Inbox work queue schema
+        deploymentTasks.Add(DatabaseSchemaManager.EnsureInboxWorkQueueSchemaAsync(
+            database.ConnectionString,
+            database.SchemaName));
+
+        // Deploy Scheduler schema (Jobs, JobRuns, Timers)
+        this.logger.LogDebug("Deploying scheduler schema to database {DatabaseName}", database.Name);
+        deploymentTasks.Add(DatabaseSchemaManager.EnsureSchedulerSchemaAsync(
+            database.ConnectionString,
+            database.SchemaName,
+            "Jobs",
+            "JobRuns",
+            "Timers"));
+
+        // Deploy Lease schema
+        this.logger.LogDebug("Deploying lease schema to database {DatabaseName}", database.Name);
+        deploymentTasks.Add(DatabaseSchemaManager.EnsureLeaseSchemaAsync(
+            database.ConnectionString,
+            database.SchemaName,
+            "Lease"));
+
+        // Deploy Fanout schema
+        this.logger.LogDebug("Deploying fanout schema to database {DatabaseName}", database.Name);
+        deploymentTasks.Add(DatabaseSchemaManager.EnsureFanoutSchemaAsync(
+            database.ConnectionString,
+            database.SchemaName,
+            "FanoutPolicy",
+            "FanoutCursor"));
+
+        await Task.WhenAll(deploymentTasks).ConfigureAwait(false);
+
+        this.logger.LogInformation(
+            "Successfully deployed all platform schemas to database {DatabaseName}",
+            database.Name);
     }
 
     private async Task DeployOutboxSchemaAsync(SqlOutboxOptions options, CancellationToken cancellationToken)
