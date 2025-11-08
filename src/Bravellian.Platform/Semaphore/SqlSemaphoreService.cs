@@ -49,7 +49,7 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
 
         try
         {
-            using var connection = new SqlConnection(this.options.ControlPlaneConnectionString);
+            using var connection = new SqlConnection(this.options.ConnectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             var parameters = new DynamicParameters();
@@ -102,7 +102,7 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
 
         try
         {
-            using var connection = new SqlConnection(this.options.ControlPlaneConnectionString);
+            using var connection = new SqlConnection(this.options.ConnectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             var parameters = new DynamicParameters();
@@ -147,7 +147,7 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
 
         try
         {
-            using var connection = new SqlConnection(this.options.ControlPlaneConnectionString);
+            using var connection = new SqlConnection(this.options.ConnectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             var parameters = new DynamicParameters();
@@ -187,7 +187,7 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
 
         try
         {
-            using var connection = new SqlConnection(this.options.ControlPlaneConnectionString);
+            using var connection = new SqlConnection(this.options.ConnectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             var parameters = new DynamicParameters();
@@ -219,7 +219,7 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
 
         try
         {
-            using var connection = new SqlConnection(this.options.ControlPlaneConnectionString);
+            using var connection = new SqlConnection(this.options.ConnectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             var sql = $"""
@@ -252,7 +252,7 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
 
         try
         {
-            using var connection = new SqlConnection(this.options.ControlPlaneConnectionString);
+            using var connection = new SqlConnection(this.options.ConnectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             if (ensureIfMissing)

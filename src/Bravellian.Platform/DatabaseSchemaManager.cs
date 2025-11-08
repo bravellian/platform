@@ -1410,8 +1410,7 @@ internal static class DatabaseSchemaManager
 
             -- Index for reaping expired leases
             CREATE INDEX IX_SemaphoreLease_LeaseUntilUtc 
-                ON [{schemaName}].[SemaphoreLease]([LeaseUntilUtc])
-                WHERE [LeaseUntilUtc] <= SYSUTCDATETIME();
+                ON [{schemaName}].[SemaphoreLease]([LeaseUntilUtc]);
 
             -- Index for idempotent acquire lookups by client request ID
             CREATE INDEX IX_SemaphoreLease_ClientRequestId

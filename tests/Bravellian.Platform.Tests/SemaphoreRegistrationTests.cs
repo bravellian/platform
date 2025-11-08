@@ -103,7 +103,7 @@ public class SemaphoreRegistrationTests : IAsyncLifetime
     }
 
     [Fact]
-    public void SemaphoreService_NotRegistered_InSingleDatabase()
+    public void SemaphoreService_Registered_InSingleDatabase()
     {
         // Arrange & Act
         var services = new ServiceCollection();
@@ -117,7 +117,7 @@ public class SemaphoreRegistrationTests : IAsyncLifetime
 
         // Assert
         var semaphoreService = serviceProvider.GetService<ISemaphoreService>();
-        semaphoreService.ShouldBeNull();
+        semaphoreService.ShouldNotBeNull();
     }
 
     [Fact]
@@ -160,6 +160,25 @@ public class SemaphoreRegistrationTests : IAsyncLifetime
                 },
             },
             controlPlaneConnectionString: this.connectionString!,
+            enableSchemaDeployment: false);
+
+        var serviceProvider = services.BuildServiceProvider();
+
+        // Assert
+        var hostedServices = serviceProvider.GetServices<IHostedService>();
+        var reaperService = hostedServices.OfType<SemaphoreReaperService>().FirstOrDefault();
+        reaperService.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void SemaphoreReaperService_RegisteredInSingleDatabase()
+    {
+        // Arrange & Act
+        var services = new ServiceCollection();
+        services.AddPlatformSingleDatabase(
+            connectionString: this.connectionString!,
+            databaseName: "test",
+            schemaName: "dbo",
             enableSchemaDeployment: false);
 
         var serviceProvider = services.BuildServiceProvider();

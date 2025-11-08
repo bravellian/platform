@@ -42,7 +42,7 @@ public class SemaphoreServiceTests : SqlServerTestBase
         // Create service
         var options = Options.Create(new SemaphoreOptions
         {
-            ControlPlaneConnectionString = this.ConnectionString,
+            ConnectionString = this.ConnectionString,
             SchemaName = "dbo",
             MinTtlSeconds = 1,
             MaxTtlSeconds = 3600,

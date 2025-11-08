@@ -50,9 +50,11 @@ public sealed class SemaphoreOptions
     public int ReaperBatchSize { get; set; } = 1000;
 
     /// <summary>
-    /// Gets or sets the control plane connection string.
+    /// Gets or sets the connection string for the semaphore database.
+    /// For control-plane modes, this is the control plane connection string.
+    /// For single database mode, this is the same as the application database connection string.
     /// </summary>
-    public required string ControlPlaneConnectionString { get; set; }
+    public required string ConnectionString { get; set; }
 
     /// <summary>
     /// Gets or sets the schema name for semaphore tables (default: "dbo").

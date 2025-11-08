@@ -15,14 +15,16 @@ Use distributed semaphores when you need to:
 
 ## Availability
 
-Distributed semaphores are **only available** when using control-plane registration modes:
+Distributed semaphores are available when using:
 
-- `AddPlatformMultiDatabaseWithControlPlaneAndList`
-- `AddPlatformMultiDatabaseWithControlPlaneAndDiscovery`
+- `AddPlatformSingleDatabase` (uses application database for semaphore storage)
+- `AddPlatformMultiDatabaseWithControlPlaneAndList` (uses control plane database)
+- `AddPlatformMultiDatabaseWithControlPlaneAndDiscovery` (uses control plane database)
 
 They are **not available** in:
-- Single database mode (`AddPlatformSingleDatabase`)
 - Multi-database without control plane (`AddPlatformMultiDatabaseWithList`, `AddPlatformMultiDatabaseWithDiscovery`)
+
+**Note**: In single database mode, semaphores use the same database as your application data. In control plane modes, they use the dedicated control plane database.
 
 ## Core Concepts
 

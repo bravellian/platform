@@ -91,12 +91,20 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
                 deploymentTasks.Add(this.DeployInboxSchemaAsync(inboxOpts, stoppingToken));
             }
 
-            // Deploy semaphore schema if enabled and using control plane
-            if (this.platformConfiguration.EnvironmentStyle == PlatformEnvironmentStyle.MultiDatabaseWithControl &&
-                !string.IsNullOrEmpty(this.platformConfiguration.ControlPlaneConnectionString) &&
-                this.platformConfiguration.EnableSchemaDeployment)
+            // Deploy semaphore schema if enabled
+            if (this.platformConfiguration.EnableSchemaDeployment)
             {
-                deploymentTasks.Add(this.DeploySemaphoreSchemaAsync(stoppingToken));
+                if (this.platformConfiguration.EnvironmentStyle == PlatformEnvironmentStyle.MultiDatabaseWithControl &&
+                    !string.IsNullOrEmpty(this.platformConfiguration.ControlPlaneConnectionString))
+                {
+                    // For control plane mode, deploy to control plane database
+                    deploymentTasks.Add(this.DeploySemaphoreSchemaAsync(stoppingToken));
+                }
+                else if (this.platformConfiguration.EnvironmentStyle == PlatformEnvironmentStyle.SingleDatabase)
+                {
+                    // For single database mode, deploy to the application database
+                    deploymentTasks.Add(this.DeploySemaphoreSchemaAsync(stoppingToken));
+                }
             }
 
             if (deploymentTasks.Count > 0)
@@ -180,9 +188,9 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
     private async Task DeploySemaphoreSchemaAsync(CancellationToken cancellationToken)
     {
         var options = this.semaphoreOptions.CurrentValue;
-        this.logger.LogDebug("Deploying semaphore schema to control plane at {Schema}", options.SchemaName);
+        this.logger.LogDebug("Deploying semaphore schema at {Schema}", options.SchemaName);
         await DatabaseSchemaManager.EnsureSemaphoreSchemaAsync(
-            options.ControlPlaneConnectionString,
+            options.ConnectionString,
             options.SchemaName).ConfigureAwait(false);
     }
 }

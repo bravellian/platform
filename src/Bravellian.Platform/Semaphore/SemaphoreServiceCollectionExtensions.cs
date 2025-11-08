@@ -23,22 +23,22 @@ using Microsoft.Extensions.Hosting;
 internal static class SemaphoreServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers semaphore services for control-plane environments only.
+    /// Registers semaphore services.
     /// </summary>
     /// <param name="services">The service collection.</param>
-    /// <param name="controlPlaneConnectionString">The control plane connection string.</param>
+    /// <param name="connectionString">The database connection string for semaphores.</param>
     /// <param name="configure">Optional configuration action.</param>
     internal static void AddSemaphoreServices(
         this IServiceCollection services,
-        string controlPlaneConnectionString,
+        string connectionString,
         Action<SemaphoreOptions>? configure = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(controlPlaneConnectionString);
+        ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
 
         services.AddOptions<SemaphoreOptions>()
             .Configure(options =>
             {
-                options.ControlPlaneConnectionString = controlPlaneConnectionString;
+                options.ConnectionString = connectionString;
                 configure?.Invoke(options);
             })
             .ValidateOnStart();

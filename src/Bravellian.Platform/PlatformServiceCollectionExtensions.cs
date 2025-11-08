@@ -78,6 +78,8 @@ public static class PlatformServiceCollectionExtensions
         // Register core abstractions
         RegisterCoreServices(services, enableSchemaDeployment);
 
+        // Register semaphore services for single database
+        services.AddSemaphoreServices(connectionString);
 
         return services;
     }
