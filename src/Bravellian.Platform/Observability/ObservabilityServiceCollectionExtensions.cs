@@ -50,8 +50,9 @@ public static class ObservabilityServiceCollectionExtensions
         services.TryAddSingleton(TimeProvider.System);
 
         // Register watchdog service
-        services.TryAddSingleton<IWatchdog, WatchdogService>();
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService>(sp => (WatchdogService)sp.GetRequiredService<IWatchdog>()));
+        services.TryAddSingleton<WatchdogService>();
+        services.TryAddSingleton<IWatchdog>(sp => sp.GetRequiredService<WatchdogService>());
+        services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<WatchdogService>());
 
         // Register health check
         services.TryAddSingleton<WatchdogHealthCheck>();
