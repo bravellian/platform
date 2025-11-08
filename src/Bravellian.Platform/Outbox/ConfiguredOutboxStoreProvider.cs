@@ -84,14 +84,16 @@ public sealed class ConfiguredOutboxStoreProvider : IOutboxStoreProvider
     {
         foreach (var options in this.outboxOptions)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             if (options.EnableSchemaDeployment)
             {
+                var identifier = options.ConnectionString.Contains("Database=")
+                    ? ExtractDatabaseName(options.ConnectionString)
+                    : $"{options.SchemaName}.{options.TableName}";
+
                 try
                 {
-                    var identifier = options.ConnectionString.Contains("Database=")
-                        ? ExtractDatabaseName(options.ConnectionString)
-                        : $"{options.SchemaName}.{options.TableName}";
-
                     this.logger.LogInformation(
                         "Deploying outbox schema for database: {Identifier}",
                         identifier);
@@ -111,10 +113,6 @@ public sealed class ConfiguredOutboxStoreProvider : IOutboxStoreProvider
                 }
                 catch (Exception ex)
                 {
-                    var identifier = options.ConnectionString.Contains("Database=")
-                        ? ExtractDatabaseName(options.ConnectionString)
-                        : $"{options.SchemaName}.{options.TableName}";
-
                     this.logger.LogError(
                         ex,
                         "Failed to deploy outbox schema for database: {Identifier}. Store will be available but may fail on first use.",

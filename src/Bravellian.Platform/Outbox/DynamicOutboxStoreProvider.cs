@@ -350,6 +350,8 @@ public sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDisposab
             // Deploy schemas outside the lock for databases that need it
             foreach (var config in schemasToDeploy)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 try
                 {
                     this.logger.LogInformation(

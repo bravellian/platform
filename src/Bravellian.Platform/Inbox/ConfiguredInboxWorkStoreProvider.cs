@@ -89,14 +89,16 @@ public sealed class ConfiguredInboxWorkStoreProvider : IInboxWorkStoreProvider
     {
         foreach (var options in this.inboxOptions)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             if (options.EnableSchemaDeployment)
             {
+                var identifier = options.ConnectionString.Contains("Database=")
+                    ? ExtractDatabaseName(options.ConnectionString)
+                    : $"{options.SchemaName}.{options.TableName}";
+
                 try
                 {
-                    var identifier = options.ConnectionString.Contains("Database=")
-                        ? ExtractDatabaseName(options.ConnectionString)
-                        : $"{options.SchemaName}.{options.TableName}";
-
                     this.logger.LogInformation(
                         "Deploying inbox schema for database: {Identifier}",
                         identifier);
@@ -116,10 +118,6 @@ public sealed class ConfiguredInboxWorkStoreProvider : IInboxWorkStoreProvider
                 }
                 catch (Exception ex)
                 {
-                    var identifier = options.ConnectionString.Contains("Database=")
-                        ? ExtractDatabaseName(options.ConnectionString)
-                        : $"{options.SchemaName}.{options.TableName}";
-
                     this.logger.LogError(
                         ex,
                         "Failed to deploy inbox schema for database: {Identifier}. Store will be available but may fail on first use.",
