@@ -27,18 +27,22 @@ internal static class SemaphoreServiceCollectionExtensions
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="connectionString">The database connection string for semaphores.</param>
+    /// <param name="schemaName">The schema name for semaphore tables (default: "dbo").</param>
     /// <param name="configure">Optional configuration action.</param>
     internal static void AddSemaphoreServices(
         this IServiceCollection services,
         string connectionString,
+        string schemaName = "dbo",
         Action<SemaphoreOptions>? configure = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
+        ArgumentException.ThrowIfNullOrWhiteSpace(schemaName);
 
         services.AddOptions<SemaphoreOptions>()
             .Configure(options =>
             {
                 options.ConnectionString = connectionString;
+                options.SchemaName = schemaName;
                 configure?.Invoke(options);
             })
             .ValidateOnStart();

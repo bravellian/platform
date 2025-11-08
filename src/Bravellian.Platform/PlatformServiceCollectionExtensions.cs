@@ -79,7 +79,7 @@ public static class PlatformServiceCollectionExtensions
         RegisterCoreServices(services, enableSchemaDeployment);
 
         // Register semaphore services for single database
-        services.AddSemaphoreServices(connectionString);
+        services.AddSemaphoreServices(connectionString, schemaName);
 
         return services;
     }
@@ -178,17 +178,17 @@ public static class PlatformServiceCollectionExtensions
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="databases">The list of application databases.</param>
-    /// <param name="controlPlaneConnectionString">The connection string for the control plane database.</param>
-    /// <param name="enableSchemaDeployment">Whether to automatically create platform tables and procedures at startup.</param>
+    /// <param name="controlPlaneOptions">The control plane configuration options.</param>
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddPlatformMultiDatabaseWithControlPlaneAndList(
         this IServiceCollection services,
         IEnumerable<PlatformDatabase> databases,
-        string controlPlaneConnectionString,
-        bool enableSchemaDeployment = false)
+        PlatformControlPlaneOptions controlPlaneOptions)
     {
         ArgumentNullException.ThrowIfNull(databases);
-        ArgumentException.ThrowIfNullOrWhiteSpace(controlPlaneConnectionString);
+        ArgumentNullException.ThrowIfNull(controlPlaneOptions);
+        ArgumentException.ThrowIfNullOrWhiteSpace(controlPlaneOptions.ConnectionString);
+        ArgumentException.ThrowIfNullOrWhiteSpace(controlPlaneOptions.SchemaName);
 
         var databaseList = databases.ToList();
         if (databaseList.Count == 0)
@@ -204,8 +204,9 @@ public static class PlatformServiceCollectionExtensions
         {
             EnvironmentStyle = PlatformEnvironmentStyle.MultiDatabaseWithControl,
             UsesDiscovery = false,
-            ControlPlaneConnectionString = controlPlaneConnectionString,
-            EnableSchemaDeployment = enableSchemaDeployment,
+            ControlPlaneConnectionString = controlPlaneOptions.ConnectionString,
+            ControlPlaneSchemaName = controlPlaneOptions.SchemaName,
+            EnableSchemaDeployment = controlPlaneOptions.EnableSchemaDeployment,
         };
 
         services.AddSingleton(configuration);
@@ -218,10 +219,84 @@ public static class PlatformServiceCollectionExtensions
         services.AddSingleton<IHostedService, PlatformLifecycleService>();
 
         // Register core abstractions
-        RegisterCoreServices(services, enableSchemaDeployment);
+        RegisterCoreServices(services, controlPlaneOptions.EnableSchemaDeployment);
 
         // Register semaphore services for control plane
-        services.AddSemaphoreServices(controlPlaneConnectionString);
+        services.AddSemaphoreServices(controlPlaneOptions.ConnectionString, controlPlaneOptions.SchemaName);
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers the platform for a multi-database environment with control plane.
+    /// Features run across the provided list of databases with control plane coordination available for future features.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="databases">The list of application databases.</param>
+    /// <param name="controlPlaneConnectionString">The connection string for the control plane database.</param>
+    /// <param name="enableSchemaDeployment">Whether to automatically create platform tables and procedures at startup.</param>
+    /// <returns>The service collection for chaining.</returns>
+    [Obsolete("Use the overload that accepts PlatformControlPlaneOptions for more configuration options.")]
+    public static IServiceCollection AddPlatformMultiDatabaseWithControlPlaneAndList(
+        this IServiceCollection services,
+        IEnumerable<PlatformDatabase> databases,
+        string controlPlaneConnectionString,
+        bool enableSchemaDeployment = false)
+    {
+        return services.AddPlatformMultiDatabaseWithControlPlaneAndList(
+            databases,
+            new PlatformControlPlaneOptions
+            {
+                ConnectionString = controlPlaneConnectionString,
+                SchemaName = "dbo",
+                EnableSchemaDeployment = enableSchemaDeployment,
+            });
+    }
+
+    /// <summary>
+    /// Registers the platform for a multi-database environment with control plane.
+    /// Features run across databases discovered via the provided discovery service with control plane coordination available for future features.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="controlPlaneOptions">The control plane configuration options.</param>
+    /// <returns>The service collection for chaining.</returns>
+    /// <remarks>
+    /// Requires an implementation of <see cref="IPlatformDatabaseDiscovery"/> to be registered in the service collection.
+    /// </remarks>
+    public static IServiceCollection AddPlatformMultiDatabaseWithControlPlaneAndDiscovery(
+        this IServiceCollection services,
+        PlatformControlPlaneOptions controlPlaneOptions)
+    {
+        ArgumentNullException.ThrowIfNull(controlPlaneOptions);
+        ArgumentException.ThrowIfNullOrWhiteSpace(controlPlaneOptions.ConnectionString);
+        ArgumentException.ThrowIfNullOrWhiteSpace(controlPlaneOptions.SchemaName);
+
+        // Prevent multiple registrations
+        EnsureNotAlreadyRegistered(services);
+
+        // Register configuration
+        var configuration = new PlatformConfiguration
+        {
+            EnvironmentStyle = PlatformEnvironmentStyle.MultiDatabaseWithControl,
+            UsesDiscovery = true,
+            ControlPlaneConnectionString = controlPlaneOptions.ConnectionString,
+            ControlPlaneSchemaName = controlPlaneOptions.SchemaName,
+            EnableSchemaDeployment = controlPlaneOptions.EnableSchemaDeployment,
+        };
+
+        services.AddSingleton(configuration);
+
+        // Discovery service must be registered by the caller
+        // Validate it exists at runtime in lifecycle service
+
+        // Register lifecycle service
+        services.AddSingleton<IHostedService, PlatformLifecycleService>();
+
+        // Register core abstractions
+        RegisterCoreServices(services, controlPlaneOptions.EnableSchemaDeployment);
+
+        // Register semaphore services for control plane
+        services.AddSemaphoreServices(controlPlaneOptions.ConnectionString, controlPlaneOptions.SchemaName);
 
         return services;
     }
@@ -237,40 +312,19 @@ public static class PlatformServiceCollectionExtensions
     /// <remarks>
     /// Requires an implementation of <see cref="IPlatformDatabaseDiscovery"/> to be registered in the service collection.
     /// </remarks>
+    [Obsolete("Use the overload that accepts PlatformControlPlaneOptions for more configuration options.")]
     public static IServiceCollection AddPlatformMultiDatabaseWithControlPlaneAndDiscovery(
         this IServiceCollection services,
         string controlPlaneConnectionString,
         bool enableSchemaDeployment = false)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(controlPlaneConnectionString);
-
-        // Prevent multiple registrations
-        EnsureNotAlreadyRegistered(services);
-
-        // Register configuration
-        var configuration = new PlatformConfiguration
-        {
-            EnvironmentStyle = PlatformEnvironmentStyle.MultiDatabaseWithControl,
-            UsesDiscovery = true,
-            ControlPlaneConnectionString = controlPlaneConnectionString,
-            EnableSchemaDeployment = enableSchemaDeployment,
-        };
-
-        services.AddSingleton(configuration);
-
-        // Discovery service must be registered by the caller
-        // Validate it exists at runtime in lifecycle service
-
-        // Register lifecycle service
-        services.AddSingleton<IHostedService, PlatformLifecycleService>();
-
-        // Register core abstractions
-        RegisterCoreServices(services, enableSchemaDeployment);
-
-        // Register semaphore services for control plane
-        services.AddSemaphoreServices(controlPlaneConnectionString);
-
-        return services;
+        return services.AddPlatformMultiDatabaseWithControlPlaneAndDiscovery(
+            new PlatformControlPlaneOptions
+            {
+                ConnectionString = controlPlaneConnectionString,
+                SchemaName = "dbo",
+                EnableSchemaDeployment = enableSchemaDeployment,
+            });
     }
 
     private static void EnsureNotAlreadyRegistered(IServiceCollection services)
