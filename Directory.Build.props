@@ -115,10 +115,10 @@
 		<PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" Version="8.0.0" />
 		<PackageReference Include="DotNet.ReproducibleBuilds.Isolated" PrivateAssets="All" Version="1.2.25" />
 
-		<PackageReference Include="StyleCop.Analyzers" Condition="$(MSBuildProjectExtension) == '.csproj'" Version="1.1.118">
+		<!-- <PackageReference Include="StyleCop.Analyzers" Condition="$(MSBuildProjectExtension) == '.csproj'" Version="1.1.118">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
-		</PackageReference>
+		</PackageReference> -->
 		<PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Condition="$(MSBuildProjectName.EndsWith('Tests')) == false" Version="4.14.0">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
