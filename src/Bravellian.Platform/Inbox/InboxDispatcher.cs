@@ -22,7 +22,7 @@ using System.Diagnostics;
 /// This is the core processing engine that claims messages, resolves handlers, and manages retries.
 /// Mirrors the OutboxDispatcher implementation for consistency.
 /// </summary>
-public sealed class InboxDispatcher
+internal sealed class InboxDispatcher
 {
     private readonly IInboxWorkStore store;
     private readonly IInboxHandlerResolver resolver;

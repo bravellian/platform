@@ -55,11 +55,14 @@ internal class SqlOutboxService : IOutbox
         string payload,
         string? correlationId)
     {
-        // Ensure outbox table exists before attempting to enqueue
-        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(
-            this.connectionString,
-            this.options.SchemaName,
-            this.options.TableName).ConfigureAwait(false);
+        // Ensure outbox table exists before attempting to enqueue (if enabled)
+        if (this.options.EnableSchemaDeployment)
+        {
+            await DatabaseSchemaManager.EnsureOutboxSchemaAsync(
+                this.connectionString,
+                this.options.SchemaName,
+                this.options.TableName).ConfigureAwait(false);
+        }
 
         // Create our own connection and transaction for reliability
         var connection = new SqlConnection(this.connectionString);

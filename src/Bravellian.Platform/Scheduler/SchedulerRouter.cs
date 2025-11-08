@@ -15,42 +15,42 @@
 namespace Bravellian.Platform;
 
 /// <summary>
-/// Default implementation of IInboxRouter that uses an IInboxWorkStoreProvider
-/// to route write operations to the appropriate inbox database.
+/// Default implementation of ISchedulerRouter that uses an ISchedulerStoreProvider
+/// to route write operations to the appropriate scheduler database.
 /// </summary>
-internal sealed class InboxRouter : IInboxRouter
+public sealed class SchedulerRouter : ISchedulerRouter
 {
-    private readonly IInboxWorkStoreProvider storeProvider;
+    private readonly ISchedulerStoreProvider storeProvider;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="InboxRouter"/> class.
+    /// Initializes a new instance of the <see cref="SchedulerRouter"/> class.
     /// </summary>
     /// <param name="storeProvider">The store provider to use for routing.</param>
-    public InboxRouter(IInboxWorkStoreProvider storeProvider)
+    public SchedulerRouter(ISchedulerStoreProvider storeProvider)
     {
         this.storeProvider = storeProvider ?? throw new ArgumentNullException(nameof(storeProvider));
     }
 
     /// <inheritdoc/>
-    public IInbox GetInbox(string routingKey)
+    public ISchedulerClient GetSchedulerClient(string routingKey)
     {
         if (string.IsNullOrWhiteSpace(routingKey))
         {
             throw new ArgumentException("Routing key cannot be null, empty, or whitespace.", nameof(routingKey));
         }
 
-        var inbox = this.storeProvider.GetInboxByKey(routingKey);
-        if (inbox == null)
+        var client = this.storeProvider.GetSchedulerClientByKey(routingKey);
+        if (client == null)
         {
-            throw new InvalidOperationException($"No inbox found for routing key: {routingKey}");
+            throw new InvalidOperationException($"No scheduler client found for routing key: {routingKey}");
         }
 
-        return inbox;
+        return client;
     }
 
     /// <inheritdoc/>
-    public IInbox GetInbox(Guid routingKey)
+    public ISchedulerClient GetSchedulerClient(Guid routingKey)
     {
-        return this.GetInbox(routingKey.ToString());
+        return this.GetSchedulerClient(routingKey.ToString());
     }
 }

@@ -542,7 +542,7 @@ public static class SchedulerServiceCollectionExtensions
     /// <param name="storeProviderFactory">Factory function to create the store provider.</param>
     /// <param name="selectionStrategy">Optional selection strategy. Defaults to RoundRobinInboxSelectionStrategy.</param>
     /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
-    public static IServiceCollection AddMultiSqlInbox(
+    internal static IServiceCollection AddMultiSqlInbox(
         this IServiceCollection services,
         Func<IServiceProvider, IInboxWorkStoreProvider> storeProviderFactory,
         IInboxSelectionStrategy? selectionStrategy = null)
@@ -613,6 +613,139 @@ public static class SchedulerServiceCollectionExtensions
     }
 
     /// <summary>
+    /// Adds SQL multi-scheduler functionality with support for processing scheduler work across multiple databases.
+    /// This enables a single worker to process scheduler work from multiple customer databases.
+    /// </summary>
+    /// <param name="services">The IServiceCollection to add services to.</param>
+    /// <param name="schedulerOptions">List of scheduler options, one for each database to poll.</param>
+    /// <param name="selectionStrategy">Optional selection strategy. Defaults to RoundRobinOutboxSelectionStrategy.</param>
+    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
+    public static IServiceCollection AddMultiSqlScheduler(
+        this IServiceCollection services,
+        IEnumerable<SchedulerDatabaseConfig> schedulerOptions,
+        IOutboxSelectionStrategy? selectionStrategy = null)
+    {
+        // Add time abstractions
+        services.AddTimeAbstractions();
+
+        // Register the store provider with the list of scheduler options
+        services.AddSingleton<ISchedulerStoreProvider>(provider =>
+        {
+            var timeProvider = provider.GetRequiredService<TimeProvider>();
+            var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
+            return new ConfiguredSchedulerStoreProvider(schedulerOptions, timeProvider, loggerFactory);
+        });
+
+        // Register the selection strategy
+        services.AddSingleton<IOutboxSelectionStrategy>(selectionStrategy ?? new RoundRobinOutboxSelectionStrategy());
+
+        // Add system leases - we need at least one lease factory for multi-scheduler
+        // Use the first scheduler's connection for the lease system
+        var firstScheduler = schedulerOptions.FirstOrDefault();
+        if (firstScheduler == null)
+        {
+            throw new InvalidOperationException("At least one scheduler must be configured. The schedulerOptions collection is empty.");
+        }
+
+        services.AddSystemLeases(new SystemLeaseOptions
+        {
+            ConnectionString = firstScheduler.ConnectionString,
+            SchemaName = firstScheduler.SchemaName,
+        });
+
+        // Register shared components
+        services.AddSingleton<MultiSchedulerDispatcher>();
+        services.AddHostedService<MultiSchedulerPollingService>();
+
+        // Register the scheduler router for write operations
+        services.AddSingleton<ISchedulerRouter, SchedulerRouter>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Adds SQL multi-scheduler functionality using a custom store provider.
+    /// This allows for dynamic discovery of scheduler databases at runtime.
+    /// </summary>
+    /// <param name="services">The IServiceCollection to add services to.</param>
+    /// <param name="storeProviderFactory">Factory function to create the store provider.</param>
+    /// <param name="selectionStrategy">Optional selection strategy. Defaults to RoundRobinOutboxSelectionStrategy.</param>
+    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
+    public static IServiceCollection AddMultiSqlScheduler(
+        this IServiceCollection services,
+        Func<IServiceProvider, ISchedulerStoreProvider> storeProviderFactory,
+        IOutboxSelectionStrategy? selectionStrategy = null)
+    {
+        // Add time abstractions
+        services.AddTimeAbstractions();
+
+        // Register the custom store provider
+        services.AddSingleton(storeProviderFactory);
+
+        // Register the selection strategy
+        services.AddSingleton<IOutboxSelectionStrategy>(selectionStrategy ?? new RoundRobinOutboxSelectionStrategy());
+
+        // Note: Caller must register ISystemLeaseFactory separately since we can't determine
+        // connection string from a factory function
+
+        // Register shared components
+        services.AddSingleton<MultiSchedulerDispatcher>();
+        services.AddHostedService<MultiSchedulerPollingService>();
+
+        // Register the scheduler router for write operations
+        services.AddSingleton<ISchedulerRouter, SchedulerRouter>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Adds SQL multi-scheduler functionality with dynamic database discovery.
+    /// This enables automatic detection of new or removed customer databases at runtime.
+    /// </summary>
+    /// <param name="services">The IServiceCollection to add services to.</param>
+    /// <param name="selectionStrategy">Optional selection strategy. Defaults to RoundRobinOutboxSelectionStrategy.</param>
+    /// <param name="refreshInterval">Optional interval for refreshing the database list. Defaults to 5 minutes.</param>
+    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
+    /// <remarks>
+    /// Requires an implementation of ISchedulerDatabaseDiscovery to be registered in the service collection.
+    /// The discovery service is responsible for querying a registry, database, or configuration service
+    /// to get the current list of customer databases.
+    /// </remarks>
+    public static IServiceCollection AddDynamicMultiSqlScheduler(
+        this IServiceCollection services,
+        IOutboxSelectionStrategy? selectionStrategy = null,
+        TimeSpan? refreshInterval = null)
+    {
+        // Add time abstractions
+        services.AddTimeAbstractions();
+
+        // Register the dynamic store provider
+        services.AddSingleton<ISchedulerStoreProvider>(provider =>
+        {
+            var discovery = provider.GetRequiredService<ISchedulerDatabaseDiscovery>();
+            var timeProvider = provider.GetRequiredService<TimeProvider>();
+            var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
+            var logger = provider.GetRequiredService<ILogger<DynamicSchedulerStoreProvider>>();
+            return new DynamicSchedulerStoreProvider(discovery, timeProvider, loggerFactory, logger, refreshInterval);
+        });
+
+        // Register the selection strategy
+        services.AddSingleton<IOutboxSelectionStrategy>(selectionStrategy ?? new RoundRobinOutboxSelectionStrategy());
+
+        // Note: Caller must register ISystemLeaseFactory separately since we can't determine
+        // connection string from dynamic discovery
+
+        // Register shared components
+        services.AddSingleton<MultiSchedulerDispatcher>();
+        services.AddHostedService<MultiSchedulerPollingService>();
+
+        // Register the scheduler router for write operations
+        services.AddSingleton<ISchedulerRouter, SchedulerRouter>();
+
+        return services;
+    }
+
+    /// <summary>
     /// Adds SQL multi-outbox functionality with support for processing messages across multiple databases.
     /// This enables a single worker to process outbox messages from multiple customer databases.
     /// </summary>
@@ -658,7 +791,7 @@ public static class SchedulerServiceCollectionExtensions
     /// <param name="storeProviderFactory">Factory function to create the store provider.</param>
     /// <param name="selectionStrategy">Optional selection strategy. Defaults to RoundRobinOutboxSelectionStrategy.</param>
     /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
-    public static IServiceCollection AddMultiSqlOutbox(
+    internal static IServiceCollection AddMultiSqlOutbox(
         this IServiceCollection services,
         Func<IServiceProvider, IOutboxStoreProvider> storeProviderFactory,
         IOutboxSelectionStrategy? selectionStrategy = null)

@@ -22,7 +22,7 @@ using Microsoft.Extensions.Logging;
 /// Uses monotonic clock for consistent polling intervals regardless of system time changes.
 /// Waits for database schema deployment to complete before starting.
 /// </summary>
-public sealed class MultiOutboxPollingService : BackgroundService
+internal sealed class MultiOutboxPollingService : BackgroundService
 {
     private readonly MultiOutboxDispatcher dispatcher;
     private readonly IMonotonicClock mono;

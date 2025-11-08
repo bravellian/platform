@@ -22,7 +22,7 @@ using Microsoft.Extensions.Logging;
 /// selection strategy to determine which inbox to poll next.
 /// This enables processing messages from multiple customer databases in a single worker.
 /// </summary>
-public sealed class MultiInboxDispatcher
+internal sealed class MultiInboxDispatcher
 {
     private readonly IInboxWorkStoreProvider storeProvider;
     private readonly IInboxSelectionStrategy selectionStrategy;

@@ -18,7 +18,7 @@ namespace Bravellian.Platform;
 /// Default implementation of IOutboxRouter that uses an IOutboxStoreProvider
 /// to route write operations to the appropriate outbox database.
 /// </summary>
-public sealed class OutboxRouter : IOutboxRouter
+internal sealed class OutboxRouter : IOutboxRouter
 {
     private readonly IOutboxStoreProvider storeProvider;
 

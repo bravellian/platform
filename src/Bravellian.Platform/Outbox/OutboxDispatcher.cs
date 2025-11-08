@@ -46,7 +46,7 @@ using Microsoft.Extensions.Logging;
 /// Dispatches outbox messages to their appropriate handlers.
 /// This is the core processing engine that claims messages, resolves handlers, and manages retries.
 /// </summary>
-public sealed class OutboxDispatcher
+internal sealed class OutboxDispatcher
 {
     private readonly IOutboxStore store;
     private readonly IOutboxHandlerResolver resolver;

@@ -21,12 +21,14 @@ using Microsoft.Extensions.Options;
 /// Provides access to multiple inbox work stores configured at startup.
 /// This implementation creates stores based on the provided options.
 /// </summary>
-public sealed class ConfiguredInboxWorkStoreProvider : IInboxWorkStoreProvider
+internal sealed class ConfiguredInboxWorkStoreProvider : IInboxWorkStoreProvider
 {
     private readonly IReadOnlyList<IInboxWorkStore> stores;
     private readonly IReadOnlyDictionary<IInboxWorkStore, string> storeIdentifiers;
     private readonly IReadOnlyDictionary<string, IInboxWorkStore> storesByKey;
     private readonly IReadOnlyDictionary<string, IInbox> inboxesByKey;
+    private readonly IReadOnlyList<SqlInboxOptions> inboxOptions;
+    private readonly ILogger<ConfiguredInboxWorkStoreProvider> logger;
 
     public ConfiguredInboxWorkStoreProvider(
         IEnumerable<SqlInboxOptions> inboxOptions,
@@ -36,8 +38,9 @@ public sealed class ConfiguredInboxWorkStoreProvider : IInboxWorkStoreProvider
         var identifiersDict = new Dictionary<IInboxWorkStore, string>();
         var keyDict = new Dictionary<string, IInboxWorkStore>();
         var inboxDict = new Dictionary<string, IInbox>();
+        var optionsList = inboxOptions.ToList();
 
-        foreach (var options in inboxOptions)
+        foreach (var options in optionsList)
         {
             var storeLogger = loggerFactory.CreateLogger<SqlInboxWorkStore>();
             var store = new SqlInboxWorkStore(
@@ -72,6 +75,56 @@ public sealed class ConfiguredInboxWorkStoreProvider : IInboxWorkStoreProvider
         this.storeIdentifiers = identifiersDict;
         this.storesByKey = keyDict;
         this.inboxesByKey = inboxDict;
+        this.inboxOptions = optionsList;
+        this.logger = loggerFactory.CreateLogger<ConfiguredInboxWorkStoreProvider>();
+    }
+
+    /// <summary>
+    /// Initializes the inbox work stores by deploying database schemas if enabled.
+    /// This method should be called after construction to ensure all databases are ready.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public async Task InitializeAsync(CancellationToken cancellationToken = default)
+    {
+        foreach (var options in this.inboxOptions)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (options.EnableSchemaDeployment)
+            {
+                var identifier = options.ConnectionString.Contains("Database=")
+                    ? ExtractDatabaseName(options.ConnectionString)
+                    : $"{options.SchemaName}.{options.TableName}";
+
+                try
+                {
+                    this.logger.LogInformation(
+                        "Deploying inbox schema for database: {Identifier}",
+                        identifier);
+
+                    await DatabaseSchemaManager.EnsureInboxSchemaAsync(
+                        options.ConnectionString,
+                        options.SchemaName,
+                        options.TableName).ConfigureAwait(false);
+
+                    await DatabaseSchemaManager.EnsureInboxWorkQueueSchemaAsync(
+                        options.ConnectionString,
+                        options.SchemaName).ConfigureAwait(false);
+
+                    this.logger.LogInformation(
+                        "Successfully deployed inbox schema for database: {Identifier}",
+                        identifier);
+                }
+                catch (Exception ex)
+                {
+                    this.logger.LogError(
+                        ex,
+                        "Failed to deploy inbox schema for database: {Identifier}. Store will be available but may fail on first use.",
+                        identifier);
+                }
+            }
+        }
     }
 
     /// <inheritdoc/>

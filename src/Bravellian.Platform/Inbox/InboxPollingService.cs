@@ -23,7 +23,7 @@ using Microsoft.Extensions.Logging;
 /// Waits for database schema deployment to complete before starting.
 /// Mirrors the OutboxPollingService implementation.
 /// </summary>
-public sealed class InboxPollingService : BackgroundService
+internal sealed class InboxPollingService : BackgroundService
 {
     private readonly InboxDispatcher dispatcher;
     private readonly IMonotonicClock mono;
