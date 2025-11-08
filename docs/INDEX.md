@@ -2,15 +2,10 @@
 
 Welcome to the comprehensive documentation for the Bravellian Platform. This guide will help you understand and effectively use all platform components.
 
-## 🚀 Start Here
+## 🚀 Getting Started
 
 - [**Getting Started Guide**](GETTING_STARTED.md) - **Start here if you're new!**
 - [Main README](../README.md) - Project overview and quick setup
-- [Architecture Overview](#architecture-overview) - System design and principles
-
-## 📚 Getting Started
-
-- [Main README](../README.md) - Quick start and overview
 - [Architecture Overview](#architecture-overview) - System design and principles
 - [Installation Guide](#installation) - Setup and configuration
 
