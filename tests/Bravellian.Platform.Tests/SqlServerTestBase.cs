@@ -74,6 +74,10 @@ public abstract class SqlServerTestBase : IAsyncLifetime
             await this.ExecuteSqlScript(connection, this.GetJobRunsTableScript());
             await this.ExecuteSqlScript(connection, this.GetSchedulerStateTableScript());
 
+            // Create stored procedures
+            await this.ExecuteSqlScript(connection, this.GetOutboxCleanupProcedure());
+            await this.ExecuteSqlScript(connection, this.GetInboxCleanupProcedure());
+
             this.TestOutputHelper.WriteLine($"Database schema created successfully on {connection.DataSource}");
         }
     }
@@ -108,6 +112,9 @@ CREATE TABLE dbo.Outbox (
     Payload NVARCHAR(MAX) NOT NULL,
     Topic NVARCHAR(255) NOT NULL,
     CreatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(),
+
+    -- Work Queue Status
+    Status TINYINT NOT NULL DEFAULT 0,
 
     -- Processing Status & Auditing
     IsProcessed BIT NOT NULL DEFAULT 0,
@@ -271,6 +278,46 @@ GO
 -- Index to find pending job runs that are due
 CREATE INDEX IX_JobRuns_GetNext ON dbo.JobRuns(Status, ScheduledTime)
     WHERE Status = 'Pending';
+GO";
+    }
+
+    private string GetOutboxCleanupProcedure()
+    {
+        return @"
+CREATE OR ALTER PROCEDURE dbo.Outbox_Cleanup
+    @RetentionSeconds INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @cutoffTime DATETIMEOFFSET = DATEADD(SECOND, -@RetentionSeconds, SYSDATETIMEOFFSET());
+    
+    DELETE FROM dbo.Outbox
+     WHERE IsProcessed = 1
+       AND ProcessedAt IS NOT NULL
+       AND ProcessedAt < @cutoffTime;
+       
+    SELECT @@ROWCOUNT AS DeletedCount;
+END
+GO";
+    }
+
+    private string GetInboxCleanupProcedure()
+    {
+        return @"
+CREATE OR ALTER PROCEDURE dbo.Inbox_Cleanup
+    @RetentionSeconds INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @cutoffTime DATETIME2(3) = DATEADD(SECOND, -@RetentionSeconds, SYSUTCDATETIME());
+    
+    DELETE FROM dbo.Inbox
+     WHERE Status = 'Done'
+       AND ProcessedUtc IS NOT NULL
+       AND ProcessedUtc < @cutoffTime;
+       
+    SELECT @@ROWCOUNT AS DeletedCount;
+END
 GO";
     }
 }

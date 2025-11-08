@@ -36,4 +36,24 @@ public class SqlOutboxOptions
     /// Defaults to true.
     /// </summary>
     public bool EnableSchemaDeployment { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets the retention period for processed outbox messages.
+    /// Messages older than this period will be deleted during cleanup.
+    /// Defaults to 7 days.
+    /// </summary>
+    public TimeSpan RetentionPeriod { get; set; } = TimeSpan.FromDays(7);
+
+    /// <summary>
+    /// Gets or sets a value indicating whether automatic cleanup of old processed messages is enabled.
+    /// When true, a background service will periodically delete processed messages older than RetentionPeriod.
+    /// Defaults to true.
+    /// </summary>
+    public bool EnableAutomaticCleanup { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets the interval at which the cleanup job runs.
+    /// Defaults to 1 hour.
+    /// </summary>
+    public TimeSpan CleanupInterval { get; set; } = TimeSpan.FromHours(1);
 }
