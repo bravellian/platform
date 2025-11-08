@@ -56,6 +56,13 @@ public sealed class InboxDatabaseConfig
     /// Gets or sets the table name for the inbox. Defaults to "Inbox".
     /// </summary>
     public string TableName { get; set; } = "Inbox";
+
+    /// <summary>
+    /// Gets or sets a value indicating whether database schema deployment should be performed automatically.
+    /// When true, the required database schema will be created/updated when the database is first discovered.
+    /// Defaults to true.
+    /// </summary>
+    public bool EnableSchemaDeployment { get; set; } = true;
 }
 
 /// <summary>
@@ -234,6 +241,9 @@ internal sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, I
             var configs = await this.discovery.DiscoverDatabasesAsync(cancellationToken).ConfigureAwait(false);
             var configList = configs.ToList();
 
+            // Track configurations that need schema deployment
+            var schemasToDeploy = new List<InboxDatabaseConfig>();
+
             lock (this.lockObject)
             {
                 // Track which identifiers we've seen in this refresh
@@ -258,6 +268,7 @@ internal sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, I
                                 ConnectionString = config.ConnectionString,
                                 SchemaName = config.SchemaName,
                                 TableName = config.TableName,
+                                EnableSchemaDeployment = config.EnableSchemaDeployment,
                             }),
                             storeLogger);
 
@@ -268,6 +279,7 @@ internal sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, I
                                 ConnectionString = config.ConnectionString,
                                 SchemaName = config.SchemaName,
                                 TableName = config.TableName,
+                                EnableSchemaDeployment = config.EnableSchemaDeployment,
                             }),
                             inboxLogger);
 
@@ -281,6 +293,12 @@ internal sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, I
 
                         this.storesByIdentifier[config.Identifier] = entry;
                         this.currentStores.Add(store);
+
+                        // Mark for schema deployment
+                        if (config.EnableSchemaDeployment)
+                        {
+                            schemasToDeploy.Add(config);
+                        }
                     }
                     else if (entry.Config.ConnectionString != config.ConnectionString ||
                              entry.Config.SchemaName != config.SchemaName ||
@@ -304,6 +322,7 @@ internal sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, I
                                 ConnectionString = config.ConnectionString,
                                 SchemaName = config.SchemaName,
                                 TableName = config.TableName,
+                                EnableSchemaDeployment = config.EnableSchemaDeployment,
                             }),
                             storeLogger);
 
@@ -314,6 +333,7 @@ internal sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, I
                                 ConnectionString = config.ConnectionString,
                                 SchemaName = config.SchemaName,
                                 TableName = config.TableName,
+                                EnableSchemaDeployment = config.EnableSchemaDeployment,
                             }),
                             inboxLogger);
 
@@ -322,6 +342,12 @@ internal sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, I
                         entry.Config = config;
 
                         this.currentStores.Add(store);
+
+                        // Mark for schema deployment
+                        if (config.EnableSchemaDeployment)
+                        {
+                            schemasToDeploy.Add(config);
+                        }
                     }
                 }
 
@@ -352,6 +378,39 @@ internal sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, I
                 this.logger.LogDebug(
                     "Discovery complete. Managing {Count} inbox databases",
                     this.storesByIdentifier.Count);
+            }
+
+            // Deploy schemas outside the lock for databases that need it
+            foreach (var config in schemasToDeploy)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                try
+                {
+                    this.logger.LogInformation(
+                        "Deploying inbox schema for database: {Identifier}",
+                        config.Identifier);
+
+                    await DatabaseSchemaManager.EnsureInboxSchemaAsync(
+                        config.ConnectionString,
+                        config.SchemaName,
+                        config.TableName).ConfigureAwait(false);
+
+                    await DatabaseSchemaManager.EnsureInboxWorkQueueSchemaAsync(
+                        config.ConnectionString,
+                        config.SchemaName).ConfigureAwait(false);
+
+                    this.logger.LogInformation(
+                        "Successfully deployed inbox schema for database: {Identifier}",
+                        config.Identifier);
+                }
+                catch (Exception ex)
+                {
+                    this.logger.LogError(
+                        ex,
+                        "Failed to deploy inbox schema for database: {Identifier}. Store will be available but may fail on first use.",
+                        config.Identifier);
+                }
             }
         }
         catch (Exception ex)

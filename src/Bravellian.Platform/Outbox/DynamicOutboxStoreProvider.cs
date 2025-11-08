@@ -56,6 +56,13 @@ public sealed class OutboxDatabaseConfig
     /// Gets or sets the table name for the outbox. Defaults to "Outbox".
     /// </summary>
     public string TableName { get; set; } = "Outbox";
+
+    /// <summary>
+    /// Gets or sets a value indicating whether database schema deployment should be performed automatically.
+    /// When true, the required database schema will be created/updated when the database is first discovered.
+    /// Defaults to true.
+    /// </summary>
+    public bool EnableSchemaDeployment { get; set; } = true;
 }
 
 /// <summary>
@@ -211,6 +218,9 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
             var configs = await this.discovery.DiscoverDatabasesAsync(cancellationToken).ConfigureAwait(false);
             var configList = configs.ToList();
 
+            // Track configurations that need schema deployment
+            var schemasToDeploy = new List<OutboxDatabaseConfig>();
+
             lock (this.lockObject)
             {
                 // Track which identifiers we've seen in this refresh
@@ -235,6 +245,7 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
                                 ConnectionString = config.ConnectionString,
                                 SchemaName = config.SchemaName,
                                 TableName = config.TableName,
+                                EnableSchemaDeployment = config.EnableSchemaDeployment,
                             }),
                             this.timeProvider,
                             storeLogger);
@@ -246,6 +257,7 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
                                 ConnectionString = config.ConnectionString,
                                 SchemaName = config.SchemaName,
                                 TableName = config.TableName,
+                                EnableSchemaDeployment = config.EnableSchemaDeployment,
                             }),
                             outboxLogger);
 
@@ -259,6 +271,12 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
 
                         this.storesByIdentifier[config.Identifier] = entry;
                         this.currentStores.Add(store);
+
+                        // Mark for schema deployment
+                        if (config.EnableSchemaDeployment)
+                        {
+                            schemasToDeploy.Add(config);
+                        }
                     }
                     else if (entry.Config.ConnectionString != config.ConnectionString ||
                              entry.Config.SchemaName != config.SchemaName ||
@@ -278,6 +296,7 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
                                 ConnectionString = config.ConnectionString,
                                 SchemaName = config.SchemaName,
                                 TableName = config.TableName,
+                                EnableSchemaDeployment = config.EnableSchemaDeployment,
                             }),
                             this.timeProvider,
                             storeLogger);
@@ -289,6 +308,7 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
                                 ConnectionString = config.ConnectionString,
                                 SchemaName = config.SchemaName,
                                 TableName = config.TableName,
+                                EnableSchemaDeployment = config.EnableSchemaDeployment,
                             }),
                             outboxLogger);
 
@@ -297,6 +317,12 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
                         entry.Config = config;
 
                         this.currentStores.Add(store);
+
+                        // Mark for schema deployment
+                        if (config.EnableSchemaDeployment)
+                        {
+                            schemasToDeploy.Add(config);
+                        }
                     }
                 }
 
@@ -319,6 +345,39 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
                 this.logger.LogDebug(
                     "Discovery complete. Managing {Count} outbox databases",
                     this.storesByIdentifier.Count);
+            }
+
+            // Deploy schemas outside the lock for databases that need it
+            foreach (var config in schemasToDeploy)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                try
+                {
+                    this.logger.LogInformation(
+                        "Deploying outbox schema for database: {Identifier}",
+                        config.Identifier);
+
+                    await DatabaseSchemaManager.EnsureOutboxSchemaAsync(
+                        config.ConnectionString,
+                        config.SchemaName,
+                        config.TableName).ConfigureAwait(false);
+
+                    await DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(
+                        config.ConnectionString,
+                        config.SchemaName).ConfigureAwait(false);
+
+                    this.logger.LogInformation(
+                        "Successfully deployed outbox schema for database: {Identifier}",
+                        config.Identifier);
+                }
+                catch (Exception ex)
+                {
+                    this.logger.LogError(
+                        ex,
+                        "Failed to deploy outbox schema for database: {Identifier}. Store will be available but may fail on first use.",
+                        config.Identifier);
+                }
             }
         }
         catch (Exception ex)
