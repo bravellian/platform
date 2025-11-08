@@ -75,13 +75,11 @@ public class ObservabilityRegistrationTests
         // Arrange
         var services = new ServiceCollection();
         services.AddLogging();
-        var alertReceived = false;
 
         // Act
         services.AddPlatformObservability()
             .AddWatchdogAlertSink((ctx, ct) =>
             {
-                alertReceived = true;
                 return Task.CompletedTask;
             });
 

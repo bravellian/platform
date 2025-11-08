@@ -111,7 +111,7 @@ internal sealed class WatchdogService : BackgroundService, IWatchdog
             {
                 break;
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
             {
                 this.logger.LogError(ex, "Watchdog scan failed.");
                 await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken).ConfigureAwait(false);
@@ -142,7 +142,7 @@ internal sealed class WatchdogService : BackgroundService, IWatchdog
                     cts.CancelAfter(TimeSpan.FromSeconds(5)); // Time-box callbacks
                     await sink.OnHeartbeatAsync(context, cts.Token).ConfigureAwait(false);
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
                 {
                     this.logger.LogWarning(ex, "Heartbeat sink failed.");
                 }
@@ -323,7 +323,7 @@ internal sealed class WatchdogService : BackgroundService, IWatchdog
                         cts.CancelAfter(TimeSpan.FromSeconds(5)); // Time-box callbacks
                         await sink.OnAlertAsync(context, cts.Token).ConfigureAwait(false);
                     }
-                    catch (Exception ex)
+                    catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
                     {
                         this.logger.LogWarning(ex, "Alert sink failed for alert {AlertKey}.", alert.Key);
                     }
@@ -337,17 +337,11 @@ internal sealed class WatchdogService : BackgroundService, IWatchdog
         }
 
         // Remove resolved alerts
-        foreach (var kvp in this.activeAlerts)
+        foreach (var kvp in this.activeAlerts.Where(kvp => !detectedKeys.Contains(kvp.Key)))
         {
-            if (!detectedKeys.Contains(kvp.Key))
+            if (this.activeAlerts.TryRemove(kvp.Key, out var removed) && opts.EnableLogging)
             {
-                if (this.activeAlerts.TryRemove(kvp.Key, out var removed))
-                {
-                    if (opts.EnableLogging)
-                    {
-                        this.logger.LogInformation("Watchdog alert resolved: {AlertKind} - {Message}", removed.Kind, removed.Message);
-                    }
-                }
+                this.logger.LogInformation("Watchdog alert resolved: {AlertKind} - {Message}", removed.Kind, removed.Message);
             }
         }
     }

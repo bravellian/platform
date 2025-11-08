@@ -109,6 +109,7 @@ public class WatchdogServiceTests
 
         cts.Cancel();
         await watchdog.StopAsync(default);
+        await watchdogTask; // Ensure background service has fully stopped
 
         // Assert
         heartbeatReceived.ShouldBeTrue();
@@ -165,6 +166,7 @@ public class WatchdogServiceTests
 
         cts.Cancel();
         await watchdog.StopAsync(default);
+        await watchdogTask; // Ensure background service has fully stopped
 
         // Assert
         receivedAlert.ShouldNotBeNull();

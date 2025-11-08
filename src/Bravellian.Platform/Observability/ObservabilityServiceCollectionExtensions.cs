@@ -15,6 +15,7 @@
 namespace Bravellian.Platform.Observability;
 
 using System;
+using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -36,6 +37,18 @@ public static class ObservabilityServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
+        // Check if already registered to prevent duplicate registrations
+        if (services.Any(d => d.ServiceType == typeof(IWatchdog)))
+        {
+            // Already registered, just configure if needed
+            if (configure != null)
+            {
+                services.Configure(configure);
+            }
+
+            return new ObservabilityBuilder(services);
+        }
+
         // Register options
         if (configure != null)
         {
@@ -52,6 +65,10 @@ public static class ObservabilityServiceCollectionExtensions
         // Register watchdog service
         services.TryAddSingleton<WatchdogService>();
         services.TryAddSingleton<IWatchdog>(sp => sp.GetRequiredService<WatchdogService>());
+        
+        // Register as IHostedService
+        // Note: Using AddSingleton instead of TryAddEnumerable because the watchdog service
+        // is already registered above and needs to be retrieved from DI
         services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<WatchdogService>());
 
         // Register health check

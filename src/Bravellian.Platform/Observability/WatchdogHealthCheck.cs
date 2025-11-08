@@ -83,7 +83,7 @@ internal sealed class WatchdogHealthCheck : IHealthCheck
             return Task.FromResult(HealthCheckResult.Healthy(
                 $"Watchdog is healthy. Last scan: {(now - snapshot.LastScanAt).TotalSeconds:F0}s ago."));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
         {
             return Task.FromResult(HealthCheckResult.Unhealthy("Failed to check watchdog health.", ex));
         }
