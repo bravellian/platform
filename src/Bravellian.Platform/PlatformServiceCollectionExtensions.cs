@@ -433,6 +433,11 @@ public static class PlatformServiceCollectionExtensions
 
     private static void RegisterMultiDatabaseFeatures(IServiceCollection services)
     {
+        // Get configuration to check if schema deployment is enabled
+        var configDescriptor = services.FirstOrDefault(d => d.ServiceType == typeof(PlatformConfiguration));
+        var config = configDescriptor?.ImplementationInstance as PlatformConfiguration;
+        var enableSchemaDeployment = config?.EnableSchemaDeployment ?? false;
+
         // For multi-database, use the multi-database registration methods with platform providers
         // These use store providers that can discover databases dynamically
         
@@ -442,7 +447,8 @@ public static class PlatformServiceCollectionExtensions
                 sp.GetRequiredService<IPlatformDatabaseDiscovery>(),
                 sp.GetRequiredService<TimeProvider>(),
                 sp.GetRequiredService<ILoggerFactory>(),
-                "Outbox"),
+                "Outbox",
+                enableSchemaDeployment),
             new RoundRobinOutboxSelectionStrategy());
         
         // Inbox
@@ -451,7 +457,8 @@ public static class PlatformServiceCollectionExtensions
                 sp.GetRequiredService<IPlatformDatabaseDiscovery>(),
                 sp.GetRequiredService<TimeProvider>(),
                 sp.GetRequiredService<ILoggerFactory>(),
-                "Inbox"),
+                "Inbox",
+                enableSchemaDeployment),
             new RoundRobinInboxSelectionStrategy());
         
         // Scheduler (Timers + Jobs)

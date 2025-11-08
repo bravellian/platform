@@ -25,22 +25,28 @@ internal sealed class PlatformOutboxStoreProvider : IOutboxStoreProvider
     private readonly IPlatformDatabaseDiscovery discovery;
     private readonly TimeProvider timeProvider;
     private readonly ILoggerFactory loggerFactory;
+    private readonly ILogger<PlatformOutboxStoreProvider> logger;
     private readonly string tableName;
     private readonly object lockObject = new();
     private IReadOnlyList<IOutboxStore>? cachedStores;
     private readonly Dictionary<string, IOutboxStore> storesByKey = new();
     private readonly Dictionary<string, IOutbox> outboxesByKey = new();
+    private readonly HashSet<string> schemasDeployed = new();
+    private readonly bool enableSchemaDeployment;
 
     public PlatformOutboxStoreProvider(
         IPlatformDatabaseDiscovery discovery,
         TimeProvider timeProvider,
         ILoggerFactory loggerFactory,
-        string tableName)
+        string tableName,
+        bool enableSchemaDeployment = true)
     {
         this.discovery = discovery;
         this.timeProvider = timeProvider;
         this.loggerFactory = loggerFactory;
+        this.logger = loggerFactory.CreateLogger<PlatformOutboxStoreProvider>();
         this.tableName = tableName;
+        this.enableSchemaDeployment = enableSchemaDeployment;
     }
 
     public IReadOnlyList<IOutboxStore> GetAllStores()
@@ -53,33 +59,78 @@ internal sealed class PlatformOutboxStoreProvider : IOutboxStoreProvider
                 {
                     var databases = this.discovery.DiscoverDatabasesAsync().GetAwaiter().GetResult();
                     var stores = new List<IOutboxStore>();
+                    var newDatabases = new List<PlatformDatabase>();
             
                     foreach (var db in databases)
-            {
-                var options = new SqlOutboxOptions
-                {
-                    ConnectionString = db.ConnectionString,
-                    SchemaName = db.SchemaName,
-                    TableName = this.tableName,
-                };
-                
-                var storeLogger = this.loggerFactory.CreateLogger<SqlOutboxStore>();
-                var store = new SqlOutboxStore(
-                    Options.Create(options),
-                    this.timeProvider,
-                    storeLogger);
-                
-                var outboxLogger = this.loggerFactory.CreateLogger<SqlOutboxService>();
-                var outbox = new SqlOutboxService(
-                    Options.Create(options),
-                    outboxLogger);
-                
-                    stores.Add(store);
-                    this.storesByKey[db.Name] = store;
-                    this.outboxesByKey[db.Name] = outbox;
-                }
+                    {
+                        var options = new SqlOutboxOptions
+                        {
+                            ConnectionString = db.ConnectionString,
+                            SchemaName = db.SchemaName,
+                            TableName = this.tableName,
+                        };
+                        
+                        var storeLogger = this.loggerFactory.CreateLogger<SqlOutboxStore>();
+                        var store = new SqlOutboxStore(
+                            Options.Create(options),
+                            this.timeProvider,
+                            storeLogger);
+                        
+                        var outboxLogger = this.loggerFactory.CreateLogger<SqlOutboxService>();
+                        var outbox = new SqlOutboxService(
+                            Options.Create(options),
+                            outboxLogger);
+                        
+                        stores.Add(store);
+                        this.storesByKey[db.Name] = store;
+                        this.outboxesByKey[db.Name] = outbox;
+
+                        // Track new databases for schema deployment
+                        if (this.enableSchemaDeployment && !this.schemasDeployed.Contains(db.Name))
+                        {
+                            newDatabases.Add(db);
+                            this.schemasDeployed.Add(db.Name);
+                        }
+                    }
             
-                this.cachedStores = stores;
+                    this.cachedStores = stores;
+
+                    // Deploy schemas for new databases outside the lock
+                    if (newDatabases.Count > 0)
+                    {
+                        Task.Run(async () =>
+                        {
+                            foreach (var db in newDatabases)
+                            {
+                                try
+                                {
+                                    this.logger.LogInformation(
+                                        "Deploying outbox schema for newly discovered database: {DatabaseName}",
+                                        db.Name);
+
+                                    await DatabaseSchemaManager.EnsureOutboxSchemaAsync(
+                                        db.ConnectionString,
+                                        db.SchemaName,
+                                        this.tableName).ConfigureAwait(false);
+
+                                    await DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(
+                                        db.ConnectionString,
+                                        db.SchemaName).ConfigureAwait(false);
+
+                                    this.logger.LogInformation(
+                                        "Successfully deployed outbox schema for database: {DatabaseName}",
+                                        db.Name);
+                                }
+                                catch (Exception ex)
+                                {
+                                    this.logger.LogError(
+                                        ex,
+                                        "Failed to deploy outbox schema for database: {DatabaseName}. Store may fail on first use.",
+                                        db.Name);
+                                }
+                            }
+                        }).ConfigureAwait(false);
+                    }
                 }
             }
         }
