@@ -17,7 +17,7 @@ namespace Bravellian.Platform;
 /// <summary>
 /// Resolves outbox handlers by topic name.
 /// </summary>
-public interface IOutboxHandlerResolver
+internal interface IOutboxHandlerResolver
 {
     /// <summary>
     /// Attempts to get a handler for the specified topic.

@@ -524,7 +524,7 @@ public static class SchedulerServiceCollectionExtensions
     /// <param name="storeProviderFactory">Factory function to create the store provider.</param>
     /// <param name="selectionStrategy">Optional selection strategy. Defaults to RoundRobinInboxSelectionStrategy.</param>
     /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
-    public static IServiceCollection AddMultiSqlInbox(
+    internal static IServiceCollection AddMultiSqlInbox(
         this IServiceCollection services,
         Func<IServiceProvider, IInboxWorkStoreProvider> storeProviderFactory,
         IInboxSelectionStrategy? selectionStrategy = null)
@@ -773,7 +773,7 @@ public static class SchedulerServiceCollectionExtensions
     /// <param name="storeProviderFactory">Factory function to create the store provider.</param>
     /// <param name="selectionStrategy">Optional selection strategy. Defaults to RoundRobinOutboxSelectionStrategy.</param>
     /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
-    public static IServiceCollection AddMultiSqlOutbox(
+    internal static IServiceCollection AddMultiSqlOutbox(
         this IServiceCollection services,
         Func<IServiceProvider, IOutboxStoreProvider> storeProviderFactory,
         IOutboxSelectionStrategy? selectionStrategy = null)

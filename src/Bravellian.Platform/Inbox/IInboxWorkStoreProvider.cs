@@ -19,7 +19,7 @@ namespace Bravellian.Platform;
 /// This abstraction allows the system to poll and process messages from multiple customer
 /// databases, each with their own inbox table.
 /// </summary>
-public interface IInboxWorkStoreProvider
+internal interface IInboxWorkStoreProvider
 {
     /// <summary>
     /// Gets all available inbox work stores that should be processed.

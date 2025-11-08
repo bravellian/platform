@@ -63,7 +63,7 @@ public sealed class OutboxDatabaseConfig
 /// This implementation queries an IOutboxDatabaseDiscovery service to detect new or
 /// removed databases and manages the lifecycle of outbox stores accordingly.
 /// </summary>
-public sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDisposable
+internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDisposable
 {
     private readonly IOutboxDatabaseDiscovery discovery;
     private readonly TimeProvider timeProvider;

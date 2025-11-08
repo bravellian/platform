@@ -63,7 +63,7 @@ public sealed class InboxDatabaseConfig
 /// This implementation queries an IInboxDatabaseDiscovery service to detect new or
 /// removed databases and manages the lifecycle of inbox work stores accordingly.
 /// </summary>
-public sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, IDisposable
+internal sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, IDisposable
 {
     private readonly IInboxDatabaseDiscovery discovery;
     private readonly TimeProvider timeProvider;

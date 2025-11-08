@@ -21,7 +21,7 @@ using Microsoft.Extensions.Options;
 /// Provides access to multiple outbox stores configured at startup.
 /// This implementation creates stores based on the provided options.
 /// </summary>
-public sealed class ConfiguredOutboxStoreProvider : IOutboxStoreProvider
+internal sealed class ConfiguredOutboxStoreProvider : IOutboxStoreProvider
 {
     private readonly IReadOnlyList<IOutboxStore> stores;
     private readonly IReadOnlyDictionary<IOutboxStore, string> storeIdentifiers;

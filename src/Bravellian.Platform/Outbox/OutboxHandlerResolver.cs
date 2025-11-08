@@ -20,7 +20,7 @@ using System.Linq;
 /// <summary>
 /// Default implementation of IOutboxHandlerResolver that maps handlers by topic.
 /// </summary>
-public sealed class OutboxHandlerResolver : IOutboxHandlerResolver
+internal sealed class OutboxHandlerResolver : IOutboxHandlerResolver
 {
     private readonly IReadOnlyDictionary<string, IOutboxHandler> byTopic;
 
