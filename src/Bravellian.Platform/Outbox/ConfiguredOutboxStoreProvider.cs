@@ -27,6 +27,8 @@ public sealed class ConfiguredOutboxStoreProvider : IOutboxStoreProvider
     private readonly IReadOnlyDictionary<IOutboxStore, string> storeIdentifiers;
     private readonly IReadOnlyDictionary<string, IOutboxStore> storesByKey;
     private readonly IReadOnlyDictionary<string, IOutbox> outboxesByKey;
+    private readonly IReadOnlyList<SqlOutboxOptions> outboxOptions;
+    private readonly ILogger<ConfiguredOutboxStoreProvider> logger;
 
     public ConfiguredOutboxStoreProvider(
         IEnumerable<SqlOutboxOptions> outboxOptions,
@@ -37,8 +39,9 @@ public sealed class ConfiguredOutboxStoreProvider : IOutboxStoreProvider
         var identifiersDict = new Dictionary<IOutboxStore, string>();
         var keyDict = new Dictionary<string, IOutboxStore>();
         var outboxDict = new Dictionary<string, IOutbox>();
+        var optionsList = outboxOptions.ToList();
 
-        foreach (var options in outboxOptions)
+        foreach (var options in optionsList)
         {
             var storeLogger = loggerFactory.CreateLogger<SqlOutboxStore>();
             var store = new SqlOutboxStore(
@@ -67,6 +70,58 @@ public sealed class ConfiguredOutboxStoreProvider : IOutboxStoreProvider
         this.storeIdentifiers = identifiersDict;
         this.storesByKey = keyDict;
         this.outboxesByKey = outboxDict;
+        this.outboxOptions = optionsList;
+        this.logger = loggerFactory.CreateLogger<ConfiguredOutboxStoreProvider>();
+    }
+
+    /// <summary>
+    /// Initializes the outbox stores by deploying database schemas if enabled.
+    /// This method should be called after construction to ensure all databases are ready.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public async Task InitializeAsync(CancellationToken cancellationToken = default)
+    {
+        foreach (var options in this.outboxOptions)
+        {
+            if (options.EnableSchemaDeployment)
+            {
+                try
+                {
+                    var identifier = options.ConnectionString.Contains("Database=")
+                        ? ExtractDatabaseName(options.ConnectionString)
+                        : $"{options.SchemaName}.{options.TableName}";
+
+                    this.logger.LogInformation(
+                        "Deploying outbox schema for database: {Identifier}",
+                        identifier);
+
+                    await DatabaseSchemaManager.EnsureOutboxSchemaAsync(
+                        options.ConnectionString,
+                        options.SchemaName,
+                        options.TableName).ConfigureAwait(false);
+
+                    await DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(
+                        options.ConnectionString,
+                        options.SchemaName).ConfigureAwait(false);
+
+                    this.logger.LogInformation(
+                        "Successfully deployed outbox schema for database: {Identifier}",
+                        identifier);
+                }
+                catch (Exception ex)
+                {
+                    var identifier = options.ConnectionString.Contains("Database=")
+                        ? ExtractDatabaseName(options.ConnectionString)
+                        : $"{options.SchemaName}.{options.TableName}";
+
+                    this.logger.LogError(
+                        ex,
+                        "Failed to deploy outbox schema for database: {Identifier}. Store will be available but may fail on first use.",
+                        identifier);
+                }
+            }
+        }
     }
 
     /// <inheritdoc/>
