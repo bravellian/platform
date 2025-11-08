@@ -103,9 +103,11 @@ public class WatchdogServiceTests
         // Act
         var watchdogTask = watchdog.StartAsync(cts.Token);
         
-        // Advance time to trigger heartbeat
+        // Advance time to trigger heartbeat (HeartbeatPeriod is 10s)
         fakeTime.Advance(TimeSpan.FromSeconds(11));
-        await Task.Delay(100); // Give the service time to process
+        
+        // Give the service a moment to process (minimal real time needed)
+        await Task.Delay(50);
 
         cts.Cancel();
         await watchdog.StopAsync(default);

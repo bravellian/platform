@@ -105,7 +105,8 @@ internal sealed class WatchdogService : BackgroundService, IWatchdog
                 var jitter = baseDelay * 0.1 * (random.NextDouble() * 2 - 1); // -10% to +10%
                 var delay = TimeSpan.FromMilliseconds(baseDelay + jitter);
 
-                await Task.Delay(delay, stoppingToken).ConfigureAwait(false);
+                // Use TimeProvider-aware delay that works with FakeTimeProvider
+                await this.DelayAsync(delay, stoppingToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -114,9 +115,39 @@ internal sealed class WatchdogService : BackgroundService, IWatchdog
             catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
             {
                 this.logger.LogError(ex, "Watchdog scan failed.");
-                await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken).ConfigureAwait(false);
+                await this.DelayAsync(TimeSpan.FromSeconds(5), stoppingToken).ConfigureAwait(false);
             }
         }
+    }
+
+    private Task DelayAsync(TimeSpan delay, CancellationToken cancellationToken)
+    {
+        // Use TimeProvider.CreateTimer to create a delay that respects fake time
+        var tcs = new TaskCompletionSource<bool>();
+        
+        // Register cancellation
+        var registration = cancellationToken.Register(() => tcs.TrySetCanceled(cancellationToken));
+
+        // Create timer that will complete the task after the delay
+        var timer = this.timeProvider.CreateTimer(
+            _ =>
+            {
+                tcs.TrySetResult(true);
+            },
+            null,
+            delay,
+            Timeout.InfiniteTimeSpan);
+
+        // Clean up when task completes
+        _ = tcs.Task.ContinueWith(
+            _ =>
+            {
+                timer.Dispose();
+                registration.Dispose();
+            },
+            TaskScheduler.Default);
+
+        return tcs.Task;
     }
 
     private async Task EmitHeartbeatIfDueAsync(CancellationToken cancellationToken)
