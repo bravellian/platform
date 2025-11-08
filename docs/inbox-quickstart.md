@@ -228,7 +228,7 @@ public class RabbitMQConsumer : BackgroundService
         _channel = _connection.CreateModel();
         _channel.BasicQos(0, 10, false); // Prefetch 10 messages
 
-        var consumer = new EventingBasicConsumer(_channel);
+        var consumer = new AsyncEventingBasicConsumer(_channel);
         consumer.Received += async (sender, ea) =>
         {
             try

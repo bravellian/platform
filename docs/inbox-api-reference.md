@@ -766,30 +766,55 @@ public async Task ProcessMessageAsync(
 ### RabbitMQ
 
 ```csharp
-private void OnMessageReceived(object sender, BasicDeliverEventArgs ea)
+public class RabbitMQConsumer : BackgroundService
 {
-    var messageId = ea.BasicProperties.MessageId;
-    var body = Encoding.UTF8.GetString(ea.Body.ToArray());
-    
-    var alreadyProcessed = await _inbox.AlreadyProcessedAsync(messageId, "RabbitMQ");
-    
-    if (alreadyProcessed)
+    private readonly IInbox _inbox;
+    private readonly IMessageHandler _handler;
+    private readonly IConnection _connection;
+    private IModel _channel;
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _channel.BasicAck(ea.DeliveryTag, false);
-        return;
+        _channel = _connection.CreateModel();
+        _channel.BasicQos(0, 10, false); // Prefetch 10 messages
+
+        // Use AsyncEventingBasicConsumer for proper async support
+        var consumer = new AsyncEventingBasicConsumer(_channel);
+        consumer.Received += OnMessageReceivedAsync;
+
+        _channel.BasicConsume(
+            queue: "inbox-messages",
+            autoAck: false,
+            consumer: consumer);
+
+        await Task.Delay(Timeout.Infinite, stoppingToken);
     }
-    
-    await _inbox.MarkProcessingAsync(messageId);
-    
-    try
+
+    private async Task OnMessageReceivedAsync(object sender, BasicDeliverEventArgs ea)
     {
-        await _handler.HandleAsync(body, CancellationToken.None);
-        await _inbox.MarkProcessedAsync(messageId);
-        _channel.BasicAck(ea.DeliveryTag, false);
-    }
-    catch
-    {
-        _channel.BasicNack(ea.DeliveryTag, false, requeue: false);
+        var messageId = ea.BasicProperties.MessageId;
+        var body = Encoding.UTF8.GetString(ea.Body.ToArray());
+        
+        var alreadyProcessed = await _inbox.AlreadyProcessedAsync(messageId, "RabbitMQ");
+        
+        if (alreadyProcessed)
+        {
+            _channel.BasicAck(ea.DeliveryTag, false);
+            return;
+        }
+        
+        await _inbox.MarkProcessingAsync(messageId);
+        
+        try
+        {
+            await _handler.HandleAsync(body, CancellationToken.None);
+            await _inbox.MarkProcessedAsync(messageId);
+            _channel.BasicAck(ea.DeliveryTag, false);
+        }
+        catch
+        {
+            _channel.BasicNack(ea.DeliveryTag, false, requeue: false);
+        }
     }
 }
 ```
