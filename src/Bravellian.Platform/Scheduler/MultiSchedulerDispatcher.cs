@@ -28,7 +28,6 @@ public sealed class MultiSchedulerDispatcher
     private readonly ISystemLeaseFactory leaseFactory;
     private readonly TimeProvider timeProvider;
     private readonly ILogger<MultiSchedulerDispatcher> logger;
-    private readonly TimeSpan maxWaitTime = TimeSpan.FromSeconds(30);
 
     private ISchedulerStore? lastProcessedStore;
     private int lastProcessedCount;
@@ -64,18 +63,21 @@ public sealed class MultiSchedulerDispatcher
         }
 
         // Use the selection strategy to pick the next store
-        // Note: We're reusing the outbox selection strategy interface here
-        // by treating scheduler stores as if they were outbox stores for selection purposes
-        var selectedStore = this.selectionStrategy.SelectNext(
-            stores.Cast<object>().ToList() as IReadOnlyList<IOutboxStore> ?? new List<IOutboxStore>(),
-            this.lastProcessedStore as IOutboxStore,
-            this.lastProcessedCount) as ISchedulerStore;
-
-        if (selectedStore == null)
+        // Note: The selection strategy is designed for IOutboxStore, so we fall back to round-robin
+        // since we cannot properly cast scheduler stores to outbox stores
+        var selectedStore = this.lastProcessedStore;
+        
+        if (selectedStore == null || stores.Count == 1)
         {
-            // If strategy returned null, just round-robin through stores
+            // First time or only one store - pick the first one
+            selectedStore = stores[0];
+        }
+        else
+        {
+            // Round-robin through stores for now
+            // TODO: Create an ISelectionStrategy<T> to properly support pluggable strategies
             var storesList = stores as List<ISchedulerStore> ?? stores.ToList();
-            var index = this.lastProcessedStore != null ? storesList.IndexOf(this.lastProcessedStore) : -1;
+            var index = storesList.IndexOf(this.lastProcessedStore!);
             selectedStore = storesList[(index + 1) % storesList.Count];
         }
 

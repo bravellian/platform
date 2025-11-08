@@ -624,14 +624,16 @@ public static class SchedulerServiceCollectionExtensions
         // Add system leases - we need at least one lease factory for multi-scheduler
         // Use the first scheduler's connection for the lease system
         var firstScheduler = schedulerOptions.FirstOrDefault();
-        if (firstScheduler != null)
+        if (firstScheduler == null)
         {
-            services.AddSystemLeases(new SystemLeaseOptions
-            {
-                ConnectionString = firstScheduler.ConnectionString,
-                SchemaName = firstScheduler.SchemaName,
-            });
+            throw new InvalidOperationException("At least one scheduler must be configured. The schedulerOptions collection is empty.");
         }
+
+        services.AddSystemLeases(new SystemLeaseOptions
+        {
+            ConnectionString = firstScheduler.ConnectionString,
+            SchemaName = firstScheduler.SchemaName,
+        });
 
         // Register shared components
         services.AddSingleton<MultiSchedulerDispatcher>();

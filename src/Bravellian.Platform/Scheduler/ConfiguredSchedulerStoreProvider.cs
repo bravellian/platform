@@ -33,7 +33,6 @@ public sealed class ConfiguredSchedulerStoreProvider : ISchedulerStoreProvider
     {
         foreach (var config in configs)
         {
-            var storeLogger = loggerFactory.CreateLogger<SqlSchedulerStore>();
             var store = new SqlSchedulerStore(
                 Options.Create(new SqlSchedulerOptions
                 {
@@ -45,7 +44,6 @@ public sealed class ConfiguredSchedulerStoreProvider : ISchedulerStoreProvider
                 }),
                 timeProvider);
 
-            var clientLogger = loggerFactory.CreateLogger<SqlSchedulerClient>();
             var client = new SqlSchedulerClient(
                 Options.Create(new SqlSchedulerOptions
                 {

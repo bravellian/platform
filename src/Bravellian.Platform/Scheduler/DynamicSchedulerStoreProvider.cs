@@ -44,6 +44,7 @@ public sealed class DynamicSchedulerStoreProvider : ISchedulerStoreProvider, IDi
     private readonly ILoggerFactory loggerFactory;
     private readonly ILogger<DynamicSchedulerStoreProvider> logger;
     private readonly object lockObject = new();
+    private readonly SemaphoreSlim refreshSemaphore = new(1, 1);
     private readonly Dictionary<string, StoreEntry> storesByIdentifier = new();
     private readonly List<ISchedulerStore> currentStores = new();
     private DateTimeOffset lastRefresh = DateTimeOffset.MinValue;
@@ -98,16 +99,28 @@ public sealed class DynamicSchedulerStoreProvider : ISchedulerStoreProvider, IDi
 
         if (needsRefresh)
         {
-            await this.RefreshStoresAsync(cancellationToken).ConfigureAwait(false);
-            lock (this.lockObject)
+            // Use semaphore to ensure only one thread performs refresh
+            if (await this.refreshSemaphore.WaitAsync(0, cancellationToken).ConfigureAwait(false))
             {
-                this.lastRefresh = now;
+                try
+                {
+                    await this.RefreshStoresAsync(cancellationToken).ConfigureAwait(false);
+                    lock (this.lockObject)
+                    {
+                        this.lastRefresh = now;
+                    }
+                }
+                finally
+                {
+                    this.refreshSemaphore.Release();
+                }
             }
         }
 
         lock (this.lockObject)
         {
-            return this.currentStores;
+            // Return defensive copy to prevent external mutation
+            return this.currentStores.ToList();
         }
     }
 
@@ -191,6 +204,8 @@ public sealed class DynamicSchedulerStoreProvider : ISchedulerStoreProvider, IDi
             this.storesByIdentifier.Clear();
             this.currentStores.Clear();
         }
+
+        this.refreshSemaphore?.Dispose();
     }
 
     private async Task RefreshStoresAsync(CancellationToken cancellationToken)
@@ -218,7 +233,6 @@ public sealed class DynamicSchedulerStoreProvider : ISchedulerStoreProvider, IDi
                             "Discovered new scheduler database: {Identifier}",
                             config.Identifier);
 
-                        var storeLogger = this.loggerFactory.CreateLogger<SqlSchedulerStore>();
                         var store = new SqlSchedulerStore(
                             Options.Create(new SqlSchedulerOptions
                             {
@@ -230,7 +244,6 @@ public sealed class DynamicSchedulerStoreProvider : ISchedulerStoreProvider, IDi
                             }),
                             this.timeProvider);
 
-                        var clientLogger = this.loggerFactory.CreateLogger<SqlSchedulerClient>();
                         var client = new SqlSchedulerClient(
                             Options.Create(new SqlSchedulerOptions
                             {
@@ -277,7 +290,6 @@ public sealed class DynamicSchedulerStoreProvider : ISchedulerStoreProvider, IDi
 
                         this.currentStores.Remove(entry.Store);
 
-                        var storeLogger = this.loggerFactory.CreateLogger<SqlSchedulerStore>();
                         var store = new SqlSchedulerStore(
                             Options.Create(new SqlSchedulerOptions
                             {
@@ -289,7 +301,6 @@ public sealed class DynamicSchedulerStoreProvider : ISchedulerStoreProvider, IDi
                             }),
                             this.timeProvider);
 
-                        var clientLogger = this.loggerFactory.CreateLogger<SqlSchedulerClient>();
                         var client = new SqlSchedulerClient(
                             Options.Create(new SqlSchedulerOptions
                             {
