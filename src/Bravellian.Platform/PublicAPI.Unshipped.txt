@@ -325,7 +325,8 @@ Bravellian.Platform.SystemLeaseOptions.EnableSchemaDeployment.set -> void
 ~override Bravellian.Platform.LeaseRenewResult.Equals(object obj) -> bool
 ~override Bravellian.Platform.LeaseRenewResult.ToString() -> string
 ~override Bravellian.Platform.MonoDeadline.Equals(object obj) -> bool
-~override Bravellian.Platform.MonoDeadline.ToString() -> stringBravellian.Platform.ILeaseDatabaseDiscovery
+~override Bravellian.Platform.MonoDeadline.ToString() -> string
+Bravellian.Platform.ILeaseDatabaseDiscovery
 Bravellian.Platform.ILeaseDatabaseDiscovery.DiscoverDatabasesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<Bravellian.Platform.LeaseDatabaseConfig!>!>!
 Bravellian.Platform.ILeaseFactoryProvider
 Bravellian.Platform.ILeaseFactoryProvider.GetAllFactories() -> System.Collections.Generic.IReadOnlyList<Bravellian.Platform.ISystemLeaseFactory!>!
