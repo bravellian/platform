@@ -15,32 +15,22 @@
 namespace Bravellian.Platform;
 
 /// <summary>
-/// Internal configuration state tracking platform registration.
+/// Configuration options for the platform control plane database.
 /// </summary>
-internal sealed class PlatformConfiguration
+public sealed class PlatformControlPlaneOptions
 {
     /// <summary>
-    /// Gets the selected environment style.
+    /// Gets or initializes the connection string for the control plane database.
     /// </summary>
-    public required PlatformEnvironmentStyle EnvironmentStyle { get; init; }
+    public required string ConnectionString { get; init; }
 
     /// <summary>
-    /// Gets whether database discovery is used (true) or a static list (false).
+    /// Gets or initializes the schema name for platform tables in the control plane database (default: "dbo").
     /// </summary>
-    public required bool UsesDiscovery { get; init; }
+    public string SchemaName { get; init; } = "dbo";
 
     /// <summary>
-    /// Gets the control plane connection string if configured.
-    /// </summary>
-    public string? ControlPlaneConnectionString { get; init; }
-
-    /// <summary>
-    /// Gets the control plane schema name if configured (default: "dbo").
-    /// </summary>
-    public string? ControlPlaneSchemaName { get; init; }
-
-    /// <summary>
-    /// Gets whether schema deployment is enabled for platform tables.
+    /// Gets or initializes whether to automatically create platform tables and procedures at startup.
     /// </summary>
     public bool EnableSchemaDeployment { get; init; }
 }
