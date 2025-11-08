@@ -364,3 +364,121 @@ static Bravellian.Platform.PlatformServiceCollectionExtensions.AddPlatformMultiD
 static Bravellian.Platform.PlatformServiceCollectionExtensions.AddPlatformMultiDatabaseWithDiscovery(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, bool enableSchemaDeployment = false) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Bravellian.Platform.PlatformServiceCollectionExtensions.AddPlatformMultiDatabaseWithList(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Collections.Generic.IEnumerable<Bravellian.Platform.PlatformDatabase!>! databases, bool enableSchemaDeployment = false) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Bravellian.Platform.PlatformServiceCollectionExtensions.AddPlatformSingleDatabase(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! connectionString, string! databaseName = "default", string! schemaName = "dbo", bool enableSchemaDeployment = false) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+Bravellian.Platform.Observability.ActiveAlert
+Bravellian.Platform.Observability.ActiveAlert.<Clone>$() -> Bravellian.Platform.Observability.ActiveAlert!
+Bravellian.Platform.Observability.ActiveAlert.ActiveAlert(Bravellian.Platform.Observability.WatchdogAlertKind Kind, string! Component, string! Key, string! Message, System.DateTimeOffset FirstSeenAt, System.DateTimeOffset LastSeenAt, System.Collections.Generic.IReadOnlyDictionary<string!, object?>! Attributes) -> void
+Bravellian.Platform.Observability.ActiveAlert.Attributes.get -> System.Collections.Generic.IReadOnlyDictionary<string!, object?>!
+Bravellian.Platform.Observability.ActiveAlert.Component.get -> string!
+Bravellian.Platform.Observability.ActiveAlert.Deconstruct(out Bravellian.Platform.Observability.WatchdogAlertKind Kind, out string! Component, out string! Key, out string! Message, out System.DateTimeOffset FirstSeenAt, out System.DateTimeOffset LastSeenAt, out System.Collections.Generic.IReadOnlyDictionary<string!, object?>! Attributes) -> void
+Bravellian.Platform.Observability.ActiveAlert.Equals(Bravellian.Platform.Observability.ActiveAlert? other) -> bool
+Bravellian.Platform.Observability.ActiveAlert.FirstSeenAt.get -> System.DateTimeOffset
+Bravellian.Platform.Observability.ActiveAlert.Key.get -> string!
+Bravellian.Platform.Observability.ActiveAlert.Kind.get -> Bravellian.Platform.Observability.WatchdogAlertKind
+Bravellian.Platform.Observability.ActiveAlert.LastSeenAt.get -> System.DateTimeOffset
+Bravellian.Platform.Observability.ActiveAlert.Message.get -> string!
+Bravellian.Platform.Observability.HeartbeatContext
+Bravellian.Platform.Observability.HeartbeatContext.<Clone>$() -> Bravellian.Platform.Observability.HeartbeatContext!
+Bravellian.Platform.Observability.HeartbeatContext.Deconstruct(out System.DateTimeOffset Timestamp, out long SequenceNumber) -> void
+Bravellian.Platform.Observability.HeartbeatContext.Equals(Bravellian.Platform.Observability.HeartbeatContext? other) -> bool
+Bravellian.Platform.Observability.HeartbeatContext.HeartbeatContext(System.DateTimeOffset Timestamp, long SequenceNumber) -> void
+Bravellian.Platform.Observability.HeartbeatContext.SequenceNumber.get -> long
+Bravellian.Platform.Observability.HeartbeatContext.Timestamp.get -> System.DateTimeOffset
+Bravellian.Platform.Observability.IHeartbeatSink
+Bravellian.Platform.Observability.IHeartbeatSink.OnHeartbeatAsync(Bravellian.Platform.Observability.HeartbeatContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Bravellian.Platform.Observability.IInboxState
+Bravellian.Platform.Observability.IInboxState.GetStuckMessagesAsync(System.TimeSpan threshold, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<(string! MessageId, string! Queue, System.DateTimeOffset ReceivedAt)>!>!
+Bravellian.Platform.Observability.IOutboxState
+Bravellian.Platform.Observability.IOutboxState.GetStuckMessagesAsync(System.TimeSpan threshold, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<(string! MessageId, string! Queue, System.DateTimeOffset CreatedAt)>!>!
+Bravellian.Platform.Observability.IProcessingState
+Bravellian.Platform.Observability.IProcessingState.GetIdleProcessorsAsync(System.TimeSpan threshold, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<(string! ProcessorId, string! Component, System.DateTimeOffset LastActivityAt)>!>!
+Bravellian.Platform.Observability.ISchedulerState
+Bravellian.Platform.Observability.ISchedulerState.GetOverdueJobsAsync(System.TimeSpan threshold, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<(string! JobId, System.DateTimeOffset DueTime)>!>!
+Bravellian.Platform.Observability.IWatchdog
+Bravellian.Platform.Observability.IWatchdog.GetSnapshot() -> Bravellian.Platform.Observability.WatchdogSnapshot!
+Bravellian.Platform.Observability.IWatchdogAlertSink
+Bravellian.Platform.Observability.IWatchdogAlertSink.OnAlertAsync(Bravellian.Platform.Observability.WatchdogAlertContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Bravellian.Platform.Observability.ObservabilityBuilder
+Bravellian.Platform.Observability.ObservabilityBuilder.AddHeartbeatSink(Bravellian.Platform.Observability.IHeartbeatSink! sink) -> Bravellian.Platform.Observability.ObservabilityBuilder!
+Bravellian.Platform.Observability.ObservabilityBuilder.AddHeartbeatSink(System.Func<Bravellian.Platform.Observability.HeartbeatContext!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! handler) -> Bravellian.Platform.Observability.ObservabilityBuilder!
+Bravellian.Platform.Observability.ObservabilityBuilder.AddHeartbeatSink(System.Func<System.IServiceProvider!, Bravellian.Platform.Observability.IHeartbeatSink!>! factory) -> Bravellian.Platform.Observability.ObservabilityBuilder!
+Bravellian.Platform.Observability.ObservabilityBuilder.AddPlatformHealthChecks() -> Bravellian.Platform.Observability.ObservabilityBuilder!
+Bravellian.Platform.Observability.ObservabilityBuilder.AddWatchdogAlertSink(Bravellian.Platform.Observability.IWatchdogAlertSink! sink) -> Bravellian.Platform.Observability.ObservabilityBuilder!
+Bravellian.Platform.Observability.ObservabilityBuilder.AddWatchdogAlertSink(System.Func<Bravellian.Platform.Observability.WatchdogAlertContext!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! handler) -> Bravellian.Platform.Observability.ObservabilityBuilder!
+Bravellian.Platform.Observability.ObservabilityBuilder.AddWatchdogAlertSink(System.Func<System.IServiceProvider!, Bravellian.Platform.Observability.IWatchdogAlertSink!>! factory) -> Bravellian.Platform.Observability.ObservabilityBuilder!
+Bravellian.Platform.Observability.ObservabilityBuilder.ObservabilityBuilder(Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> void
+Bravellian.Platform.Observability.ObservabilityBuilder.Services.get -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+Bravellian.Platform.Observability.ObservabilityOptions
+Bravellian.Platform.Observability.ObservabilityOptions.EnableLogging.get -> bool
+Bravellian.Platform.Observability.ObservabilityOptions.EnableLogging.set -> void
+Bravellian.Platform.Observability.ObservabilityOptions.EnableMetrics.get -> bool
+Bravellian.Platform.Observability.ObservabilityOptions.EnableMetrics.set -> void
+Bravellian.Platform.Observability.ObservabilityOptions.MetricsPrefix.get -> string!
+Bravellian.Platform.Observability.ObservabilityOptions.MetricsPrefix.set -> void
+Bravellian.Platform.Observability.ObservabilityOptions.ObservabilityOptions() -> void
+Bravellian.Platform.Observability.ObservabilityOptions.Watchdog.get -> Bravellian.Platform.Observability.WatchdogOptions!
+Bravellian.Platform.Observability.ObservabilityOptions.Watchdog.set -> void
+Bravellian.Platform.Observability.WatchdogAlertContext
+Bravellian.Platform.Observability.WatchdogAlertContext.<Clone>$() -> Bravellian.Platform.Observability.WatchdogAlertContext!
+Bravellian.Platform.Observability.WatchdogAlertContext.Attributes.get -> System.Collections.Generic.IReadOnlyDictionary<string!, object?>!
+Bravellian.Platform.Observability.WatchdogAlertContext.Component.get -> string!
+Bravellian.Platform.Observability.WatchdogAlertContext.Deconstruct(out Bravellian.Platform.Observability.WatchdogAlertKind Kind, out string! Component, out string! Key, out string! Message, out System.DateTimeOffset FirstSeenAt, out System.DateTimeOffset LastSeenAt, out System.Collections.Generic.IReadOnlyDictionary<string!, object?>! Attributes) -> void
+Bravellian.Platform.Observability.WatchdogAlertContext.Equals(Bravellian.Platform.Observability.WatchdogAlertContext? other) -> bool
+Bravellian.Platform.Observability.WatchdogAlertContext.FirstSeenAt.get -> System.DateTimeOffset
+Bravellian.Platform.Observability.WatchdogAlertContext.Key.get -> string!
+Bravellian.Platform.Observability.WatchdogAlertContext.Kind.get -> Bravellian.Platform.Observability.WatchdogAlertKind
+Bravellian.Platform.Observability.WatchdogAlertContext.LastSeenAt.get -> System.DateTimeOffset
+Bravellian.Platform.Observability.WatchdogAlertContext.Message.get -> string!
+Bravellian.Platform.Observability.WatchdogAlertContext.WatchdogAlertContext(Bravellian.Platform.Observability.WatchdogAlertKind Kind, string! Component, string! Key, string! Message, System.DateTimeOffset FirstSeenAt, System.DateTimeOffset LastSeenAt, System.Collections.Generic.IReadOnlyDictionary<string!, object?>! Attributes) -> void
+Bravellian.Platform.Observability.WatchdogAlertKind
+Bravellian.Platform.Observability.WatchdogAlertKind.HeartbeatStale = 4 -> Bravellian.Platform.Observability.WatchdogAlertKind
+Bravellian.Platform.Observability.WatchdogAlertKind.OverdueJob = 0 -> Bravellian.Platform.Observability.WatchdogAlertKind
+Bravellian.Platform.Observability.WatchdogAlertKind.ProcessorNotRunning = 3 -> Bravellian.Platform.Observability.WatchdogAlertKind
+Bravellian.Platform.Observability.WatchdogAlertKind.StuckInbox = 1 -> Bravellian.Platform.Observability.WatchdogAlertKind
+Bravellian.Platform.Observability.WatchdogAlertKind.StuckOutbox = 2 -> Bravellian.Platform.Observability.WatchdogAlertKind
+Bravellian.Platform.Observability.WatchdogOptions
+Bravellian.Platform.Observability.WatchdogOptions.AlertCooldown.get -> System.TimeSpan
+Bravellian.Platform.Observability.WatchdogOptions.AlertCooldown.set -> void
+Bravellian.Platform.Observability.WatchdogOptions.HeartbeatPeriod.get -> System.TimeSpan
+Bravellian.Platform.Observability.WatchdogOptions.HeartbeatPeriod.set -> void
+Bravellian.Platform.Observability.WatchdogOptions.HeartbeatTimeout.get -> System.TimeSpan
+Bravellian.Platform.Observability.WatchdogOptions.HeartbeatTimeout.set -> void
+Bravellian.Platform.Observability.WatchdogOptions.InboxStuckThreshold.get -> System.TimeSpan
+Bravellian.Platform.Observability.WatchdogOptions.InboxStuckThreshold.set -> void
+Bravellian.Platform.Observability.WatchdogOptions.JobOverdueThreshold.get -> System.TimeSpan
+Bravellian.Platform.Observability.WatchdogOptions.JobOverdueThreshold.set -> void
+Bravellian.Platform.Observability.WatchdogOptions.OutboxStuckThreshold.get -> System.TimeSpan
+Bravellian.Platform.Observability.WatchdogOptions.OutboxStuckThreshold.set -> void
+Bravellian.Platform.Observability.WatchdogOptions.ProcessorIdleThreshold.get -> System.TimeSpan
+Bravellian.Platform.Observability.WatchdogOptions.ProcessorIdleThreshold.set -> void
+Bravellian.Platform.Observability.WatchdogOptions.ScanPeriod.get -> System.TimeSpan
+Bravellian.Platform.Observability.WatchdogOptions.ScanPeriod.set -> void
+Bravellian.Platform.Observability.WatchdogOptions.WatchdogOptions() -> void
+Bravellian.Platform.Observability.WatchdogSnapshot
+Bravellian.Platform.Observability.WatchdogSnapshot.<Clone>$() -> Bravellian.Platform.Observability.WatchdogSnapshot!
+Bravellian.Platform.Observability.WatchdogSnapshot.ActiveAlerts.get -> System.Collections.Generic.IReadOnlyList<Bravellian.Platform.Observability.ActiveAlert!>!
+Bravellian.Platform.Observability.WatchdogSnapshot.Deconstruct(out System.DateTimeOffset LastScanAt, out System.DateTimeOffset LastHeartbeatAt, out System.Collections.Generic.IReadOnlyList<Bravellian.Platform.Observability.ActiveAlert!>! ActiveAlerts) -> void
+Bravellian.Platform.Observability.WatchdogSnapshot.Equals(Bravellian.Platform.Observability.WatchdogSnapshot? other) -> bool
+Bravellian.Platform.Observability.WatchdogSnapshot.LastHeartbeatAt.get -> System.DateTimeOffset
+Bravellian.Platform.Observability.WatchdogSnapshot.LastScanAt.get -> System.DateTimeOffset
+Bravellian.Platform.Observability.WatchdogSnapshot.WatchdogSnapshot(System.DateTimeOffset LastScanAt, System.DateTimeOffset LastHeartbeatAt, System.Collections.Generic.IReadOnlyList<Bravellian.Platform.Observability.ActiveAlert!>! ActiveAlerts) -> void
+static Bravellian.Platform.Observability.ObservabilityServiceCollectionExtensions.AddPlatformObservability(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Bravellian.Platform.Observability.ObservabilityOptions!>? configure = null) -> Bravellian.Platform.Observability.ObservabilityBuilder!
+override Bravellian.Platform.Observability.ActiveAlert.Equals(object? obj) -> bool
+override Bravellian.Platform.Observability.ActiveAlert.GetHashCode() -> int
+override Bravellian.Platform.Observability.ActiveAlert.ToString() -> string!
+override Bravellian.Platform.Observability.HeartbeatContext.Equals(object? obj) -> bool
+override Bravellian.Platform.Observability.HeartbeatContext.GetHashCode() -> int
+override Bravellian.Platform.Observability.HeartbeatContext.ToString() -> string!
+override Bravellian.Platform.Observability.WatchdogAlertContext.Equals(object? obj) -> bool
+override Bravellian.Platform.Observability.WatchdogAlertContext.GetHashCode() -> int
+override Bravellian.Platform.Observability.WatchdogAlertContext.ToString() -> string!
+override Bravellian.Platform.Observability.WatchdogSnapshot.Equals(object? obj) -> bool
+override Bravellian.Platform.Observability.WatchdogSnapshot.GetHashCode() -> int
+override Bravellian.Platform.Observability.WatchdogSnapshot.ToString() -> string!
+static Bravellian.Platform.Observability.ActiveAlert.operator !=(Bravellian.Platform.Observability.ActiveAlert? left, Bravellian.Platform.Observability.ActiveAlert? right) -> bool
+static Bravellian.Platform.Observability.ActiveAlert.operator ==(Bravellian.Platform.Observability.ActiveAlert? left, Bravellian.Platform.Observability.ActiveAlert? right) -> bool
+static Bravellian.Platform.Observability.HeartbeatContext.operator !=(Bravellian.Platform.Observability.HeartbeatContext? left, Bravellian.Platform.Observability.HeartbeatContext? right) -> bool
+static Bravellian.Platform.Observability.HeartbeatContext.operator ==(Bravellian.Platform.Observability.HeartbeatContext? left, Bravellian.Platform.Observability.HeartbeatContext? right) -> bool
+static Bravellian.Platform.Observability.WatchdogAlertContext.operator !=(Bravellian.Platform.Observability.WatchdogAlertContext? left, Bravellian.Platform.Observability.WatchdogAlertContext? right) -> bool
+static Bravellian.Platform.Observability.WatchdogAlertContext.operator ==(Bravellian.Platform.Observability.WatchdogAlertContext? left, Bravellian.Platform.Observability.WatchdogAlertContext? right) -> bool
+static Bravellian.Platform.Observability.WatchdogSnapshot.operator !=(Bravellian.Platform.Observability.WatchdogSnapshot? left, Bravellian.Platform.Observability.WatchdogSnapshot? right) -> bool
+static Bravellian.Platform.Observability.WatchdogSnapshot.operator ==(Bravellian.Platform.Observability.WatchdogSnapshot? left, Bravellian.Platform.Observability.WatchdogSnapshot? right) -> bool
