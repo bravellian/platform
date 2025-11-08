@@ -14,6 +14,7 @@
 
 namespace Bravellian.Platform;
 
+using Bravellian.Platform.Semaphore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -30,7 +31,9 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
     private readonly IOptionsMonitor<SqlSchedulerOptions> schedulerOptions;
     private readonly IOptionsMonitor<SystemLeaseOptions> systemLeaseOptions;
     private readonly IOptionsMonitor<SqlInboxOptions> inboxOptions;
+    private readonly IOptionsMonitor<SemaphoreOptions> semaphoreOptions;
     private readonly DatabaseSchemaCompletion schemaCompletion;
+    private readonly PlatformConfiguration platformConfiguration;
 
     public DatabaseSchemaBackgroundService(
         ILogger<DatabaseSchemaBackgroundService> logger,
@@ -38,14 +41,18 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
         IOptionsMonitor<SqlSchedulerOptions> schedulerOptions,
         IOptionsMonitor<SystemLeaseOptions> systemLeaseOptions,
         IOptionsMonitor<SqlInboxOptions> inboxOptions,
-        DatabaseSchemaCompletion schemaCompletion)
+        IOptionsMonitor<SemaphoreOptions> semaphoreOptions,
+        DatabaseSchemaCompletion schemaCompletion,
+        PlatformConfiguration platformConfiguration)
     {
         this.logger = logger;
         this.outboxOptions = outboxOptions;
         this.schedulerOptions = schedulerOptions;
         this.systemLeaseOptions = systemLeaseOptions;
         this.inboxOptions = inboxOptions;
+        this.semaphoreOptions = semaphoreOptions;
         this.schemaCompletion = schemaCompletion;
+        this.platformConfiguration = platformConfiguration;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -82,6 +89,14 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
             if (inboxOpts.EnableSchemaDeployment && !string.IsNullOrEmpty(inboxOpts.ConnectionString))
             {
                 deploymentTasks.Add(this.DeployInboxSchemaAsync(inboxOpts, stoppingToken));
+            }
+
+            // Deploy semaphore schema if enabled and using control plane
+            if (this.platformConfiguration.EnvironmentStyle == PlatformEnvironmentStyle.MultiDatabaseWithControl &&
+                !string.IsNullOrEmpty(this.platformConfiguration.ControlPlaneConnectionString) &&
+                this.platformConfiguration.EnableSchemaDeployment)
+            {
+                deploymentTasks.Add(this.DeploySemaphoreSchemaAsync(stoppingToken));
             }
 
             if (deploymentTasks.Count > 0)
@@ -159,6 +174,15 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
         // Also deploy inbox work queue schema for dispatcher
         await DatabaseSchemaManager.EnsureInboxWorkQueueSchemaAsync(
             options.ConnectionString,
+            options.SchemaName).ConfigureAwait(false);
+    }
+
+    private async Task DeploySemaphoreSchemaAsync(CancellationToken cancellationToken)
+    {
+        var options = this.semaphoreOptions.CurrentValue;
+        this.logger.LogDebug("Deploying semaphore schema to control plane at {Schema}", options.SchemaName);
+        await DatabaseSchemaManager.EnsureSemaphoreSchemaAsync(
+            options.ControlPlaneConnectionString,
             options.SchemaName).ConfigureAwait(false);
     }
 }
