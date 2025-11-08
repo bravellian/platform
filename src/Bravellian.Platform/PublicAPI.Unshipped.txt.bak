@@ -68,6 +68,8 @@ Bravellian.Platform.IInbox.EnqueueAsync(string! topic, string! source, string! m
 Bravellian.Platform.IInboxHandler
 Bravellian.Platform.IInboxHandler.HandleAsync(Bravellian.Platform.InboxMessage! message, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
 Bravellian.Platform.IInboxHandler.Topic.get -> string!
+Bravellian.Platform.IInboxHandlerResolver
+Bravellian.Platform.IInboxHandlerResolver.GetHandler(string! topic) -> Bravellian.Platform.IInboxHandler!
 Bravellian.Platform.IInboxWorkStore
 Bravellian.Platform.IInboxWorkStore.AbandonAsync(System.Guid ownerToken, System.Collections.Generic.IEnumerable<string!>! messageIds, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
 Bravellian.Platform.IInboxWorkStore.AckAsync(System.Guid ownerToken, System.Collections.Generic.IEnumerable<string!>! messageIds, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
@@ -83,6 +85,12 @@ Bravellian.Platform.IInbox.AlreadyProcessedAsync(string! messageId, string! sour
 Bravellian.Platform.IInbox.MarkDeadAsync(string! messageId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Bravellian.Platform.IInbox.MarkProcessedAsync(string! messageId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Bravellian.Platform.IInbox.MarkProcessingAsync(string! messageId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Bravellian.Platform.InboxDispatcher
+Bravellian.Platform.InboxDispatcher.InboxDispatcher(Bravellian.Platform.IInboxWorkStore! store, Bravellian.Platform.IInboxHandlerResolver! resolver, Microsoft.Extensions.Logging.ILogger<Bravellian.Platform.InboxDispatcher!>! logger, System.Func<int, System.TimeSpan>? backoffPolicy = null, int maxAttempts = 5, int leaseSeconds = 30) -> void
+Bravellian.Platform.InboxDispatcher.RunOnceAsync(int batchSize, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<int>!
+Bravellian.Platform.InboxHandlerResolver
+Bravellian.Platform.InboxHandlerResolver.GetHandler(string! topic) -> Bravellian.Platform.IInboxHandler!
+Bravellian.Platform.InboxHandlerResolver.InboxHandlerResolver(System.Collections.Generic.IEnumerable<Bravellian.Platform.IInboxHandler!>! handlers) -> void
 Bravellian.Platform.InboxMessage
 Bravellian.Platform.InboxMessage.<Clone>$() -> Bravellian.Platform.InboxMessage!
 Bravellian.Platform.InboxMessage.Attempt.get -> int
@@ -95,6 +103,8 @@ Bravellian.Platform.InboxMessage.MessageId.get -> string!
 Bravellian.Platform.InboxMessage.Payload.get -> string!
 Bravellian.Platform.InboxMessage.Source.get -> string!
 Bravellian.Platform.InboxMessage.Topic.get -> string!
+Bravellian.Platform.InboxPollingService
+Bravellian.Platform.InboxPollingService.InboxPollingService(Bravellian.Platform.InboxDispatcher! dispatcher, Bravellian.Platform.IMonotonicClock! mono, Microsoft.Extensions.Logging.ILogger<Bravellian.Platform.InboxPollingService!>! logger, double intervalSeconds = 0.25, int batchSize = 50, Bravellian.Platform.IDatabaseSchemaCompletion? schemaCompletion = null) -> void
 Bravellian.Platform.IOutbox.AbandonAsync(System.Guid ownerToken, System.Collections.Generic.IEnumerable<System.Guid>! ids, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Bravellian.Platform.IOutbox.AckAsync(System.Guid ownerToken, System.Collections.Generic.IEnumerable<System.Guid>! ids, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Bravellian.Platform.IOutbox.ClaimAsync(System.Guid ownerToken, int leaseSeconds, int batchSize, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<System.Guid>!>!
@@ -103,6 +113,8 @@ Bravellian.Platform.IOutbox.ReapExpiredAsync(System.Threading.CancellationToken 
 Bravellian.Platform.IOutboxHandler
 Bravellian.Platform.IOutboxHandler.HandleAsync(Bravellian.Platform.OutboxMessage! message, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
 Bravellian.Platform.IOutboxHandler.Topic.get -> string!
+Bravellian.Platform.IOutboxHandlerResolver
+Bravellian.Platform.IOutboxHandlerResolver.TryGet(string! topic, out Bravellian.Platform.IOutboxHandler! handler) -> bool
 Bravellian.Platform.IOutboxStore
 Bravellian.Platform.IOutboxStore.ClaimDueAsync(int limit, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Bravellian.Platform.OutboxMessage!>!>!
 Bravellian.Platform.IOutboxStore.FailAsync(System.Guid id, string! lastError, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
@@ -185,6 +197,12 @@ Bravellian.Platform.MonoDeadline.Equals(Bravellian.Platform.MonoDeadline other) 
 Bravellian.Platform.MonoDeadline.Expired(Bravellian.Platform.IMonotonicClock! clock) -> bool
 Bravellian.Platform.MonoDeadline.MonoDeadline() -> void
 Bravellian.Platform.MonoDeadline.MonoDeadline(double AtSeconds) -> void
+Bravellian.Platform.OutboxDispatcher
+Bravellian.Platform.OutboxDispatcher.OutboxDispatcher(Bravellian.Platform.IOutboxStore! store, Bravellian.Platform.IOutboxHandlerResolver! resolver, Microsoft.Extensions.Logging.ILogger<Bravellian.Platform.OutboxDispatcher!>! logger, System.Func<int, System.TimeSpan>? backoffPolicy = null) -> void
+Bravellian.Platform.OutboxDispatcher.RunOnceAsync(int batchSize, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<int>!
+Bravellian.Platform.OutboxHandlerResolver
+Bravellian.Platform.OutboxHandlerResolver.OutboxHandlerResolver(System.Collections.Generic.IEnumerable<Bravellian.Platform.IOutboxHandler!>! handlers) -> void
+Bravellian.Platform.OutboxHandlerResolver.TryGet(string! topic, out Bravellian.Platform.IOutboxHandler! handler) -> bool
 Bravellian.Platform.OutboxMessage
 Bravellian.Platform.OutboxMessage.CorrelationId.get -> string?
 Bravellian.Platform.OutboxMessage.CreatedAt.get -> System.DateTimeOffset
@@ -199,6 +217,8 @@ Bravellian.Platform.OutboxMessage.ProcessedAt.get -> System.DateTimeOffset?
 Bravellian.Platform.OutboxMessage.ProcessedBy.get -> string
 Bravellian.Platform.OutboxMessage.RetryCount.get -> int
 Bravellian.Platform.OutboxMessage.Topic.get -> string
+Bravellian.Platform.OutboxPollingService
+Bravellian.Platform.OutboxPollingService.OutboxPollingService(Bravellian.Platform.OutboxDispatcher! dispatcher, Bravellian.Platform.IMonotonicClock! mono, Microsoft.Extensions.Logging.ILogger<Bravellian.Platform.OutboxPollingService!>! logger, double intervalSeconds = 0.25, int batchSize = 50, Bravellian.Platform.IDatabaseSchemaCompletion? schemaCompletion = null) -> void
 Bravellian.Platform.SchedulerServiceCollectionExtensions
 Bravellian.Platform.SqlFanoutOptions
 Bravellian.Platform.SqlFanoutOptions.ConnectionString.get -> string!
@@ -274,6 +294,7 @@ static Bravellian.Platform.Examples.TenantInfo.operator !=(Bravellian.Platform.E
 static Bravellian.Platform.Examples.TenantInfo.operator ==(Bravellian.Platform.Examples.TenantInfo? left, Bravellian.Platform.Examples.TenantInfo? right) -> bool
 static Bravellian.Platform.FanoutSlice.operator !=(Bravellian.Platform.FanoutSlice? left, Bravellian.Platform.FanoutSlice? right) -> bool
 static Bravellian.Platform.FanoutSlice.operator ==(Bravellian.Platform.FanoutSlice? left, Bravellian.Platform.FanoutSlice? right) -> bool
+static Bravellian.Platform.InboxDispatcher.DefaultBackoff(int attempt) -> System.TimeSpan
 static Bravellian.Platform.InboxMessage.operator !=(Bravellian.Platform.InboxMessage? left, Bravellian.Platform.InboxMessage? right) -> bool
 static Bravellian.Platform.InboxMessage.operator ==(Bravellian.Platform.InboxMessage? left, Bravellian.Platform.InboxMessage? right) -> bool
 static Bravellian.Platform.LeaseAcquireResult.operator !=(Bravellian.Platform.LeaseAcquireResult left, Bravellian.Platform.LeaseAcquireResult right) -> bool
@@ -283,6 +304,7 @@ static Bravellian.Platform.LeaseRenewResult.operator ==(Bravellian.Platform.Leas
 static Bravellian.Platform.LeaseRunner.AcquireAsync(Bravellian.Platform.LeaseApi! leaseApi, Bravellian.Platform.IMonotonicClock! monotonicClock, System.TimeProvider! timeProvider, string! leaseName, string! owner, System.TimeSpan leaseDuration, double renewPercent = 0.6, Microsoft.Extensions.Logging.ILogger? logger = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Bravellian.Platform.LeaseRunner?>!
 static Bravellian.Platform.MonoDeadline.operator !=(Bravellian.Platform.MonoDeadline left, Bravellian.Platform.MonoDeadline right) -> bool
 static Bravellian.Platform.MonoDeadline.operator ==(Bravellian.Platform.MonoDeadline left, Bravellian.Platform.MonoDeadline right) -> bool
+static Bravellian.Platform.OutboxDispatcher.DefaultBackoff(int attempt) -> System.TimeSpan
 static Bravellian.Platform.OutboxMessage.operator !=(Bravellian.Platform.OutboxMessage? left, Bravellian.Platform.OutboxMessage? right) -> bool
 static Bravellian.Platform.OutboxMessage.operator ==(Bravellian.Platform.OutboxMessage? left, Bravellian.Platform.OutboxMessage? right) -> bool
 static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddFanoutTopic<TPlanner>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Bravellian.Platform.FanoutTopicOptions! options) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

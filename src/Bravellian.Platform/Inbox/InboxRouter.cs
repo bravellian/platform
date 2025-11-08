@@ -18,7 +18,7 @@ namespace Bravellian.Platform;
 /// Default implementation of IInboxRouter that uses an IInboxWorkStoreProvider
 /// to route write operations to the appropriate inbox database.
 /// </summary>
-public sealed class InboxRouter : IInboxRouter
+internal sealed class InboxRouter : IInboxRouter
 {
     private readonly IInboxWorkStoreProvider storeProvider;
 

@@ -17,7 +17,7 @@ namespace Bravellian.Platform;
 /// <summary>
 /// Resolves inbox handlers by topic name.
 /// </summary>
-public interface IInboxHandlerResolver
+internal interface IInboxHandlerResolver
 {
     /// <summary>
     /// Gets a handler for the specified topic.
@@ -31,7 +31,7 @@ public interface IInboxHandlerResolver
 /// <summary>
 /// Default implementation of IInboxHandlerResolver that maps handlers by topic.
 /// </summary>
-public sealed class InboxHandlerResolver : IInboxHandlerResolver
+internal sealed class InboxHandlerResolver : IInboxHandlerResolver
 {
     private readonly IReadOnlyDictionary<string, IInboxHandler> byTopic;
 

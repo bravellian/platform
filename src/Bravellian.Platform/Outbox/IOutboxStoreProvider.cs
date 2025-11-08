@@ -19,7 +19,7 @@ namespace Bravellian.Platform;
 /// This abstraction allows the system to poll and process messages from multiple customer
 /// databases, each with their own outbox table.
 /// </summary>
-public interface IOutboxStoreProvider
+internal interface IOutboxStoreProvider
 {
     /// <summary>
     /// Gets all available outbox stores that should be processed.

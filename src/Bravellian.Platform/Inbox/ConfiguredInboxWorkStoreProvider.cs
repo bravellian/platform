@@ -21,7 +21,7 @@ using Microsoft.Extensions.Options;
 /// Provides access to multiple inbox work stores configured at startup.
 /// This implementation creates stores based on the provided options.
 /// </summary>
-public sealed class ConfiguredInboxWorkStoreProvider : IInboxWorkStoreProvider
+internal sealed class ConfiguredInboxWorkStoreProvider : IInboxWorkStoreProvider
 {
     private readonly IReadOnlyList<IInboxWorkStore> stores;
     private readonly IReadOnlyDictionary<IInboxWorkStore, string> storeIdentifiers;
