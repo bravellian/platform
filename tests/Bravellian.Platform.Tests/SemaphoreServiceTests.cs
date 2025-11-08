@@ -476,16 +476,27 @@ public class SemaphoreServiceTests : SqlServerTestBase
         // Assert
         blocked.Status.ShouldBe(SemaphoreAcquireStatus.NotAcquired);
 
-        // Release one and try again (should still fail because we're at the new limit)
+        // Release one (now have 1 active, still at the limit of 1, so new acquire should fail)
         await this.semaphoreService.ReleaseAsync(name, tokens[0], TestContext.Current.CancellationToken);
 
-        var afterRelease = await this.semaphoreService.TryAcquireAsync(
+        var afterFirstRelease = await this.semaphoreService.TryAcquireAsync(
             name,
             ttlSeconds: 30,
             ownerId: "owner4",
             cancellationToken: TestContext.Current.CancellationToken);
 
-        afterRelease.Status.ShouldBe(SemaphoreAcquireStatus.Acquired); // Now we're under the limit
+        afterFirstRelease.Status.ShouldBe(SemaphoreAcquireStatus.NotAcquired); // Still at limit (1 active, limit 1)
+
+        // Release the second one (now have 0 active, under the limit of 1, so new acquire should succeed)
+        await this.semaphoreService.ReleaseAsync(name, tokens[1], TestContext.Current.CancellationToken);
+
+        var afterSecondRelease = await this.semaphoreService.TryAcquireAsync(
+            name,
+            ttlSeconds: 30,
+            ownerId: "owner5",
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        afterSecondRelease.Status.ShouldBe(SemaphoreAcquireStatus.Acquired); // Now under limit (0 active, limit 1)
     }
 
     #endregion
