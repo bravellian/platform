@@ -480,6 +480,121 @@ public static class SchedulerServiceCollectionExtensions
     }
 
     /// <summary>
+    /// Adds SQL multi-inbox functionality with support for processing messages across multiple databases.
+    /// This enables a single worker to process inbox messages from multiple customer databases.
+    /// </summary>
+    /// <param name="services">The IServiceCollection to add services to.</param>
+    /// <param name="inboxOptions">List of inbox options, one for each database to poll.</param>
+    /// <param name="selectionStrategy">Optional selection strategy. Defaults to RoundRobinInboxSelectionStrategy.</param>
+    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
+    public static IServiceCollection AddMultiSqlInbox(
+        this IServiceCollection services,
+        IEnumerable<SqlInboxOptions> inboxOptions,
+        IInboxSelectionStrategy? selectionStrategy = null)
+    {
+        // Add time abstractions
+        services.AddTimeAbstractions();
+
+        // Register the store provider with the list of inbox options
+        services.AddSingleton<IInboxWorkStoreProvider>(provider =>
+        {
+            var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
+            return new ConfiguredInboxWorkStoreProvider(inboxOptions, loggerFactory);
+        });
+
+        // Register the selection strategy
+        services.AddSingleton<IInboxSelectionStrategy>(selectionStrategy ?? new RoundRobinInboxSelectionStrategy());
+
+        // Register shared components
+        services.AddSingleton<IInboxHandlerResolver, InboxHandlerResolver>();
+        services.AddSingleton<MultiInboxDispatcher>();
+        services.AddHostedService<MultiInboxPollingService>();
+
+        // Register the inbox router for write operations
+        services.AddSingleton<IInboxRouter, InboxRouter>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Adds SQL multi-inbox functionality using a custom store provider.
+    /// This allows for dynamic discovery of inbox databases at runtime.
+    /// </summary>
+    /// <param name="services">The IServiceCollection to add services to.</param>
+    /// <param name="storeProviderFactory">Factory function to create the store provider.</param>
+    /// <param name="selectionStrategy">Optional selection strategy. Defaults to RoundRobinInboxSelectionStrategy.</param>
+    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
+    public static IServiceCollection AddMultiSqlInbox(
+        this IServiceCollection services,
+        Func<IServiceProvider, IInboxWorkStoreProvider> storeProviderFactory,
+        IInboxSelectionStrategy? selectionStrategy = null)
+    {
+        // Add time abstractions
+        services.AddTimeAbstractions();
+
+        // Register the custom store provider
+        services.AddSingleton(storeProviderFactory);
+
+        // Register the selection strategy
+        services.AddSingleton<IInboxSelectionStrategy>(selectionStrategy ?? new RoundRobinInboxSelectionStrategy());
+
+        // Register shared components
+        services.AddSingleton<IInboxHandlerResolver, InboxHandlerResolver>();
+        services.AddSingleton<MultiInboxDispatcher>();
+        services.AddHostedService<MultiInboxPollingService>();
+
+        // Register the inbox router for write operations
+        services.AddSingleton<IInboxRouter, InboxRouter>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Adds SQL multi-inbox functionality with dynamic database discovery.
+    /// This enables automatic detection of new or removed customer databases at runtime.
+    /// </summary>
+    /// <param name="services">The IServiceCollection to add services to.</param>
+    /// <param name="selectionStrategy">Optional selection strategy. Defaults to RoundRobinInboxSelectionStrategy.</param>
+    /// <param name="refreshInterval">Optional interval for refreshing the database list. Defaults to 5 minutes.</param>
+    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
+    /// <remarks>
+    /// Requires an implementation of IInboxDatabaseDiscovery to be registered in the service collection.
+    /// The discovery service is responsible for querying a registry, database, or configuration service
+    /// to get the current list of customer databases.
+    /// </remarks>
+    public static IServiceCollection AddDynamicMultiSqlInbox(
+        this IServiceCollection services,
+        IInboxSelectionStrategy? selectionStrategy = null,
+        TimeSpan? refreshInterval = null)
+    {
+        // Add time abstractions
+        services.AddTimeAbstractions();
+
+        // Register the dynamic store provider
+        services.AddSingleton<IInboxWorkStoreProvider>(provider =>
+        {
+            var discovery = provider.GetRequiredService<IInboxDatabaseDiscovery>();
+            var timeProvider = provider.GetRequiredService<TimeProvider>();
+            var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
+            var logger = provider.GetRequiredService<ILogger<DynamicInboxWorkStoreProvider>>();
+            return new DynamicInboxWorkStoreProvider(discovery, timeProvider, loggerFactory, logger, refreshInterval);
+        });
+
+        // Register the selection strategy
+        services.AddSingleton<IInboxSelectionStrategy>(selectionStrategy ?? new RoundRobinInboxSelectionStrategy());
+
+        // Register shared components
+        services.AddSingleton<IInboxHandlerResolver, InboxHandlerResolver>();
+        services.AddSingleton<MultiInboxDispatcher>();
+        services.AddHostedService<MultiInboxPollingService>();
+
+        // Register the inbox router for write operations
+        services.AddSingleton<IInboxRouter, InboxRouter>();
+
+        return services;
+    }
+
+    /// <summary>
     /// Adds SQL multi-scheduler functionality with support for processing scheduler work across multiple databases.
     /// This enables a single worker to process scheduler work from multiple customer databases.
     /// </summary>
