@@ -300,8 +300,6 @@ static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddSqlScheduler(
 static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddSqlScheduler(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Bravellian.Platform.SqlSchedulerOptions! options) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddSqlScheduler(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! connectionString, string! schemaName = "dbo", string! jobsTableName = "Jobs", string! jobRunsTableName = "JobRuns", string! timersTableName = "Timers") -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddSqlSchedulerHealthCheck(this Microsoft.Extensions.DependencyInjection.IHealthChecksBuilder! builder, string! name = "sql_scheduler", Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus? failureStatus = null, System.Collections.Generic.IEnumerable<string!>? tags = null) -> Microsoft.Extensions.DependencyInjection.IHealthChecksBuilder!
-static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddSystemLeases(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Bravellian.Platform.SystemLeaseOptions! options) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
-static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddSystemLeases(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! connectionString, string! schemaName = "dbo") -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Bravellian.Platform.SchedulerServiceCollectionExtensions.AddTimeAbstractions(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.TimeProvider? timeProvider = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Bravellian.Platform.MonoDeadline.In(Bravellian.Platform.IMonotonicClock! clock, System.TimeSpan span) -> Bravellian.Platform.MonoDeadline
 Bravellian.Platform.IDatabaseSchemaCompletion
@@ -327,4 +325,23 @@ Bravellian.Platform.SystemLeaseOptions.EnableSchemaDeployment.set -> void
 ~override Bravellian.Platform.LeaseRenewResult.Equals(object obj) -> bool
 ~override Bravellian.Platform.LeaseRenewResult.ToString() -> string
 ~override Bravellian.Platform.MonoDeadline.Equals(object obj) -> bool
-~override Bravellian.Platform.MonoDeadline.ToString() -> string
+~override Bravellian.Platform.MonoDeadline.ToString() -> stringBravellian.Platform.ILeaseDatabaseDiscovery
+Bravellian.Platform.ILeaseDatabaseDiscovery.DiscoverDatabasesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<Bravellian.Platform.LeaseDatabaseConfig!>!>!
+Bravellian.Platform.ILeaseFactoryProvider
+Bravellian.Platform.ILeaseFactoryProvider.GetAllFactories() -> System.Collections.Generic.IReadOnlyList<Bravellian.Platform.ISystemLeaseFactory!>!
+Bravellian.Platform.ILeaseFactoryProvider.GetFactoryByKey(string! key) -> Bravellian.Platform.ISystemLeaseFactory?
+Bravellian.Platform.ILeaseFactoryProvider.GetFactoryIdentifier(Bravellian.Platform.ISystemLeaseFactory! factory) -> string!
+Bravellian.Platform.LeaseDatabaseConfig
+Bravellian.Platform.LeaseDatabaseConfig.ConnectionString.get -> string!
+Bravellian.Platform.LeaseDatabaseConfig.ConnectionString.set -> void
+Bravellian.Platform.LeaseDatabaseConfig.EnableSchemaDeployment.get -> bool
+Bravellian.Platform.LeaseDatabaseConfig.EnableSchemaDeployment.set -> void
+Bravellian.Platform.LeaseDatabaseConfig.Identifier.get -> string!
+Bravellian.Platform.LeaseDatabaseConfig.Identifier.set -> void
+Bravellian.Platform.LeaseDatabaseConfig.LeaseDatabaseConfig() -> void
+Bravellian.Platform.LeaseDatabaseConfig.SchemaName.get -> string!
+Bravellian.Platform.LeaseDatabaseConfig.SchemaName.set -> void
+static Bravellian.Platform.LeaseServiceCollectionExtensions.AddDynamicMultiSystemLeases(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.TimeSpan? refreshInterval = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Bravellian.Platform.LeaseServiceCollectionExtensions.AddMultiSystemLeases(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Collections.Generic.IEnumerable<Bravellian.Platform.LeaseDatabaseConfig!>! leaseConfigs) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Bravellian.Platform.LeaseServiceCollectionExtensions.AddSystemLeases(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Bravellian.Platform.SystemLeaseOptions! options) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Bravellian.Platform.LeaseServiceCollectionExtensions.AddSystemLeases(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! connectionString, string! schemaName = "dbo") -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
