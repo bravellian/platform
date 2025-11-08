@@ -54,6 +54,9 @@ internal static class DatabaseSchemaManager
             var createStateScript = GetOutboxStateCreateScript(schemaName);
             await ExecuteScriptAsync(connection, createStateScript).ConfigureAwait(false);
         }
+
+        // Ensure stored procedures exist
+        await EnsureOutboxStoredProceduresAsync(connection, schemaName, tableName).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -132,6 +135,9 @@ internal static class DatabaseSchemaManager
             var createScript = GetInboxCreateScript(schemaName, tableName);
             await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
         }
+
+        // Ensure stored procedures exist
+        await EnsureInboxStoredProceduresAsync(connection, schemaName, tableName).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -498,6 +504,32 @@ internal static class DatabaseSchemaManager
     }
 
     /// <summary>
+    /// Ensures outbox stored procedures exist.
+    /// </summary>
+    /// <param name="connection">The database connection.</param>
+    /// <param name="schemaName">The schema name.</param>
+    /// <param name="tableName">The table name.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    private static async Task EnsureOutboxStoredProceduresAsync(SqlConnection connection, string schemaName, string tableName)
+    {
+        var cleanupProc = GetOutboxCleanupStoredProcedure(schemaName, tableName);
+        await ExecuteScriptAsync(connection, cleanupProc).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Ensures inbox stored procedures exist.
+    /// </summary>
+    /// <param name="connection">The database connection.</param>
+    /// <param name="schemaName">The schema name.</param>
+    /// <param name="tableName">The table name.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    private static async Task EnsureInboxStoredProceduresAsync(SqlConnection connection, string schemaName, string tableName)
+    {
+        var cleanupProc = GetInboxCleanupStoredProcedure(schemaName, tableName);
+        await ExecuteScriptAsync(connection, cleanupProc).ConfigureAwait(false);
+    }
+
+    /// <summary>
     /// Gets the Lock_Acquire stored procedure script.
     /// </summary>
     /// <param name="schemaName">The schema name.</param>
@@ -775,6 +807,60 @@ internal static class DatabaseSchemaManager
                     SET @Renewed = 1;
                     SET @LeaseUntilUtc = @newLease;
                 END
+            END
+            """;
+    }
+
+    /// <summary>
+    /// Gets the Outbox_Cleanup stored procedure script.
+    /// </summary>
+    /// <param name="schemaName">The schema name.</param>
+    /// <param name="tableName">The table name.</param>
+    /// <returns>The stored procedure script.</returns>
+    private static string GetOutboxCleanupStoredProcedure(string schemaName, string tableName)
+    {
+        return $"""
+
+            CREATE OR ALTER PROCEDURE [{schemaName}].[{tableName}_Cleanup]
+                @RetentionSeconds INT
+            AS
+            BEGIN
+                SET NOCOUNT ON;
+                DECLARE @cutoffTime DATETIMEOFFSET = DATEADD(SECOND, -@RetentionSeconds, SYSDATETIMEOFFSET());
+                
+                DELETE FROM [{schemaName}].[{tableName}]
+                 WHERE Status = 2 /* Done */
+                   AND ProcessedAt IS NOT NULL
+                   AND ProcessedAt < @cutoffTime;
+                   
+                SELECT @@ROWCOUNT AS DeletedCount;
+            END
+            """;
+    }
+
+    /// <summary>
+    /// Gets the Inbox_Cleanup stored procedure script.
+    /// </summary>
+    /// <param name="schemaName">The schema name.</param>
+    /// <param name="tableName">The table name.</param>
+    /// <returns>The stored procedure script.</returns>
+    private static string GetInboxCleanupStoredProcedure(string schemaName, string tableName)
+    {
+        return $"""
+
+            CREATE OR ALTER PROCEDURE [{schemaName}].[{tableName}_Cleanup]
+                @RetentionSeconds INT
+            AS
+            BEGIN
+                SET NOCOUNT ON;
+                DECLARE @cutoffTime DATETIME2(3) = DATEADD(SECOND, -@RetentionSeconds, SYSUTCDATETIME());
+                
+                DELETE FROM [{schemaName}].[{tableName}]
+                 WHERE Status = 'Done'
+                   AND ProcessedUtc IS NOT NULL
+                   AND ProcessedUtc < @cutoffTime;
+                   
+                SELECT @@ROWCOUNT AS DeletedCount;
             END
             """;
     }
