@@ -89,10 +89,16 @@ src/Bravellian.Platform.Database/
 
 ## 📚 Documentation
 
+**New to the platform?** Start with our [Getting Started Guide](docs/GETTING_STARTED.md)!
+
 **Quick Start Guides:**
 - [Outbox Pattern Quick Start](docs/outbox-quickstart.md) - Reliable message publishing
 - [Inbox Pattern Quick Start](docs/inbox-quickstart.md) - Idempotent message processing
 - [Monotonic Clock Guide](docs/monotonic-clock-guide.md) - Stable timing for timeouts and measurements
+
+**API References:**
+- [Outbox API Reference](docs/outbox-api-reference.md) - Complete IOutbox documentation
+- [Inbox API Reference](docs/inbox-api-reference.md) - Complete IInbox documentation
 
 **Core Concepts:**
 - [Time Abstractions](docs/time-abstractions.md) - TimeProvider vs IMonotonicClock
