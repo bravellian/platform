@@ -17,6 +17,7 @@ namespace Bravellian.Platform;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 /// <summary>
 /// Extension methods for unified platform registration.
@@ -308,7 +309,123 @@ public static class PlatformServiceCollectionExtensions
             services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, DatabaseSchemaBackgroundService>());
         }
 
-        // Note: Individual feature registrations (Outbox, Inbox, etc.) will be added via separate extension methods
-        // that consume IPlatformDatabaseDiscovery
+        // Register all platform features automatically
+        // Features will be configured based on environment style (single vs multi-database)
+        RegisterPlatformFeatures(services);
+    }
+
+    private static void RegisterPlatformFeatures(IServiceCollection services)
+    {
+        // Get the configuration to determine environment style
+        var configDescriptor = services.FirstOrDefault(d => d.ServiceType == typeof(PlatformConfiguration));
+        if (configDescriptor?.ImplementationInstance is not PlatformConfiguration config)
+        {
+            throw new InvalidOperationException("PlatformConfiguration not found. This should not happen.");
+        }
+
+        // Get the discovery service
+        var discoveryDescriptor = services.FirstOrDefault(d => d.ServiceType == typeof(IPlatformDatabaseDiscovery));
+        if (discoveryDescriptor == null)
+        {
+            throw new InvalidOperationException("IPlatformDatabaseDiscovery not found. This should not happen.");
+        }
+
+        if (config.EnvironmentStyle == PlatformEnvironmentStyle.SingleDatabase)
+        {
+            RegisterSingleDatabaseFeatures(services, config, discoveryDescriptor.ImplementationInstance as IPlatformDatabaseDiscovery);
+        }
+        else
+        {
+            RegisterMultiDatabaseFeatures(services);
+        }
+    }
+
+    private static void RegisterSingleDatabaseFeatures(IServiceCollection services, PlatformConfiguration config, IPlatformDatabaseDiscovery? discovery)
+    {
+        // For single database, get the database info and register features
+        if (discovery == null)
+        {
+            throw new InvalidOperationException("Discovery not available for single database registration.");
+        }
+
+        var database = discovery.DiscoverDatabasesAsync().GetAwaiter().GetResult().Single();
+        
+        // Outbox
+        services.AddSqlOutbox(new SqlOutboxOptions
+        {
+            ConnectionString = database.ConnectionString,
+            SchemaName = database.SchemaName,
+            TableName = "Outbox",
+            EnableSchemaDeployment = config.EnableSchemaDeployment,
+        });
+        
+        // Inbox
+        services.AddSqlInbox(new SqlInboxOptions
+        {
+            ConnectionString = database.ConnectionString,
+            SchemaName = database.SchemaName,
+            TableName = "Inbox",
+            EnableSchemaDeployment = config.EnableSchemaDeployment,
+        });
+        
+        // Scheduler (includes Timers + Jobs + Outbox + Leases)
+        services.AddSqlScheduler(new SqlSchedulerOptions
+        {
+            ConnectionString = database.ConnectionString,
+            SchemaName = database.SchemaName,
+            EnableSchemaDeployment = config.EnableSchemaDeployment,
+        });
+        
+        // Fanout
+        services.AddSqlFanout(new SqlFanoutOptions
+        {
+            ConnectionString = database.ConnectionString,
+            SchemaName = database.SchemaName,
+            EnableSchemaDeployment = config.EnableSchemaDeployment,
+        });
+    }
+
+    private static void RegisterMultiDatabaseFeatures(IServiceCollection services)
+    {
+        // For multi-database, use the multi-database registration methods with platform providers
+        // These use store providers that can discover databases dynamically
+        
+        // Outbox
+        services.AddMultiSqlOutbox(
+            sp => new PlatformOutboxStoreProvider(
+                sp.GetRequiredService<IPlatformDatabaseDiscovery>(),
+                sp.GetRequiredService<TimeProvider>(),
+                sp.GetRequiredService<ILoggerFactory>(),
+                "Outbox"),
+            new RoundRobinOutboxSelectionStrategy());
+        
+        // Inbox
+        services.AddMultiSqlInbox(
+            sp => new PlatformInboxWorkStoreProvider(
+                sp.GetRequiredService<IPlatformDatabaseDiscovery>(),
+                sp.GetRequiredService<TimeProvider>(),
+                sp.GetRequiredService<ILoggerFactory>(),
+                "Inbox"),
+            new RoundRobinInboxSelectionStrategy());
+        
+        // Scheduler (Timers + Jobs)
+        services.AddMultiSqlScheduler(
+            sp => new PlatformSchedulerStoreProvider(
+                sp.GetRequiredService<IPlatformDatabaseDiscovery>(),
+                sp.GetRequiredService<TimeProvider>(),
+                sp.GetRequiredService<ILoggerFactory>()),
+            new RoundRobinOutboxSelectionStrategy());
+        
+        // Leases
+        services.AddMultiSystemLeases(
+            sp => new PlatformLeaseFactoryProvider(
+                sp.GetRequiredService<IPlatformDatabaseDiscovery>(),
+                sp.GetRequiredService<ILoggerFactory>()));
+        
+        // Fanout
+        services.AddMultiSqlFanout(
+            sp => new PlatformFanoutRepositoryProvider(
+                sp.GetRequiredService<IPlatformDatabaseDiscovery>(),
+                sp.GetRequiredService<ILoggerFactory>()));
     }
 }
