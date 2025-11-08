@@ -1329,4 +1329,344 @@ internal static class DatabaseSchemaManager
                 WHERE LastCompletedAt IS NOT NULL;
             """;
     }
+
+    /// <summary>
+    /// Ensures that the required database schema exists for the semaphore functionality.
+    /// </summary>
+    /// <param name="connectionString">The database connection string.</param>
+    /// <param name="schemaName">The schema name (default: "dbo").</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public static async Task EnsureSemaphoreSchemaAsync(string connectionString, string schemaName = "dbo")
+    {
+        using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync().ConfigureAwait(false);
+
+        // Ensure schema exists
+        await EnsureSchemaExistsAsync(connection, schemaName).ConfigureAwait(false);
+
+        // Check if Semaphore table exists
+        var semaphoreExists = await TableExistsAsync(connection, schemaName, "Semaphore").ConfigureAwait(false);
+        if (!semaphoreExists)
+        {
+            var createScript = GetSemaphoreCreateScript(schemaName);
+            await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
+        }
+
+        // Check if SemaphoreLease table exists
+        var leaseExists = await TableExistsAsync(connection, schemaName, "SemaphoreLease").ConfigureAwait(false);
+        if (!leaseExists)
+        {
+            var createScript = GetSemaphoreLeaseCreateScript(schemaName);
+            await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
+        }
+
+        // Ensure stored procedures exist
+        await EnsureSemaphoreStoredProceduresAsync(connection, schemaName).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Gets the SQL script to create the Semaphore table.
+    /// </summary>
+    /// <param name="schemaName">The schema name.</param>
+    /// <returns>The SQL create script.</returns>
+    private static string GetSemaphoreCreateScript(string schemaName)
+    {
+        return $"""
+
+            CREATE TABLE [{schemaName}].[Semaphore] (
+                [Name] NVARCHAR(200) NOT NULL CONSTRAINT PK_Semaphore PRIMARY KEY,
+                [Limit] INT NOT NULL,
+                [NextFencingCounter] BIGINT NOT NULL DEFAULT 1,
+                [UpdatedUtc] DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME()
+            );
+            """;
+    }
+
+    /// <summary>
+    /// Gets the SQL script to create the SemaphoreLease table.
+    /// </summary>
+    /// <param name="schemaName">The schema name.</param>
+    /// <returns>The SQL create script.</returns>
+    private static string GetSemaphoreLeaseCreateScript(string schemaName)
+    {
+        return $"""
+
+            CREATE TABLE [{schemaName}].[SemaphoreLease] (
+                [Name] NVARCHAR(200) NOT NULL,
+                [Token] UNIQUEIDENTIFIER NOT NULL,
+                [Fencing] BIGINT NOT NULL,
+                [OwnerId] NVARCHAR(200) NOT NULL,
+                [LeaseUntilUtc] DATETIME2(3) NOT NULL,
+                [CreatedUtc] DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
+                [RenewedUtc] DATETIME2(3) NULL,
+                [ClientRequestId] NVARCHAR(100) NULL,
+                CONSTRAINT PK_SemaphoreLease PRIMARY KEY ([Name], [Token])
+            );
+
+            -- Index for efficient counting of active leases
+            CREATE INDEX IX_SemaphoreLease_Name_LeaseUntilUtc 
+                ON [{schemaName}].[SemaphoreLease]([Name], [LeaseUntilUtc])
+                INCLUDE([Token]);
+
+            -- Index for reaping expired leases
+            CREATE INDEX IX_SemaphoreLease_LeaseUntilUtc 
+                ON [{schemaName}].[SemaphoreLease]([LeaseUntilUtc]);
+
+            -- Index for idempotent acquire lookups by client request ID
+            CREATE INDEX IX_SemaphoreLease_ClientRequestId
+                ON [{schemaName}].[SemaphoreLease]([ClientRequestId])
+                WHERE [ClientRequestId] IS NOT NULL;
+            """;
+    }
+
+    /// <summary>
+    /// Ensures semaphore stored procedures exist.
+    /// </summary>
+    /// <param name="connection">The database connection.</param>
+    /// <param name="schemaName">The schema name.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    private static async Task EnsureSemaphoreStoredProceduresAsync(SqlConnection connection, string schemaName)
+    {
+        var acquireProc = GetSemaphoreAcquireStoredProcedure(schemaName);
+        var renewProc = GetSemaphoreRenewStoredProcedure(schemaName);
+        var releaseProc = GetSemaphoreReleaseStoredProcedure(schemaName);
+        var reapProc = GetSemaphoreReapStoredProcedure(schemaName);
+
+        await ExecuteScriptAsync(connection, acquireProc).ConfigureAwait(false);
+        await ExecuteScriptAsync(connection, renewProc).ConfigureAwait(false);
+        await ExecuteScriptAsync(connection, releaseProc).ConfigureAwait(false);
+        await ExecuteScriptAsync(connection, reapProc).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Gets the Semaphore_Acquire stored procedure script.
+    /// </summary>
+    /// <param name="schemaName">The schema name.</param>
+    /// <returns>The stored procedure script.</returns>
+    private static string GetSemaphoreAcquireStoredProcedure(string schemaName)
+    {
+        return $"""
+
+            CREATE OR ALTER PROCEDURE [{schemaName}].[Semaphore_Acquire]
+                @Name NVARCHAR(200),
+                @OwnerId NVARCHAR(200),
+                @TtlSeconds INT,
+                @ClientRequestId NVARCHAR(100) = NULL,
+                @Acquired BIT OUTPUT,
+                @Token UNIQUEIDENTIFIER OUTPUT,
+                @Fencing BIGINT OUTPUT,
+                @ExpiresAtUtc DATETIME2(3) OUTPUT
+            AS
+            BEGIN
+                SET NOCOUNT ON; SET XACT_ABORT ON;
+
+                DECLARE @now DATETIME2(3) = SYSUTCDATETIME();
+                DECLARE @until DATETIME2(3) = DATEADD(SECOND, @TtlSeconds, @now);
+                DECLARE @activeCount INT;
+                DECLARE @limit INT;
+
+                BEGIN TRAN;
+
+                -- Lock semaphore row for this name
+                SELECT @limit = [Limit]
+                FROM [{schemaName}].[Semaphore] WITH (UPDLOCK, HOLDLOCK)
+                WHERE [Name] = @Name;
+
+                -- If semaphore doesn't exist, fail
+                IF @limit IS NULL
+                BEGIN
+                    SET @Acquired = 0;
+                    SET @Token = NULL;
+                    SET @Fencing = NULL;
+                    SET @ExpiresAtUtc = NULL;
+                    COMMIT TRAN;
+                    RETURN;
+                END
+
+                -- Check if we have an existing lease for this client request ID
+                IF @ClientRequestId IS NOT NULL
+                BEGIN
+                    SELECT @Token = [Token], @Fencing = [Fencing], @ExpiresAtUtc = [LeaseUntilUtc]
+                    FROM [{schemaName}].[SemaphoreLease]
+                    WHERE [Name] = @Name 
+                        AND [ClientRequestId] = @ClientRequestId
+                        AND [LeaseUntilUtc] > @now;
+
+                    IF @Token IS NOT NULL
+                    BEGIN
+                        SET @Acquired = 1;
+                        COMMIT TRAN;
+                        RETURN;
+                    END
+                END
+
+                -- Opportunistic reap: delete a small batch of expired leases
+                DELETE TOP (10) FROM [{schemaName}].[SemaphoreLease]
+                WHERE [Name] = @Name AND [LeaseUntilUtc] <= @now;
+
+                -- Count active leases
+                SELECT @activeCount = COUNT(*)
+                FROM [{schemaName}].[SemaphoreLease]
+                WHERE [Name] = @Name AND [LeaseUntilUtc] > @now;
+
+                -- Check if we can acquire
+                IF @activeCount >= @limit
+                BEGIN
+                    SET @Acquired = 0;
+                    SET @Token = NULL;
+                    SET @Fencing = NULL;
+                    SET @ExpiresAtUtc = NULL;
+                    COMMIT TRAN;
+                    RETURN;
+                END
+
+                -- Acquire the lease
+                SET @Token = NEWID();
+
+                -- Get and increment fencing counter
+                UPDATE [{schemaName}].[Semaphore]
+                SET @Fencing = [NextFencingCounter],
+                    [NextFencingCounter] = [NextFencingCounter] + 1,
+                    [UpdatedUtc] = @now
+                WHERE [Name] = @Name;
+
+                -- Insert lease
+                INSERT INTO [{schemaName}].[SemaphoreLease]
+                    ([Name], [Token], [Fencing], [OwnerId], [LeaseUntilUtc], [CreatedUtc], [ClientRequestId])
+                VALUES
+                    (@Name, @Token, @Fencing, @OwnerId, @until, @now, @ClientRequestId);
+
+                SET @Acquired = 1;
+                SET @ExpiresAtUtc = @until;
+
+                COMMIT TRAN;
+            END
+            """;
+    }
+
+    /// <summary>
+    /// Gets the Semaphore_Renew stored procedure script.
+    /// </summary>
+    /// <param name="schemaName">The schema name.</param>
+    /// <returns>The stored procedure script.</returns>
+    private static string GetSemaphoreRenewStoredProcedure(string schemaName)
+    {
+        return $"""
+
+            CREATE OR ALTER PROCEDURE [{schemaName}].[Semaphore_Renew]
+                @Name NVARCHAR(200),
+                @Token UNIQUEIDENTIFIER,
+                @TtlSeconds INT,
+                @Renewed BIT OUTPUT,
+                @ExpiresAtUtc DATETIME2(3) OUTPUT
+            AS
+            BEGIN
+                SET NOCOUNT ON;
+
+                DECLARE @now DATETIME2(3) = SYSUTCDATETIME();
+                DECLARE @until DATETIME2(3) = DATEADD(SECOND, @TtlSeconds, @now);
+                DECLARE @currentExpiry DATETIME2(3);
+
+                -- Check current expiry
+                SELECT @currentExpiry = [LeaseUntilUtc]
+                FROM [{schemaName}].[SemaphoreLease]
+                WHERE [Name] = @Name AND [Token] = @Token;
+
+                -- If not found or expired, return Lost
+                IF @currentExpiry IS NULL OR @currentExpiry <= @now
+                BEGIN
+                    SET @Renewed = 0;
+                    SET @ExpiresAtUtc = NULL;
+                    RETURN;
+                END
+
+                -- Monotonic extension: only extend if new expiry is later
+                IF @until > @currentExpiry
+                BEGIN
+                    SET @ExpiresAtUtc = @until;
+                END
+                ELSE
+                BEGIN
+                    SET @ExpiresAtUtc = @currentExpiry;
+                END
+
+                -- Update lease
+                UPDATE [{schemaName}].[SemaphoreLease]
+                SET [LeaseUntilUtc] = @ExpiresAtUtc,
+                    [RenewedUtc] = @now
+                WHERE [Name] = @Name AND [Token] = @Token;
+
+                SET @Renewed = 1;
+            END
+            """;
+    }
+
+    /// <summary>
+    /// Gets the Semaphore_Release stored procedure script.
+    /// </summary>
+    /// <param name="schemaName">The schema name.</param>
+    /// <returns>The stored procedure script.</returns>
+    private static string GetSemaphoreReleaseStoredProcedure(string schemaName)
+    {
+        return $"""
+
+            CREATE OR ALTER PROCEDURE [{schemaName}].[Semaphore_Release]
+                @Name NVARCHAR(200),
+                @Token UNIQUEIDENTIFIER,
+                @Released BIT OUTPUT
+            AS
+            BEGIN
+                SET NOCOUNT ON;
+
+                DELETE FROM [{schemaName}].[SemaphoreLease]
+                WHERE [Name] = @Name AND [Token] = @Token;
+
+                IF @@ROWCOUNT > 0
+                BEGIN
+                    SET @Released = 1;
+                END
+                ELSE
+                BEGIN
+                    SET @Released = 0;
+                END
+            END
+            """;
+    }
+
+    /// <summary>
+    /// Gets the Semaphore_Reap stored procedure script.
+    /// </summary>
+    /// <param name="schemaName">The schema name.</param>
+    /// <returns>The stored procedure script.</returns>
+    private static string GetSemaphoreReapStoredProcedure(string schemaName)
+    {
+        return $"""
+
+            CREATE OR ALTER PROCEDURE [{schemaName}].[Semaphore_Reap]
+                @Name NVARCHAR(200) = NULL,
+                @MaxRows INT = 1000,
+                @DeletedCount INT OUTPUT
+            AS
+            BEGIN
+                SET NOCOUNT ON;
+
+                DECLARE @now DATETIME2(3) = SYSUTCDATETIME();
+
+                IF @Name IS NULL
+                BEGIN
+                    -- Reap across all semaphores
+                    DELETE TOP (@MaxRows) FROM [{schemaName}].[SemaphoreLease]
+                    WHERE [LeaseUntilUtc] <= @now;
+                END
+                ELSE
+                BEGIN
+                    -- Reap for specific semaphore
+                    DELETE TOP (@MaxRows) FROM [{schemaName}].[SemaphoreLease]
+                    WHERE [Name] = @Name AND [LeaseUntilUtc] <= @now;
+                END
+
+                SET @DeletedCount = @@ROWCOUNT;
+            END
+            """;
+    }
 }

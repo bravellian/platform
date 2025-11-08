@@ -14,6 +14,7 @@
 
 namespace Bravellian.Platform;
 
+using Bravellian.Platform.Semaphore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -77,6 +78,8 @@ public static class PlatformServiceCollectionExtensions
         // Register core abstractions
         RegisterCoreServices(services, enableSchemaDeployment);
 
+        // Register semaphore services for single database
+        services.AddSemaphoreServices(connectionString);
 
         return services;
     }
@@ -217,6 +220,8 @@ public static class PlatformServiceCollectionExtensions
         // Register core abstractions
         RegisterCoreServices(services, enableSchemaDeployment);
 
+        // Register semaphore services for control plane
+        services.AddSemaphoreServices(controlPlaneConnectionString);
 
         return services;
     }
@@ -261,6 +266,9 @@ public static class PlatformServiceCollectionExtensions
 
         // Register core abstractions
         RegisterCoreServices(services, enableSchemaDeployment);
+
+        // Register semaphore services for control plane
+        services.AddSemaphoreServices(controlPlaneConnectionString);
 
         return services;
     }
