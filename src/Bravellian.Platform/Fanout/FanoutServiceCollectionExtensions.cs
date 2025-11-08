@@ -35,6 +35,14 @@ public static class FanoutServiceCollectionExtensions
         this IServiceCollection services,
         IEnumerable<SqlFanoutOptions> fanoutOptions)
     {
+        ArgumentNullException.ThrowIfNull(fanoutOptions);
+
+        var optionsList = fanoutOptions.ToList();
+        if (optionsList.Count == 0)
+        {
+            throw new ArgumentException("At least one fanout option must be provided.", nameof(fanoutOptions));
+        }
+
         // Add time abstractions
         services.AddTimeAbstractions();
 
@@ -42,14 +50,14 @@ public static class FanoutServiceCollectionExtensions
         services.AddSingleton<IFanoutRepositoryProvider>(provider =>
         {
             var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
-            return new ConfiguredFanoutRepositoryProvider(fanoutOptions, loggerFactory);
+            return new ConfiguredFanoutRepositoryProvider(optionsList, loggerFactory);
         });
 
         // Register the fanout router for routing operations to the correct database
         services.AddSingleton<IFanoutRouter, FanoutRouter>();
 
         // Register schema deployment service if any options have it enabled
-        if (fanoutOptions.Any(o => o.EnableSchemaDeployment))
+        if (optionsList.Any(o => o.EnableSchemaDeployment))
         {
             services.TryAddSingleton<DatabaseSchemaCompletion>();
             services.TryAddSingleton<IDatabaseSchemaCompletion>(provider => provider.GetRequiredService<DatabaseSchemaCompletion>());

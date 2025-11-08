@@ -41,6 +41,8 @@ internal sealed class FanoutRouter : IFanoutRouter
     /// <inheritdoc/>
     public IFanoutPolicyRepository GetPolicyRepository(string key)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+
         var repository = this.repositoryProvider.GetPolicyRepositoryByKey(key);
 
         if (repository == null)
@@ -59,6 +61,8 @@ internal sealed class FanoutRouter : IFanoutRouter
     /// <inheritdoc/>
     public IFanoutCursorRepository GetCursorRepository(string key)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+
         var repository = this.repositoryProvider.GetCursorRepositoryByKey(key);
 
         if (repository == null)

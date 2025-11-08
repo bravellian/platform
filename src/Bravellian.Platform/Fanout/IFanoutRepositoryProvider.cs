@@ -22,18 +22,20 @@ namespace Bravellian.Platform;
 internal interface IFanoutRepositoryProvider
 {
     /// <summary>
-    /// Gets all available fanout policy repositories that should be processed.
+    /// Asynchronously gets all available fanout policy repositories that should be processed.
     /// Each repository represents a separate database/tenant with its own fanout tables.
     /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A read-only list of fanout policy repositories.</returns>
-    IReadOnlyList<IFanoutPolicyRepository> GetAllPolicyRepositories();
+    Task<IReadOnlyList<IFanoutPolicyRepository>> GetAllPolicyRepositoriesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets all available fanout cursor repositories that should be processed.
+    /// Asynchronously gets all available fanout cursor repositories that should be processed.
     /// Each repository represents a separate database/tenant with its own fanout tables.
     /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A read-only list of fanout cursor repositories.</returns>
-    IReadOnlyList<IFanoutCursorRepository> GetAllCursorRepositories();
+    Task<IReadOnlyList<IFanoutCursorRepository>> GetAllCursorRepositoriesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a unique identifier for a fanout policy repository (e.g., database name, tenant ID).

@@ -20,8 +20,9 @@ using Microsoft.Extensions.Options;
 /// <summary>
 /// Provides access to multiple fanout repositories configured at startup.
 /// This implementation creates repositories based on the provided options.
+/// Call <see cref="InitializeAsync"/> after construction if schema deployment is enabled to ensure all databases are ready.
 /// </summary>
-internal sealed class ConfiguredFanoutRepositoryProvider : IFanoutRepositoryProvider
+internal sealed class ConfiguredFanoutRepositoryProvider : IFanoutRepositoryProvider, IDisposable
 {
     private readonly IReadOnlyList<IFanoutPolicyRepository> policyRepositories;
     private readonly IReadOnlyList<IFanoutCursorRepository> cursorRepositories;
@@ -53,9 +54,7 @@ internal sealed class ConfiguredFanoutRepositoryProvider : IFanoutRepositoryProv
             cursorReposList.Add(cursorRepo);
 
             // Use connection string or a custom identifier
-            var identifier = options.ConnectionString.Contains("Database=")
-                ? ExtractDatabaseName(options.ConnectionString)
-                : $"{options.SchemaName}.{options.PolicyTableName}";
+            var identifier = ExtractIdentifier(options);
 
             // Check for duplicate identifiers
             if (policyKeyDict.ContainsKey(identifier))
@@ -82,7 +81,8 @@ internal sealed class ConfiguredFanoutRepositoryProvider : IFanoutRepositoryProv
 
     /// <summary>
     /// Initializes the fanout repositories by deploying database schemas if enabled.
-    /// This method should be called after construction to ensure all databases are ready.
+    /// This method should be called after construction when schema deployment is enabled to ensure all databases are ready.
+    /// The provider will work without calling this method, but database operations may fail if schemas don't exist.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
@@ -94,9 +94,7 @@ internal sealed class ConfiguredFanoutRepositoryProvider : IFanoutRepositoryProv
 
             if (options.EnableSchemaDeployment)
             {
-                var identifier = options.ConnectionString.Contains("Database=")
-                    ? ExtractDatabaseName(options.ConnectionString)
-                    : $"{options.SchemaName}.{options.PolicyTableName}";
+                var identifier = ExtractIdentifier(options);
 
                 try
                 {
@@ -126,10 +124,16 @@ internal sealed class ConfiguredFanoutRepositoryProvider : IFanoutRepositoryProv
     }
 
     /// <inheritdoc/>
-    public IReadOnlyList<IFanoutPolicyRepository> GetAllPolicyRepositories() => this.policyRepositories;
+    public Task<IReadOnlyList<IFanoutPolicyRepository>> GetAllPolicyRepositoriesAsync(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(this.policyRepositories);
+    }
 
     /// <inheritdoc/>
-    public IReadOnlyList<IFanoutCursorRepository> GetAllCursorRepositories() => this.cursorRepositories;
+    public Task<IReadOnlyList<IFanoutCursorRepository>> GetAllCursorRepositoriesAsync(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(this.cursorRepositories);
+    }
 
     /// <inheritdoc/>
     public string GetRepositoryIdentifier(IFanoutPolicyRepository repository)
@@ -159,6 +163,28 @@ internal sealed class ConfiguredFanoutRepositoryProvider : IFanoutRepositoryProv
         return this.cursorRepositoriesByKey.TryGetValue(key, out var repo) ? repo : null;
     }
 
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        // Dispose all repositories if they implement IDisposable
+        foreach (var repo in this.policyRepositories)
+        {
+            (repo as IDisposable)?.Dispose();
+        }
+
+        foreach (var repo in this.cursorRepositories)
+        {
+            (repo as IDisposable)?.Dispose();
+        }
+    }
+
+    private static string ExtractIdentifier(SqlFanoutOptions options)
+    {
+        return options.ConnectionString.Contains("Database=")
+            ? ExtractDatabaseName(options.ConnectionString)
+            : $"{options.SchemaName}.{options.PolicyTableName}";
+    }
+
     private static string ExtractDatabaseName(string connectionString)
     {
         try
@@ -166,10 +192,12 @@ internal sealed class ConfiguredFanoutRepositoryProvider : IFanoutRepositoryProv
             var builder = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(connectionString);
             return string.IsNullOrEmpty(builder.InitialCatalog) ? "UnknownDB" : builder.InitialCatalog;
         }
-        catch (ArgumentException)
+        catch (ArgumentException ex)
         {
-            // Return fallback value on connection string parsing error
-            return "UnknownDB";
+            throw new ArgumentException(
+                $"Invalid connection string in fanout options: {connectionString}",
+                nameof(connectionString),
+                ex);
         }
     }
 }

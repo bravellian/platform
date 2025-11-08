@@ -36,7 +36,7 @@ public class FanoutRouterIntegrationTests
     }
 
     [Fact]
-    public void AddMultiSqlFanout_WithListOfOptions_RegistersServicesCorrectly()
+    public async Task AddMultiSqlFanout_WithListOfOptions_RegistersServicesCorrectly()
     {
         // Arrange
         var fanoutOptions = new[]
@@ -66,11 +66,11 @@ public class FanoutRouterIntegrationTests
         var router = new FanoutRouter(repositoryProvider, loggerFactory.CreateLogger<FanoutRouter>());
 
         // Assert - Verify the provider was created correctly
-        var policyRepos = repositoryProvider.GetAllPolicyRepositories();
+        var policyRepos = await repositoryProvider.GetAllPolicyRepositoriesAsync();
         policyRepos.ShouldNotBeNull();
         policyRepos.Count.ShouldBe(2);
 
-        var cursorRepos = repositoryProvider.GetAllCursorRepositories();
+        var cursorRepos = await repositoryProvider.GetAllCursorRepositoriesAsync();
         cursorRepos.ShouldNotBeNull();
         cursorRepos.Count.ShouldBe(2);
 
@@ -93,7 +93,7 @@ public class FanoutRouterIntegrationTests
     }
 
     [Fact]
-    public void AddMultiSqlFanout_RepositoryProvider_ReturnsCorrectIdentifiers()
+    public async Task AddMultiSqlFanout_RepositoryProvider_ReturnsCorrectIdentifiers()
     {
         // Arrange
         var fanoutOptions = new[]
@@ -116,8 +116,8 @@ public class FanoutRouterIntegrationTests
 
         // Act
         var repositoryProvider = new ConfiguredFanoutRepositoryProvider(fanoutOptions, loggerFactory);
-        var policyRepositories = repositoryProvider.GetAllPolicyRepositories();
-        var cursorRepositories = repositoryProvider.GetAllCursorRepositories();
+        var policyRepositories = await repositoryProvider.GetAllPolicyRepositoriesAsync();
+        var cursorRepositories = await repositoryProvider.GetAllCursorRepositoriesAsync();
 
         // Assert
         policyRepositories.Count.ShouldBe(2);
@@ -189,7 +189,7 @@ public class FanoutRouterIntegrationTests
     }
 
     [Fact]
-    public void AddDynamicMultiSqlFanout_RegistersServicesCorrectly()
+    public async Task AddDynamicMultiSqlFanout_RegistersServicesCorrectly()
     {
         // Arrange
         var mockDiscovery = new MockFanoutDatabaseDiscovery();
@@ -207,11 +207,11 @@ public class FanoutRouterIntegrationTests
         repositoryProvider.ShouldNotBeNull();
 
         // Trigger a refresh to load databases
-        var policyRepos = repositoryProvider.GetAllPolicyRepositories();
+        var policyRepos = await repositoryProvider.GetAllPolicyRepositoriesAsync();
         policyRepos.ShouldNotBeNull();
         policyRepos.Count.ShouldBe(2);
 
-        var cursorRepos = repositoryProvider.GetAllCursorRepositories();
+        var cursorRepos = await repositoryProvider.GetAllCursorRepositoriesAsync();
         cursorRepos.ShouldNotBeNull();
         cursorRepos.Count.ShouldBe(2);
 
