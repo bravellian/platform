@@ -522,6 +522,9 @@ public static class SchedulerServiceCollectionExtensions
         services.AddSingleton<MultiSchedulerDispatcher>();
         services.AddHostedService<MultiSchedulerPollingService>();
 
+        // Register the scheduler router for write operations
+        services.AddSingleton<ISchedulerRouter, SchedulerRouter>();
+
         return services;
     }
 
@@ -553,6 +556,9 @@ public static class SchedulerServiceCollectionExtensions
         // Register shared components
         services.AddSingleton<MultiSchedulerDispatcher>();
         services.AddHostedService<MultiSchedulerPollingService>();
+
+        // Register the scheduler router for write operations
+        services.AddSingleton<ISchedulerRouter, SchedulerRouter>();
 
         return services;
     }
@@ -597,6 +603,9 @@ public static class SchedulerServiceCollectionExtensions
         // Register shared components
         services.AddSingleton<MultiSchedulerDispatcher>();
         services.AddHostedService<MultiSchedulerPollingService>();
+
+        // Register the scheduler router for write operations
+        services.AddSingleton<ISchedulerRouter, SchedulerRouter>();
 
         return services;
     }
