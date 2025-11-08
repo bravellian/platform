@@ -72,6 +72,9 @@ public static class SchedulerServiceCollectionExtensions
             o.SchemaName = options.SchemaName;
             o.TableName = options.TableName;
             o.EnableSchemaDeployment = options.EnableSchemaDeployment;
+            o.RetentionPeriod = options.RetentionPeriod;
+            o.EnableAutomaticCleanup = options.EnableAutomaticCleanup;
+            o.CleanupInterval = options.CleanupInterval;
         });
 
         services.AddSingleton<IOutbox, SqlOutboxService>();
@@ -79,6 +82,12 @@ public static class SchedulerServiceCollectionExtensions
         services.AddSingleton<IOutboxHandlerResolver, OutboxHandlerResolver>();
         services.AddSingleton<OutboxDispatcher>();
         services.AddHostedService<OutboxPollingService>();
+
+        // Register cleanup service if enabled
+        if (options.EnableAutomaticCleanup)
+        {
+            services.AddHostedService<OutboxCleanupService>();
+        }
 
         // Register schema deployment service if enabled (only register once per service collection)
         if (options.EnableSchemaDeployment)
@@ -440,6 +449,9 @@ public static class SchedulerServiceCollectionExtensions
             o.SchemaName = options.SchemaName;
             o.TableName = options.TableName;
             o.EnableSchemaDeployment = options.EnableSchemaDeployment;
+            o.RetentionPeriod = options.RetentionPeriod;
+            o.EnableAutomaticCleanup = options.EnableAutomaticCleanup;
+            o.CleanupInterval = options.CleanupInterval;
         });
 
         services.AddSingleton<IInbox, SqlInboxService>();
@@ -447,6 +459,12 @@ public static class SchedulerServiceCollectionExtensions
         services.AddSingleton<IInboxHandlerResolver, InboxHandlerResolver>();
         services.AddSingleton<InboxDispatcher>();
         services.AddHostedService<InboxPollingService>();
+
+        // Register cleanup service if enabled
+        if (options.EnableAutomaticCleanup)
+        {
+            services.AddHostedService<InboxCleanupService>();
+        }
 
         // Register schema deployment service if enabled (only register once per service collection)
         if (options.EnableSchemaDeployment)

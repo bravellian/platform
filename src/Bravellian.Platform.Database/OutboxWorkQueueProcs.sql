@@ -106,3 +106,21 @@ BEGIN
     SELECT @@ROWCOUNT AS ReapedCount;
 END
 GO
+
+-- Outbox Cleanup Procedure
+-- Deletes processed messages older than the specified retention period
+CREATE OR ALTER PROCEDURE dbo.Outbox_Cleanup
+    @RetentionSeconds INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @cutoffTime DATETIMEOFFSET = DATEADD(SECOND, -@RetentionSeconds, SYSDATETIMEOFFSET());
+    
+    DELETE FROM dbo.Outbox
+     WHERE Status = 2 /* Done */
+       AND ProcessedAt IS NOT NULL
+       AND ProcessedAt < @cutoffTime;
+       
+    SELECT @@ROWCOUNT AS DeletedCount;
+END
+GO
