@@ -2,6 +2,8 @@ namespace Bravellian.Platform.Tests
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
+    using Microsoft.Extensions.Logging;
+    using Microsoft.Extensions.Logging.Abstractions;
 
     public class DatabaseSchemaDeploymentTests
     {
@@ -149,6 +151,97 @@ namespace Bravellian.Platform.Tests
             // Assert - Should now be completed
             Assert.True(completion.SchemaDeploymentCompleted.IsCompleted);
             Assert.Equal(TaskStatus.RanToCompletion, completion.SchemaDeploymentCompleted.Status);
+        }
+
+        [Fact]
+        public void AddPlatformMultiDatabaseWithList_WithSchemaDeploymentEnabled_RegistersSchemaService()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
+
+            var databases = new[]
+            {
+                new PlatformDatabase
+                {
+                    Name = "db1",
+                    ConnectionString = "Server=localhost;Database=Db1;",
+                    SchemaName = "dbo",
+                },
+            };
+
+            // Act
+            services.AddPlatformMultiDatabaseWithList(databases, enableSchemaDeployment: true);
+
+            // Assert
+            var schemaCompletionDescriptor = services.FirstOrDefault(s => s.ServiceType == typeof(IDatabaseSchemaCompletion));
+            var hostedServiceDescriptor = services.FirstOrDefault(s => s.ServiceType == typeof(IHostedService) && s.ImplementationType == typeof(DatabaseSchemaBackgroundService));
+
+            Assert.NotNull(schemaCompletionDescriptor);
+            Assert.NotNull(hostedServiceDescriptor);
+        }
+
+        [Fact]
+        public void AddPlatformMultiDatabaseWithControlPlane_WithSchemaDeploymentEnabled_RegistersSchemaService()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
+
+            var databases = new[]
+            {
+                new PlatformDatabase
+                {
+                    Name = "db1",
+                    ConnectionString = "Server=localhost;Database=Db1;",
+                    SchemaName = "dbo",
+                },
+            };
+
+            var controlPlaneOptions = new PlatformControlPlaneOptions
+            {
+                ConnectionString = "Server=localhost;Database=ControlPlane;",
+                SchemaName = "dbo",
+                EnableSchemaDeployment = true,
+            };
+
+            // Act
+            services.AddPlatformMultiDatabaseWithControlPlaneAndList(databases, controlPlaneOptions);
+
+            // Assert
+            var schemaCompletionDescriptor = services.FirstOrDefault(s => s.ServiceType == typeof(IDatabaseSchemaCompletion));
+            var hostedServiceDescriptor = services.FirstOrDefault(s => s.ServiceType == typeof(IHostedService) && s.ImplementationType == typeof(DatabaseSchemaBackgroundService));
+
+            Assert.NotNull(schemaCompletionDescriptor);
+            Assert.NotNull(hostedServiceDescriptor);
+        }
+
+        [Fact]
+        public void AddPlatformMultiDatabaseWithList_WithSchemaDeploymentDisabled_DoesNotRegisterSchemaService()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
+
+            var databases = new[]
+            {
+                new PlatformDatabase
+                {
+                    Name = "db1",
+                    ConnectionString = "Server=localhost;Database=Db1;",
+                    SchemaName = "dbo",
+                },
+            };
+
+            // Act
+            services.AddPlatformMultiDatabaseWithList(databases, enableSchemaDeployment: false);
+
+            // Assert
+            var schemaCompletionDescriptor = services.FirstOrDefault(s => s.ServiceType == typeof(IDatabaseSchemaCompletion));
+            var hostedServiceDescriptor = services.FirstOrDefault(s => s.ServiceType == typeof(IHostedService) && s.ImplementationType == typeof(DatabaseSchemaBackgroundService));
+
+            Assert.Null(schemaCompletionDescriptor);
+            Assert.Null(hostedServiceDescriptor);
         }
     }
 }

@@ -14,6 +14,7 @@
 
 namespace Bravellian.Platform;
 
+using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -25,22 +26,28 @@ internal sealed class PlatformInboxWorkStoreProvider : IInboxWorkStoreProvider
     private readonly IPlatformDatabaseDiscovery discovery;
     private readonly TimeProvider timeProvider;
     private readonly ILoggerFactory loggerFactory;
+    private readonly ILogger<PlatformInboxWorkStoreProvider> logger;
     private readonly string tableName;
     private readonly object lockObject = new();
     private IReadOnlyList<IInboxWorkStore>? cachedStores;
     private readonly Dictionary<string, IInboxWorkStore> storesByKey = new();
     private readonly Dictionary<string, IInbox> inboxesByKey = new();
+    private readonly ConcurrentDictionary<string, byte> schemasDeployed = new();
+    private readonly bool enableSchemaDeployment;
 
     public PlatformInboxWorkStoreProvider(
         IPlatformDatabaseDiscovery discovery,
         TimeProvider timeProvider,
         ILoggerFactory loggerFactory,
-        string tableName)
+        string tableName,
+        bool enableSchemaDeployment = true)
     {
         this.discovery = discovery;
         this.timeProvider = timeProvider;
         this.loggerFactory = loggerFactory;
+        this.logger = loggerFactory.CreateLogger<PlatformInboxWorkStoreProvider>();
         this.tableName = tableName;
+        this.enableSchemaDeployment = enableSchemaDeployment;
     }
 
     public IReadOnlyList<IInboxWorkStore> GetAllStores()
@@ -53,32 +60,76 @@ internal sealed class PlatformInboxWorkStoreProvider : IInboxWorkStoreProvider
                 {
                     var databases = this.discovery.DiscoverDatabasesAsync().GetAwaiter().GetResult();
                     var stores = new List<IInboxWorkStore>();
+                    var newDatabases = new List<PlatformDatabase>();
             
                     foreach (var db in databases)
-            {
-                var options = new SqlInboxOptions
-                {
-                    ConnectionString = db.ConnectionString,
-                    SchemaName = db.SchemaName,
-                    TableName = this.tableName,
-                };
-                
-                var storeLogger = this.loggerFactory.CreateLogger<SqlInboxWorkStore>();
-                var store = new SqlInboxWorkStore(
-                    Options.Create(options),
-                    storeLogger);
-                
-                var inboxLogger = this.loggerFactory.CreateLogger<SqlInboxService>();
-                var inbox = new SqlInboxService(
-                    Options.Create(options),
-                    inboxLogger);
-                
-                    stores.Add(store);
-                    this.storesByKey[db.Name] = store;
-                    this.inboxesByKey[db.Name] = inbox;
-                }
+                    {
+                        var options = new SqlInboxOptions
+                        {
+                            ConnectionString = db.ConnectionString,
+                            SchemaName = db.SchemaName,
+                            TableName = this.tableName,
+                        };
+                        
+                        var storeLogger = this.loggerFactory.CreateLogger<SqlInboxWorkStore>();
+                        var store = new SqlInboxWorkStore(
+                            Options.Create(options),
+                            storeLogger);
+                        
+                        var inboxLogger = this.loggerFactory.CreateLogger<SqlInboxService>();
+                        var inbox = new SqlInboxService(
+                            Options.Create(options),
+                            inboxLogger);
+                        
+                        stores.Add(store);
+                        this.storesByKey[db.Name] = store;
+                        this.inboxesByKey[db.Name] = inbox;
+
+                        // Track new databases for schema deployment
+                        if (this.enableSchemaDeployment && this.schemasDeployed.TryAdd(db.Name, 0))
+                        {
+                            newDatabases.Add(db);
+                        }
+                    }
             
-                this.cachedStores = stores;
+                    this.cachedStores = stores;
+
+                    // Deploy schemas for new databases outside the lock
+                    if (newDatabases.Count > 0)
+                    {
+                        _ = Task.Run(async () =>
+                        {
+                            foreach (var db in newDatabases)
+                            {
+                                try
+                                {
+                                    this.logger.LogInformation(
+                                        "Deploying inbox schema for newly discovered database: {DatabaseName}",
+                                        db.Name);
+
+                                    await DatabaseSchemaManager.EnsureInboxSchemaAsync(
+                                        db.ConnectionString,
+                                        db.SchemaName,
+                                        this.tableName).ConfigureAwait(false);
+
+                                    await DatabaseSchemaManager.EnsureInboxWorkQueueSchemaAsync(
+                                        db.ConnectionString,
+                                        db.SchemaName).ConfigureAwait(false);
+
+                                    this.logger.LogInformation(
+                                        "Successfully deployed inbox schema for database: {DatabaseName}",
+                                        db.Name);
+                                }
+                                catch (Exception ex)
+                                {
+                                    this.logger.LogError(
+                                        ex,
+                                        "Failed to deploy inbox schema for database: {DatabaseName}. Store may fail on first use.",
+                                        db.Name);
+                                }
+                            }
+                        });
+                    }
                 }
             }
         }
