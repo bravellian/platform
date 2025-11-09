@@ -81,17 +81,26 @@ The `xunit.runner.v3.json` file controls test execution:
 
 ```json
 {
+  "$schema": "https://xunit.net/schema/v3/xunit.runner.schema.json",
   "parallelizeAssembly": true,
   "parallelizeTestCollections": true,
   "maxParallelThreads": 4,
-  "longRunningTestSeconds": 60
+  "methodDisplay": "method",
+  "methodDisplayOptions": "all",
+  "stopOnFail": false,
+  "longRunningTestSeconds": 60,
+  "diagnosticMessages": false
 }
 ```
 
 - **parallelizeAssembly**: Run tests from the assembly in parallel
 - **parallelizeTestCollections**: Run different collections in parallel
 - **maxParallelThreads**: Limit concurrent test execution to avoid resource exhaustion
+- **methodDisplay**: How test names are displayed (method name only)
+- **methodDisplayOptions**: Display options for test names (all available info)
+- **stopOnFail**: Continue running tests even if one fails
 - **longRunningTestSeconds**: Tests taking longer than this will be flagged
+- **diagnosticMessages**: Whether to show diagnostic messages during test runs
 
 ## Writing Tests
 

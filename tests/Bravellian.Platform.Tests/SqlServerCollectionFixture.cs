@@ -59,6 +59,11 @@ public sealed class SqlServerCollectionFixture : IAsyncLifetime
     /// <returns>A connection string to the newly created database.</returns>
     public async Task<string> CreateTestDatabaseAsync()
     {
+        if (this.connectionString == null)
+        {
+            throw new InvalidOperationException("Container has not been initialized. Ensure InitializeAsync has been called before creating databases.");
+        }
+
         var dbNumber = Interlocked.Increment(ref this.databaseCounter);
         var dbName = $"TestDb_{dbNumber}_{Guid.NewGuid():N}";
 
