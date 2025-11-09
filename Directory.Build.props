@@ -28,64 +28,6 @@
     <Compile Include="@(GeneratedFiles)" />
   </ItemGroup>
   
-  <!--
-    This is the main target for running the code generator.
-    It correctly uses Inputs and Outputs for incremental build checks.
-  -->
-  <Target Name="RunBravellianTool"
-          BeforeTargets="BeforeBuild"
-          Condition="'$(MSBuildProjectExtension)' == '.csproj'"
-          Inputs="@(TypeDefinitionFiles)"
-          Outputs="$(ProjectDir)Generated\__codegen.marker">
-
-    <Message Importance="High" Text="🔄 Running Bravellian-gen codegen..." />
-
-    <MakeDir Directories="$(ProjectDir)Generated" />
-    <!--<Delete Files="$(ProjectDir)Generated\**\*.cs" Condition="Exists('$(ProjectDir)Generated\')" />-->
-    
-    <PropertyGroup>
-      <BravellianResponseFile>$(IntermediateOutputPath)Bravellian-gen.rsp</BravellianResponseFile>
-    </PropertyGroup>
-
-    <WriteLinesToFile
-      File="$(BravellianResponseFile)"
-      Lines="@(TypeDefinitionFiles)"
-      Overwrite="true"
-      Encoding="UTF-8" />
-
-    <!--
-      Recommendation: A more robust way to pass multiple files to an Exec task.
-      This creates a '-input "path"' for each file and joins them with spaces,
-      which is much safer for paths with spaces. Your tool must support multiple -input flags.
-      If your tool only supports a single argument with semicolon-separated paths, your original command is fine.
-    -->
-    <Exec Command='dotnet tool run Bravellian-gen --input @"$(BravellianResponseFile)" --output "$(ProjectDir)Generated"' />
-
-    <!--
-      STEP 1: After generation, create a new ItemGroup that captures the output files.
-    -->
-    <!-- <ItemGroup>
-      <GeneratedFiles Include="$(ProjectDir)Generated\**\*.cs" />
-    </ItemGroup> -->
-
-    <!--
-      STEP 2: Add the newly captured files to the Compile item group.
-      This tells the C# compiler to include these files in THIS build run.
-    -->
-    <!-- <ItemGroup>
-      <Compile Include="@(GeneratedFiles)" />
-    </ItemGroup> -->
-
-    <!--
-      STEP 3: Finally, touch the marker file to update its timestamp,
-      signaling that the outputs are now up-to-date with the inputs.
-    -->
-    <Touch
-      AlwaysCreate="true"
-      Files="$(ProjectDir)Generated\__codegen.marker" />
-  </Target>
-
-  
 	<!-- Keep global Using directives -->
 	<ItemGroup Condition="'$(MSBuildProjectExtension)' != '.dcproj' AND '$(MSBuildProjectExtension)' != '.sqlproj' AND $(MSBuildProjectName.StartsWith('Bravellian.Generators')) == false AND $(MSBuildProjectName.StartsWith('Bravellian.Database')) == false">
 		<Using Include="System" />
