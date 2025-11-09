@@ -20,12 +20,15 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
 using System.Linq;
 
+[Collection(SqlServerCollection.Name)]
+[Trait("Category", "Integration")]
+[Trait("RequiresDocker", "true")]
 public class OutboxHandlerTests : SqlServerTestBase
 {
     private FakeTimeProvider timeProvider = default!;
 
-    public OutboxHandlerTests(ITestOutputHelper testOutputHelper)
-        : base(testOutputHelper)
+    public OutboxHandlerTests(ITestOutputHelper testOutputHelper, SqlServerCollectionFixture fixture)
+        : base(testOutputHelper, fixture)
     {
     }
 

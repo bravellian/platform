@@ -21,10 +21,13 @@ using Microsoft.Extensions.Options;
 /// <summary>
 /// Integration test to demonstrate the complete Inbox functionality working end-to-end.
 /// </summary>
+[Collection(SqlServerCollection.Name)]
+[Trait("Category", "Integration")]
+[Trait("RequiresDocker", "true")]
 public class InboxIntegrationTests : SqlServerTestBase
 {
-    public InboxIntegrationTests(ITestOutputHelper testOutputHelper)
-        : base(testOutputHelper)
+    public InboxIntegrationTests(ITestOutputHelper testOutputHelper, SqlServerCollectionFixture fixture)
+        : base(testOutputHelper, fixture)
     {
     }
 

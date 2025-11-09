@@ -23,12 +23,15 @@ using Xunit;
 /// <summary>
 /// Concurrency and stress tests for the distributed semaphore service.
 /// </summary>
+[Collection(SqlServerCollection.Name)]
+[Trait("Category", "Integration")]
+[Trait("RequiresDocker", "true")]
 public class SemaphoreConcurrencyTests : SqlServerTestBase
 {
     private ISemaphoreService? semaphoreService;
 
-    public SemaphoreConcurrencyTests(ITestOutputHelper testOutputHelper)
-        : base(testOutputHelper)
+    public SemaphoreConcurrencyTests(ITestOutputHelper testOutputHelper, SqlServerCollectionFixture fixture)
+        : base(testOutputHelper, fixture)
     {
     }
 

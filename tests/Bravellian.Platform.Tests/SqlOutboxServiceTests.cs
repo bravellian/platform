@@ -20,13 +20,16 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using System.Data;
 
+[Collection(SqlServerCollection.Name)]
+[Trait("Category", "Integration")]
+[Trait("RequiresDocker", "true")]
 public class SqlOutboxServiceTests : SqlServerTestBase
 {
     private SqlOutboxService? outboxService;
     private readonly SqlOutboxOptions defaultOptions = new() { ConnectionString = string.Empty, SchemaName = "dbo", TableName = "Outbox" };
 
-    public SqlOutboxServiceTests(ITestOutputHelper testOutputHelper)
-        : base(testOutputHelper)
+    public SqlOutboxServiceTests(ITestOutputHelper testOutputHelper, SqlServerCollectionFixture fixture)
+        : base(testOutputHelper, fixture)
     {
     }
 

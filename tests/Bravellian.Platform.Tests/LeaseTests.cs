@@ -18,12 +18,15 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
 using Xunit;
 
+[Collection(SqlServerCollection.Name)]
+[Trait("Category", "Integration")]
+[Trait("RequiresDocker", "true")]
 public class LeaseTests : SqlServerTestBase
 {
     private LeaseApi? leaseApi;
 
-    public LeaseTests(ITestOutputHelper testOutputHelper)
-        : base(testOutputHelper)
+    public LeaseTests(ITestOutputHelper testOutputHelper, SqlServerCollectionFixture fixture)
+        : base(testOutputHelper, fixture)
     {
     }
 
@@ -180,12 +183,15 @@ public class LeaseTests : SqlServerTestBase
     }
 }
 
+[Collection(SqlServerCollection.Name)]
+[Trait("Category", "Integration")]
+[Trait("RequiresDocker", "true")]
 public class LeaseRunnerTests : SqlServerTestBase
 {
     private LeaseApi? leaseApi;
 
-    public LeaseRunnerTests(ITestOutputHelper testOutputHelper)
-        : base(testOutputHelper)
+    public LeaseRunnerTests(ITestOutputHelper testOutputHelper, SqlServerCollectionFixture fixture)
+        : base(testOutputHelper, fixture)
     {
     }
 

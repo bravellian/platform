@@ -18,12 +18,15 @@ using Bravellian.Platform.Tests.TestUtilities;
 using Dapper;
 using Microsoft.Data.SqlClient;
 
+[Collection(SqlServerCollection.Name)]
+[Trait("Category", "Integration")]
+[Trait("RequiresDocker", "true")]
 public class InboxCleanupTests : SqlServerTestBase
 {
     private readonly SqlInboxOptions defaultOptions = new() { ConnectionString = string.Empty, SchemaName = "dbo", TableName = "Inbox" };
 
-    public InboxCleanupTests(ITestOutputHelper testOutputHelper)
-        : base(testOutputHelper)
+    public InboxCleanupTests(ITestOutputHelper testOutputHelper, SqlServerCollectionFixture fixture)
+        : base(testOutputHelper, fixture)
     {
     }
 

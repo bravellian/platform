@@ -20,18 +20,33 @@ using Testcontainers.MsSql;
 /// <summary>
 /// Base test class that provides a SQL Server TestContainer for integration testing.
 /// Automatically manages the container lifecycle and database schema setup.
+/// When used with the SqlServerCollection, shares a single container across multiple test classes.
 /// </summary>
 public abstract class SqlServerTestBase : IAsyncLifetime
 {
-    private readonly MsSqlContainer msSqlContainer;
+    private readonly MsSqlContainer? msSqlContainer;
+    private readonly SqlServerCollectionFixture? sharedFixture;
     private string? connectionString;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SqlServerTestBase"/> class with a standalone container.
+    /// </summary>
     protected SqlServerTestBase(ITestOutputHelper testOutputHelper)
     {
         this.msSqlContainer = new MsSqlBuilder()
             .WithImage("mcr.microsoft.com/mssql/server:2022-CU10-ubuntu-22.04")
             .Build();
 
+        this.TestOutputHelper = testOutputHelper;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SqlServerTestBase"/> class with a shared container.
+    /// This constructor is used when the test class is part of the SqlServerCollection.
+    /// </summary>
+    protected SqlServerTestBase(ITestOutputHelper testOutputHelper, SqlServerCollectionFixture sharedFixture)
+    {
+        this.sharedFixture = sharedFixture;
         this.TestOutputHelper = testOutputHelper;
     }
 
@@ -45,14 +60,31 @@ public abstract class SqlServerTestBase : IAsyncLifetime
 
     public virtual async ValueTask InitializeAsync()
     {
-        await this.msSqlContainer.StartAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
-        this.connectionString = this.msSqlContainer.GetConnectionString();
+        if (this.sharedFixture != null)
+        {
+            // Using shared container - create a new database in the shared container
+            this.connectionString = await this.sharedFixture.CreateTestDatabaseAsync().ConfigureAwait(false);
+        }
+        else
+        {
+            // Using standalone container
+            await this.msSqlContainer!.StartAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
+            this.connectionString = this.msSqlContainer.GetConnectionString();
+        }
+
         await this.SetupDatabaseSchema().ConfigureAwait(false);
     }
 
     public virtual async ValueTask DisposeAsync()
     {
-        await this.msSqlContainer.DisposeAsync().ConfigureAwait(false);
+        // Only dispose the container if we own it (standalone mode)
+        if (this.msSqlContainer != null)
+        {
+            await this.msSqlContainer.DisposeAsync().ConfigureAwait(false);
+        }
+
+        // In shared mode, we don't dispose the container - it's managed by the collection fixture
+        // The database will be cleaned up when the container is disposed at the end of all tests
     }
 
     /// <summary>

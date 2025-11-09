@@ -28,4 +28,10 @@
     <PackageReference Update="xunit.v3" Version="3.1.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="xunit.runner.v3.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

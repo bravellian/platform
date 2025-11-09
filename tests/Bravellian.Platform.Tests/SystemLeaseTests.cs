@@ -19,14 +19,17 @@ using Microsoft.Extensions.Options;
 using Shouldly;
 using Xunit;
 
+[Collection(SqlServerCollection.Name)]
+[Trait("Category", "Integration")]
+[Trait("RequiresDocker", "true")]
 public class SystemLeaseTests : SqlServerTestBase
 {
     private SystemLeaseOptions? options;
     private IOptions<SystemLeaseOptions>? mockOptions;
     private SqlLeaseFactory? leaseFactory;
 
-    public SystemLeaseTests(ITestOutputHelper testOutputHelper)
-        : base(testOutputHelper)
+    public SystemLeaseTests(ITestOutputHelper testOutputHelper, SqlServerCollectionFixture fixture)
+        : base(testOutputHelper, fixture)
     {
     }
 

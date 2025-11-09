@@ -21,10 +21,13 @@ using Microsoft.Data.SqlClient;
 /// Tests to ensure that the database schema used in tests is consistent with production schema.
 /// This prevents issues where test schemas diverge from production schemas.
 /// </summary>
+[Collection(SqlServerCollection.Name)]
+[Trait("Category", "Integration")]
+[Trait("RequiresDocker", "true")]
 public class DatabaseSchemaConsistencyTests : SqlServerTestBase
 {
-    public DatabaseSchemaConsistencyTests(ITestOutputHelper testOutputHelper)
-        : base(testOutputHelper)
+    public DatabaseSchemaConsistencyTests(ITestOutputHelper testOutputHelper, SqlServerCollectionFixture fixture)
+        : base(testOutputHelper, fixture)
     {
     }
 

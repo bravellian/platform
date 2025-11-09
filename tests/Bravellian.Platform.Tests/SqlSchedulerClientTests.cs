@@ -19,13 +19,16 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 
+[Collection(SqlServerCollection.Name)]
+[Trait("Category", "Integration")]
+[Trait("RequiresDocker", "true")]
 public class SqlSchedulerClientTests : SqlServerTestBase
 {
     private SqlSchedulerClient? schedulerClient;
     private readonly SqlSchedulerOptions defaultOptions = new() { ConnectionString = string.Empty, SchemaName = "dbo", JobsTableName = "Jobs", JobRunsTableName = "JobRuns", TimersTableName = "Timers" };
 
-    public SqlSchedulerClientTests(ITestOutputHelper testOutputHelper)
-        : base(testOutputHelper)
+    public SqlSchedulerClientTests(ITestOutputHelper testOutputHelper, SqlServerCollectionFixture fixture)
+        : base(testOutputHelper, fixture)
     {
     }
 

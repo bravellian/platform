@@ -20,12 +20,15 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Shouldly;
 
+[Collection(SqlServerCollection.Name)]
+[Trait("Category", "Integration")]
+[Trait("RequiresDocker", "true")]
 public class OutboxWorkQueueTests : SqlServerTestBase
 {
     private SqlOutboxService? outboxService;
 
-    public OutboxWorkQueueTests(ITestOutputHelper testOutputHelper)
-        : base(testOutputHelper)
+    public OutboxWorkQueueTests(ITestOutputHelper testOutputHelper, SqlServerCollectionFixture fixture)
+        : base(testOutputHelper, fixture)
     {
     }
 
