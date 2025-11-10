@@ -1669,4 +1669,411 @@ internal static class DatabaseSchemaManager
             END
             """;
     }
+
+    /// <summary>
+    /// Ensures that the required database schema exists for the metrics functionality in application databases.
+    /// </summary>
+    /// <param name="connectionString">The database connection string.</param>
+    /// <param name="schemaName">The schema name (default: "infra").</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public static async Task EnsureMetricsSchemaAsync(string connectionString, string schemaName = "infra")
+    {
+        using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync().ConfigureAwait(false);
+
+        // Ensure schema exists
+        await EnsureSchemaExistsAsync(connection, schemaName).ConfigureAwait(false);
+
+        // Create MetricDef table
+        var metricDefExists = await TableExistsAsync(connection, schemaName, "MetricDef").ConfigureAwait(false);
+        if (!metricDefExists)
+        {
+            var createScript = GetMetricDefCreateScript(schemaName);
+            await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
+        }
+
+        // Create MetricSeries table
+        var metricSeriesExists = await TableExistsAsync(connection, schemaName, "MetricSeries").ConfigureAwait(false);
+        if (!metricSeriesExists)
+        {
+            var createScript = GetMetricSeriesCreateScript(schemaName);
+            await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
+        }
+
+        // Create MetricPointMinute table
+        var metricPointExists = await TableExistsAsync(connection, schemaName, "MetricPointMinute").ConfigureAwait(false);
+        if (!metricPointExists)
+        {
+            var createScript = GetMetricPointMinuteCreateScript(schemaName);
+            await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
+        }
+
+        // Ensure stored procedures exist
+        await EnsureMetricsStoredProceduresAsync(connection, schemaName).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Ensures that the required database schema exists for the metrics functionality in the central database.
+    /// </summary>
+    /// <param name="connectionString">The database connection string.</param>
+    /// <param name="schemaName">The schema name (default: "infra").</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public static async Task EnsureCentralMetricsSchemaAsync(string connectionString, string schemaName = "infra")
+    {
+        using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync().ConfigureAwait(false);
+
+        // Ensure schema exists
+        await EnsureSchemaExistsAsync(connection, schemaName).ConfigureAwait(false);
+
+        // Create MetricDef table
+        var metricDefExists = await TableExistsAsync(connection, schemaName, "MetricDef").ConfigureAwait(false);
+        if (!metricDefExists)
+        {
+            var createScript = GetMetricDefCreateScript(schemaName);
+            await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
+        }
+
+        // Create central MetricSeries table (with DatabaseId for cross-database aggregation)
+        var metricSeriesExists = await TableExistsAsync(connection, schemaName, "MetricSeries").ConfigureAwait(false);
+        if (!metricSeriesExists)
+        {
+            var createScript = GetCentralMetricSeriesCreateScript(schemaName);
+            await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
+        }
+
+        // Create MetricPointHourly table
+        var metricPointExists = await TableExistsAsync(connection, schemaName, "MetricPointHourly").ConfigureAwait(false);
+        if (!metricPointExists)
+        {
+            var createScript = GetMetricPointHourlyCreateScript(schemaName);
+            await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
+        }
+
+        // Create ExporterHeartbeat table
+        var heartbeatExists = await TableExistsAsync(connection, schemaName, "ExporterHeartbeat").ConfigureAwait(false);
+        if (!heartbeatExists)
+        {
+            var createScript = GetExporterHeartbeatCreateScript(schemaName);
+            await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
+        }
+
+        // Ensure stored procedures exist
+        await EnsureCentralMetricsStoredProceduresAsync(connection, schemaName).ConfigureAwait(false);
+    }
+
+    private static async Task EnsureMetricsStoredProceduresAsync(SqlConnection connection, string schemaName)
+    {
+        var spUpsertSeries = GetSpUpsertSeriesScript(schemaName);
+        await ExecuteScriptAsync(connection, spUpsertSeries).ConfigureAwait(false);
+
+        var spUpsertMetricPoint = GetSpUpsertMetricPointMinuteScript(schemaName);
+        await ExecuteScriptAsync(connection, spUpsertMetricPoint).ConfigureAwait(false);
+    }
+
+    private static async Task EnsureCentralMetricsStoredProceduresAsync(SqlConnection connection, string schemaName)
+    {
+        var spUpsertSeries = GetSpUpsertSeriesCentralScript(schemaName);
+        await ExecuteScriptAsync(connection, spUpsertSeries).ConfigureAwait(false);
+
+        var spUpsertMetricPoint = GetSpUpsertMetricPointHourlyScript(schemaName);
+        await ExecuteScriptAsync(connection, spUpsertMetricPoint).ConfigureAwait(false);
+    }
+
+    private static string GetMetricDefCreateScript(string schemaName)
+    {
+        return $"""
+            CREATE TABLE [{schemaName}].[MetricDef] (
+              MetricDefId   INT IDENTITY PRIMARY KEY,
+              Name          NVARCHAR(128) NOT NULL UNIQUE,
+              Unit          NVARCHAR(32)  NOT NULL,
+              AggKind       NVARCHAR(16)  NOT NULL,
+              Description   NVARCHAR(512) NOT NULL
+            );
+            """;
+    }
+
+    private static string GetMetricSeriesCreateScript(string schemaName)
+    {
+        return $"""
+            CREATE TABLE [{schemaName}].[MetricSeries] (
+              SeriesId      BIGINT IDENTITY PRIMARY KEY,
+              MetricDefId   INT NOT NULL REFERENCES [{schemaName}].[MetricDef](MetricDefId),
+              Service       NVARCHAR(64) NOT NULL,
+              InstanceId    UNIQUEIDENTIFIER NOT NULL,
+              TagsJson      NVARCHAR(1024) NOT NULL DEFAULT N'{"{"}"{"}"}',
+              TagHash       VARBINARY(32) NOT NULL,
+              CreatedUtc    DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
+              CONSTRAINT UQ_MetricSeries UNIQUE (MetricDefId, Service, InstanceId, TagHash)
+            );
+            """;
+    }
+
+    private static string GetMetricPointMinuteCreateScript(string schemaName)
+    {
+        return $"""
+            CREATE TABLE [{schemaName}].[MetricPointMinute] (
+              SeriesId        BIGINT       NOT NULL REFERENCES [{schemaName}].[MetricSeries](SeriesId),
+              BucketStartUtc  DATETIME2(0) NOT NULL,
+              BucketSecs      SMALLINT     NOT NULL,
+              ValueSum        FLOAT        NULL,
+              ValueCount      INT          NULL,
+              ValueMin        FLOAT        NULL,
+              ValueMax        FLOAT        NULL,
+              ValueLast       FLOAT        NULL,
+              P50             FLOAT        NULL,
+              P95             FLOAT        NULL,
+              P99             FLOAT        NULL,
+              InsertedUtc     DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
+              CONSTRAINT PK_MetricPointMinute PRIMARY KEY (SeriesId, BucketStartUtc, BucketSecs)
+            );
+
+            CREATE INDEX IX_MetricPointMinute_ByTime ON [{schemaName}].[MetricPointMinute] (BucketStartUtc) 
+              INCLUDE (SeriesId, ValueSum, ValueCount, P95);
+            """;
+    }
+
+    private static string GetCentralMetricSeriesCreateScript(string schemaName)
+    {
+        return $"""
+            CREATE TABLE [{schemaName}].[MetricSeries] (
+              SeriesId      BIGINT IDENTITY PRIMARY KEY,
+              MetricDefId   INT NOT NULL REFERENCES [{schemaName}].[MetricDef](MetricDefId),
+              DatabaseId    UNIQUEIDENTIFIER NULL,
+              Service       NVARCHAR(64) NOT NULL,
+              TagsJson      NVARCHAR(1024) NOT NULL DEFAULT N'{"{"}"{"}"}',
+              TagHash       VARBINARY(32)  NOT NULL,
+              CreatedUtc    DATETIME2(3)   NOT NULL DEFAULT SYSUTCDATETIME(),
+              CONSTRAINT UQ_MetricSeries UNIQUE (MetricDefId, DatabaseId, Service, TagHash)
+            );
+            """;
+    }
+
+    private static string GetMetricPointHourlyCreateScript(string schemaName)
+    {
+        return $"""
+            CREATE TABLE [{schemaName}].[MetricPointHourly] (
+              SeriesId        BIGINT       NOT NULL REFERENCES [{schemaName}].[MetricSeries](SeriesId),
+              BucketStartUtc  DATETIME2(0) NOT NULL,
+              BucketSecs      INT          NOT NULL,
+              ValueSum        FLOAT        NULL,
+              ValueCount      INT          NULL,
+              ValueMin        FLOAT        NULL,
+              ValueMax        FLOAT        NULL,
+              ValueLast       FLOAT        NULL,
+              P50             FLOAT        NULL,
+              P95             FLOAT        NULL,
+              P99             FLOAT        NULL,
+              InsertedUtc     DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
+              CONSTRAINT PK_MetricPointHourly PRIMARY KEY NONCLUSTERED (SeriesId, BucketStartUtc, BucketSecs)
+            );
+
+            CREATE CLUSTERED COLUMNSTORE INDEX CCI_MetricPointHourly ON [{schemaName}].[MetricPointHourly];
+            """;
+    }
+
+    private static string GetExporterHeartbeatCreateScript(string schemaName)
+    {
+        return $"""
+            CREATE TABLE [{schemaName}].[ExporterHeartbeat] (
+              InstanceId    NVARCHAR(100) NOT NULL PRIMARY KEY,
+              LastFlushUtc  DATETIME2(3)  NOT NULL,
+              LastError     NVARCHAR(512) NULL
+            );
+            """;
+    }
+
+    private static string GetSpUpsertSeriesScript(string schemaName)
+    {
+        return $"""
+            CREATE OR ALTER PROCEDURE [{schemaName}].[SpUpsertSeries]
+              @Name NVARCHAR(128),
+              @Unit NVARCHAR(32),
+              @AggKind NVARCHAR(16),
+              @Description NVARCHAR(512),
+              @Service NVARCHAR(64),
+              @InstanceId UNIQUEIDENTIFIER,
+              @TagsJson NVARCHAR(1024),
+              @TagHash VARBINARY(32),
+              @SeriesId BIGINT OUTPUT
+            AS
+            BEGIN
+              SET NOCOUNT ON;
+              DECLARE @MetricDefId INT;
+
+              SELECT @MetricDefId = MetricDefId FROM [{schemaName}].[MetricDef] WHERE Name = @Name;
+              IF @MetricDefId IS NULL
+              BEGIN
+                INSERT INTO [{schemaName}].[MetricDef](Name, Unit, AggKind, Description)
+                VALUES(@Name, @Unit, @AggKind, @Description);
+                SET @MetricDefId = SCOPE_IDENTITY();
+              END
+
+              MERGE [{schemaName}].[MetricSeries] WITH (HOLDLOCK) AS T
+              USING (SELECT @MetricDefId AS MetricDefId, @Service AS Service, @InstanceId AS InstanceId, @TagHash AS TagHash) AS S
+                ON (T.MetricDefId = S.MetricDefId AND T.Service = S.Service AND T.InstanceId = S.InstanceId AND T.TagHash = S.TagHash)
+              WHEN MATCHED THEN
+                UPDATE SET TagsJson = @TagsJson
+              WHEN NOT MATCHED THEN
+                INSERT (MetricDefId, Service, InstanceId, TagsJson, TagHash) 
+                VALUES(@MetricDefId, @Service, @InstanceId, @TagsJson, @TagHash);
+
+              SELECT @SeriesId = SeriesId FROM [{schemaName}].[MetricSeries]
+              WHERE MetricDefId = @MetricDefId AND Service = @Service AND InstanceId = @InstanceId AND TagHash = @TagHash;
+            END
+            """;
+    }
+
+    private static string GetSpUpsertMetricPointMinuteScript(string schemaName)
+    {
+        return $"""
+            CREATE OR ALTER PROCEDURE [{schemaName}].[SpUpsertMetricPointMinute]
+              @SeriesId BIGINT,
+              @BucketStartUtc DATETIME2(0),
+              @BucketSecs SMALLINT,
+              @ValueSum FLOAT,
+              @ValueCount INT,
+              @ValueMin FLOAT,
+              @ValueMax FLOAT,
+              @ValueLast FLOAT,
+              @P50 FLOAT = NULL,
+              @P95 FLOAT = NULL,
+              @P99 FLOAT = NULL
+            AS
+            BEGIN
+              SET NOCOUNT ON;
+
+              DECLARE @LockRes INT;
+              DECLARE @ResourceName NVARCHAR(255) = CONCAT('infra:mpm:', @SeriesId, ':', CONVERT(VARCHAR(19), @BucketStartUtc, 126), ':', @BucketSecs);
+              
+              EXEC @LockRes = sp_getapplock
+                @Resource = @ResourceName,
+                @LockMode = 'Exclusive', 
+                @LockTimeout = 5000, 
+                @DbPrincipal = 'public';
+              
+              IF @LockRes < 0 RETURN;
+
+              IF EXISTS (SELECT 1 FROM [{schemaName}].[MetricPointMinute] WITH (UPDLOCK, HOLDLOCK)
+                         WHERE SeriesId = @SeriesId AND BucketStartUtc = @BucketStartUtc AND BucketSecs = @BucketSecs)
+              BEGIN
+                -- Do not update percentiles on merge; percentiles cannot be accurately combined
+                UPDATE [{schemaName}].[MetricPointMinute]
+                  SET ValueSum   = ISNULL(ValueSum,0)   + ISNULL(@ValueSum,0),
+                      ValueCount = ISNULL(ValueCount,0) + ISNULL(@ValueCount,0),
+                      ValueMin   = CASE WHEN ValueMin IS NULL OR @ValueMin < ValueMin THEN @ValueMin ELSE ValueMin END,
+                      ValueMax   = CASE WHEN ValueMax IS NULL OR @ValueMax > ValueMax THEN @ValueMax ELSE ValueMax END,
+                      ValueLast  = @ValueLast,
+                      InsertedUtc = SYSUTCDATETIME()
+                WHERE SeriesId = @SeriesId AND BucketStartUtc = @BucketStartUtc AND BucketSecs = @BucketSecs;
+              END
+              ELSE
+              BEGIN
+                INSERT INTO [{schemaName}].[MetricPointMinute](SeriesId, BucketStartUtc, BucketSecs,
+                  ValueSum, ValueCount, ValueMin, ValueMax, ValueLast, P50, P95, P99)
+                VALUES(@SeriesId, @BucketStartUtc, @BucketSecs,
+                  @ValueSum, @ValueCount, @ValueMin, @ValueMax, @ValueLast, @P50, @P95, @P99);
+              END
+
+              EXEC sp_releaseapplock @Resource = @ResourceName, @DbPrincipal='public';
+            END
+            """;
+    }
+
+    private static string GetSpUpsertSeriesCentralScript(string schemaName)
+    {
+        return $"""
+            CREATE OR ALTER PROCEDURE [{schemaName}].[SpUpsertSeriesCentral]
+              @Name NVARCHAR(128),
+              @Unit NVARCHAR(32),
+              @AggKind NVARCHAR(16),
+              @Description NVARCHAR(512),
+              @DatabaseId UNIQUEIDENTIFIER,
+              @Service NVARCHAR(64),
+              @TagsJson NVARCHAR(1024),
+              @TagHash VARBINARY(32),
+              @SeriesId BIGINT OUTPUT
+            AS
+            BEGIN
+              SET NOCOUNT ON;
+              DECLARE @MetricDefId INT;
+
+              SELECT @MetricDefId = MetricDefId FROM [{schemaName}].[MetricDef] WHERE Name = @Name;
+              IF @MetricDefId IS NULL
+              BEGIN
+                INSERT INTO [{schemaName}].[MetricDef](Name, Unit, AggKind, Description)
+                VALUES(@Name, @Unit, @AggKind, @Description);
+                SET @MetricDefId = SCOPE_IDENTITY();
+              END
+
+              MERGE [{schemaName}].[MetricSeries] WITH (HOLDLOCK) AS T
+              USING (SELECT @MetricDefId AS MetricDefId, @DatabaseId AS DatabaseId, @Service AS Service, @TagHash AS TagHash) AS S
+                ON (T.MetricDefId = S.MetricDefId AND T.DatabaseId = S.DatabaseId AND T.Service = S.Service AND T.TagHash = S.TagHash)
+              WHEN MATCHED THEN
+                UPDATE SET TagsJson = @TagsJson
+              WHEN NOT MATCHED THEN
+                INSERT (MetricDefId, DatabaseId, Service, TagsJson, TagHash) 
+                VALUES(@MetricDefId, @DatabaseId, @Service, @TagsJson, @TagHash);
+
+              SELECT @SeriesId = SeriesId FROM [{schemaName}].[MetricSeries]
+              WHERE MetricDefId = @MetricDefId AND DatabaseId = @DatabaseId AND Service = @Service AND TagHash = @TagHash;
+            END
+            """;
+    }
+
+    private static string GetSpUpsertMetricPointHourlyScript(string schemaName)
+    {
+        return $"""
+            CREATE OR ALTER PROCEDURE [{schemaName}].[SpUpsertMetricPointHourly]
+              @SeriesId BIGINT,
+              @BucketStartUtc DATETIME2(0),
+              @BucketSecs INT,
+              @ValueSum FLOAT,
+              @ValueCount INT,
+              @ValueMin FLOAT,
+              @ValueMax FLOAT,
+              @ValueLast FLOAT,
+              @P50 FLOAT = NULL,
+              @P95 FLOAT = NULL,
+              @P99 FLOAT = NULL
+            AS
+            BEGIN
+              SET NOCOUNT ON;
+
+              DECLARE @LockRes INT;
+              DECLARE @ResourceName NVARCHAR(255) = CONCAT('infra:mph:', @SeriesId, ':', CONVERT(VARCHAR(19), @BucketStartUtc, 126), ':', @BucketSecs);
+              
+              EXEC @LockRes = sp_getapplock
+                @Resource = @ResourceName,
+                @LockMode = 'Exclusive', 
+                @LockTimeout = 5000, 
+                @DbPrincipal = 'public';
+              
+              IF @LockRes < 0 RETURN;
+
+              IF EXISTS (SELECT 1 FROM [{schemaName}].[MetricPointHourly] WITH (UPDLOCK, HOLDLOCK)
+                         WHERE SeriesId = @SeriesId AND BucketStartUtc = @BucketStartUtc AND BucketSecs = @BucketSecs)
+              BEGIN
+                -- Do not update percentiles on merge; percentiles cannot be accurately combined
+                UPDATE [{schemaName}].[MetricPointHourly]
+                  SET ValueSum   = ISNULL(ValueSum,0)   + ISNULL(@ValueSum,0),
+                      ValueCount = ISNULL(ValueCount,0) + ISNULL(@ValueCount,0),
+                      ValueMin   = CASE WHEN ValueMin IS NULL OR @ValueMin < ValueMin THEN @ValueMin ELSE ValueMin END,
+                      ValueMax   = CASE WHEN ValueMax IS NULL OR @ValueMax > ValueMax THEN @ValueMax ELSE ValueMax END,
+                      ValueLast  = @ValueLast,
+                      InsertedUtc = SYSUTCDATETIME()
+                WHERE SeriesId = @SeriesId AND BucketStartUtc = @BucketStartUtc AND BucketSecs = @BucketSecs;
+              END
+              ELSE
+              BEGIN
+                INSERT INTO [{schemaName}].[MetricPointHourly](SeriesId, BucketStartUtc, BucketSecs,
+                  ValueSum, ValueCount, ValueMin, ValueMax, ValueLast, P50, P95, P99)
+                VALUES(@SeriesId, @BucketStartUtc, @BucketSecs,
+                  @ValueSum, @ValueCount, @ValueMin, @ValueMax, @ValueLast, @P50, @P95, @P99);
+              END
+
+              EXEC sp_releaseapplock @Resource = @ResourceName, @DbPrincipal='public';
+            END
+            """;
+    }
 }

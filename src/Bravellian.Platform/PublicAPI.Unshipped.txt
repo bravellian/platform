@@ -491,6 +491,29 @@ static Bravellian.Platform.Observability.WatchdogAlertContext.operator !=(Bravel
 static Bravellian.Platform.Observability.WatchdogAlertContext.operator ==(Bravellian.Platform.Observability.WatchdogAlertContext? left, Bravellian.Platform.Observability.WatchdogAlertContext? right) -> bool
 static Bravellian.Platform.Observability.WatchdogSnapshot.operator !=(Bravellian.Platform.Observability.WatchdogSnapshot? left, Bravellian.Platform.Observability.WatchdogSnapshot? right) -> bool
 static Bravellian.Platform.Observability.WatchdogSnapshot.operator ==(Bravellian.Platform.Observability.WatchdogSnapshot? left, Bravellian.Platform.Observability.WatchdogSnapshot? right) -> bool
+Bravellian.Platform.Metrics.MetricsExporterOptions
+Bravellian.Platform.Metrics.MetricsServiceCollectionExtensions
+Bravellian.Platform.Metrics.MetricsExporterOptions.CentralConnectionString.get -> string?
+Bravellian.Platform.Metrics.MetricsExporterOptions.CentralConnectionString.set -> void
+Bravellian.Platform.Metrics.MetricsExporterOptions.Enabled.get -> bool
+Bravellian.Platform.Metrics.MetricsExporterOptions.Enabled.set -> void
+Bravellian.Platform.Metrics.MetricsExporterOptions.EnableCentralRollup.get -> bool
+Bravellian.Platform.Metrics.MetricsExporterOptions.EnableCentralRollup.set -> void
+Bravellian.Platform.Metrics.MetricsExporterOptions.FlushInterval.get -> System.TimeSpan
+Bravellian.Platform.Metrics.MetricsExporterOptions.FlushInterval.set -> void
+Bravellian.Platform.Metrics.MetricsExporterOptions.HourlyRetentionDays.get -> int
+Bravellian.Platform.Metrics.MetricsExporterOptions.HourlyRetentionDays.set -> void
+Bravellian.Platform.Metrics.MetricsExporterOptions.MetricsExporterOptions() -> void
+Bravellian.Platform.Metrics.MetricsExporterOptions.MinuteRetentionDays.get -> int
+Bravellian.Platform.Metrics.MetricsExporterOptions.MinuteRetentionDays.set -> void
+Bravellian.Platform.Metrics.MetricsExporterOptions.ReservoirSize.get -> int
+Bravellian.Platform.Metrics.MetricsExporterOptions.ReservoirSize.set -> void
+Bravellian.Platform.Metrics.MetricsExporterOptions.ServiceName.get -> string!
+Bravellian.Platform.Metrics.MetricsExporterOptions.ServiceName.set -> void
+static Bravellian.Platform.Metrics.MetricsServiceCollectionExtensions.AddMetricsExporter(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Bravellian.Platform.Metrics.MetricsExporterOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Bravellian.Platform.Metrics.MetricsServiceCollectionExtensions.AddMetricsExporterHealthCheck(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Bravellian.Platform.DatabaseSchemaManager.EnsureCentralMetricsSchemaAsync(string! connectionString, string! schemaName = "infra") -> System.Threading.Tasks.Task!
+static Bravellian.Platform.DatabaseSchemaManager.EnsureMetricsSchemaAsync(string! connectionString, string! schemaName = "infra") -> System.Threading.Tasks.Task!
 Bravellian.Platform.ExceptionFilter
 static Bravellian.Platform.ExceptionFilter.IsCatchable(System.Exception! exception) -> bool
 static Bravellian.Platform.ExceptionFilter.IsCritical(System.Exception! exception) -> bool
