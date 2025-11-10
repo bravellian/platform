@@ -317,8 +317,8 @@ The platform includes an in-app metrics exporter that stores metrics data in SQL
 ### Architecture
 
 - **Per-Instance Export**: Each process instance runs its own exporter that subscribes to `Bravellian.Platform` meters via `MeterListener`
-- **Minute Granularity**: Metrics are aggregated into 1-minute buckets and written to tenant databases
-- **Hourly Rollups**: Data is also aggregated hourly and written to a central database for cross-tenant analysis
+- **Minute Granularity**: Metrics are aggregated into 1-minute buckets and written to application databases
+- **Hourly Rollups**: Data is also aggregated hourly and written to a central database for cross-database analysis
 - **Additive Upserts**: Multiple instances can safely write to the same buckets concurrently using additive SQL operations
 - **Automatic Retention**: Scheduled jobs clean up old data (14 days for minute data, 90 days for hourly data)
 
@@ -326,13 +326,13 @@ The platform includes an in-app metrics exporter that stores metrics data in SQL
 
 The exporter creates tables in the `infra` schema:
 
-**Tenant Databases:**
+**Application Databases:**
 - `infra.MetricDef` - Metric definitions (name, unit, aggregation kind)
 - `infra.MetricSeries` - Time series keys (metric + service + instance + tags)
 - `infra.MetricPointMinute` - Minute-level data points
 
 **Central Database:**
-- `infra.MetricSeries` - Time series keys with TenantId
+- `infra.MetricSeries` - Time series keys with DatabaseId for cross-database aggregation
 - `infra.MetricPointHourly` - Hourly rollups
 - `infra.ExporterHeartbeat` - Exporter instance health tracking
 
@@ -369,7 +369,7 @@ The exporter captures all metrics from the `Bravellian.Platform` meter, includin
 
 Three background jobs support the exporter:
 
-1. **MetricsRetentionMinuteJob** - Deletes minute data older than retention period from tenant databases
+1. **MetricsRetentionMinuteJob** - Deletes minute data older than retention period from application databases
 2. **MetricsRetentionHourlyJob** - Deletes hourly data older than retention period from central database
 3. **MetricsExporterFreshnessJob** - Monitors exporter heartbeats and logs warnings for stale instances
 

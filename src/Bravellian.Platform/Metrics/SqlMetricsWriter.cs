@@ -31,7 +31,7 @@ internal sealed class SqlMetricsWriter
     private const string SchemaName = "infra";
 
     /// <summary>
-    /// Writes a metric point to the tenant database.
+    /// Writes a metric point to an application database.
     /// </summary>
     public static async Task WriteMinutePointAsync(
         string connectionString,
@@ -113,7 +113,7 @@ internal sealed class SqlMetricsWriter
         seriesIdParam.Add("@Unit", unit);
         seriesIdParam.Add("@AggKind", aggKind);
         seriesIdParam.Add("@Description", description);
-        seriesIdParam.Add("@TenantId", seriesKey.TenantId);
+        seriesIdParam.Add("@DatabaseId", seriesKey.DatabaseId);
         seriesIdParam.Add("@Service", seriesKey.Service);
         seriesIdParam.Add("@TagsJson", tagsJson);
         seriesIdParam.Add("@TagHash", tagHash);

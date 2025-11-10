@@ -23,7 +23,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 /// <summary>
-/// Scheduled job that cleans up old minute-level metric data from tenant databases.
+/// Scheduled job that cleans up old minute-level metric data from application databases.
 /// </summary>
 internal sealed class MetricsRetentionMinuteJob
 {
@@ -42,7 +42,7 @@ internal sealed class MetricsRetentionMinuteJob
     }
 
     /// <summary>
-    /// Executes the retention job for all tenant databases.
+    /// Executes the retention job for all application databases.
     /// </summary>
     public async Task ExecuteAsync(CancellationToken cancellationToken = default)
     {

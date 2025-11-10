@@ -34,7 +34,7 @@ internal sealed class MetricsExporterHealthCheck : IHealthCheck
 
     public Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
-        var data = new Dictionary<string, object>();
+        var data = new Dictionary<string, object>(StringComparer.Ordinal);
 
         if (_exporterService.LastFlushUtc.HasValue)
         {

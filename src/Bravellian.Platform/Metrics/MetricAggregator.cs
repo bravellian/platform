@@ -17,13 +17,14 @@ namespace Bravellian.Platform.Metrics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 /// <summary>
 /// Aggregates metric values for a time window.
 /// </summary>
 internal sealed class MetricAggregator
 {
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
     private readonly List<double> _reservoir;
     private readonly int _reservoirSize;
 
@@ -117,24 +118,3 @@ internal sealed class MetricAggregator
     }
 }
 
-/// <summary>
-/// Represents a snapshot of aggregated metric values.
-/// </summary>
-internal sealed class MetricSnapshot
-{
-    public double Sum { get; init; }
-
-    public int Count { get; init; }
-
-    public double? Min { get; init; }
-
-    public double? Max { get; init; }
-
-    public double Last { get; init; }
-
-    public double? P50 { get; init; }
-
-    public double? P95 { get; init; }
-
-    public double? P99 { get; init; }
-}

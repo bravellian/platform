@@ -50,7 +50,7 @@ internal sealed class MetricsExporterService : BackgroundService
         _options = options.Value;
         _databaseDiscovery = databaseDiscovery;
         _instanceId = Guid.NewGuid();
-        _metricDefinitions = new ConcurrentDictionary<string, MetricDefinition>();
+        _metricDefinitions = new ConcurrentDictionary<string, MetricDefinition>(StringComparer.Ordinal);
         _minuteAggregators = new ConcurrentDictionary<MetricSeriesKey, MetricAggregator>();
         _hourlyAggregators = new ConcurrentDictionary<MetricSeriesKey, MetricAggregator>();
 
@@ -121,22 +121,22 @@ internal sealed class MetricsExporterService : BackgroundService
     {
         try
         {
-            var value = Convert.ToDouble(measurement);
+            var value = Convert.ToDouble(measurement, System.Globalization.CultureInfo.InvariantCulture);
             var metricName = instrument.Name;
             var unit = instrument.Unit ?? "count";
 
-            // Extract tenant ID and service from tags
-            Guid? tenantId = null;
+            // Extract database ID and service from tags
+            Guid? databaseId = null;
             var service = _options.ServiceName;
-            var filteredTags = new Dictionary<string, string>();
+            var filteredTags = new Dictionary<string, string>(StringComparer.Ordinal);
 
             foreach (var tag in tags)
             {
-                if (tag.Key.Equals("tenant_id", StringComparison.OrdinalIgnoreCase) && tag.Value is Guid guid)
+                if (tag.Key.Equals("database_id", StringComparison.Ordinal) && tag.Value is Guid guid)
                 {
-                    tenantId = guid;
+                    databaseId = guid;
                 }
-                else if (tag.Key.Equals("service", StringComparison.OrdinalIgnoreCase) && tag.Value is string svc)
+                else if (tag.Key.Equals("service", StringComparison.Ordinal) && tag.Value is string svc)
                 {
                     service = svc;
                 }
@@ -149,7 +149,7 @@ internal sealed class MetricsExporterService : BackgroundService
             var seriesKey = new MetricSeriesKey
             {
                 MetricName = metricName,
-                TenantId = tenantId,
+                DatabaseId = databaseId,
                 Service = service,
                 InstanceId = _instanceId,
                 Tags = filteredTags,
@@ -223,58 +223,72 @@ internal sealed class MetricsExporterService : BackgroundService
 
         var databases = await _databaseDiscovery.DiscoverDatabasesAsync(cancellationToken).ConfigureAwait(false);
 
-        // Group aggregators by tenant
-        var aggregatorsByTenant = _minuteAggregators
-            .GroupBy(kvp => kvp.Key.TenantId)
+        // Group aggregators by database
+        var aggregatorsByDatabase = _minuteAggregators
+            .GroupBy(kvp => kvp.Key.DatabaseId)
             .ToList();
 
-        foreach (var tenantGroup in aggregatorsByTenant)
+        foreach (var databaseGroup in aggregatorsByDatabase)
         {
-            var tenantId = tenantGroup.Key;
+            var databaseId = databaseGroup.Key;
 
             // For now, write to the first database (or a default database)
-            // In a real multi-tenant setup, you'd map tenantId to the appropriate database
+            // In a multi-database setup, you'd map databaseId to the appropriate database
             var targetDb = databases.FirstOrDefault();
             if (targetDb == null || string.IsNullOrEmpty(targetDb.ConnectionString))
             {
                 continue;
             }
 
-            foreach (var kvp in tenantGroup)
-            {
-                var seriesKey = kvp.Key;
-                var aggregator = kvp.Value;
-                var snapshot = aggregator.GetSnapshotAndReset();
-
-                if (snapshot.Count == 0)
-                {
-                    continue; // Skip empty snapshots
-                }
-
-                try
-                {
-                    if (_metricDefinitions.TryGetValue(seriesKey.MetricName, out var metricDef))
-                    {
-                        await SqlMetricsWriter.WriteMinutePointAsync(
-                            targetDb.ConnectionString,
-                            seriesKey,
-                            snapshot,
-                            bucketStart,
-                            metricDef.Unit,
-                            metricDef.AggKind.ToString().ToLowerInvariant(),
-                            metricDef.Description,
-                            cancellationToken).ConfigureAwait(false);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Error writing minute metric for series {MetricName}", seriesKey.MetricName);
-                }
-            }
+            await FlushDatabaseGroupAsync(databaseGroup, targetDb.ConnectionString, bucketStart, cancellationToken).ConfigureAwait(false);
         }
 
         _lastFlushUtc = DateTime.UtcNow;
 
+        await UpdateHeartbeatAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task FlushDatabaseGroupAsync(
+        IGrouping<Guid?, KeyValuePair<MetricSeriesKey, MetricAggregator>> databaseGroup,
+        string connectionString,
+        DateTime bucketStart,
+        CancellationToken cancellationToken)
+    {
+        foreach (var kvp in databaseGroup)
+        {
+            var seriesKey = kvp.Key;
+            var aggregator = kvp.Value;
+            var snapshot = aggregator.GetSnapshotAndReset();
+
+            if (snapshot.Count == 0)
+            {
+                continue; // Skip empty snapshots
+            }
+
+            try
+            {
+                if (_metricDefinitions.TryGetValue(seriesKey.MetricName, out var metricDef))
+                {
+                    await SqlMetricsWriter.WriteMinutePointAsync(
+                        connectionString,
+                        seriesKey,
+                        snapshot,
+                        bucketStart,
+                        metricDef.Unit,
+                        metricDef.AggKind.ToString().ToLowerInvariant(),
+                        metricDef.Description,
+                        cancellationToken).ConfigureAwait(false);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error writing minute metric for series {MetricName}", seriesKey.MetricName);
+            }
+        }
+    }
+
+    private async Task UpdateHeartbeatAsync(CancellationToken cancellationToken)
+    {
         // Update heartbeat in central DB if configured
         if (!string.IsNullOrEmpty(_options.CentralConnectionString))
         {
@@ -283,7 +297,7 @@ internal sealed class MetricsExporterService : BackgroundService
                 await SqlMetricsWriter.UpdateHeartbeatAsync(
                     _options.CentralConnectionString,
                     _instanceId.ToString(),
-                    _lastFlushUtc.Value,
+                    _lastFlushUtc!.Value,
                     _lastError,
                     cancellationToken).ConfigureAwait(false);
             }
@@ -347,15 +361,4 @@ internal sealed class MetricsExporterService : BackgroundService
             }
         }
     }
-}
-
-internal sealed class MetricDefinition
-{
-    public required string Name { get; init; }
-
-    public required string Unit { get; init; }
-
-    public required MetricAggregationKind AggKind { get; init; }
-
-    public required string Description { get; init; }
 }

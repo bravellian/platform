@@ -1671,7 +1671,7 @@ internal static class DatabaseSchemaManager
     }
 
     /// <summary>
-    /// Ensures that the required database schema exists for the metrics functionality in tenant databases.
+    /// Ensures that the required database schema exists for the metrics functionality in application databases.
     /// </summary>
     /// <param name="connectionString">The database connection string.</param>
     /// <param name="schemaName">The schema name (default: "infra").</param>
@@ -1734,7 +1734,7 @@ internal static class DatabaseSchemaManager
             await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
         }
 
-        // Create central MetricSeries table (with TenantId)
+        // Create central MetricSeries table (with DatabaseId for cross-database aggregation)
         var metricSeriesExists = await TableExistsAsync(connection, schemaName, "MetricSeries").ConfigureAwait(false);
         if (!metricSeriesExists)
         {
@@ -1839,12 +1839,12 @@ internal static class DatabaseSchemaManager
             CREATE TABLE [{schemaName}].[MetricSeries] (
               SeriesId      BIGINT IDENTITY PRIMARY KEY,
               MetricDefId   INT NOT NULL REFERENCES [{schemaName}].[MetricDef](MetricDefId),
-              TenantId      UNIQUEIDENTIFIER NULL,
+              DatabaseId    UNIQUEIDENTIFIER NULL,
               Service       NVARCHAR(64) NOT NULL,
               TagsJson      NVARCHAR(1024) NOT NULL DEFAULT N'{"{"}"{"}"}',
               TagHash       VARBINARY(32)  NOT NULL,
               CreatedUtc    DATETIME2(3)   NOT NULL DEFAULT SYSUTCDATETIME(),
-              CONSTRAINT UQ_MetricSeries UNIQUE (MetricDefId, TenantId, Service, TagHash)
+              CONSTRAINT UQ_MetricSeries UNIQUE (MetricDefId, DatabaseId, Service, TagHash)
             );
             """;
     }
@@ -1991,7 +1991,7 @@ internal static class DatabaseSchemaManager
               @Unit NVARCHAR(32),
               @AggKind NVARCHAR(16),
               @Description NVARCHAR(512),
-              @TenantId UNIQUEIDENTIFIER,
+              @DatabaseId UNIQUEIDENTIFIER,
               @Service NVARCHAR(64),
               @TagsJson NVARCHAR(1024),
               @TagHash VARBINARY(32),
@@ -2010,17 +2010,17 @@ internal static class DatabaseSchemaManager
               END
 
               MERGE [{schemaName}].[MetricSeries] WITH (HOLDLOCK) AS T
-              USING (SELECT @MetricDefId AS MetricDefId, @TenantId AS TenantId, @Service AS Service, @TagHash AS TagHash) AS S
-                ON (T.MetricDefId = S.MetricDefId AND T.TenantId = S.TenantId AND T.Service = S.Service AND T.TagHash = S.TagHash)
+              USING (SELECT @MetricDefId AS MetricDefId, @DatabaseId AS DatabaseId, @Service AS Service, @TagHash AS TagHash) AS S
+                ON (T.MetricDefId = S.MetricDefId AND T.DatabaseId = S.DatabaseId AND T.Service = S.Service AND T.TagHash = S.TagHash)
               WHEN MATCHED THEN
                 UPDATE SET TagsJson = @TagsJson
               WHEN NOT MATCHED THEN
-                INSERT (MetricDefId, TenantId, Service, TagsJson, TagHash) 
-                VALUES(@MetricDefId, @TenantId, @Service, @TagsJson, @TagHash)
+                INSERT (MetricDefId, DatabaseId, Service, TagsJson, TagHash) 
+                VALUES(@MetricDefId, @DatabaseId, @Service, @TagsJson, @TagHash)
               OUTPUT inserted.SeriesId;
 
               SELECT @SeriesId = SeriesId FROM [{schemaName}].[MetricSeries]
-              WHERE MetricDefId = @MetricDefId AND TenantId = @TenantId AND Service = @Service AND TagHash = @TagHash;
+              WHERE MetricDefId = @MetricDefId AND DatabaseId = @DatabaseId AND Service = @Service AND TagHash = @TagHash;
             END
             """;
     }

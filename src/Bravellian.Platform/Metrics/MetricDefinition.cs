@@ -14,21 +14,16 @@
 
 namespace Bravellian.Platform.Metrics;
 
-using System;
-using System.Collections.Generic;
-
 /// <summary>
-/// Represents a unique key for a metric time series.
+/// Represents a metric definition.
 /// </summary>
-internal sealed record MetricSeriesKey
+internal sealed class MetricDefinition
 {
-    public required string MetricName { get; init; }
+    public required string Name { get; init; }
 
-    public required Guid? DatabaseId { get; init; }
+    public required string Unit { get; init; }
 
-    public required string Service { get; init; }
+    public required MetricAggregationKind AggKind { get; init; }
 
-    public required Guid InstanceId { get; init; }
-
-    public required IReadOnlyDictionary<string, string> Tags { get; init; }
+    public required string Description { get; init; }
 }

@@ -492,6 +492,7 @@ static Bravellian.Platform.Observability.WatchdogAlertContext.operator ==(Bravel
 static Bravellian.Platform.Observability.WatchdogSnapshot.operator !=(Bravellian.Platform.Observability.WatchdogSnapshot? left, Bravellian.Platform.Observability.WatchdogSnapshot? right) -> bool
 static Bravellian.Platform.Observability.WatchdogSnapshot.operator ==(Bravellian.Platform.Observability.WatchdogSnapshot? left, Bravellian.Platform.Observability.WatchdogSnapshot? right) -> bool
 Bravellian.Platform.Metrics.MetricsExporterOptions
+Bravellian.Platform.Metrics.MetricsServiceCollectionExtensions
 Bravellian.Platform.Metrics.MetricsExporterOptions.CentralConnectionString.get -> string?
 Bravellian.Platform.Metrics.MetricsExporterOptions.CentralConnectionString.set -> void
 Bravellian.Platform.Metrics.MetricsExporterOptions.Enabled.get -> bool
