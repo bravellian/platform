@@ -1,0 +1,140 @@
+// Copyright (c) Bravellian
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+namespace Bravellian.Platform.Metrics;
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+/// <summary>
+/// Aggregates metric values for a time window.
+/// </summary>
+internal sealed class MetricAggregator
+{
+    private readonly object _lock = new();
+    private readonly List<double> _reservoir;
+    private readonly int _reservoirSize;
+
+    private double _sum;
+    private int _count;
+    private double _min = double.MaxValue;
+    private double _max = double.MinValue;
+    private double _last;
+
+    public MetricAggregator(int reservoirSize = 1000)
+    {
+        _reservoirSize = reservoirSize;
+        _reservoir = new List<double>(reservoirSize);
+    }
+
+    /// <summary>
+    /// Records a value.
+    /// </summary>
+    public void Record(double value)
+    {
+        lock (_lock)
+        {
+            _sum += value;
+            _count++;
+            _last = value;
+
+            if (value < _min)
+            {
+                _min = value;
+            }
+
+            if (value > _max)
+            {
+                _max = value;
+            }
+
+            // Add to reservoir for percentile calculation (capped)
+            if (_reservoir.Count < _reservoirSize)
+            {
+                _reservoir.Add(value);
+            }
+            else if (_count % 10 == 0) // Sample every 10th value after reservoir is full
+            {
+                _reservoir[Random.Shared.Next(_reservoirSize)] = value;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets the aggregated snapshot and resets the aggregator.
+    /// </summary>
+    public MetricSnapshot GetSnapshotAndReset()
+    {
+        lock (_lock)
+        {
+            var snapshot = new MetricSnapshot
+            {
+                Sum = _sum,
+                Count = _count,
+                Min = _count > 0 ? _min : null,
+                Max = _count > 0 ? _max : null,
+                Last = _last,
+                P50 = CalculatePercentile(0.50),
+                P95 = CalculatePercentile(0.95),
+                P99 = CalculatePercentile(0.99),
+            };
+
+            // Reset
+            _sum = 0;
+            _count = 0;
+            _min = double.MaxValue;
+            _max = double.MinValue;
+            _last = 0;
+            _reservoir.Clear();
+
+            return snapshot;
+        }
+    }
+
+    private double? CalculatePercentile(double percentile)
+    {
+        if (_reservoir.Count == 0)
+        {
+            return null;
+        }
+
+        var sorted = _reservoir.OrderBy(x => x).ToList();
+        var index = (int)Math.Ceiling(percentile * sorted.Count) - 1;
+        index = Math.Max(0, Math.Min(index, sorted.Count - 1));
+        return sorted[index];
+    }
+}
+
+/// <summary>
+/// Represents a snapshot of aggregated metric values.
+/// </summary>
+internal sealed class MetricSnapshot
+{
+    public double Sum { get; init; }
+
+    public int Count { get; init; }
+
+    public double? Min { get; init; }
+
+    public double? Max { get; init; }
+
+    public double Last { get; init; }
+
+    public double? P50 { get; init; }
+
+    public double? P95 { get; init; }
+
+    public double? P99 { get; init; }
+}
