@@ -140,13 +140,9 @@ internal sealed class MetricsExporterService : BackgroundService
                 {
                     service = svc;
                 }
-                else if (tag.Value is string strValue)
+                else if (tag.Value is string strValue && IsAllowedTag(tag.Key))
                 {
-                    // Whitelist: only specific tags
-                    if (IsAllowedTag(tag.Key))
-                    {
-                        filteredTags[tag.Key] = strValue;
-                    }
+                    filteredTags[tag.Key] = strValue;
                 }
             }
 
