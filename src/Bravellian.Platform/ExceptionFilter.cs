@@ -15,7 +15,7 @@
 namespace Bravellian.Platform;
 
 using System;
-
+using System.Linq;
 /// <summary>
 /// Provides utility methods for filtering exceptions in catch blocks.
 /// This helper is designed to prevent catching critical exceptions that should
@@ -165,15 +165,8 @@ public static class ExceptionFilter
         }
 
         var exceptionType = exception.GetType();
-        foreach (var expectedType in expectedTypes)
-        {
-            if (expectedType != null && expectedType.IsAssignableFrom(exceptionType))
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return expectedTypes.Any(expectedType =>
+            expectedType != null && expectedType.IsAssignableFrom(exceptionType));
     }
 
     /// <summary>
