@@ -88,8 +88,16 @@ public static class ExceptionFilter
     /// </code>
     /// </para>
     /// </remarks>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="exception"/> is null.
+    /// </exception>
     public static bool IsCatchable(Exception exception)
     {
+        if (exception == null)
+        {
+            throw new ArgumentNullException(nameof(exception));
+        }
+
         return !IsCritical(exception);
     }
 
@@ -165,8 +173,9 @@ public static class ExceptionFilter
         }
 
         var exceptionType = exception.GetType();
-        return expectedTypes.Any(expectedType =>
-            expectedType != null && expectedType.IsAssignableFrom(exceptionType));
+        return expectedTypes
+            .Where(expectedType => expectedType != null)
+            .Any(expectedType => expectedType.IsAssignableFrom(exceptionType));
     }
 
     /// <summary>

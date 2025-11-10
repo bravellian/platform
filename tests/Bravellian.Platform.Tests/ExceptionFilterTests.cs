@@ -60,6 +60,14 @@ public class ExceptionFilterTests
     }
 
     [Fact]
+    public void IsCatchable_WithNullException_ThrowsArgumentNullException()
+    {
+        // Act & Assert
+        Should.Throw<ArgumentNullException>(() => ExceptionFilter.IsCatchable(null!))
+            .ParamName.ShouldBe("exception");
+    }
+
+    [Fact]
     public void IsCritical_WithOutOfMemoryException_ReturnsTrue()
     {
         // Arrange
