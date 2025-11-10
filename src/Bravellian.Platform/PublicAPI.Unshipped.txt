@@ -491,3 +491,8 @@ static Bravellian.Platform.Observability.WatchdogAlertContext.operator !=(Bravel
 static Bravellian.Platform.Observability.WatchdogAlertContext.operator ==(Bravellian.Platform.Observability.WatchdogAlertContext? left, Bravellian.Platform.Observability.WatchdogAlertContext? right) -> bool
 static Bravellian.Platform.Observability.WatchdogSnapshot.operator !=(Bravellian.Platform.Observability.WatchdogSnapshot? left, Bravellian.Platform.Observability.WatchdogSnapshot? right) -> bool
 static Bravellian.Platform.Observability.WatchdogSnapshot.operator ==(Bravellian.Platform.Observability.WatchdogSnapshot? left, Bravellian.Platform.Observability.WatchdogSnapshot? right) -> bool
+Bravellian.Platform.ExceptionFilter
+static Bravellian.Platform.ExceptionFilter.IsCatchable(System.Exception! exception) -> bool
+static Bravellian.Platform.ExceptionFilter.IsCritical(System.Exception! exception) -> bool
+static Bravellian.Platform.ExceptionFilter.IsExpected(System.Exception! exception, params System.Type![]! expectedTypes) -> bool
+static Bravellian.Platform.ExceptionFilter.IsCatchableAndExpected(System.Exception! exception, params System.Type![]! expectedTypes) -> bool
