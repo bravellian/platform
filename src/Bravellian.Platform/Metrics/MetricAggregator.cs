@@ -61,14 +61,19 @@ internal sealed class MetricAggregator
                 _max = value;
             }
 
-            // Add to reservoir for percentile calculation (capped)
+            // Add to reservoir for percentile calculation using standard Algorithm R
             if (_reservoir.Count < _reservoirSize)
             {
                 _reservoir.Add(value);
             }
-            else if (_count % 10 == 0) // Sample every 10th value after reservoir is full
+            else
             {
-                _reservoir[Random.Shared.Next(_reservoirSize)] = value;
+                // Standard Algorithm R for reservoir sampling
+                var randomIndex = Random.Shared.Next(_count);
+                if (randomIndex < _reservoirSize)
+                {
+                    _reservoir[randomIndex] = value;
+                }
             }
         }
     }
@@ -80,16 +85,23 @@ internal sealed class MetricAggregator
     {
         lock (_lock)
         {
+            // Sort reservoir once for all percentile calculations
+            List<double>? sorted = null;
+            if (_reservoir.Count > 0)
+            {
+                sorted = _reservoir.OrderBy(x => x).ToList();
+            }
+
             var snapshot = new MetricSnapshot
             {
                 Sum = _sum,
                 Count = _count,
                 Min = _count > 0 ? _min : null,
                 Max = _count > 0 ? _max : null,
-                Last = _last,
-                P50 = CalculatePercentile(0.50),
-                P95 = CalculatePercentile(0.95),
-                P99 = CalculatePercentile(0.99),
+                Last = _count > 0 ? _last : null,
+                P50 = CalculatePercentile(sorted, 0.50),
+                P95 = CalculatePercentile(sorted, 0.95),
+                P99 = CalculatePercentile(sorted, 0.99),
             };
 
             // Reset
@@ -104,14 +116,13 @@ internal sealed class MetricAggregator
         }
     }
 
-    private double? CalculatePercentile(double percentile)
+    private static double? CalculatePercentile(List<double>? sorted, double percentile)
     {
-        if (_reservoir.Count == 0)
+        if (sorted == null || sorted.Count == 0)
         {
             return null;
         }
 
-        var sorted = _reservoir.OrderBy(x => x).ToList();
         var index = (int)Math.Ceiling(percentile * sorted.Count) - 1;
         index = Math.Max(0, Math.Min(index, sorted.Count - 1));
         return sorted[index];

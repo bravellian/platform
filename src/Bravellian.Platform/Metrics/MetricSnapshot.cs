@@ -27,7 +27,7 @@ internal sealed class MetricSnapshot
 
     public double? Max { get; init; }
 
-    public double Last { get; init; }
+    public double? Last { get; init; }
 
     public double? P50 { get; init; }
 

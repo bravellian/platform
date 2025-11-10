@@ -1865,7 +1865,7 @@ internal static class DatabaseSchemaManager
               P95             FLOAT        NULL,
               P99             FLOAT        NULL,
               InsertedUtc     DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
-              CONSTRAINT PK_MetricPointHourly PRIMARY KEY (SeriesId, BucketStartUtc, BucketSecs)
+              CONSTRAINT PK_MetricPointHourly PRIMARY KEY NONCLUSTERED (SeriesId, BucketStartUtc, BucketSecs)
             );
 
             CREATE CLUSTERED COLUMNSTORE INDEX CCI_MetricPointHourly ON [{schemaName}].[MetricPointHourly];
@@ -1916,8 +1916,7 @@ internal static class DatabaseSchemaManager
                 UPDATE SET TagsJson = @TagsJson
               WHEN NOT MATCHED THEN
                 INSERT (MetricDefId, Service, InstanceId, TagsJson, TagHash) 
-                VALUES(@MetricDefId, @Service, @InstanceId, @TagsJson, @TagHash)
-              OUTPUT inserted.SeriesId;
+                VALUES(@MetricDefId, @Service, @InstanceId, @TagsJson, @TagHash);
 
               SELECT @SeriesId = SeriesId FROM [{schemaName}].[MetricSeries]
               WHERE MetricDefId = @MetricDefId AND Service = @Service AND InstanceId = @InstanceId AND TagHash = @TagHash;
@@ -1958,15 +1957,13 @@ internal static class DatabaseSchemaManager
               IF EXISTS (SELECT 1 FROM [{schemaName}].[MetricPointMinute] WITH (UPDLOCK, HOLDLOCK)
                          WHERE SeriesId = @SeriesId AND BucketStartUtc = @BucketStartUtc AND BucketSecs = @BucketSecs)
               BEGIN
+                -- Do not update percentiles on merge; percentiles cannot be accurately combined
                 UPDATE [{schemaName}].[MetricPointMinute]
                   SET ValueSum   = ISNULL(ValueSum,0)   + ISNULL(@ValueSum,0),
                       ValueCount = ISNULL(ValueCount,0) + ISNULL(@ValueCount,0),
                       ValueMin   = CASE WHEN ValueMin IS NULL OR @ValueMin < ValueMin THEN @ValueMin ELSE ValueMin END,
                       ValueMax   = CASE WHEN ValueMax IS NULL OR @ValueMax > ValueMax THEN @ValueMax ELSE ValueMax END,
                       ValueLast  = @ValueLast,
-                      P50        = COALESCE(@P50, P50),
-                      P95        = CASE WHEN @P95 IS NULL THEN P95 ELSE COALESCE(P95, @P95) END,
-                      P99        = CASE WHEN @P99 IS NULL THEN P99 ELSE COALESCE(P99, @P99) END,
                       InsertedUtc = SYSUTCDATETIME()
                 WHERE SeriesId = @SeriesId AND BucketStartUtc = @BucketStartUtc AND BucketSecs = @BucketSecs;
               END
@@ -2016,8 +2013,7 @@ internal static class DatabaseSchemaManager
                 UPDATE SET TagsJson = @TagsJson
               WHEN NOT MATCHED THEN
                 INSERT (MetricDefId, DatabaseId, Service, TagsJson, TagHash) 
-                VALUES(@MetricDefId, @DatabaseId, @Service, @TagsJson, @TagHash)
-              OUTPUT inserted.SeriesId;
+                VALUES(@MetricDefId, @DatabaseId, @Service, @TagsJson, @TagHash);
 
               SELECT @SeriesId = SeriesId FROM [{schemaName}].[MetricSeries]
               WHERE MetricDefId = @MetricDefId AND DatabaseId = @DatabaseId AND Service = @Service AND TagHash = @TagHash;
@@ -2058,15 +2054,13 @@ internal static class DatabaseSchemaManager
               IF EXISTS (SELECT 1 FROM [{schemaName}].[MetricPointHourly] WITH (UPDLOCK, HOLDLOCK)
                          WHERE SeriesId = @SeriesId AND BucketStartUtc = @BucketStartUtc AND BucketSecs = @BucketSecs)
               BEGIN
+                -- Do not update percentiles on merge; percentiles cannot be accurately combined
                 UPDATE [{schemaName}].[MetricPointHourly]
                   SET ValueSum   = ISNULL(ValueSum,0)   + ISNULL(@ValueSum,0),
                       ValueCount = ISNULL(ValueCount,0) + ISNULL(@ValueCount,0),
                       ValueMin   = CASE WHEN ValueMin IS NULL OR @ValueMin < ValueMin THEN @ValueMin ELSE ValueMin END,
                       ValueMax   = CASE WHEN ValueMax IS NULL OR @ValueMax > ValueMax THEN @ValueMax ELSE ValueMax END,
                       ValueLast  = @ValueLast,
-                      P50        = COALESCE(@P50, P50),
-                      P95        = CASE WHEN @P95 IS NULL THEN P95 ELSE COALESCE(P95, @P95) END,
-                      P99        = CASE WHEN @P99 IS NULL THEN P99 ELSE COALESCE(P99, @P99) END,
                       InsertedUtc = SYSUTCDATETIME()
                 WHERE SeriesId = @SeriesId AND BucketStartUtc = @BucketStartUtc AND BucketSecs = @BucketSecs;
               END

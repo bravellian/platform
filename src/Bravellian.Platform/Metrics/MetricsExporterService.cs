@@ -39,6 +39,7 @@ internal sealed class MetricsExporterService : BackgroundService
     private readonly ConcurrentDictionary<MetricSeriesKey, MetricAggregator> _minuteAggregators;
     private readonly ConcurrentDictionary<MetricSeriesKey, MetricAggregator> _hourlyAggregators;
     private DateTime? _lastFlushUtc;
+    private DateTime? _lastHourlyFlushUtc;
     private string? _lastError;
 
     public MetricsExporterService(
@@ -316,11 +317,13 @@ internal sealed class MetricsExporterService : BackgroundService
         }
 
         var now = DateTime.UtcNow;
+        var currentHour = new DateTime(now.Year, now.Month, now.Day, now.Hour, 0, 0, DateTimeKind.Utc);
 
-        // Flush hourly metrics at the top of each hour (with a small window)
-        if (now.Minute < 2) // Within first 2 minutes of the hour
+        // Flush once per hour when we cross into a new hour
+        if (_lastHourlyFlushUtc == null || _lastHourlyFlushUtc.Value < currentHour)
         {
             await FlushHourlyMetricsAsync(cancellationToken).ConfigureAwait(false);
+            _lastHourlyFlushUtc = currentHour;
         }
     }
 
