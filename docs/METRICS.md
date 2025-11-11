@@ -365,6 +365,367 @@ Each instance has a unique `InstanceId` allowing you to query per-instance metri
 
 Percentiles (P50, P95, P99) are calculated per-instance using reservoir sampling. When combining data from multiple instances, use MAX aggregation for P95/P99 values.
 
+## Practical Usage Guide
+
+### When to Use Metrics
+
+Use metrics to track:
+
+1. **Operational Health**
+   - Request rates and error rates
+   - Queue depths and processing latencies
+   - Resource utilization (connections, memory pressure indicators)
+
+2. **Business KPIs**
+   - Orders processed, payments completed
+   - User signups, feature adoption rates
+   - Revenue-impacting operations
+
+3. **Performance Monitoring**
+   - API endpoint latencies (p95, p99)
+   - Database query times
+   - External service call durations
+
+4. **Debugging & Diagnostics**
+   - Error counts by type/category
+   - Retry attempts and failure reasons
+   - Background job execution rates
+
+### What Metrics to Capture
+
+#### Essential Application Metrics
+
+**For API/Web Applications:**
+```csharp
+// Request throughput and errors
+new MetricRegistration(
+    "app.http.requests.count",
+    MetricUnit.Count,
+    MetricAggregationKind.Counter,
+    "HTTP requests received",
+    new[] { "endpoint", "method", "status_code" });
+
+// Request latency
+new MetricRegistration(
+    "app.http.request_duration.ms",
+    MetricUnit.Milliseconds,
+    MetricAggregationKind.Histogram,
+    "HTTP request duration",
+    new[] { "endpoint", "method" });
+```
+
+**For Background Workers:**
+```csharp
+// Job execution
+new MetricRegistration(
+    "app.worker.jobs.processed.count",
+    MetricUnit.Count,
+    MetricAggregationKind.Counter,
+    "Background jobs processed",
+    new[] { "job_type", "result" });
+
+// Job duration
+new MetricRegistration(
+    "app.worker.job_duration.ms",
+    MetricUnit.Milliseconds,
+    MetricAggregationKind.Histogram,
+    "Background job execution time",
+    new[] { "job_type" });
+
+// Queue depth (if applicable)
+new MetricRegistration(
+    "app.worker.queue.depth",
+    MetricUnit.Count,
+    MetricAggregationKind.Gauge,
+    "Pending jobs in queue",
+    new[] { "queue_name" });
+```
+
+**For Data Processing:**
+```csharp
+// Records processed
+new MetricRegistration(
+    "app.etl.records.processed.count",
+    MetricUnit.Count,
+    MetricAggregationKind.Counter,
+    "ETL records processed",
+    new[] { "source", "result" });
+
+// Batch size
+new MetricRegistration(
+    "app.etl.batch_size",
+    MetricUnit.Count,
+    MetricAggregationKind.Histogram,
+    "Number of records per batch",
+    new[] { "source" });
+```
+
+#### Business Metrics
+
+```csharp
+// Orders
+new MetricRegistration(
+    "app.orders.created.count",
+    MetricUnit.Count,
+    MetricAggregationKind.Counter,
+    "Orders created",
+    new[] { "order_type", "payment_method" });
+
+new MetricRegistration(
+    "app.orders.value",
+    MetricUnit.Count, // Could use a custom unit like "cents"
+    MetricAggregationKind.Counter,
+    "Order value in cents",
+    new[] { "order_type", "currency" });
+
+// User activity
+new MetricRegistration(
+    "app.users.active.count",
+    MetricUnit.Count,
+    MetricAggregationKind.Gauge,
+    "Currently active users",
+    new[] { "tenant_id" });
+```
+
+### How to Integrate Custom Metrics
+
+#### Step-by-Step Integration
+
+**1. Define Your Metrics at Startup**
+
+Create a dedicated class for your metric definitions:
+
+```csharp
+// Metrics/ApplicationMetrics.cs
+public static class ApplicationMetrics
+{
+    public static IReadOnlyList<MetricRegistration> All => new[]
+    {
+        new MetricRegistration(
+            "app.orders.created.count",
+            MetricUnit.Count,
+            MetricAggregationKind.Counter,
+            "Number of orders created",
+            new[] { "order_type", "payment_method", "region" }),
+            
+        new MetricRegistration(
+            "app.orders.processing_time.ms",
+            MetricUnit.Milliseconds,
+            MetricAggregationKind.Histogram,
+            "Order processing duration",
+            new[] { "order_type" }),
+            
+        // Add more metrics...
+    };
+}
+```
+
+**2. Register Metrics After Building the App**
+
+```csharp
+// Program.cs
+var builder = WebApplication.CreateBuilder(args);
+
+// Add metrics exporter (platform metrics auto-registered)
+builder.Services.AddMetricsExporter(options =>
+{
+    options.ServiceName = "OrderService";
+    options.EnableCentralRollup = true;
+    options.CentralConnectionString = builder.Configuration.GetConnectionString("Central");
+});
+
+var app = builder.Build();
+
+// Register custom application metrics
+var registrar = app.Services.GetRequiredService<IMetricRegistrar>();
+registrar.RegisterRange(ApplicationMetrics.All);
+
+app.Run();
+```
+
+**3. Emit Metrics in Your Services**
+
+```csharp
+// Services/OrderService.cs
+using System.Diagnostics;
+using System.Diagnostics.Metrics;
+
+public class OrderService
+{
+    // Create a meter for your application
+    private static readonly Meter _meter = new("Bravellian.Platform.OrderService");
+    
+    // Define instruments for your metrics
+    private static readonly Counter<long> _ordersCreated = 
+        _meter.CreateCounter<long>("app.orders.created.count");
+    
+    private static readonly Histogram<double> _orderProcessingTime = 
+        _meter.CreateHistogram<double>("app.orders.processing_time.ms");
+    
+    private readonly ILogger<OrderService> _logger;
+    
+    public OrderService(ILogger<OrderService> logger)
+    {
+        _logger = logger;
+    }
+    
+    public async Task<Order> CreateOrderAsync(CreateOrderRequest request)
+    {
+        var sw = Stopwatch.StartNew();
+        
+        try
+        {
+            // Your order creation logic
+            var order = await ProcessOrderAsync(request);
+            
+            // Record successful order creation
+            _ordersCreated.Add(1,
+                new KeyValuePair<string, object?>("order_type", order.Type),
+                new KeyValuePair<string, object?>("payment_method", order.PaymentMethod),
+                new KeyValuePair<string, object?>("region", order.Region));
+            
+            // Record processing time
+            _orderProcessingTime.Record(sw.Elapsed.TotalMilliseconds,
+                new KeyValuePair<string, object?>("order_type", order.Type));
+            
+            return order;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to create order");
+            
+            // Still record the attempt (with appropriate tags)
+            _ordersCreated.Add(1,
+                new KeyValuePair<string, object?>("order_type", request.Type),
+                new KeyValuePair<string, object?>("payment_method", request.PaymentMethod),
+                new KeyValuePair<string, object?>("region", request.Region),
+                new KeyValuePair<string, object?>("result", "error"));
+            
+            throw;
+        }
+    }
+    
+    private async Task<Order> ProcessOrderAsync(CreateOrderRequest request)
+    {
+        // Implementation...
+        await Task.Delay(100); // Simulate work
+        return new Order();
+    }
+}
+```
+
+**4. Use Middleware for HTTP Metrics (Optional)**
+
+```csharp
+// Middleware/MetricsMiddleware.cs
+public class MetricsMiddleware
+{
+    private static readonly Meter _meter = new("Bravellian.Platform.WebApp");
+    private static readonly Counter<long> _httpRequests = 
+        _meter.CreateCounter<long>("app.http.requests.count");
+    private static readonly Histogram<double> _httpDuration = 
+        _meter.CreateHistogram<double>("app.http.request_duration.ms");
+    
+    private readonly RequestDelegate _next;
+    
+    public MetricsMiddleware(RequestDelegate next)
+    {
+        _next = next;
+    }
+    
+    public async Task InvokeAsync(HttpContext context)
+    {
+        var sw = Stopwatch.StartNew();
+        var endpoint = context.Request.Path.Value ?? "/";
+        var method = context.Request.Method;
+        
+        try
+        {
+            await _next(context);
+        }
+        finally
+        {
+            var statusCode = context.Response.StatusCode.ToString();
+            
+            _httpRequests.Add(1,
+                new KeyValuePair<string, object?>("endpoint", endpoint),
+                new KeyValuePair<string, object?>("method", method),
+                new KeyValuePair<string, object?>("status_code", statusCode));
+            
+            _httpDuration.Record(sw.Elapsed.TotalMilliseconds,
+                new KeyValuePair<string, object?>("endpoint", endpoint),
+                new KeyValuePair<string, object?>("method", method));
+        }
+    }
+}
+
+// Register in Program.cs
+app.UseMiddleware<MetricsMiddleware>();
+```
+
+### Complete Example: E-Commerce Order Service
+
+Here's a complete example showing metrics integration for an order processing service:
+
+```csharp
+// Program.cs
+var builder = WebApplication.CreateBuilder(args);
+
+// Configure services
+builder.Services.AddMetricsExporter(options =>
+{
+    options.ServiceName = "ECommerceOrderService";
+    options.EnableCentralRollup = true;
+    options.CentralConnectionString = builder.Configuration.GetConnectionString("Central");
+    options.MinuteRetentionDays = 7;
+    options.HourlyRetentionDays = 90;
+});
+
+builder.Services.AddMetricsExporterHealthCheck();
+builder.Services.AddSingleton<OrderService>();
+
+var app = builder.Build();
+
+// Register application metrics
+var registrar = app.Services.GetRequiredService<IMetricRegistrar>();
+registrar.RegisterRange(new[]
+{
+    new MetricRegistration(
+        "app.orders.created.count",
+        MetricUnit.Count,
+        MetricAggregationKind.Counter,
+        "Orders successfully created",
+        new[] { "product_category", "payment_method" }),
+        
+    new MetricRegistration(
+        "app.orders.failed.count",
+        MetricUnit.Count,
+        MetricAggregationKind.Counter,
+        "Order creation failures",
+        new[] { "failure_reason" }),
+        
+    new MetricRegistration(
+        "app.inventory.check_duration.ms",
+        MetricUnit.Milliseconds,
+        MetricAggregationKind.Histogram,
+        "Time to check inventory availability",
+        new[] { "product_category" }),
+});
+
+app.MapHealthChecks("/health");
+app.Run();
+```
+
+### Best Practices Summary
+
+1. **Keep cardinality low**: Limit tag combinations to < 1000 per metric
+2. **Use appropriate metric types**: Counters for totals, Gauges for current values, Histograms for distributions
+3. **Tag wisely**: Use tags for filtering, not for unique identifiers
+4. **Name consistently**: Use dots for namespacing (e.g., `app.orders.created.count`)
+5. **Register early**: Define and register all metrics at application startup
+6. **Don't over-instrument**: Focus on metrics that help you make decisions
+7. **Use standard units**: Stick to `MetricUnit` constants when possible
+
 ## Examples
 
 See the [examples directory](../examples/metrics/) for complete working examples.
