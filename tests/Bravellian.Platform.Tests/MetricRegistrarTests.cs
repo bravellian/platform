@@ -29,8 +29,8 @@ public class MetricRegistrarTests
         var registrar = new MetricRegistrar(logger);
         var metric = new MetricRegistration(
             "test.metric",
-            "count",
-            "counter",
+            MetricUnit.Count,
+            MetricAggregationKind.Counter,
             "Test metric",
             new[] { "tag1", "tag2" });
 
@@ -51,8 +51,8 @@ public class MetricRegistrarTests
         var registrar = new MetricRegistrar(logger);
         var metric = new MetricRegistration(
             "test.metric",
-            "count",
-            "counter",
+            MetricUnit.Count,
+            MetricAggregationKind.Counter,
             "Test metric",
             new[] { "tag1" });
 
@@ -73,9 +73,9 @@ public class MetricRegistrarTests
         var registrar = new MetricRegistrar(logger);
         var metrics = new[]
         {
-            new MetricRegistration("metric1", "count", "counter", "Metric 1", new[] { "tag1" }),
-            new MetricRegistration("metric2", "ms", "histogram", "Metric 2", new[] { "tag2" }),
-            new MetricRegistration("metric3", "count", "gauge", "Metric 3", new[] { "tag3" }),
+            new MetricRegistration("metric1", MetricUnit.Count, MetricAggregationKind.Counter, "Metric 1", new[] { "tag1" }),
+            new MetricRegistration("metric2", MetricUnit.Milliseconds, MetricAggregationKind.Histogram, "Metric 2", new[] { "tag2" }),
+            new MetricRegistration("metric3", MetricUnit.Count, MetricAggregationKind.Gauge, "Metric 3", new[] { "tag3" }),
         };
 
         // Act
@@ -97,8 +97,8 @@ public class MetricRegistrarTests
         var registrar = new MetricRegistrar(logger);
         var metric = new MetricRegistration(
             "test.metric",
-            "count",
-            "counter",
+            MetricUnit.Count,
+            MetricAggregationKind.Counter,
             "Test metric",
             new[] { "allowed_tag" });
         registrar.Register(metric);
@@ -118,8 +118,8 @@ public class MetricRegistrarTests
         var registrar = new MetricRegistrar(logger);
         var metric = new MetricRegistration(
             "test.metric",
-            "count",
-            "counter",
+            MetricUnit.Count,
+            MetricAggregationKind.Counter,
             "Test metric",
             new[] { "allowed_tag" });
         registrar.Register(metric);

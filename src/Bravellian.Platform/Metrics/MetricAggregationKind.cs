@@ -17,7 +17,7 @@ namespace Bravellian.Platform.Metrics;
 /// <summary>
 /// Specifies the type of metric aggregation.
 /// </summary>
-internal enum MetricAggregationKind
+public enum MetricAggregationKind
 {
     /// <summary>
     /// Counter metric (monotonically increasing).

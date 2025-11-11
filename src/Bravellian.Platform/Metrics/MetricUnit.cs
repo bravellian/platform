@@ -15,16 +15,32 @@
 namespace Bravellian.Platform.Metrics;
 
 /// <summary>
-/// Represents a metric registration with allowed tags.
+/// Standard metric units.
 /// </summary>
-/// <param name="Name">The metric name (e.g., "outbox.published.count").</param>
-/// <param name="Unit">The unit of measurement (e.g., MetricUnit.Count, MetricUnit.Milliseconds).</param>
-/// <param name="AggKind">The aggregation kind.</param>
-/// <param name="Description">A human-readable description of the metric.</param>
-/// <param name="AllowedTags">An array of tag keys that are allowed for this metric.</param>
-public sealed record MetricRegistration(
-    string Name,
-    string Unit,
-    MetricAggregationKind AggKind,
-    string Description,
-    string[] AllowedTags);
+public static class MetricUnit
+{
+    /// <summary>
+    /// Dimensionless count.
+    /// </summary>
+    public const string Count = "count";
+
+    /// <summary>
+    /// Milliseconds.
+    /// </summary>
+    public const string Milliseconds = "ms";
+
+    /// <summary>
+    /// Seconds.
+    /// </summary>
+    public const string Seconds = "seconds";
+
+    /// <summary>
+    /// Bytes.
+    /// </summary>
+    public const string Bytes = "bytes";
+
+    /// <summary>
+    /// Percentage (0-100).
+    /// </summary>
+    public const string Percent = "percent";
+}

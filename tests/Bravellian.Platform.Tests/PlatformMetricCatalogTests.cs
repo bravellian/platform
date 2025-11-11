@@ -79,12 +79,11 @@ public class PlatformMetricCatalogTests
         {
             metric.Name.ShouldNotBeNullOrEmpty();
             metric.Unit.ShouldNotBeNullOrEmpty();
-            metric.AggKind.ShouldNotBeNullOrEmpty();
             metric.Description.ShouldNotBeNullOrEmpty();
             metric.AllowedTags.ShouldNotBeNull();
             
-            // Verify AggKind is valid
-            metric.AggKind.ShouldBeOneOf("counter", "gauge", "histogram");
+            // Verify AggKind is a valid enum value
+            Enum.IsDefined(typeof(MetricAggregationKind), metric.AggKind).ShouldBeTrue();
         }
     }
 
@@ -93,7 +92,7 @@ public class PlatformMetricCatalogTests
     {
         // Act
         var metrics = PlatformMetricCatalog.All;
-        var counterMetrics = metrics.Where(m => m.AggKind == "counter").ToList();
+        var counterMetrics = metrics.Where(m => m.AggKind == MetricAggregationKind.Counter).ToList();
 
         // Assert
         counterMetrics.ShouldNotBeEmpty();
@@ -102,7 +101,7 @@ public class PlatformMetricCatalogTests
             // Most counters should have "count" as unit
             if (!metric.Name.Contains("latency") && !metric.Name.Contains("age"))
             {
-                metric.Unit.ShouldBe("count");
+                metric.Unit.ShouldBe(MetricUnit.Count);
             }
         }
     }
@@ -112,14 +111,14 @@ public class PlatformMetricCatalogTests
     {
         // Act
         var metrics = PlatformMetricCatalog.All;
-        var histogramMetrics = metrics.Where(m => m.AggKind == "histogram").ToList();
+        var histogramMetrics = metrics.Where(m => m.AggKind == MetricAggregationKind.Histogram).ToList();
 
         // Assert
         histogramMetrics.ShouldNotBeEmpty();
         foreach (var metric in histogramMetrics)
         {
             // Histograms should typically measure time
-            metric.Unit.ShouldBeOneOf("ms", "seconds");
+            metric.Unit.ShouldBeOneOf(MetricUnit.Milliseconds, MetricUnit.Seconds);
         }
     }
 }

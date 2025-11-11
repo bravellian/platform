@@ -13,6 +13,8 @@ The Bravellian Platform provides a reusable metrics substrate that enables appli
 - **Controlled cardinality** via tag whitelists and registration
 - **Integration with .NET Meter** sources for automatic metric collection
 - **Built-in retention management** with configurable retention periods
+- **Automatic platform metrics** registered when metrics exporter is enabled
+- **Type-safe metric definitions** with enum-based aggregation kinds and standard units
 
 ## Quick Start
 
@@ -35,35 +37,33 @@ builder.Services.AddMetricsExporter(options =>
 
 // Add health check (optional)
 builder.Services.AddMetricsExporterHealthCheck();
+
+// Platform metrics are automatically registered!
 ```
 
-### 2. Register Platform Metrics
+### 2. Register Application-Specific Metrics
 
 ```csharp
-// Register all platform metrics
-var registrar = builder.Services.BuildServiceProvider().GetRequiredService<IMetricRegistrar>();
-registrar.RegisterRange(PlatformMetricCatalog.All);
-```
+// Get the registrar from DI
+var registrar = serviceProvider.GetRequiredService<IMetricRegistrar>();
 
-### 3. Register Application-Specific Metrics
-
-```csharp
+// Register custom metrics using type-safe enums
 registrar.Register(new MetricRegistration(
     "app.orders.created.count",
-    "count",
-    "counter",
+    MetricUnit.Count,
+    MetricAggregationKind.Counter,
     "Number of orders created",
     new[] { "source", "region" }));
 
 registrar.Register(new MetricRegistration(
     "app.order.processing_time.ms",
-    "ms",
-    "histogram",
+    MetricUnit.Milliseconds,
+    MetricAggregationKind.Histogram,
     "Time to process an order",
     new[] { "order_type" }));
 ```
 
-### 4. Emit Metrics Using .NET Diagnostics
+### 3. Emit Metrics Using .NET Diagnostics
 
 ```csharp
 using System.Diagnostics.Metrics;
@@ -96,25 +96,43 @@ public class OrderService
 
 ### Counter
 Monotonically increasing values (e.g., request counts, error counts).
-- **Unit**: typically `count`
-- **AggKind**: `counter`
+- **Unit**: typically `MetricUnit.Count`
+- **AggKind**: `MetricAggregationKind.Counter`
 - **Example**: `outbox.published.count`, `app.orders.created.count`
 
 ### Gauge
 Point-in-time values that can go up or down (e.g., queue depth, temperature).
-- **Unit**: varies (`count`, `percent`, etc.)
-- **AggKind**: `gauge`
+- **Unit**: varies (`MetricUnit.Count`, `MetricUnit.Percent`, etc.)
+- **AggKind**: `MetricAggregationKind.Gauge`
 - **Example**: `outbox.pending.count`, `dlq.depth`
 
 ### Histogram
 Distribution of values (e.g., latencies, sizes).
-- **Unit**: typically `ms` or `seconds`
-- **AggKind**: `histogram`
+- **Unit**: typically `MetricUnit.Milliseconds` or `MetricUnit.Seconds`
+- **AggKind**: `MetricAggregationKind.Histogram`
 - **Example**: `outbox.publish_latency.ms`, `app.order.processing_time.ms`
+
+## Standard Metric Units
+
+The platform provides standard unit constants in `MetricUnit`:
+
+- `MetricUnit.Count` - Dimensionless count
+- `MetricUnit.Milliseconds` - Time in milliseconds
+- `MetricUnit.Seconds` - Time in seconds
+- `MetricUnit.Bytes` - Data size in bytes
+- `MetricUnit.Percent` - Percentage (0-100)
+
+## Aggregation Kinds
+
+Use the `MetricAggregationKind` enum for type-safe metric definitions:
+
+- `MetricAggregationKind.Counter` - Monotonically increasing values
+- `MetricAggregationKind.Gauge` - Point-in-time sampled values
+- `MetricAggregationKind.Histogram` - Distribution of values with percentiles
 
 ## Platform Metrics Catalog
 
-The platform includes predefined metrics for core functionality:
+**Platform metrics are automatically registered** when you call `AddMetricsExporter()`. The platform includes 15 predefined metrics for core functionality:
 
 ### Outbox Metrics
 - `outbox.published.count` - Messages published

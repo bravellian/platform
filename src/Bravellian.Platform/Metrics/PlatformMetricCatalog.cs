@@ -29,111 +29,111 @@ public static class PlatformMetricCatalog
         // Outbox metrics
         new MetricRegistration(
             "outbox.published.count",
-            "count",
-            "counter",
+            MetricUnit.Count,
+            MetricAggregationKind.Counter,
             "Number of messages published to the outbox",
             new[] { "topic", "result" }),
 
         new MetricRegistration(
             "outbox.pending.count",
-            "count",
-            "gauge",
+            MetricUnit.Count,
+            MetricAggregationKind.Gauge,
             "Number of pending messages in the outbox",
             new[] { "topic" }),
 
         new MetricRegistration(
             "outbox.oldest_age.seconds",
-            "seconds",
-            "gauge",
+            MetricUnit.Seconds,
+            MetricAggregationKind.Gauge,
             "Age in seconds of the oldest pending outbox message",
             new[] { "topic" }),
 
         new MetricRegistration(
             "outbox.publish_latency.ms",
-            "ms",
-            "histogram",
+            MetricUnit.Milliseconds,
+            MetricAggregationKind.Histogram,
             "Time taken to publish a message from the outbox",
             new[] { "topic" }),
 
         // Inbox metrics
         new MetricRegistration(
             "inbox.processed.count",
-            "count",
-            "counter",
+            MetricUnit.Count,
+            MetricAggregationKind.Counter,
             "Number of messages processed from the inbox",
             new[] { "topic", "result" }),
 
         new MetricRegistration(
             "inbox.retry.count",
-            "count",
-            "counter",
+            MetricUnit.Count,
+            MetricAggregationKind.Counter,
             "Number of inbox message retries",
             new[] { "topic", "reason" }),
 
         new MetricRegistration(
             "inbox.failed.count",
-            "count",
-            "counter",
+            MetricUnit.Count,
+            MetricAggregationKind.Counter,
             "Number of inbox messages that failed permanently",
             new[] { "topic", "reason" }),
 
         new MetricRegistration(
             "inbox.processing_latency.ms",
-            "ms",
-            "histogram",
+            MetricUnit.Milliseconds,
+            MetricAggregationKind.Histogram,
             "Time taken to process an inbox message",
             new[] { "topic" }),
 
         // DLQ metrics
         new MetricRegistration(
             "dlq.depth",
-            "count",
-            "gauge",
+            MetricUnit.Count,
+            MetricAggregationKind.Gauge,
             "Number of messages in the dead letter queue",
             new[] { "queue" }),
 
         new MetricRegistration(
             "dlq.oldest_age.seconds",
-            "seconds",
-            "gauge",
+            MetricUnit.Seconds,
+            MetricAggregationKind.Gauge,
             "Age in seconds of the oldest message in the DLQ",
             new[] { "queue" }),
 
         // Recon metrics
         new MetricRegistration(
             "recon.gap_aggregates.count",
-            "count",
-            "gauge",
+            MetricUnit.Count,
+            MetricAggregationKind.Gauge,
             "Number of reconciliation gap aggregates detected",
             new[] { "kind" }),
 
         // Scheduler metrics
         new MetricRegistration(
             "scheduler.job.executed.count",
-            "count",
-            "counter",
+            MetricUnit.Count,
+            MetricAggregationKind.Counter,
             "Number of scheduled jobs executed",
             new[] { "job_name", "result" }),
 
         new MetricRegistration(
             "scheduler.job.latency.ms",
-            "ms",
-            "histogram",
+            MetricUnit.Milliseconds,
+            MetricAggregationKind.Histogram,
             "Time taken to execute a scheduled job",
             new[] { "job_name" }),
 
         // Lease metrics
         new MetricRegistration(
             "lease.acquired.count",
-            "count",
-            "counter",
+            MetricUnit.Count,
+            MetricAggregationKind.Counter,
             "Number of leases acquired",
             new[] { "resource", "result" }),
 
         new MetricRegistration(
             "lease.active.count",
-            "count",
-            "gauge",
+            MetricUnit.Count,
+            MetricAggregationKind.Gauge,
             "Number of currently active leases",
             new[] { "resource" }),
     };
