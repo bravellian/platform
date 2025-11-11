@@ -37,6 +37,10 @@ public static class MetricsServiceCollectionExtensions
             services.Configure(configure);
         }
 
+        // Register the metric registrar as singleton
+        services.AddSingleton<IMetricRegistrar, MetricRegistrar>();
+        services.AddSingleton<MetricRegistrar>(sp => (MetricRegistrar)sp.GetRequiredService<IMetricRegistrar>());
+
         services.AddSingleton<MetricsExporterService>();
         services.AddHostedService(sp => sp.GetRequiredService<MetricsExporterService>());
 

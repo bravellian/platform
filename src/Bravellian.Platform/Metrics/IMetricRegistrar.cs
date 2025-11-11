@@ -1,0 +1,41 @@
+// Copyright (c) Bravellian
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+namespace Bravellian.Platform.Metrics;
+
+using System.Collections.Generic;
+
+/// <summary>
+/// Service for registering custom metrics with tag whitelists.
+/// </summary>
+public interface IMetricRegistrar
+{
+    /// <summary>
+    /// Registers a single metric with its allowed tags.
+    /// </summary>
+    /// <param name="metric">The metric registration.</param>
+    void Register(MetricRegistration metric);
+
+    /// <summary>
+    /// Registers multiple metrics at once.
+    /// </summary>
+    /// <param name="metrics">The collection of metric registrations.</param>
+    void RegisterRange(IEnumerable<MetricRegistration> metrics);
+
+    /// <summary>
+    /// Gets all registered metrics.
+    /// </summary>
+    /// <returns>A read-only collection of registered metrics.</returns>
+    IReadOnlyCollection<MetricRegistration> GetAll();
+}

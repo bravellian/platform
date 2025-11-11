@@ -33,6 +33,7 @@ internal sealed class MetricsExporterService : BackgroundService
     private readonly ILogger<MetricsExporterService> _logger;
     private readonly MetricsExporterOptions _options;
     private readonly IPlatformDatabaseDiscovery _databaseDiscovery;
+    private readonly MetricRegistrar? _metricRegistrar;
     private readonly MeterListener _listener;
     private readonly Guid _instanceId;
     private readonly ConcurrentDictionary<string, MetricDefinition> _metricDefinitions;
@@ -45,11 +46,13 @@ internal sealed class MetricsExporterService : BackgroundService
     public MetricsExporterService(
         ILogger<MetricsExporterService> logger,
         IOptions<MetricsExporterOptions> options,
-        IPlatformDatabaseDiscovery databaseDiscovery)
+        IPlatformDatabaseDiscovery databaseDiscovery,
+        IMetricRegistrar? metricRegistrar = null)
     {
         _logger = logger;
         _options = options.Value;
         _databaseDiscovery = databaseDiscovery;
+        _metricRegistrar = metricRegistrar as MetricRegistrar;
         _instanceId = Guid.NewGuid();
         _metricDefinitions = new ConcurrentDictionary<string, MetricDefinition>(StringComparer.Ordinal);
         _minuteAggregators = new ConcurrentDictionary<MetricSeriesKey, MetricAggregator>();
@@ -141,7 +144,7 @@ internal sealed class MetricsExporterService : BackgroundService
                 {
                     service = svc;
                 }
-                else if (tag.Value is string strValue && IsAllowedTag(tag.Key))
+                else if (tag.Value is string strValue && IsAllowedTag(metricName, tag.Key))
                 {
                     filteredTags[tag.Key] = strValue;
                 }
@@ -202,19 +205,16 @@ internal sealed class MetricsExporterService : BackgroundService
         };
     }
 
-    private static bool IsAllowedTag(string tagKey)
+    private bool IsAllowedTag(string metricName, string tagKey)
     {
-        return tagKey switch
+        // First check if the metric has specific allowed tags via registrar
+        if (_metricRegistrar != null && _metricRegistrar.IsTagAllowed(metricName, tagKey))
         {
-            "event_type" => true,
-            "queue" => true,
-            "job_type" => true,
-            "component" => true,
-            "kind" => true,
-            "result" => true,
-            "reason" => true,
-            _ => false,
-        };
+            return true;
+        }
+
+        // Fall back to global allowed tags
+        return _options.GlobalAllowedTags.Contains(tagKey);
     }
 
     private async Task FlushMinuteMetricsAsync(CancellationToken cancellationToken)

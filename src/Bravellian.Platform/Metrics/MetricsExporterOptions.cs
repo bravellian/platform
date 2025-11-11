@@ -60,4 +60,21 @@ public sealed class MetricsExporterOptions
     /// Gets or sets the connection string for the central database (for hourly rollups).
     /// </summary>
     public string? CentralConnectionString { get; set; }
+
+    /// <summary>
+    /// Gets or sets the global set of allowed tags that apply to all metrics unless overridden.
+    /// </summary>
+    public HashSet<string> GlobalAllowedTags { get; set; } = new(StringComparer.Ordinal)
+    {
+        "event_type",
+        "service",
+        "database_id",
+        "topic",
+        "queue",
+        "result",
+        "reason",
+        "kind",
+        "job_name",
+        "resource",
+    };
 }
