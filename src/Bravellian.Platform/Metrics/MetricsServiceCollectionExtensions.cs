@@ -39,7 +39,7 @@ public static class MetricsServiceCollectionExtensions
         }
 
         // Register the metric registrar as singleton
-        services.AddSingleton<IMetricRegistrar>(sp =>
+        services.AddSingleton<MetricRegistrar>(sp =>
         {
             var logger = sp.GetRequiredService<ILogger<MetricRegistrar>>();
             var registrar = new MetricRegistrar(logger);
@@ -49,7 +49,7 @@ public static class MetricsServiceCollectionExtensions
             
             return registrar;
         });
-        services.AddSingleton<MetricRegistrar>(sp => (MetricRegistrar)sp.GetRequiredService<IMetricRegistrar>());
+        services.AddSingleton<IMetricRegistrar>(sp => sp.GetRequiredService<MetricRegistrar>());
 
         services.AddSingleton<MetricsExporterService>();
         services.AddHostedService(sp => sp.GetRequiredService<MetricsExporterService>());

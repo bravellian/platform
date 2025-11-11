@@ -61,10 +61,18 @@ public sealed class MetricsExporterOptions
     /// </summary>
     public string? CentralConnectionString { get; set; }
 
+    private IReadOnlySet<string>? _globalAllowedTags;
+
     /// <summary>
     /// Gets or sets the global set of allowed tags that apply to all metrics unless overridden.
     /// </summary>
-    public HashSet<string> GlobalAllowedTags { get; set; } = new(StringComparer.Ordinal)
+    public IReadOnlySet<string> GlobalAllowedTags
+    {
+        get => _globalAllowedTags ?? DefaultGlobalAllowedTags;
+        set => _globalAllowedTags = value ?? throw new ArgumentNullException(nameof(value));
+    }
+
+    private static readonly IReadOnlySet<string> DefaultGlobalAllowedTags = new HashSet<string>(StringComparer.Ordinal)
     {
         "event_type",
         "service",

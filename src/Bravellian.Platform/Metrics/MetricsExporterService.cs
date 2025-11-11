@@ -47,12 +47,12 @@ internal sealed class MetricsExporterService : BackgroundService
         ILogger<MetricsExporterService> logger,
         IOptions<MetricsExporterOptions> options,
         IPlatformDatabaseDiscovery databaseDiscovery,
-        IMetricRegistrar? metricRegistrar = null)
+        MetricRegistrar metricRegistrar)
     {
         _logger = logger;
         _options = options.Value;
         _databaseDiscovery = databaseDiscovery;
-        _metricRegistrar = metricRegistrar as MetricRegistrar;
+        _metricRegistrar = metricRegistrar ?? throw new ArgumentNullException(nameof(metricRegistrar));
         _instanceId = Guid.NewGuid();
         _metricDefinitions = new ConcurrentDictionary<string, MetricDefinition>(StringComparer.Ordinal);
         _minuteAggregators = new ConcurrentDictionary<MetricSeriesKey, MetricAggregator>();

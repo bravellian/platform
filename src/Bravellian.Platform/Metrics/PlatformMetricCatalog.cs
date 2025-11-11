@@ -21,10 +21,7 @@ using System.Collections.Generic;
 /// </summary>
 public static class PlatformMetricCatalog
 {
-    /// <summary>
-    /// Gets all platform metrics.
-    /// </summary>
-    public static IReadOnlyList<MetricRegistration> All => new[]
+    private static readonly IReadOnlyList<MetricRegistration> _all = new[]
     {
         // Outbox metrics
         new MetricRegistration(
@@ -137,4 +134,9 @@ public static class PlatformMetricCatalog
             "Number of currently active leases",
             new[] { "resource" }),
     };
+
+    /// <summary>
+    /// Gets all platform metrics.
+    /// </summary>
+    public static IReadOnlyList<MetricRegistration> All => _all;
 }

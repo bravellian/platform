@@ -528,21 +528,14 @@ Bravellian.Platform.Metrics.MetricAggregationKind.Counter = 0 -> Bravellian.Plat
 Bravellian.Platform.Metrics.MetricAggregationKind.Gauge = 1 -> Bravellian.Platform.Metrics.MetricAggregationKind
 Bravellian.Platform.Metrics.MetricAggregationKind.Histogram = 2 -> Bravellian.Platform.Metrics.MetricAggregationKind
 Bravellian.Platform.Metrics.MetricRegistration
-Bravellian.Platform.Metrics.MetricRegistration.<Clone>$() -> Bravellian.Platform.Metrics.MetricRegistration!
 Bravellian.Platform.Metrics.MetricRegistration.AggKind.get -> Bravellian.Platform.Metrics.MetricAggregationKind
-Bravellian.Platform.Metrics.MetricRegistration.AggKind.init -> void
 Bravellian.Platform.Metrics.MetricRegistration.AllowedTags.get -> string![]!
-Bravellian.Platform.Metrics.MetricRegistration.AllowedTags.init -> void
-Bravellian.Platform.Metrics.MetricRegistration.Deconstruct(out string! Name, out string! Unit, out Bravellian.Platform.Metrics.MetricAggregationKind AggKind, out string! Description, out string![]! AllowedTags) -> void
 Bravellian.Platform.Metrics.MetricRegistration.Description.get -> string!
-Bravellian.Platform.Metrics.MetricRegistration.Description.init -> void
 Bravellian.Platform.Metrics.MetricRegistration.Equals(Bravellian.Platform.Metrics.MetricRegistration? other) -> bool
-Bravellian.Platform.Metrics.MetricRegistration.MetricRegistration(string! Name, string! Unit, Bravellian.Platform.Metrics.MetricAggregationKind AggKind, string! Description, string![]! AllowedTags) -> void
+Bravellian.Platform.Metrics.MetricRegistration.MetricRegistration(string! name, string! unit, Bravellian.Platform.Metrics.MetricAggregationKind aggKind, string! description, string![]! allowedTags) -> void
 Bravellian.Platform.Metrics.MetricRegistration.Name.get -> string!
-Bravellian.Platform.Metrics.MetricRegistration.Name.init -> void
 Bravellian.Platform.Metrics.MetricRegistration.Unit.get -> string!
-Bravellian.Platform.Metrics.MetricRegistration.Unit.init -> void
-Bravellian.Platform.Metrics.MetricsExporterOptions.GlobalAllowedTags.get -> System.Collections.Generic.HashSet<string!>!
+Bravellian.Platform.Metrics.MetricsExporterOptions.GlobalAllowedTags.get -> System.Collections.Generic.IReadOnlySet<string!>!
 Bravellian.Platform.Metrics.MetricsExporterOptions.GlobalAllowedTags.set -> void
 Bravellian.Platform.Metrics.MetricUnit
 Bravellian.Platform.Metrics.PlatformMetricCatalog

@@ -66,6 +66,7 @@ registrar.Register(new MetricRegistration(
 ### 3. Emit Metrics Using .NET Diagnostics
 
 ```csharp
+using System.Diagnostics;
 using System.Diagnostics.Metrics;
 
 public class OrderService

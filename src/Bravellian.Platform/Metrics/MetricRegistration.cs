@@ -14,17 +14,73 @@
 
 namespace Bravellian.Platform.Metrics;
 
+using System;
+using System.Linq;
+
 /// <summary>
 /// Represents a metric registration with allowed tags.
 /// </summary>
-/// <param name="Name">The metric name (e.g., "outbox.published.count").</param>
-/// <param name="Unit">The unit of measurement (e.g., MetricUnit.Count, MetricUnit.Milliseconds).</param>
-/// <param name="AggKind">The aggregation kind.</param>
-/// <param name="Description">A human-readable description of the metric.</param>
-/// <param name="AllowedTags">An array of tag keys that are allowed for this metric.</param>
-public sealed record MetricRegistration(
-    string Name,
-    string Unit,
-    MetricAggregationKind AggKind,
-    string Description,
-    string[] AllowedTags);
+public sealed record MetricRegistration
+{
+    /// <summary>
+    /// Initializes a new instance of the <see cref="MetricRegistration"/> record.
+    /// </summary>
+    /// <param name="name">The metric name (e.g., "outbox.published.count").</param>
+    /// <param name="unit">The unit of measurement (e.g., MetricUnit.Count, MetricUnit.Milliseconds).</param>
+    /// <param name="aggKind">The aggregation kind.</param>
+    /// <param name="description">A human-readable description of the metric.</param>
+    /// <param name="allowedTags">An array of tag keys that are allowed for this metric.</param>
+    public MetricRegistration(
+        string name,
+        string unit,
+        MetricAggregationKind aggKind,
+        string description,
+        string[] allowedTags)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new ArgumentException("Metric name cannot be null or whitespace", nameof(name));
+        }
+
+        if (string.IsNullOrWhiteSpace(unit))
+        {
+            throw new ArgumentException("Unit cannot be null or whitespace", nameof(unit));
+        }
+
+        if (!Enum.IsDefined(typeof(MetricAggregationKind), aggKind))
+        {
+            throw new ArgumentException($"Invalid aggregation kind: {aggKind}", nameof(aggKind));
+        }
+
+        Name = name;
+        Unit = unit;
+        AggKind = aggKind;
+        Description = description ?? string.Empty;
+        AllowedTags = allowedTags ?? Array.Empty<string>();
+    }
+
+    /// <summary>
+    /// Gets the metric name.
+    /// </summary>
+    public string Name { get; }
+
+    /// <summary>
+    /// Gets the unit of measurement.
+    /// </summary>
+    public string Unit { get; }
+
+    /// <summary>
+    /// Gets the aggregation kind.
+    /// </summary>
+    public MetricAggregationKind AggKind { get; }
+
+    /// <summary>
+    /// Gets the description.
+    /// </summary>
+    public string Description { get; }
+
+    /// <summary>
+    /// Gets the allowed tags.
+    /// </summary>
+    public string[] AllowedTags { get; }
+}
