@@ -16,6 +16,7 @@ namespace Bravellian.Platform.Metrics;
 
 using System;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 /// <summary>
 /// Extension methods for registering metrics exporter services.
@@ -36,6 +37,19 @@ public static class MetricsServiceCollectionExtensions
         {
             services.Configure(configure);
         }
+
+        // Register the metric registrar as singleton
+        services.AddSingleton<MetricRegistrar>(sp =>
+        {
+            var logger = sp.GetRequiredService<ILogger<MetricRegistrar>>();
+            var registrar = new MetricRegistrar(logger);
+            
+            // Automatically register platform metrics
+            registrar.RegisterRange(PlatformMetricCatalog.All);
+            
+            return registrar;
+        });
+        services.AddSingleton<IMetricRegistrar>(sp => sp.GetRequiredService<MetricRegistrar>());
 
         services.AddSingleton<MetricsExporterService>();
         services.AddHostedService(sp => sp.GetRequiredService<MetricsExporterService>());

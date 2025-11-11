@@ -82,6 +82,7 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
                     !string.IsNullOrEmpty(this.platformConfiguration.ControlPlaneConnectionString))
                 {
                     deploymentTasks.Add(this.DeploySemaphoreSchemaAsync(stoppingToken));
+                    deploymentTasks.Add(this.DeployCentralMetricsSchemaAsync(stoppingToken));
                 }
             }
             else
@@ -233,6 +234,12 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
             "FanoutPolicy",
             "FanoutCursor"));
 
+        // Deploy Metrics schema
+        this.logger.LogDebug("Deploying metrics schema to database {DatabaseName}", database.Name);
+        deploymentTasks.Add(DatabaseSchemaManager.EnsureMetricsSchemaAsync(
+            database.ConnectionString,
+            "infra"));
+
         await Task.WhenAll(deploymentTasks).ConfigureAwait(false);
 
         this.logger.LogInformation(
@@ -299,5 +306,19 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
         await DatabaseSchemaManager.EnsureSemaphoreSchemaAsync(
             options.ConnectionString,
             options.SchemaName).ConfigureAwait(false);
+    }
+
+    private async Task DeployCentralMetricsSchemaAsync(CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrEmpty(this.platformConfiguration.ControlPlaneConnectionString))
+        {
+            this.logger.LogWarning("Central metrics schema deployment requested but no control plane connection string is configured");
+            return;
+        }
+
+        this.logger.LogDebug("Deploying central metrics schema to control plane");
+        await DatabaseSchemaManager.EnsureCentralMetricsSchemaAsync(
+            this.platformConfiguration.ControlPlaneConnectionString,
+            "infra").ConfigureAwait(false);
     }
 }

@@ -519,3 +519,35 @@ static Bravellian.Platform.ExceptionFilter.IsCatchable(System.Exception! excepti
 static Bravellian.Platform.ExceptionFilter.IsCritical(System.Exception! exception) -> bool
 static Bravellian.Platform.ExceptionFilter.IsExpected(System.Exception! exception, params System.Type![]! expectedTypes) -> bool
 static Bravellian.Platform.ExceptionFilter.IsCatchableAndExpected(System.Exception! exception, params System.Type![]! expectedTypes) -> bool
+Bravellian.Platform.Metrics.IMetricRegistrar
+Bravellian.Platform.Metrics.IMetricRegistrar.GetAll() -> System.Collections.Generic.IReadOnlyCollection<Bravellian.Platform.Metrics.MetricRegistration!>!
+Bravellian.Platform.Metrics.IMetricRegistrar.Register(Bravellian.Platform.Metrics.MetricRegistration! metric) -> void
+Bravellian.Platform.Metrics.IMetricRegistrar.RegisterRange(System.Collections.Generic.IEnumerable<Bravellian.Platform.Metrics.MetricRegistration!>! metrics) -> void
+Bravellian.Platform.Metrics.MetricAggregationKind
+Bravellian.Platform.Metrics.MetricAggregationKind.Counter = 0 -> Bravellian.Platform.Metrics.MetricAggregationKind
+Bravellian.Platform.Metrics.MetricAggregationKind.Gauge = 1 -> Bravellian.Platform.Metrics.MetricAggregationKind
+Bravellian.Platform.Metrics.MetricAggregationKind.Histogram = 2 -> Bravellian.Platform.Metrics.MetricAggregationKind
+Bravellian.Platform.Metrics.MetricRegistration
+Bravellian.Platform.Metrics.MetricRegistration.AggKind.get -> Bravellian.Platform.Metrics.MetricAggregationKind
+Bravellian.Platform.Metrics.MetricRegistration.AllowedTags.get -> string![]!
+Bravellian.Platform.Metrics.MetricRegistration.Description.get -> string!
+Bravellian.Platform.Metrics.MetricRegistration.Equals(Bravellian.Platform.Metrics.MetricRegistration? other) -> bool
+Bravellian.Platform.Metrics.MetricRegistration.MetricRegistration(string! name, string! unit, Bravellian.Platform.Metrics.MetricAggregationKind aggKind, string! description, string![]! allowedTags) -> void
+Bravellian.Platform.Metrics.MetricRegistration.Name.get -> string!
+Bravellian.Platform.Metrics.MetricRegistration.Unit.get -> string!
+Bravellian.Platform.Metrics.MetricsExporterOptions.GlobalAllowedTags.get -> System.Collections.Generic.IReadOnlySet<string!>!
+Bravellian.Platform.Metrics.MetricsExporterOptions.GlobalAllowedTags.set -> void
+Bravellian.Platform.Metrics.MetricUnit
+Bravellian.Platform.Metrics.PlatformMetricCatalog
+const Bravellian.Platform.Metrics.MetricUnit.Bytes = "bytes" -> string!
+const Bravellian.Platform.Metrics.MetricUnit.Count = "count" -> string!
+const Bravellian.Platform.Metrics.MetricUnit.Milliseconds = "ms" -> string!
+const Bravellian.Platform.Metrics.MetricUnit.Percent = "percent" -> string!
+const Bravellian.Platform.Metrics.MetricUnit.Seconds = "seconds" -> string!
+static Bravellian.Platform.Metrics.PlatformMetricCatalog.All.get -> System.Collections.Generic.IReadOnlyList<Bravellian.Platform.Metrics.MetricRegistration!>!
+override Bravellian.Platform.Metrics.MetricRegistration.Equals(object? obj) -> bool
+override Bravellian.Platform.Metrics.MetricRegistration.GetHashCode() -> int
+override Bravellian.Platform.Metrics.MetricRegistration.ToString() -> string!
+static Bravellian.Platform.Metrics.MetricRegistration.operator !=(Bravellian.Platform.Metrics.MetricRegistration? left, Bravellian.Platform.Metrics.MetricRegistration? right) -> bool
+static Bravellian.Platform.Metrics.MetricRegistration.operator ==(Bravellian.Platform.Metrics.MetricRegistration? left, Bravellian.Platform.Metrics.MetricRegistration? right) -> bool
+

@@ -14,23 +14,28 @@
 
 namespace Bravellian.Platform.Metrics;
 
+using System.Collections.Generic;
+
 /// <summary>
-/// Specifies the type of metric aggregation.
+/// Service for registering custom metrics with tag whitelists.
 /// </summary>
-public enum MetricAggregationKind
+public interface IMetricRegistrar
 {
     /// <summary>
-    /// Counter metric (monotonically increasing).
+    /// Registers a single metric with its allowed tags.
     /// </summary>
-    Counter,
+    /// <param name="metric">The metric registration.</param>
+    void Register(MetricRegistration metric);
 
     /// <summary>
-    /// Gauge metric (sampled value).
+    /// Registers multiple metrics at once.
     /// </summary>
-    Gauge,
+    /// <param name="metrics">The collection of metric registrations.</param>
+    void RegisterRange(IEnumerable<MetricRegistration> metrics);
 
     /// <summary>
-    /// Histogram metric (distribution of values).
+    /// Gets all registered metrics.
     /// </summary>
-    Histogram,
+    /// <returns>A read-only collection of registered metrics.</returns>
+    IReadOnlyCollection<MetricRegistration> GetAll();
 }

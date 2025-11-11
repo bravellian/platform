@@ -15,22 +15,32 @@
 namespace Bravellian.Platform.Metrics;
 
 /// <summary>
-/// Specifies the type of metric aggregation.
+/// Standard metric units.
 /// </summary>
-public enum MetricAggregationKind
+public static class MetricUnit
 {
     /// <summary>
-    /// Counter metric (monotonically increasing).
+    /// Dimensionless count.
     /// </summary>
-    Counter,
+    public const string Count = "count";
 
     /// <summary>
-    /// Gauge metric (sampled value).
+    /// Milliseconds.
     /// </summary>
-    Gauge,
+    public const string Milliseconds = "ms";
 
     /// <summary>
-    /// Histogram metric (distribution of values).
+    /// Seconds.
     /// </summary>
-    Histogram,
+    public const string Seconds = "seconds";
+
+    /// <summary>
+    /// Bytes.
+    /// </summary>
+    public const string Bytes = "bytes";
+
+    /// <summary>
+    /// Percentage (0-100).
+    /// </summary>
+    public const string Percent = "percent";
 }
