@@ -94,7 +94,7 @@ public class PlatformLifecycleServiceTests
     }
 
     [Fact]
-    public async Task StartAsync_WithDynamicDiscovery_AndOneDatabases_Succeeds()
+    public async Task StartAsync_WithDynamicDiscovery_AndOneDatabase_Succeeds()
     {
         // Arrange - Dynamic discovery that returns one database
         var configuration = new PlatformConfiguration
