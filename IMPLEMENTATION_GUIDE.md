@@ -8,9 +8,8 @@ This document describes the implementation of unified platform registration as s
 
 ### Phase 1: Core Abstractions ✅
 
-1. **`PlatformEnvironmentStyle` enum** - Defines the three supported environment styles:
-   - `SingleDatabase` - All features run against one application database
-   - `MultiDatabaseNoControl` - Features run across multiple databases with round-robin scheduling
+1. **`PlatformEnvironmentStyle` enum** - Defines the two supported environment styles:
+   - `MultiDatabaseNoControl` - Features run across multiple databases with round-robin scheduling (use with a single database for simple scenarios)
    - `MultiDatabaseWithControl` - Features run across multiple databases with control plane coordination
 
 2. **`IPlatformDatabaseDiscovery` interface** - Unified discovery abstraction:
@@ -48,7 +47,6 @@ This document describes the implementation of unified platform registration as s
    - Returns static list synchronously
 
 6. **`PlatformLifecycleService`** - Startup validation service:
-   - Validates single database configuration
    - Validates multi-database configuration (list or discovery)
    - Validates control plane connectivity
    - Logs environment style and database count
@@ -56,18 +54,9 @@ This document describes the implementation of unified platform registration as s
 
 ### Phase 2: Registration Methods ✅
 
-Implemented all 5 registration methods in `PlatformServiceCollectionExtensions.cs`:
+Implemented all 4 registration methods in `PlatformServiceCollectionExtensions.cs`:
 
-1. **`AddPlatformSingleDatabase`** - For single database environments
-   ```csharp
-   services.AddPlatformSingleDatabase(
-       connectionString: "...",
-       databaseName: "default",
-       schemaName: "dbo",
-       enableSchemaDeployment: false);
-   ```
-
-2. **`AddPlatformMultiDatabaseWithList`** - Multi-DB with explicit list
+1. **`AddPlatformMultiDatabaseWithList`** - Multi-DB with explicit list (use with single item for single database scenarios)
    ```csharp
    var databases = new[]
    {
@@ -77,20 +66,20 @@ Implemented all 5 registration methods in `PlatformServiceCollectionExtensions.c
    services.AddPlatformMultiDatabaseWithList(databases);
    ```
 
-3. **`AddPlatformMultiDatabaseWithDiscovery`** - Multi-DB with dynamic discovery
+2. **`AddPlatformMultiDatabaseWithDiscovery`** - Multi-DB with dynamic discovery
    ```csharp
    services.AddSingleton<IPlatformDatabaseDiscovery, MyDiscoveryImpl>();
    services.AddPlatformMultiDatabaseWithDiscovery();
    ```
 
-4. **`AddPlatformMultiDatabaseWithControlPlaneAndList`** - Multi-DB + control plane with list
+3. **`AddPlatformMultiDatabaseWithControlPlaneAndList`** - Multi-DB + control plane with list
    ```csharp
    services.AddPlatformMultiDatabaseWithControlPlaneAndList(
        databases,
        controlPlaneConnectionString: "...");
    ```
 
-5. **`AddPlatformMultiDatabaseWithControlPlaneAndDiscovery`** - Multi-DB + control plane with discovery
+4. **`AddPlatformMultiDatabaseWithControlPlaneAndDiscovery`** - Multi-DB + control plane with discovery
    ```csharp
    services.AddSingleton<IPlatformDatabaseDiscovery, MyDiscoveryImpl>();
    services.AddPlatformMultiDatabaseWithControlPlaneAndDiscovery(
@@ -146,18 +135,10 @@ public static IServiceCollection AddOutboxFeature(this IServiceCollection servic
     EnsurePlatformIsRegistered(services);
     var config = GetPlatformConfiguration(services);
     
-    if (config.EnvironmentStyle == PlatformEnvironmentStyle.SingleDatabase)
-    {
-        // Register single-DB services
-        services.AddSingleton<IOutbox, SqlOutboxService>();
-        // etc.
-    }
-    else
-    {
-        // Register multi-DB services
-        services.AddSingleton<IOutboxStoreProvider, PlatformOutboxStoreProvider>();
-        // etc.
-    }
+    // All registrations now use multi-DB services
+    // For single database scenarios, use discovery that returns one database
+    services.AddSingleton<IOutboxStoreProvider, PlatformOutboxStoreProvider>();
+    // etc.
     
     return services;
 }
@@ -207,17 +188,20 @@ Create comprehensive tests:
    public void AddPlatform_CalledTwice_ThrowsException()
    {
        var services = new ServiceCollection();
-       services.AddPlatformSingleDatabase("connStr");
+       services.AddPlatformMultiDatabaseWithList(new[] { 
+           new PlatformDatabase { Name = "db1", ConnectionString = "connStr" }
+       });
        
        var ex = Assert.Throws<InvalidOperationException>(
-           () => services.AddPlatformSingleDatabase("connStr2"));
+           () => services.AddPlatformMultiDatabaseWithList(new[] { 
+               new PlatformDatabase { Name = "db2", ConnectionString = "connStr2" }
+           }));
        
        Assert.Contains("already been called", ex.Message);
    }
    ```
 
 2. **Integration tests for each environment style:**
-   - Single database: all features work against one DB
    - Multi-database with list: round-robin observed
    - Multi-database with discovery: dynamic discovery works
    - Control plane variants: validation passes
@@ -244,18 +228,18 @@ Create comprehensive tests:
 
 ### From Old to New
 
-**Single Database:**
+**Single Database Scenarios:**
 ```csharp
-// OLD
-services.AddSqlScheduler(new SqlSchedulerOptions { ConnectionString = connStr });
-services.AddSqlOutbox(new SqlOutboxOptions { ConnectionString = connStr });
-services.AddSqlInbox(new SqlInboxOptions { ConnectionString = connStr });
-
-// NEW
-services.AddPlatformSingleDatabase(connStr)
-    .AddSchedulerFeature()
-    .AddOutboxFeature()
-    .AddInboxFeature();
+// NEW - Use multi-database with a single item list
+services.AddPlatformMultiDatabaseWithList(new[]
+{
+    new PlatformDatabase 
+    { 
+        Name = "default", 
+        ConnectionString = connStr,
+        SchemaName = "dbo"
+    }
+});
 ```
 
 **Multi-Database (List):**
