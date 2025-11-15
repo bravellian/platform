@@ -15,18 +15,14 @@
 namespace Bravellian.Platform;
 
 /// <summary>
-/// Defines the three environment styles supported by the platform.
+/// Defines the two environment styles supported by the platform.
 /// </summary>
 public enum PlatformEnvironmentStyle
 {
     /// <summary>
-    /// Single database environment. All features run against one application database.
-    /// </summary>
-    SingleDatabase,
-
-    /// <summary>
     /// Multi-database environment without control plane.
     /// Features run against multiple application databases with round-robin scheduling.
+    /// For single database scenarios, use this with a discovery service that returns one database.
     /// </summary>
     MultiDatabaseNoControl,
 
