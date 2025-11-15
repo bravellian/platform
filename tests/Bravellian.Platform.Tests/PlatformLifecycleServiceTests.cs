@@ -122,7 +122,7 @@ public class PlatformLifecycleServiceTests
     }
 
     [Fact]
-    public async Task StartAsync_WithListBasedDiscovery_AndOneDatabases_Succeeds()
+    public async Task StartAsync_WithListBasedDiscovery_AndOneDatabase_Succeeds()
     {
         // Arrange - List-based discovery with one database
         var configuration = new PlatformConfiguration
