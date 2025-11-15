@@ -21,19 +21,22 @@ using Xunit;
 public class PlatformRegistrationTests
 {
     [Fact]
-    public void AddPlatformSingleDatabase_RegistersRequiredServices()
+    public void AddPlatformMultiDatabaseWithList_SingleDatabase_RegistersRequiredServices()
     {
         // Arrange
         var services = new ServiceCollection();
 
-        // Act
-        services.AddPlatformSingleDatabase("Server=localhost;Database=Test;");
+        // Act - Test that single database scenarios work with multi-database code
+        services.AddPlatformMultiDatabaseWithList(new[]
+        {
+            new PlatformDatabase { Name = "default", ConnectionString = "Server=localhost;Database=Test;", SchemaName = "dbo" },
+        });
 
         // Assert
         // Should register configuration
         var config = GetRequiredService<PlatformConfiguration>(services);
         Assert.NotNull(config);
-        Assert.Equal(PlatformEnvironmentStyle.SingleDatabase, config.EnvironmentStyle);
+        Assert.Equal(PlatformEnvironmentStyle.MultiDatabaseNoControl, config.EnvironmentStyle);
         Assert.False(config.UsesDiscovery);
 
         // Should register discovery
@@ -49,15 +52,21 @@ public class PlatformRegistrationTests
     }
 
     [Fact]
-    public void AddPlatformSingleDatabase_CalledTwice_ThrowsException()
+    public void AddPlatformMultiDatabaseWithList_CalledTwice_ThrowsException()
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddPlatformSingleDatabase("Server=localhost;Database=Test;");
+        services.AddPlatformMultiDatabaseWithList(new[]
+        {
+            new PlatformDatabase { Name = "db1", ConnectionString = "Server=localhost;Database=Db1;" },
+        });
 
         // Act & Assert
         var ex = Assert.Throws<InvalidOperationException>(
-            () => services.AddPlatformSingleDatabase("Server=localhost;Database=Test2;"));
+            () => services.AddPlatformMultiDatabaseWithList(new[]
+            {
+                new PlatformDatabase { Name = "db2", ConnectionString = "Server=localhost;Database=Db2;" },
+            }));
 
         Assert.Contains("already been called", ex.Message);
     }

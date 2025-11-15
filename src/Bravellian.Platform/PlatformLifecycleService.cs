@@ -47,10 +47,6 @@ internal sealed class PlatformLifecycleService : IHostedService
         // Validate configuration based on environment style
         switch (this.configuration.EnvironmentStyle)
         {
-            case PlatformEnvironmentStyle.SingleDatabase:
-                await this.ValidateSingleDatabaseAsync(cancellationToken);
-                break;
-
             case PlatformEnvironmentStyle.MultiDatabaseNoControl:
             case PlatformEnvironmentStyle.MultiDatabaseWithControl:
                 await this.ValidateMultiDatabaseAsync(cancellationToken);
@@ -70,36 +66,6 @@ internal sealed class PlatformLifecycleService : IHostedService
     {
         this.logger.LogInformation("Platform lifecycle service stopping.");
         return Task.CompletedTask;
-    }
-
-    private async Task ValidateSingleDatabaseAsync(CancellationToken cancellationToken)
-    {
-        if (this.discovery == null)
-        {
-            throw new InvalidOperationException("Discovery must be configured for single database environment.");
-        }
-
-        var databases = await this.discovery.DiscoverDatabasesAsync(cancellationToken);
-
-        if (databases.Count == 0)
-        {
-            throw new InvalidOperationException("No databases discovered for single database environment.");
-        }
-
-        if (databases.Count > 1)
-        {
-            throw new InvalidOperationException(
-                $"Single database environment discovered {databases.Count} databases. Expected exactly 1.");
-        }
-
-        var database = databases.Single();
-        this.logger.LogInformation(
-            "Single database validated: Name={DatabaseName}, Schema={SchemaName}",
-            database.Name,
-            database.SchemaName);
-
-        // Optional: Test connectivity
-        await this.TestDatabaseConnectivityAsync(database, cancellationToken);
     }
 
     private async Task ValidateMultiDatabaseAsync(CancellationToken cancellationToken)

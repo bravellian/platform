@@ -52,7 +52,6 @@ public sealed class SemaphoreOptions
     /// <summary>
     /// Gets or sets the connection string for the semaphore database.
     /// For control-plane modes, this is the control plane connection string.
-    /// For single database mode, this is the same as the application database connection string.
     /// </summary>
     public required string ConnectionString { get; set; }
 
