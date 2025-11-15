@@ -128,6 +128,17 @@ public sealed class InboxCleanupService : BackgroundService
             var result = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
             return result != null && result != DBNull.Value ? Convert.ToInt32(result) : 0;
         }
+        catch (SqlException ex) when (ex.Number == 2812)
+        {
+            // Stored procedure doesn't exist yet - this is expected in multi-database setups
+            // where databases may not be fully initialized
+            this.logger.LogWarning(
+                "Inbox cleanup stored procedure [{SchemaName}].[{TableName}_Cleanup] not found - skipping cleanup. " +
+                "This is expected if the database schema hasn't been deployed yet.",
+                this.schemaName,
+                this.tableName);
+            return 0;
+        }
         catch (Exception ex)
         {
             this.logger.LogError(ex, "Failed to cleanup old inbox messages");
