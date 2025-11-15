@@ -3,13 +3,13 @@ on:
   push:
     branches:
       - main
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   build:
     name: Main/Release - Build, Test, and Scan
     runs-on: ubuntu-latest
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
-      cancel-in-progress: true
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
