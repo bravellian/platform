@@ -58,6 +58,7 @@ public static class PlatformServiceCollectionExtensions
             EnvironmentStyle = PlatformEnvironmentStyle.MultiDatabaseNoControl,
             UsesDiscovery = false,
             EnableSchemaDeployment = enableSchemaDeployment,
+            RequiresDatabaseAtStartup = true, // List-based: must have at least one database
         };
 
         services.AddSingleton(configuration);
@@ -99,6 +100,7 @@ public static class PlatformServiceCollectionExtensions
             EnvironmentStyle = PlatformEnvironmentStyle.MultiDatabaseNoControl,
             UsesDiscovery = true,
             EnableSchemaDeployment = enableSchemaDeployment,
+            RequiresDatabaseAtStartup = false, // Dynamic discovery: can start with zero databases
         };
 
         services.AddSingleton(configuration);
@@ -151,6 +153,7 @@ public static class PlatformServiceCollectionExtensions
             ControlPlaneConnectionString = controlPlaneOptions.ConnectionString,
             ControlPlaneSchemaName = controlPlaneOptions.SchemaName,
             EnableSchemaDeployment = controlPlaneOptions.EnableSchemaDeployment,
+            RequiresDatabaseAtStartup = true, // List-based: must have at least one database
         };
 
         services.AddSingleton(configuration);
@@ -226,6 +229,7 @@ public static class PlatformServiceCollectionExtensions
             ControlPlaneConnectionString = controlPlaneOptions.ConnectionString,
             ControlPlaneSchemaName = controlPlaneOptions.SchemaName,
             EnableSchemaDeployment = controlPlaneOptions.EnableSchemaDeployment,
+            RequiresDatabaseAtStartup = false, // Dynamic discovery: can start with zero databases
         };
 
         services.AddSingleton(configuration);

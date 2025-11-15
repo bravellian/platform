@@ -79,8 +79,19 @@ internal sealed class PlatformLifecycleService : IHostedService
 
         if (databases.Count == 0)
         {
-            throw new InvalidOperationException(
-                "Multi-database discovery returned no databases. At least one database is required.");
+            // For dynamic discovery scenarios, it's acceptable to start with zero databases
+            // as they may be added later. For static list-based configurations, we should throw.
+            if (this.configuration.RequiresDatabaseAtStartup)
+            {
+                throw new InvalidOperationException(
+                    "Multi-database discovery returned no databases. At least one database is required.");
+            }
+
+            this.logger.LogWarning(
+                "Multi-database discovery returned no databases. The platform will continue running " +
+                "and wait for databases to be discovered. Control Plane Configured={HasControlPlane}",
+                this.configuration.ControlPlaneConnectionString != null);
+            return;
         }
 
         this.logger.LogInformation(
