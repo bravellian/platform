@@ -28,65 +28,9 @@ public static class PlatformServiceCollectionExtensions
     private const string PlatformConfigurationKey = "Bravellian.Platform.Configuration.Registered";
 
     /// <summary>
-    /// Registers the platform for a single database environment.
-    /// All features (Outbox, Inbox, Timers, Jobs, Fan-out) run against this one database.
-    /// </summary>
-    /// <param name="services">The service collection.</param>
-    /// <param name="connectionString">The database connection string.</param>
-    /// <param name="databaseName">The logical name for this database (default: "default").</param>
-    /// <param name="schemaName">The schema name for platform tables (default: "dbo").</param>
-    /// <param name="enableSchemaDeployment">Whether to automatically create platform tables and procedures at startup.</param>
-    /// <returns>The service collection for chaining.</returns>
-    public static IServiceCollection AddPlatformSingleDatabase(
-        this IServiceCollection services,
-        string connectionString,
-        string databaseName = "default",
-        string schemaName = "dbo",
-        bool enableSchemaDeployment = false)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
-        ArgumentException.ThrowIfNullOrWhiteSpace(databaseName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(schemaName);
-
-        // Prevent multiple registrations
-        EnsureNotAlreadyRegistered(services);
-
-        var database = new PlatformDatabase
-        {
-            Name = databaseName,
-            ConnectionString = connectionString,
-            SchemaName = schemaName,
-        };
-
-        // Register configuration
-        var configuration = new PlatformConfiguration
-        {
-            EnvironmentStyle = PlatformEnvironmentStyle.SingleDatabase,
-            UsesDiscovery = false,
-            EnableSchemaDeployment = enableSchemaDeployment,
-        };
-
-        services.AddSingleton(configuration);
-
-        // Register list-based discovery with single database
-        services.AddSingleton<IPlatformDatabaseDiscovery>(
-            new ListBasedDatabaseDiscovery(new[] { database }));
-
-        // Register lifecycle service
-        services.AddSingleton<IHostedService, PlatformLifecycleService>();
-
-        // Register core abstractions
-        RegisterCoreServices(services, enableSchemaDeployment);
-
-        // Register semaphore services for single database
-        services.AddSemaphoreServices(connectionString, schemaName);
-
-        return services;
-    }
-
-    /// <summary>
     /// Registers the platform for a multi-database environment without control plane.
     /// Features run across the provided list of databases using round-robin scheduling.
+    /// For single database scenarios, pass a list with one database.
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="databases">The list of application databases.</param>
@@ -334,8 +278,8 @@ public static class PlatformServiceCollectionExtensions
         if (existing != null)
         {
             throw new InvalidOperationException(
-                "Platform registration has already been called. Only one of the five AddPlatform* methods can be used. " +
-                "Ensure you call exactly one of: AddPlatformSingleDatabase, AddPlatformMultiDatabaseWithList, " +
+                "Platform registration has already been called. Only one of the four AddPlatform* methods can be used. " +
+                "Ensure you call exactly one of: AddPlatformMultiDatabaseWithList, " +
                 "AddPlatformMultiDatabaseWithDiscovery, AddPlatformMultiDatabaseWithControlPlaneAndList, or " +
                 "AddPlatformMultiDatabaseWithControlPlaneAndDiscovery.");
         }
@@ -376,59 +320,8 @@ public static class PlatformServiceCollectionExtensions
             throw new InvalidOperationException("IPlatformDatabaseDiscovery not found. This should not happen.");
         }
 
-        if (config.EnvironmentStyle == PlatformEnvironmentStyle.SingleDatabase)
-        {
-            RegisterSingleDatabaseFeatures(services, config, discoveryDescriptor.ImplementationInstance as IPlatformDatabaseDiscovery);
-        }
-        else
-        {
-            RegisterMultiDatabaseFeatures(services);
-        }
-    }
-
-    private static void RegisterSingleDatabaseFeatures(IServiceCollection services, PlatformConfiguration config, IPlatformDatabaseDiscovery? discovery)
-    {
-        // For single database, get the database info and register features
-        if (discovery == null)
-        {
-            throw new InvalidOperationException("Discovery not available for single database registration.");
-        }
-
-        var database = discovery.DiscoverDatabasesAsync().GetAwaiter().GetResult().Single();
-        
-        // Outbox
-        services.AddSqlOutbox(new SqlOutboxOptions
-        {
-            ConnectionString = database.ConnectionString,
-            SchemaName = database.SchemaName,
-            TableName = "Outbox",
-            EnableSchemaDeployment = config.EnableSchemaDeployment,
-        });
-        
-        // Inbox
-        services.AddSqlInbox(new SqlInboxOptions
-        {
-            ConnectionString = database.ConnectionString,
-            SchemaName = database.SchemaName,
-            TableName = "Inbox",
-            EnableSchemaDeployment = config.EnableSchemaDeployment,
-        });
-        
-        // Scheduler (includes Timers + Jobs + Outbox + Leases)
-        services.AddSqlScheduler(new SqlSchedulerOptions
-        {
-            ConnectionString = database.ConnectionString,
-            SchemaName = database.SchemaName,
-            EnableSchemaDeployment = config.EnableSchemaDeployment,
-        });
-        
-        // Fanout
-        services.AddSqlFanout(new SqlFanoutOptions
-        {
-            ConnectionString = database.ConnectionString,
-            SchemaName = database.SchemaName,
-            EnableSchemaDeployment = config.EnableSchemaDeployment,
-        });
+        // All platforms use multi-database features
+        RegisterMultiDatabaseFeatures(services);
     }
 
     private static void RegisterMultiDatabaseFeatures(IServiceCollection services)
@@ -451,6 +344,15 @@ public static class PlatformServiceCollectionExtensions
                 enableSchemaDeployment),
             new RoundRobinOutboxSelectionStrategy());
         
+        // Register multi-outbox cleanup service
+        services.AddHostedService<MultiOutboxCleanupService>(sp => new MultiOutboxCleanupService(
+            sp.GetRequiredService<IOutboxStoreProvider>(),
+            sp.GetRequiredService<IMonotonicClock>(),
+            sp.GetRequiredService<ILogger<MultiOutboxCleanupService>>(),
+            retentionPeriod: TimeSpan.FromDays(7),
+            cleanupInterval: TimeSpan.FromHours(1),
+            schemaCompletion: sp.GetService<IDatabaseSchemaCompletion>()));
+        
         // Inbox
         services.AddMultiSqlInbox(
             sp => new PlatformInboxWorkStoreProvider(
@@ -460,6 +362,15 @@ public static class PlatformServiceCollectionExtensions
                 "Inbox",
                 enableSchemaDeployment),
             new RoundRobinInboxSelectionStrategy());
+        
+        // Register multi-inbox cleanup service
+        services.AddHostedService<MultiInboxCleanupService>(sp => new MultiInboxCleanupService(
+            sp.GetRequiredService<IInboxWorkStoreProvider>(),
+            sp.GetRequiredService<IMonotonicClock>(),
+            sp.GetRequiredService<ILogger<MultiInboxCleanupService>>(),
+            retentionPeriod: TimeSpan.FromDays(7),
+            cleanupInterval: TimeSpan.FromHours(1),
+            schemaCompletion: sp.GetService<IDatabaseSchemaCompletion>()));
         
         // Scheduler (Timers + Jobs)
         services.AddMultiSqlScheduler(

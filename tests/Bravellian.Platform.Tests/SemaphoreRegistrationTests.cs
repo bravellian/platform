@@ -107,15 +107,22 @@ public class SemaphoreRegistrationTests : IAsyncLifetime
     }
 
     [Fact]
-    public void SemaphoreService_Registered_InSingleDatabase()
+    public void SemaphoreService_Registered_WithSingleDatabaseInList()
     {
         // Arrange & Act
         var services = new ServiceCollection();
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>)); // Add null logger
-        services.AddPlatformSingleDatabase(
-            connectionString: this.connectionString!,
-            databaseName: "test",
-            schemaName: "dbo",
+        services.AddPlatformMultiDatabaseWithControlPlaneAndList(
+            new[]
+            {
+                new PlatformDatabase
+                {
+                    Name = "test",
+                    ConnectionString = this.connectionString!,
+                    SchemaName = "dbo",
+                },
+            },
+            controlPlaneConnectionString: this.connectionString!,
             enableSchemaDeployment: false);
 
         var serviceProvider = services.BuildServiceProvider();
@@ -177,15 +184,22 @@ public class SemaphoreRegistrationTests : IAsyncLifetime
     }
 
     [Fact]
-    public void SemaphoreReaperService_RegisteredInSingleDatabase()
+    public void SemaphoreReaperService_RegisteredWithSingleDatabaseInList()
     {
         // Arrange & Act
         var services = new ServiceCollection();
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>)); // Add null logger
-        services.AddPlatformSingleDatabase(
-            connectionString: this.connectionString!,
-            databaseName: "test",
-            schemaName: "dbo",
+        services.AddPlatformMultiDatabaseWithControlPlaneAndList(
+            new[]
+            {
+                new PlatformDatabase
+                {
+                    Name = "test",
+                    ConnectionString = this.connectionString!,
+                    SchemaName = "dbo",
+                },
+            },
+            controlPlaneConnectionString: this.connectionString!,
             enableSchemaDeployment: false);
 
         // Assert - Check if SemaphoreReaperService is registered without building the service provider
