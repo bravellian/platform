@@ -142,8 +142,7 @@ internal sealed class MultiOutboxCleanupService : BackgroundService
     {
         // Extract connection details from the store
         // We need to get the connection string, schema name, and table name
-        // These are available from SqlOutboxStore via reflection or we can add them to IOutboxStore
-        // For now, we'll use reflection to access the private fields
+        // These are stored as private readonly fields in SqlOutboxStore
         var storeType = store.GetType();
         
         if (storeType.Name != "SqlOutboxStore")
@@ -152,39 +151,24 @@ internal sealed class MultiOutboxCleanupService : BackgroundService
             return 0;
         }
 
-        // Get options field using reflection
-        var optionsField = storeType.GetField("options", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        if (optionsField == null)
+        // Get private readonly fields using reflection
+        var connectionStringField = storeType.GetField("connectionString", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var schemaNameField = storeType.GetField("schemaName", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var tableNameField = storeType.GetField("tableName", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        if (connectionStringField == null || schemaNameField == null || tableNameField == null)
         {
-            this.logger.LogWarning("Could not access options field for store: {DatabaseIdentifier}", identifier);
+            this.logger.LogWarning("Could not access required fields for store: {DatabaseIdentifier}", identifier);
             return 0;
         }
 
-        var optionsValue = optionsField.GetValue(store);
-        if (optionsValue == null)
-        {
-            this.logger.LogWarning("Options field is null for store: {DatabaseIdentifier}", identifier);
-            return 0;
-        }
-
-        var optionsType = optionsValue.GetType();
-        var connectionStringProp = optionsType.GetProperty("ConnectionString");
-        var schemaNameProp = optionsType.GetProperty("SchemaName");
-        var tableNameProp = optionsType.GetProperty("TableName");
-
-        if (connectionStringProp == null || schemaNameProp == null || tableNameProp == null)
-        {
-            this.logger.LogWarning("Could not access options properties for store: {DatabaseIdentifier}", identifier);
-            return 0;
-        }
-
-        var connectionString = connectionStringProp.GetValue(optionsValue) as string;
-        var schemaName = schemaNameProp.GetValue(optionsValue) as string;
-        var tableName = tableNameProp.GetValue(optionsValue) as string;
+        var connectionString = connectionStringField.GetValue(store) as string;
+        var schemaName = schemaNameField.GetValue(store) as string;
+        var tableName = tableNameField.GetValue(store) as string;
 
         if (string.IsNullOrEmpty(connectionString) || string.IsNullOrEmpty(schemaName) || string.IsNullOrEmpty(tableName))
         {
-            this.logger.LogWarning("Invalid options values for store: {DatabaseIdentifier}", identifier);
+            this.logger.LogWarning("Invalid field values for store: {DatabaseIdentifier}", identifier);
             return 0;
         }
 
