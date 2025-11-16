@@ -230,7 +230,7 @@ public class OutboxCleanupTests : SqlServerTestBase
 
         // Act - Start the service and let it run a few cleanup cycles
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
-        var startTask = service.StartAsync(CancellationToken.None);
+        var startTask = service.StartAsync(cts.Token);
         
         // Wait for at least one cleanup attempt
         await Task.Delay(TimeSpan.FromMilliseconds(500));
@@ -240,7 +240,7 @@ public class OutboxCleanupTests : SqlServerTestBase
         
         // Assert - Service should have completed without throwing
         // The ExecuteAsync task should complete successfully (not throw)
-        startTask.IsCompleted.ShouldBeTrue();
+        await startTask;
         
         // Verify the stored procedure is still missing (we didn't recreate it)
         var procExists = await connection.ExecuteScalarAsync<int>(
