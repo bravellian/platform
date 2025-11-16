@@ -199,4 +199,55 @@ public class OutboxCleanupTests : SqlServerTestBase
         remainingIds.ShouldContain(messages[3].Id);    // 3 days
         remainingIds.ShouldContain(messages[4].Id);    // 1 day
     }
+
+    [Fact]
+    public async Task CleanupService_GracefullyHandles_MissingStoredProcedure()
+    {
+        // Arrange - Create a database without the stored procedure
+        await using var connection = new SqlConnection(this.ConnectionString);
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
+
+        // Drop the stored procedure if it exists to simulate a database without schema deployment
+        await connection.ExecuteAsync($"DROP PROCEDURE IF EXISTS [{this.defaultOptions.SchemaName}].[{this.defaultOptions.TableName}_Cleanup]");
+
+        var mono = new MonotonicClock();
+        var logger = new TestLogger<OutboxCleanupService>(this.TestOutputHelper);
+        
+        // Use very short intervals for testing
+        var options = new SqlOutboxOptions
+        {
+            ConnectionString = this.defaultOptions.ConnectionString,
+            SchemaName = this.defaultOptions.SchemaName,
+            TableName = this.defaultOptions.TableName,
+            RetentionPeriod = TimeSpan.FromDays(7),
+            CleanupInterval = TimeSpan.FromMilliseconds(100) // Very short interval for testing
+        };
+        
+        var service = new OutboxCleanupService(
+            Microsoft.Extensions.Options.Options.Create(options),
+            mono,
+            logger);
+
+        // Act - Start the service and let it run a few cleanup cycles
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+        var startTask = service.StartAsync(cts.Token);
+        
+        // Wait for at least one cleanup attempt
+        await Task.Delay(TimeSpan.FromMilliseconds(500));
+        
+        // Stop the service
+        await service.StopAsync(CancellationToken.None);
+        
+        // Assert - Service should have completed without throwing
+        // The ExecuteAsync task should complete successfully (not throw)
+        await startTask;
+        
+        // Verify the stored procedure is still missing (we didn't recreate it)
+        var procExists = await connection.ExecuteScalarAsync<int>(
+            $@"SELECT COUNT(*) FROM sys.procedures 
+               WHERE schema_id = SCHEMA_ID(@SchemaName) 
+               AND name = @ProcName",
+            new { SchemaName = this.defaultOptions.SchemaName, ProcName = $"{this.defaultOptions.TableName}_Cleanup" });
+        procExists.ShouldBe(0);
+    }
 }
