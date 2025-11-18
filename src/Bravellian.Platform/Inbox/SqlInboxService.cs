@@ -105,8 +105,16 @@ internal class SqlInboxService : IInbox
     public async Task<bool> AlreadyProcessedAsync(
         string messageId,
         string source,
-        byte[]? hash = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
+    {
+        return await this.AlreadyProcessedAsync(messageId, source, null, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<bool> AlreadyProcessedAsync(
+        string messageId,
+        string source,
+        byte[]? hash,
+        CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(messageId))
         {
@@ -152,7 +160,7 @@ internal class SqlInboxService : IInbox
 
     public async Task MarkProcessedAsync(
         string messageId,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(messageId))
         {
@@ -193,7 +201,7 @@ internal class SqlInboxService : IInbox
 
     public async Task MarkProcessingAsync(
         string messageId,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(messageId))
         {
@@ -226,7 +234,7 @@ internal class SqlInboxService : IInbox
 
     public async Task MarkDeadAsync(
         string messageId,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(messageId))
         {
@@ -262,9 +270,30 @@ internal class SqlInboxService : IInbox
         string source,
         string messageId,
         string payload,
-        byte[]? hash = null,
-        DateTimeOffset? dueTimeUtc = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
+    {
+        await this.EnqueueAsync(topic, source, messageId, payload, null, null, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task EnqueueAsync(
+        string topic,
+        string source,
+        string messageId,
+        string payload,
+        byte[]? hash,
+        CancellationToken cancellationToken)
+    {
+        await this.EnqueueAsync(topic, source, messageId, payload, hash, null, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task EnqueueAsync(
+        string topic,
+        string source,
+        string messageId,
+        string payload,
+        byte[]? hash,
+        DateTimeOffset? dueTimeUtc,
+        CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(topic))
         {

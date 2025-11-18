@@ -64,7 +64,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         string correlationId = "test-correlation-123";
 
         // Act
-        await this.outboxService!.EnqueueAsync(topic, payload, transaction, correlationId);
+        await this.outboxService!.EnqueueAsync(topic, payload, transaction, correlationId, CancellationToken.None);
 
         // Verify the message was inserted
         var sql = "SELECT COUNT(*) FROM dbo.Outbox WHERE Topic = @Topic AND Payload = @Payload";
@@ -112,7 +112,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         string payload = "test payload custom";
 
         // Act
-        await customOutboxService.EnqueueAsync(topic, payload, transaction);
+        await customOutboxService.EnqueueAsync(topic, payload, transaction, CancellationToken.None);
 
         // Verify the message was inserted into the custom table
         var sql = "SELECT COUNT(*) FROM custom.CustomOutbox WHERE Topic = @Topic AND Payload = @Payload";
@@ -141,7 +141,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         string payload = "test payload with null correlation";
 
         // Act
-        await this.outboxService!.EnqueueAsync(topic, payload, transaction, correlationId: null);
+        await this.outboxService!.EnqueueAsync(topic, payload, transaction, correlationId: null, cancellationToken: CancellationToken.None);
 
         // Verify the message was inserted
         var sql = "SELECT COUNT(*) FROM dbo.Outbox WHERE Topic = @Topic AND Payload = @Payload";
@@ -172,7 +172,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         try
         {
             // Act
-            await this.outboxService!.EnqueueAsync(topic, payload, transaction);
+            await this.outboxService!.EnqueueAsync(topic, payload, transaction, CancellationToken.None);
 
             // Verify the message has correct default values
             var sql = @"SELECT IsProcessed, ProcessedAt, RetryCount, CreatedAt, MessageId 
@@ -208,9 +208,9 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         await using var transaction = connection.BeginTransaction();
 
         // Act - Insert multiple messages
-        await this.outboxService!.EnqueueAsync("topic-1", "payload-1", transaction);
-        await this.outboxService.EnqueueAsync("topic-2", "payload-2", transaction);
-        await this.outboxService.EnqueueAsync("topic-3", "payload-3", transaction);
+        await this.outboxService!.EnqueueAsync("topic-1", "payload-1", transaction, CancellationToken.None);
+        await this.outboxService.EnqueueAsync("topic-2", "payload-2", transaction, CancellationToken.None);
+        await this.outboxService.EnqueueAsync("topic-3", "payload-3", transaction, CancellationToken.None);
 
         // Verify all messages were inserted
         var sql = "SELECT COUNT(*) FROM dbo.Outbox";
@@ -235,7 +235,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         // Act & Assert
         // The implementation tries to access transaction.Connection without checking null
         var exception = await Should.ThrowAsync<NullReferenceException>(
-            () => this.outboxService!.EnqueueAsync(validTopic, validPayload, nullTransaction));
+            () => this.outboxService!.EnqueueAsync(validTopic, validPayload, nullTransaction, CancellationToken.None));
 
         exception.ShouldNotBeNull();
     }
@@ -249,7 +249,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         string correlationId = "test-correlation-standalone";
 
         // Act
-        await this.outboxService!.EnqueueAsync(topic, payload, correlationId);
+        await this.outboxService!.EnqueueAsync(topic, payload, correlationId, CancellationToken.None);
 
         // Verify the message was inserted by querying the database directly
         await using var connection = new SqlConnection(this.ConnectionString);
@@ -281,7 +281,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         string payload = "test payload standalone null";
 
         // Act
-        await this.outboxService!.EnqueueAsync(topic, payload, correlationId: null);
+        await this.outboxService!.EnqueueAsync(topic, payload, (string?)null, CancellationToken.None);
 
         // Verify the message was inserted
         await using var connection = new SqlConnection(this.ConnectionString);
@@ -315,9 +315,9 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         try
         {
             // Act - Insert multiple messages using standalone method
-            await this.outboxService!.EnqueueAsync(topics[0], payloads[0]);
-            await this.outboxService.EnqueueAsync(topics[1], payloads[1]);
-            await this.outboxService.EnqueueAsync(topics[2], payloads[2]);
+            await this.outboxService!.EnqueueAsync(topics[0], payloads[0], CancellationToken.None);
+            await this.outboxService.EnqueueAsync(topics[1], payloads[1], CancellationToken.None);
+            await this.outboxService.EnqueueAsync(topics[2], payloads[2], CancellationToken.None);
 
             // Verify all messages were inserted
             await using var connection = new SqlConnection(this.ConnectionString);
@@ -366,7 +366,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         try
         {
             // Act - This should create the table and insert the message
-            await customOutboxService.EnqueueAsync(topic, payload);
+            await customOutboxService.EnqueueAsync(topic, payload, CancellationToken.None);
 
             // Verify the table was created and message was inserted
             var sql = "SELECT COUNT(*) FROM dbo.TestOutbox_StandaloneEnsure WHERE Topic = @Topic AND Payload = @Payload";

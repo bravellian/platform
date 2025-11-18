@@ -70,27 +70,36 @@ internal class SqlSchedulerClient : ISchedulerClient
             """;
     }
 
-    public async Task<string> ScheduleTimerAsync(string topic, string payload, DateTimeOffset dueTime)
+    public async Task<string> ScheduleTimerAsync(string topic, string payload, DateTimeOffset dueTime, CancellationToken cancellationToken)
     {
         var timerId = Guid.NewGuid();
         using (var connection = new SqlConnection(this.connectionString))
         {
-            await connection.ExecuteAsync(this.insertTimerSql, new { Id = timerId, Topic = topic, Payload = payload, DueTime = dueTime }).ConfigureAwait(false);
+            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+            var command = new CommandDefinition(this.insertTimerSql, new { Id = timerId, Topic = topic, Payload = payload, DueTime = dueTime }, cancellationToken: cancellationToken);
+            await connection.ExecuteAsync(command).ConfigureAwait(false);
         }
 
         return timerId.ToString();
     }
 
-    public async Task<bool> CancelTimerAsync(string timerId)
+    public async Task<bool> CancelTimerAsync(string timerId, CancellationToken cancellationToken)
     {
         using (var connection = new SqlConnection(this.connectionString))
         {
-            var rowsAffected = await connection.ExecuteAsync(this.cancelTimerSql, new { TimerId = timerId }).ConfigureAwait(false);
+            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+            var command = new CommandDefinition(this.cancelTimerSql, new { TimerId = timerId }, cancellationToken: cancellationToken);
+            var rowsAffected = await connection.ExecuteAsync(command).ConfigureAwait(false);
             return rowsAffected > 0;
         }
     }
 
-    public async Task CreateOrUpdateJobAsync(string jobName, string topic, string cronSchedule, string? payload = null)
+    public async Task CreateOrUpdateJobAsync(string jobName, string topic, string cronSchedule, CancellationToken cancellationToken)
+    {
+        await this.CreateOrUpdateJobAsync(jobName, topic, cronSchedule, null, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task CreateOrUpdateJobAsync(string jobName, string topic, string cronSchedule, string? payload, CancellationToken cancellationToken)
     {
         // Determine cron format based on the number of parts.
         var format = cronSchedule.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length == 6
@@ -103,33 +112,39 @@ internal class SqlSchedulerClient : ISchedulerClient
         // MERGE is a great way to handle "UPSERT" logic atomically in SQL Server.
         using (var connection = new SqlConnection(this.connectionString))
         {
-            await connection.ExecuteAsync(this.mergeJobSql, new { JobName = jobName, Topic = topic, CronSchedule = cronSchedule, Payload = payload, NextDueTime = nextDueTime }).ConfigureAwait(false);
+            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+            var command = new CommandDefinition(this.mergeJobSql, new { JobName = jobName, Topic = topic, CronSchedule = cronSchedule, Payload = payload, NextDueTime = nextDueTime }, cancellationToken: cancellationToken);
+            await connection.ExecuteAsync(command).ConfigureAwait(false);
         }
     }
 
-    public async Task DeleteJobAsync(string jobName)
+    public async Task DeleteJobAsync(string jobName, CancellationToken cancellationToken)
     {
         using (var connection = new SqlConnection(this.connectionString))
         {
-            await connection.OpenAsync().ConfigureAwait(false);
+            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
             using (var transaction = connection.BeginTransaction())
             {
                 // Must delete runs before the job definition due to foreign key
-                await connection.ExecuteAsync(this.deleteJobRunsSql, new { JobName = jobName }, transaction).ConfigureAwait(false);
+                var deleteRunsCommand = new CommandDefinition(this.deleteJobRunsSql, new { JobName = jobName }, transaction, cancellationToken: cancellationToken);
+                await connection.ExecuteAsync(deleteRunsCommand).ConfigureAwait(false);
 
-                await connection.ExecuteAsync(this.deleteJobSql, new { JobName = jobName }, transaction).ConfigureAwait(false);
+                var deleteJobCommand = new CommandDefinition(this.deleteJobSql, new { JobName = jobName }, transaction, cancellationToken: cancellationToken);
+                await connection.ExecuteAsync(deleteJobCommand).ConfigureAwait(false);
 
-                transaction.Commit();
+                await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
             }
         }
     }
 
-    public async Task TriggerJobAsync(string jobName)
+    public async Task TriggerJobAsync(string jobName, CancellationToken cancellationToken)
     {
         // Creates a new run that is due immediately.
         using (var connection = new SqlConnection(this.connectionString))
         {
-            await connection.ExecuteAsync(this.triggerJobSql, new { JobName = jobName }).ConfigureAwait(false);
+            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+            var command = new CommandDefinition(this.triggerJobSql, new { JobName = jobName }, cancellationToken: cancellationToken);
+            await connection.ExecuteAsync(command).ConfigureAwait(false);
         }
     }
 
@@ -137,7 +152,7 @@ internal class SqlSchedulerClient : ISchedulerClient
         Guid ownerToken,
         int leaseSeconds,
         int batchSize,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
         var result = new List<Guid>(batchSize);
 
@@ -169,7 +184,7 @@ internal class SqlSchedulerClient : ISchedulerClient
         Guid ownerToken,
         int leaseSeconds,
         int batchSize,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
         var result = new List<Guid>(batchSize);
 
@@ -200,7 +215,7 @@ internal class SqlSchedulerClient : ISchedulerClient
     public async Task AckTimersAsync(
         Guid ownerToken,
         IEnumerable<Guid> ids,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
         await this.ExecuteWithIdsAsync("dbo.Timers_Ack", ownerToken, ids, cancellationToken).ConfigureAwait(false);
     }
@@ -208,7 +223,7 @@ internal class SqlSchedulerClient : ISchedulerClient
     public async Task AckJobRunsAsync(
         Guid ownerToken,
         IEnumerable<Guid> ids,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
         await this.ExecuteWithIdsAsync("dbo.JobRuns_Ack", ownerToken, ids, cancellationToken).ConfigureAwait(false);
     }
@@ -216,7 +231,7 @@ internal class SqlSchedulerClient : ISchedulerClient
     public async Task AbandonTimersAsync(
         Guid ownerToken,
         IEnumerable<Guid> ids,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
         await this.ExecuteWithIdsAsync("dbo.Timers_Abandon", ownerToken, ids, cancellationToken).ConfigureAwait(false);
     }
@@ -224,12 +239,12 @@ internal class SqlSchedulerClient : ISchedulerClient
     public async Task AbandonJobRunsAsync(
         Guid ownerToken,
         IEnumerable<Guid> ids,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
         await this.ExecuteWithIdsAsync("dbo.JobRuns_Abandon", ownerToken, ids, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task ReapExpiredTimersAsync(CancellationToken cancellationToken = default)
+    public async Task ReapExpiredTimersAsync(CancellationToken cancellationToken)
     {
         var connection = new SqlConnection(this.connectionString);
         await using (connection.ConfigureAwait(false))
@@ -245,7 +260,7 @@ internal class SqlSchedulerClient : ISchedulerClient
         }
     }
 
-    public async Task ReapExpiredJobRunsAsync(CancellationToken cancellationToken = default)
+    public async Task ReapExpiredJobRunsAsync(CancellationToken cancellationToken)
     {
         var connection = new SqlConnection(this.connectionString);
         await using (connection.ConfigureAwait(false))

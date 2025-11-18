@@ -29,14 +29,76 @@ public interface IOutbox
     /// </summary>
     /// <param name="topic">The topic or type of the message, used for routing.</param>
     /// <param name="payload">The message content, typically serialized as a string (e.g., JSON).</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    Task EnqueueAsync(
+        string topic,
+        string payload,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Enqueues a message into the outbox table using the configured connection string.
+    /// This method creates its own connection and transaction for reliability.
+    /// </summary>
+    /// <param name="topic">The topic or type of the message, used for routing.</param>
+    /// <param name="payload">The message content, typically serialized as a string (e.g., JSON).</param>
     /// <param name="correlationId">An optional ID to trace the message back to its source.</param>
-    /// <param name="dueTimeUtc">An optional timestamp indicating when the message should become eligible for processing.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     Task EnqueueAsync(
         string topic,
         string payload,
         string? correlationId,
-        DateTimeOffset? dueTimeUtc = null);
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Enqueues a message into the outbox table using the configured connection string.
+    /// This method creates its own connection and transaction for reliability.
+    /// </summary>
+    /// <param name="topic">The topic or type of the message, used for routing.</param>
+    /// <param name="payload">The message content, typically serialized as a string (e.g., JSON).</param>
+    /// <param name="correlationId">An optional ID to trace the message back to its source.</param>
+    /// <param name="dueTimeUtc">An optional timestamp indicating when the message should become eligible for processing.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    Task EnqueueAsync(
+        string topic,
+        string payload,
+        string? correlationId,
+        DateTimeOffset? dueTimeUtc,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Enqueues a message into the outbox table within the context
+    /// of an existing database transaction.
+    /// </summary>
+    /// <param name="topic">The topic or type of the message, used for routing.</param>
+    /// <param name="payload">The message content, typically serialized as a string (e.g., JSON).</param>
+    /// <param name="transaction">The database transaction to participate in.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    Task EnqueueAsync(
+        string topic,
+        string payload,
+        IDbTransaction transaction,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Enqueues a message into the outbox table within the context
+    /// of an existing database transaction.
+    /// </summary>
+    /// <param name="topic">The topic or type of the message, used for routing.</param>
+    /// <param name="payload">The message content, typically serialized as a string (e.g., JSON).</param>
+    /// <param name="transaction">The database transaction to participate in.</param>
+    /// <param name="correlationId">An optional ID to trace the message back to its source.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    Task EnqueueAsync(
+        string topic,
+        string payload,
+        IDbTransaction transaction,
+        string? correlationId,
+        CancellationToken cancellationToken);
 
     /// <summary>
     /// Enqueues a message into the outbox table within the context
@@ -47,13 +109,15 @@ public interface IOutbox
     /// <param name="transaction">The database transaction to participate in.</param>
     /// <param name="correlationId">An optional ID to trace the message back to its source.</param>
     /// <param name="dueTimeUtc">An optional timestamp indicating when the message should become eligible for processing.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     Task EnqueueAsync(
         string topic,
         string payload,
         IDbTransaction transaction,
-        string? correlationId = null,
-        DateTimeOffset? dueTimeUtc = null);
+        string? correlationId,
+        DateTimeOffset? dueTimeUtc,
+        CancellationToken cancellationToken);
 
     /// <summary>
     /// Claims ready outbox messages atomically with a lease for processing.
@@ -67,7 +131,7 @@ public interface IOutbox
         Guid ownerToken,
         int leaseSeconds,
         int batchSize,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken);
 
     /// <summary>
     /// Acknowledges outbox messages as successfully processed.
@@ -78,7 +142,7 @@ public interface IOutbox
     Task AckAsync(
         Guid ownerToken,
         IEnumerable<Guid> ids,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken);
 
     /// <summary>
     /// Abandons outbox messages, returning them to the ready state for retry.
@@ -89,7 +153,7 @@ public interface IOutbox
     Task AbandonAsync(
         Guid ownerToken,
         IEnumerable<Guid> ids,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken);
 
     /// <summary>
     /// Marks outbox messages as failed with error information.
@@ -100,11 +164,11 @@ public interface IOutbox
     Task FailAsync(
         Guid ownerToken,
         IEnumerable<Guid> ids,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken);
 
     /// <summary>
     /// Reaps expired outbox messages, returning them to ready state.
     /// </summary>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
-    Task ReapExpiredAsync(CancellationToken cancellationToken = default);
+    Task ReapExpiredAsync(CancellationToken cancellationToken);
 }

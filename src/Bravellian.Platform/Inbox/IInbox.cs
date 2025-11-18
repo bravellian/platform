@@ -28,14 +28,27 @@ public interface IInbox
     /// </summary>
     /// <param name="messageId">The unique identifier of the message.</param>
     /// <param name="source">The source system or component that sent the message.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>True if the message was already processed, false if this is the first time seeing it.</returns>
+    Task<bool> AlreadyProcessedAsync(
+        string messageId,
+        string source,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Checks if a message has already been processed, or records it as seen if it's new.
+    /// This method implements MERGE/UPSERT semantics to handle concurrent access safely.
+    /// </summary>
+    /// <param name="messageId">The unique identifier of the message.</param>
+    /// <param name="source">The source system or component that sent the message.</param>
     /// <param name="hash">Optional content hash for additional verification.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>True if the message was already processed, false if this is the first time seeing it.</returns>
     Task<bool> AlreadyProcessedAsync(
         string messageId,
         string source,
-        byte[]? hash = null,
-        CancellationToken cancellationToken = default);
+        byte[]? hash,
+        CancellationToken cancellationToken);
 
     /// <summary>
     /// Marks a message as successfully processed.
@@ -45,7 +58,7 @@ public interface IInbox
     /// <returns>A task representing the asynchronous operation.</returns>
     Task MarkProcessedAsync(
         string messageId,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken);
 
     /// <summary>
     /// Marks a message as being processed to support poison message detection.
@@ -55,7 +68,7 @@ public interface IInbox
     /// <returns>A task representing the asynchronous operation.</returns>
     Task MarkProcessingAsync(
         string messageId,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken);
 
     /// <summary>
     /// Marks a message as dead/poison after repeated failures.
@@ -65,7 +78,41 @@ public interface IInbox
     /// <returns>A task representing the asynchronous operation.</returns>
     Task MarkDeadAsync(
         string messageId,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Enqueues a message for processing by the inbox dispatcher.
+    /// </summary>
+    /// <param name="topic">The topic to route the message to an appropriate handler.</param>
+    /// <param name="source">The source system or component that sent the message.</param>
+    /// <param name="messageId">The unique identifier of the message.</param>
+    /// <param name="payload">The message payload content.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    Task EnqueueAsync(
+        string topic,
+        string source,
+        string messageId,
+        string payload,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Enqueues a message for processing by the inbox dispatcher.
+    /// </summary>
+    /// <param name="topic">The topic to route the message to an appropriate handler.</param>
+    /// <param name="source">The source system or component that sent the message.</param>
+    /// <param name="messageId">The unique identifier of the message.</param>
+    /// <param name="payload">The message payload content.</param>
+    /// <param name="hash">Optional content hash for deduplication.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    Task EnqueueAsync(
+        string topic,
+        string source,
+        string messageId,
+        string payload,
+        byte[]? hash,
+        CancellationToken cancellationToken);
 
     /// <summary>
     /// Enqueues a message for processing by the inbox dispatcher.
@@ -83,7 +130,7 @@ public interface IInbox
         string source,
         string messageId,
         string payload,
-        byte[]? hash = null,
-        DateTimeOffset? dueTimeUtc = null,
-        CancellationToken cancellationToken = default);
+        byte[]? hash,
+        DateTimeOffset? dueTimeUtc,
+        CancellationToken cancellationToken);
 }

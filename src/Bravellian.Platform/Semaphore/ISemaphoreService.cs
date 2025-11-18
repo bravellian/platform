@@ -25,6 +25,20 @@ public interface ISemaphoreService
     /// <param name="name">The semaphore name.</param>
     /// <param name="ttlSeconds">The TTL for the lease in seconds.</param>
     /// <param name="ownerId">The stable owner identifier.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Result indicating whether the lease was acquired.</returns>
+    Task<SemaphoreAcquireResult> TryAcquireAsync(
+        string name,
+        int ttlSeconds,
+        string ownerId,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Attempts to acquire a semaphore lease.
+    /// </summary>
+    /// <param name="name">The semaphore name.</param>
+    /// <param name="ttlSeconds">The TTL for the lease in seconds.</param>
+    /// <param name="ownerId">The stable owner identifier.</param>
     /// <param name="clientRequestId">Optional idempotency key for retries.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Result indicating whether the lease was acquired.</returns>
@@ -32,8 +46,8 @@ public interface ISemaphoreService
         string name,
         int ttlSeconds,
         string ownerId,
-        string? clientRequestId = null,
-        CancellationToken cancellationToken = default);
+        string? clientRequestId,
+        CancellationToken cancellationToken);
 
     /// <summary>
     /// Renews an existing semaphore lease.
@@ -47,7 +61,7 @@ public interface ISemaphoreService
         string name,
         Guid token,
         int ttlSeconds,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken);
 
     /// <summary>
     /// Releases a semaphore lease.
@@ -59,7 +73,24 @@ public interface ISemaphoreService
     Task<SemaphoreReleaseResult> ReleaseAsync(
         string name,
         Guid token,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Reaps expired leases for all semaphores.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Number of expired leases deleted.</returns>
+    Task<int> ReapExpiredAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Reaps expired leases for a semaphore.
+    /// </summary>
+    /// <param name="name">The semaphore name (null for all semaphores).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Number of expired leases deleted.</returns>
+    Task<int> ReapExpiredAsync(
+        string? name,
+        CancellationToken cancellationToken);
 
     /// <summary>
     /// Reaps expired leases for a semaphore.
@@ -69,9 +100,9 @@ public interface ISemaphoreService
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Number of expired leases deleted.</returns>
     Task<int> ReapExpiredAsync(
-        string? name = null,
-        int maxRows = 1000,
-        CancellationToken cancellationToken = default);
+        string? name,
+        int maxRows,
+        CancellationToken cancellationToken);
 
     /// <summary>
     /// Ensures a semaphore exists with the specified limit.
@@ -82,7 +113,18 @@ public interface ISemaphoreService
     Task EnsureExistsAsync(
         string name,
         int limit,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Updates the limit for an existing semaphore.
+    /// </summary>
+    /// <param name="name">The semaphore name.</param>
+    /// <param name="newLimit">The new concurrency limit.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task UpdateLimitAsync(
+        string name,
+        int newLimit,
+        CancellationToken cancellationToken);
 
     /// <summary>
     /// Updates the limit for an existing semaphore.
@@ -94,6 +136,6 @@ public interface ISemaphoreService
     Task UpdateLimitAsync(
         string name,
         int newLimit,
-        bool ensureIfMissing = false,
-        CancellationToken cancellationToken = default);
+        bool ensureIfMissing,
+        CancellationToken cancellationToken);
 }

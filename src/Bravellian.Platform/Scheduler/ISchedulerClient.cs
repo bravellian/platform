@@ -29,15 +29,26 @@ public interface ISchedulerClient
     /// <param name="topic">The topic that identifies the work to be done.</param>
     /// <param name="payload">The data required for the work.</param>
     /// <param name="dueTime">The UTC time when the timer should fire.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>A unique ID for the scheduled timer.</returns>
-    Task<string> ScheduleTimerAsync(string topic, string payload, DateTimeOffset dueTime);
+    Task<string> ScheduleTimerAsync(string topic, string payload, DateTimeOffset dueTime, CancellationToken cancellationToken);
 
     /// <summary>
     /// Cancels a pending timer.
     /// </summary>
     /// <param name="timerId">The ID of the timer to cancel.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>True if a pending timer was found and cancelled; otherwise, false.</returns>
-    Task<bool> CancelTimerAsync(string timerId);
+    Task<bool> CancelTimerAsync(string timerId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Creates or updates a recurring job definition.
+    /// </summary>
+    /// <param name="jobName">A unique name for the job.</param>
+    /// <param name="topic">The topic that identifies the work to be done.</param>
+    /// <param name="cronSchedule">The CRON expression for the schedule (e.g., "0 */5 * * * *").</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    Task CreateOrUpdateJobAsync(string jobName, string topic, string cronSchedule, CancellationToken cancellationToken);
 
     /// <summary>
     /// Creates or updates a recurring job definition.
@@ -46,19 +57,22 @@ public interface ISchedulerClient
     /// <param name="topic">The topic that identifies the work to be done.</param>
     /// <param name="cronSchedule">The CRON expression for the schedule (e.g., "0 */5 * * * *").</param>
     /// <param name="payload">The data required for the work.</param>
-    Task CreateOrUpdateJobAsync(string jobName, string topic, string cronSchedule, string? payload = null);
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    Task CreateOrUpdateJobAsync(string jobName, string topic, string cronSchedule, string? payload, CancellationToken cancellationToken);
 
     /// <summary>
     /// Deletes a recurring job definition and all its pending runs.
     /// </summary>
     /// <param name="jobName">The unique name of the job to delete.</param>
-    Task DeleteJobAsync(string jobName);
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    Task DeleteJobAsync(string jobName, CancellationToken cancellationToken);
 
     /// <summary>
     /// Triggers a job to run immediately, outside of its normal schedule.
     /// </summary>
     /// <param name="jobName">The unique name of the job to trigger.</param>
-    Task TriggerJobAsync(string jobName);
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    Task TriggerJobAsync(string jobName, CancellationToken cancellationToken);
 
     /// <summary>
     /// Claims ready timer items atomically with a lease for processing.
@@ -72,7 +86,7 @@ public interface ISchedulerClient
         Guid ownerToken,
         int leaseSeconds,
         int batchSize,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken);
 
     /// <summary>
     /// Claims ready job run items atomically with a lease for processing.
@@ -86,7 +100,7 @@ public interface ISchedulerClient
         Guid ownerToken,
         int leaseSeconds,
         int batchSize,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken);
 
     /// <summary>
     /// Acknowledges timer items as successfully processed.
@@ -97,7 +111,7 @@ public interface ISchedulerClient
     Task AckTimersAsync(
         Guid ownerToken,
         IEnumerable<Guid> ids,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken);
 
     /// <summary>
     /// Acknowledges job run items as successfully processed.
@@ -108,7 +122,7 @@ public interface ISchedulerClient
     Task AckJobRunsAsync(
         Guid ownerToken,
         IEnumerable<Guid> ids,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken);
 
     /// <summary>
     /// Abandons timer items, returning them to the ready state for retry.
@@ -119,7 +133,7 @@ public interface ISchedulerClient
     Task AbandonTimersAsync(
         Guid ownerToken,
         IEnumerable<Guid> ids,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken);
 
     /// <summary>
     /// Abandons job run items, returning them to the ready state for retry.
@@ -130,17 +144,17 @@ public interface ISchedulerClient
     Task AbandonJobRunsAsync(
         Guid ownerToken,
         IEnumerable<Guid> ids,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken);
 
     /// <summary>
     /// Reaps expired timer items, returning them to ready state.
     /// </summary>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
-    Task ReapExpiredTimersAsync(CancellationToken cancellationToken = default);
+    Task ReapExpiredTimersAsync(CancellationToken cancellationToken);
 
     /// <summary>
     /// Reaps expired job run items, returning them to ready state.
     /// </summary>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
-    Task ReapExpiredJobRunsAsync(CancellationToken cancellationToken = default);
+    Task ReapExpiredJobRunsAsync(CancellationToken cancellationToken);
 }
