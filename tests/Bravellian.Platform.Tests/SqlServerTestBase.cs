@@ -160,7 +160,10 @@ CREATE TABLE dbo.Outbox (
 
     -- For Idempotency & Tracing
     MessageId UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(), -- A stable ID for the message consumer
-    CorrelationId NVARCHAR(255) NULL -- To trace a message through multiple systems
+    CorrelationId NVARCHAR(255) NULL, -- To trace a message through multiple systems
+
+    -- For Delayed Processing
+    DueTimeUtc DATETIME2(3) NULL -- Optional timestamp indicating when the message should become eligible for processing
 );
 GO
 
@@ -243,7 +246,10 @@ CREATE TABLE dbo.Inbox (
     
     -- Optional work queue columns (for advanced scenarios)
     Topic VARCHAR(128) NULL,
-    Payload NVARCHAR(MAX) NULL
+    Payload NVARCHAR(MAX) NULL,
+    
+    -- For Delayed Processing
+    DueTimeUtc DATETIME2(3) NULL -- Optional timestamp indicating when the message should become eligible for processing
 );
 GO
 
