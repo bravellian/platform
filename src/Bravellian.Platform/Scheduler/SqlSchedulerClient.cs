@@ -76,7 +76,8 @@ internal class SqlSchedulerClient : ISchedulerClient
         using (var connection = new SqlConnection(this.connectionString))
         {
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-            await connection.ExecuteAsync(this.insertTimerSql, new { Id = timerId, Topic = topic, Payload = payload, DueTime = dueTime }).ConfigureAwait(false);
+            var command = new CommandDefinition(this.insertTimerSql, new { Id = timerId, Topic = topic, Payload = payload, DueTime = dueTime }, cancellationToken: cancellationToken);
+            await connection.ExecuteAsync(command).ConfigureAwait(false);
         }
 
         return timerId.ToString();
@@ -87,7 +88,8 @@ internal class SqlSchedulerClient : ISchedulerClient
         using (var connection = new SqlConnection(this.connectionString))
         {
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-            var rowsAffected = await connection.ExecuteAsync(this.cancelTimerSql, new { TimerId = timerId }).ConfigureAwait(false);
+            var command = new CommandDefinition(this.cancelTimerSql, new { TimerId = timerId }, cancellationToken: cancellationToken);
+            var rowsAffected = await connection.ExecuteAsync(command).ConfigureAwait(false);
             return rowsAffected > 0;
         }
     }
@@ -111,7 +113,8 @@ internal class SqlSchedulerClient : ISchedulerClient
         using (var connection = new SqlConnection(this.connectionString))
         {
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-            await connection.ExecuteAsync(this.mergeJobSql, new { JobName = jobName, Topic = topic, CronSchedule = cronSchedule, Payload = payload, NextDueTime = nextDueTime }).ConfigureAwait(false);
+            var command = new CommandDefinition(this.mergeJobSql, new { JobName = jobName, Topic = topic, CronSchedule = cronSchedule, Payload = payload, NextDueTime = nextDueTime }, cancellationToken: cancellationToken);
+            await connection.ExecuteAsync(command).ConfigureAwait(false);
         }
     }
 
@@ -123,9 +126,11 @@ internal class SqlSchedulerClient : ISchedulerClient
             using (var transaction = connection.BeginTransaction())
             {
                 // Must delete runs before the job definition due to foreign key
-                await connection.ExecuteAsync(this.deleteJobRunsSql, new { JobName = jobName }, transaction).ConfigureAwait(false);
+                var deleteRunsCommand = new CommandDefinition(this.deleteJobRunsSql, new { JobName = jobName }, transaction, cancellationToken: cancellationToken);
+                await connection.ExecuteAsync(deleteRunsCommand).ConfigureAwait(false);
 
-                await connection.ExecuteAsync(this.deleteJobSql, new { JobName = jobName }, transaction).ConfigureAwait(false);
+                var deleteJobCommand = new CommandDefinition(this.deleteJobSql, new { JobName = jobName }, transaction, cancellationToken: cancellationToken);
+                await connection.ExecuteAsync(deleteJobCommand).ConfigureAwait(false);
 
                 await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
             }
@@ -138,7 +143,8 @@ internal class SqlSchedulerClient : ISchedulerClient
         using (var connection = new SqlConnection(this.connectionString))
         {
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-            await connection.ExecuteAsync(this.triggerJobSql, new { JobName = jobName }).ConfigureAwait(false);
+            var command = new CommandDefinition(this.triggerJobSql, new { JobName = jobName }, cancellationToken: cancellationToken);
+            await connection.ExecuteAsync(command).ConfigureAwait(false);
         }
     }
 
