@@ -51,7 +51,7 @@ internal class SqlOutboxStore : IOutboxStore
                         FROM [{this.schemaName}].[{this.tableName}] WITH (READPAST, UPDLOCK, ROWLOCK)
                         WHERE IsProcessed = 0 
                           AND NextAttemptAt <= SYSDATETIMEOFFSET()
-                          AND (DueTimeUtc IS NULL OR DueTimeUtc <= SYSUTCDATETIME())
+                          AND (DueTimeUtc IS NULL OR CAST(DueTimeUtc AS DATETIMEOFFSET) <= SYSDATETIMEOFFSET())
                         ORDER BY CreatedAt
             """;
 
