@@ -279,7 +279,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
 
             var sql = $"""
 
-                                SELECT MessageId, Source, Topic, Payload, Hash, Attempts, FirstSeenUtc, LastSeenUtc
+                                SELECT MessageId, Source, Topic, Payload, Hash, Attempts, FirstSeenUtc, LastSeenUtc, DueTimeUtc
                                 FROM [{this.schemaName}].[{this.tableName}]
                                 WHERE MessageId = @MessageId
                 """;
@@ -301,6 +301,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
                 Attempt = row.Attempts,
                 FirstSeenUtc = row.FirstSeenUtc,
                 LastSeenUtc = row.LastSeenUtc,
+                DueTimeUtc = row.DueTimeUtc,
             };
         }
         catch (Exception ex)

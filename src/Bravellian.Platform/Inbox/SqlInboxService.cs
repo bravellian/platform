@@ -87,17 +87,18 @@ internal class SqlInboxService : IInbox
         this.enqueueSql = $"""
 
                         MERGE {tableName} AS target
-                        USING (SELECT @MessageId AS MessageId, @Source AS Source, @Topic AS Topic, @Payload AS Payload, @Hash AS Hash) AS source
+                        USING (SELECT @MessageId AS MessageId, @Source AS Source, @Topic AS Topic, @Payload AS Payload, @Hash AS Hash, @DueTimeUtc AS DueTimeUtc) AS source
                             ON target.MessageId = source.MessageId
                         WHEN MATCHED THEN
                             UPDATE SET 
                                 LastSeenUtc = GETUTCDATE(),
                                 Attempts = Attempts + 1,
                                 Topic = COALESCE(source.Topic, target.Topic),
-                                Payload = COALESCE(source.Payload, target.Payload)
+                                Payload = COALESCE(source.Payload, target.Payload),
+                                DueTimeUtc = COALESCE(source.DueTimeUtc, target.DueTimeUtc)
                         WHEN NOT MATCHED THEN
-                            INSERT (MessageId, Source, Topic, Payload, Hash, FirstSeenUtc, LastSeenUtc, Attempts, Status)
-                            VALUES (source.MessageId, source.Source, source.Topic, source.Payload, source.Hash, GETUTCDATE(), GETUTCDATE(), 1, 'Seen');
+                            INSERT (MessageId, Source, Topic, Payload, Hash, DueTimeUtc, FirstSeenUtc, LastSeenUtc, Attempts, Status)
+                            VALUES (source.MessageId, source.Source, source.Topic, source.Payload, source.Hash, source.DueTimeUtc, GETUTCDATE(), GETUTCDATE(), 1, 'Seen');
             """;
     }
 
@@ -262,6 +263,7 @@ internal class SqlInboxService : IInbox
         string messageId,
         string payload,
         byte[]? hash = null,
+        DateTimeOffset? dueTimeUtc = null,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(topic))
@@ -298,13 +300,15 @@ internal class SqlInboxService : IInbox
                     Topic = topic,
                     Payload = payload,
                     Hash = hash,
+                    DueTimeUtc = dueTimeUtc?.UtcDateTime,
                 }).ConfigureAwait(false);
 
             this.logger.LogDebug(
-                "Enqueued message {MessageId} with topic '{Topic}' from source '{Source}'",
+                "Enqueued message {MessageId} with topic '{Topic}' from source '{Source}' with due time '{DueTimeUtc}'",
                 messageId,
                 topic,
-                source);
+                source,
+                dueTimeUtc);
         }
         catch (SqlException ex)
         {

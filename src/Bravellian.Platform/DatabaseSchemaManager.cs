@@ -885,6 +885,7 @@ internal static class DatabaseSchemaManager
                 FirstSeenUtc DATETIME2(3) NOT NULL DEFAULT GETUTCDATE(),
                 LastSeenUtc DATETIME2(3) NOT NULL DEFAULT GETUTCDATE(),
                 ProcessedUtc DATETIME2(3) NULL,
+                DueTimeUtc DATETIME2(3) NULL,
 
                 -- Processing status
                 Attempts INT NOT NULL DEFAULT 0,
@@ -1096,7 +1097,9 @@ internal static class DatabaseSchemaManager
                             WITH cte AS (
                                 SELECT TOP (@BatchSize) MessageId
                                 FROM [{schemaName}].[Inbox] WITH (READPAST, UPDLOCK, ROWLOCK)
-                                WHERE Status IN ('Seen', 'Processing') AND (LockedUntil IS NULL OR LockedUntil <= @now)
+                                WHERE Status IN ('Seen', 'Processing') 
+                                    AND (LockedUntil IS NULL OR LockedUntil <= @now)
+                                    AND (DueTimeUtc IS NULL OR DueTimeUtc <= @now)
                                 ORDER BY LastSeenUtc
                             )
                             UPDATE i SET Status = 'Processing', OwnerToken = @OwnerToken, LockedUntil = @until, LastSeenUtc = @now
@@ -1253,6 +1256,9 @@ internal static class DatabaseSchemaManager
 
             IF COL_LENGTH('[{schemaName}].[Inbox]', 'Payload') IS NULL
                 ALTER TABLE [{schemaName}].[Inbox] ADD Payload NVARCHAR(MAX) NULL;
+
+            IF COL_LENGTH('[{schemaName}].[Inbox]', 'DueTimeUtc') IS NULL
+                ALTER TABLE [{schemaName}].[Inbox] ADD DueTimeUtc DATETIME2(3) NULL;
 
             -- Create work queue index for Inbox if it doesn't exist
             IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name='IX_Inbox_WorkQueue' AND object_id=OBJECT_ID('[{schemaName}].[Inbox]'))

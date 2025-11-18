@@ -75,6 +75,7 @@ public interface IInbox
     /// <param name="messageId">The unique identifier of the message.</param>
     /// <param name="payload">The message payload content.</param>
     /// <param name="hash">Optional content hash for deduplication.</param>
+    /// <param name="dueTimeUtc">Optional due time for delayed processing. Message will not be processed before this time.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     Task EnqueueAsync(
@@ -83,5 +84,6 @@ public interface IInbox
         string messageId,
         string payload,
         byte[]? hash = null,
+        DateTimeOffset? dueTimeUtc = null,
         CancellationToken cancellationToken = default);
 }
