@@ -45,16 +45,27 @@ internal class SqlOutboxService : IOutbox
 
     public async Task EnqueueAsync(
         string topic,
-        string payload)
+        string payload,
+        CancellationToken cancellationToken)
     {
-        await this.EnqueueAsync(topic, payload, null, null).ConfigureAwait(false);
+        await this.EnqueueAsync(topic, payload, null, null, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task EnqueueAsync(
         string topic,
         string payload,
         string? correlationId,
-        DateTimeOffset? dueTimeUtc = null)
+        CancellationToken cancellationToken)
+    {
+        await this.EnqueueAsync(topic, payload, correlationId, null, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task EnqueueAsync(
+        string topic,
+        string payload,
+        string? correlationId,
+        DateTimeOffset? dueTimeUtc,
+        CancellationToken cancellationToken)
     {
         // Ensure outbox table exists before attempting to enqueue (if enabled)
         if (this.options.EnableSchemaDeployment)
@@ -71,7 +82,7 @@ internal class SqlOutboxService : IOutbox
         // Create our own connection and transaction for reliability
         await using (connection.ConfigureAwait(false))
         {
-            await connection.OpenAsync().ConfigureAwait(false);
+            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             var transaction = connection.BeginTransaction();
             await using (transaction.ConfigureAwait(false))
@@ -86,11 +97,11 @@ internal class SqlOutboxService : IOutbox
                         DueTimeUtc = dueTimeUtc?.UtcDateTime,
                     }, transaction: transaction).ConfigureAwait(false);
 
-                    await transaction.CommitAsync().ConfigureAwait(false);
+                    await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
                 }
                 catch
                 {
-                    await transaction.RollbackAsync().ConfigureAwait(false);
+                    await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
                     throw;
                 }
             }
@@ -101,8 +112,28 @@ internal class SqlOutboxService : IOutbox
         string topic,
         string payload,
         IDbTransaction transaction,
-        string? correlationId = null,
-        DateTimeOffset? dueTimeUtc = null)
+        CancellationToken cancellationToken)
+    {
+        await this.EnqueueAsync(topic, payload, transaction, null, null, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task EnqueueAsync(
+        string topic,
+        string payload,
+        IDbTransaction transaction,
+        string? correlationId,
+        CancellationToken cancellationToken)
+    {
+        await this.EnqueueAsync(topic, payload, transaction, correlationId, null, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task EnqueueAsync(
+        string topic,
+        string payload,
+        IDbTransaction transaction,
+        string? correlationId,
+        DateTimeOffset? dueTimeUtc,
+        CancellationToken cancellationToken)
     {
         // Note: We use the connection from the provided transaction.
         await transaction.Connection.ExecuteAsync(this.enqueueSql, new
@@ -118,7 +149,7 @@ internal class SqlOutboxService : IOutbox
         Guid ownerToken,
         int leaseSeconds,
         int batchSize,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
         using var activity = SchedulerMetrics.StartActivity("outbox.claim");
         var result = new List<Guid>(batchSize);
@@ -160,7 +191,7 @@ internal class SqlOutboxService : IOutbox
     public async Task AckAsync(
         Guid ownerToken,
         IEnumerable<Guid> ids,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
         using var activity = SchedulerMetrics.StartActivity("outbox.ack");
         var idList = ids.ToList();
@@ -186,7 +217,7 @@ internal class SqlOutboxService : IOutbox
     public async Task AbandonAsync(
         Guid ownerToken,
         IEnumerable<Guid> ids,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
         using var activity = SchedulerMetrics.StartActivity("outbox.abandon");
         var idList = ids.ToList();
@@ -212,7 +243,7 @@ internal class SqlOutboxService : IOutbox
     public async Task FailAsync(
         Guid ownerToken,
         IEnumerable<Guid> ids,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
         using var activity = SchedulerMetrics.StartActivity("outbox.fail");
         var idList = ids.ToList();
@@ -235,7 +266,7 @@ internal class SqlOutboxService : IOutbox
         }
     }
 
-    public async Task ReapExpiredAsync(CancellationToken cancellationToken = default)
+    public async Task ReapExpiredAsync(CancellationToken cancellationToken)
     {
         using var activity = SchedulerMetrics.StartActivity("outbox.reap_expired");
 
