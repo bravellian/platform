@@ -30,11 +30,13 @@ public interface IOutbox
     /// <param name="topic">The topic or type of the message, used for routing.</param>
     /// <param name="payload">The message content, typically serialized as a string (e.g., JSON).</param>
     /// <param name="correlationId">An optional ID to trace the message back to its source.</param>
+    /// <param name="dueTimeUtc">An optional timestamp indicating when the message should become eligible for processing.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     Task EnqueueAsync(
         string topic,
         string payload,
-        string? correlationId);
+        string? correlationId,
+        DateTimeOffset? dueTimeUtc = null);
 
     /// <summary>
     /// Enqueues a message into the outbox table within the context
@@ -44,12 +46,14 @@ public interface IOutbox
     /// <param name="payload">The message content, typically serialized as a string (e.g., JSON).</param>
     /// <param name="transaction">The database transaction to participate in.</param>
     /// <param name="correlationId">An optional ID to trace the message back to its source.</param>
+    /// <param name="dueTimeUtc">An optional timestamp indicating when the message should become eligible for processing.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     Task EnqueueAsync(
         string topic,
         string payload,
         IDbTransaction transaction,
-        string? correlationId = null);
+        string? correlationId = null,
+        DateTimeOffset? dueTimeUtc = null);
 
     /// <summary>
     /// Claims ready outbox messages atomically with a lease for processing.

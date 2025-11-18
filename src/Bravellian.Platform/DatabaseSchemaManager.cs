@@ -312,7 +312,10 @@ internal static class DatabaseSchemaManager
 
                 -- For Idempotency & Tracing
                 MessageId UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(), -- A stable ID for the message consumer
-                CorrelationId NVARCHAR(255) NULL -- To trace a message through multiple systems
+                CorrelationId NVARCHAR(255) NULL, -- To trace a message through multiple systems
+
+                -- For Delayed Processing
+                DueTimeUtc DATETIME2(3) NULL -- Optional timestamp indicating when the message should become eligible for processing
             );
 
             -- An index to efficiently query for unprocessed messages, now including the next attempt time.
@@ -885,6 +888,7 @@ internal static class DatabaseSchemaManager
                 FirstSeenUtc DATETIME2(3) NOT NULL DEFAULT GETUTCDATE(),
                 LastSeenUtc DATETIME2(3) NOT NULL DEFAULT GETUTCDATE(),
                 ProcessedUtc DATETIME2(3) NULL,
+                DueTimeUtc DATETIME2(3) NULL,
 
                 -- Processing status
                 Attempts INT NOT NULL DEFAULT 0,
@@ -1005,7 +1009,9 @@ internal static class DatabaseSchemaManager
                             WITH cte AS (
                                 SELECT TOP (@BatchSize) Id
                                 FROM [{schemaName}].[Outbox] WITH (READPAST, UPDLOCK, ROWLOCK)
-                                WHERE Status = 0 AND (LockedUntil IS NULL OR LockedUntil <= @now)
+                                WHERE Status = 0 
+                                    AND (LockedUntil IS NULL OR LockedUntil <= @now)
+                                    AND (DueTimeUtc IS NULL OR DueTimeUtc <= @now)
                                 ORDER BY CreatedAt
                             )
                             UPDATE o SET Status = 1, OwnerToken = @OwnerToken, LockedUntil = @until
@@ -1096,7 +1102,9 @@ internal static class DatabaseSchemaManager
                             WITH cte AS (
                                 SELECT TOP (@BatchSize) MessageId
                                 FROM [{schemaName}].[Inbox] WITH (READPAST, UPDLOCK, ROWLOCK)
-                                WHERE Status IN ('Seen', 'Processing') AND (LockedUntil IS NULL OR LockedUntil <= @now)
+                                WHERE Status IN ('Seen', 'Processing') 
+                                    AND (LockedUntil IS NULL OR LockedUntil <= @now)
+                                    AND (DueTimeUtc IS NULL OR DueTimeUtc <= @now)
                                 ORDER BY LastSeenUtc
                             )
                             UPDATE i SET Status = 'Processing', OwnerToken = @OwnerToken, LockedUntil = @until, LastSeenUtc = @now
@@ -1227,6 +1235,9 @@ internal static class DatabaseSchemaManager
 
             IF COL_LENGTH('[{schemaName}].[Outbox]', 'OwnerToken') IS NULL
                 ALTER TABLE [{schemaName}].[Outbox] ADD OwnerToken UNIQUEIDENTIFIER NULL;
+
+            IF COL_LENGTH('[{schemaName}].[Outbox]', 'DueTimeUtc') IS NULL
+                ALTER TABLE [{schemaName}].[Outbox] ADD DueTimeUtc DATETIME2(3) NULL;
             """;
     }
 
@@ -1253,6 +1264,9 @@ internal static class DatabaseSchemaManager
 
             IF COL_LENGTH('[{schemaName}].[Inbox]', 'Payload') IS NULL
                 ALTER TABLE [{schemaName}].[Inbox] ADD Payload NVARCHAR(MAX) NULL;
+
+            IF COL_LENGTH('[{schemaName}].[Inbox]', 'DueTimeUtc') IS NULL
+                ALTER TABLE [{schemaName}].[Inbox] ADD DueTimeUtc DATETIME2(3) NULL;
 
             -- Create work queue index for Inbox if it doesn't exist
             IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name='IX_Inbox_WorkQueue' AND object_id=OBJECT_ID('[{schemaName}].[Inbox]'))

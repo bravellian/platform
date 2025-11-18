@@ -186,6 +186,7 @@ Task EnqueueAsync(
     string messageId,
     string payload,
     byte[]? hash = null,
+    DateTimeOffset? dueTimeUtc = null,
     CancellationToken cancellationToken = default)
 ```
 
@@ -195,6 +196,7 @@ Task EnqueueAsync(
 - `messageId` (string): Unique identifier of the message
 - `payload` (string): The message payload content (typically JSON)
 - `hash` (byte[]?, optional): Optional content hash for deduplication
+- `dueTimeUtc` (DateTimeOffset?, optional): Optional due time for delayed processing. Message will not be processed before this time.
 - `cancellationToken` (CancellationToken, optional): Cancellation token
 
 **Returns:** `Task` - Completes when message is enqueued
@@ -216,6 +218,14 @@ public async Task<IActionResult> PaymentWebhook([FromBody] PaymentEvent evt)
     
     return Ok();
 }
+
+// Delayed processing example - process after 10 minutes
+await _inbox.EnqueueAsync(
+    topic: "order.reminder",
+    source: "OrderService",
+    messageId: orderId,
+    payload: JsonSerializer.Serialize(order),
+    dueTimeUtc: DateTimeOffset.UtcNow.AddMinutes(10));
 ```
 
 ---

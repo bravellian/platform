@@ -39,4 +39,6 @@ public sealed record OutboxMessage
     public Guid MessageId { get; internal init; }
 
     public string? CorrelationId { get; internal init; }
+
+    public DateTimeOffset? DueTimeUtc { get; internal init; }
 }

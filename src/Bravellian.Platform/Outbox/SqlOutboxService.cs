@@ -37,8 +37,8 @@ internal class SqlOutboxService : IOutbox
         // Build the SQL query using configured schema and table names
         this.enqueueSql = $"""
 
-                        INSERT INTO [{this.options.SchemaName}].[{this.options.TableName}] (Topic, Payload, CorrelationId, MessageId)
-                        VALUES (@Topic, @Payload, @CorrelationId, NEWID());
+                        INSERT INTO [{this.options.SchemaName}].[{this.options.TableName}] (Topic, Payload, CorrelationId, MessageId, DueTimeUtc)
+                        VALUES (@Topic, @Payload, @CorrelationId, NEWID(), @DueTimeUtc);
             """;
     }
 
@@ -47,13 +47,14 @@ internal class SqlOutboxService : IOutbox
         string topic,
         string payload)
     {
-        await this.EnqueueAsync(topic, payload, null).ConfigureAwait(false);
+        await this.EnqueueAsync(topic, payload, null, null).ConfigureAwait(false);
     }
 
     public async Task EnqueueAsync(
         string topic,
         string payload,
-        string? correlationId)
+        string? correlationId,
+        DateTimeOffset? dueTimeUtc = null)
     {
         // Ensure outbox table exists before attempting to enqueue (if enabled)
         if (this.options.EnableSchemaDeployment)
@@ -82,6 +83,7 @@ internal class SqlOutboxService : IOutbox
                         Topic = topic,
                         Payload = payload,
                         CorrelationId = correlationId,
+                        DueTimeUtc = dueTimeUtc?.UtcDateTime,
                     }, transaction: transaction).ConfigureAwait(false);
 
                     await transaction.CommitAsync().ConfigureAwait(false);
@@ -99,7 +101,8 @@ internal class SqlOutboxService : IOutbox
         string topic,
         string payload,
         IDbTransaction transaction,
-        string? correlationId = null)
+        string? correlationId = null,
+        DateTimeOffset? dueTimeUtc = null)
     {
         // Note: We use the connection from the provided transaction.
         await transaction.Connection.ExecuteAsync(this.enqueueSql, new
@@ -107,6 +110,7 @@ internal class SqlOutboxService : IOutbox
             Topic = topic,
             Payload = payload,
             CorrelationId = correlationId,
+            DueTimeUtc = dueTimeUtc?.UtcDateTime,
         }, transaction: transaction).ConfigureAwait(false);
     }
 
