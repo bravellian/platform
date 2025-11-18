@@ -60,7 +60,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         DateTimeOffset dueTime = DateTimeOffset.UtcNow.AddMinutes(5);
 
         // Act
-        var timerId = await this.schedulerClient!.ScheduleTimerAsync(topic, payload, dueTime);
+        var timerId = await this.schedulerClient!.ScheduleTimerAsync(topic, payload, dueTime, CancellationToken.None);
 
         // Assert
         timerId.ShouldNotBeNull();
@@ -108,7 +108,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         DateTimeOffset dueTime = DateTimeOffset.UtcNow.AddMinutes(5);
 
         // Act
-        var timerId = await customSchedulerClient.ScheduleTimerAsync(topic, payload, dueTime);
+        var timerId = await customSchedulerClient.ScheduleTimerAsync(topic, payload, dueTime, CancellationToken.None);
 
         // Assert
         timerId.ShouldNotBeNull();
@@ -135,7 +135,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         DateTimeOffset dueTime = DateTimeOffset.UtcNow.AddMinutes(10);
 
         // Act
-        var timerId = await this.schedulerClient!.ScheduleTimerAsync(topic, payload, dueTime);
+        var timerId = await this.schedulerClient!.ScheduleTimerAsync(topic, payload, dueTime, CancellationToken.None);
 
         // Verify the timer has correct default values
         await using var connection = new SqlConnection(this.ConnectionString);
@@ -165,10 +165,10 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         string payload = "test timer cancel payload";
         DateTimeOffset dueTime = DateTimeOffset.UtcNow.AddMinutes(15);
 
-        var timerId = await this.schedulerClient!.ScheduleTimerAsync(topic, payload, dueTime);
+        var timerId = await this.schedulerClient!.ScheduleTimerAsync(topic, payload, dueTime, CancellationToken.None);
 
         // Act
-        var result = await this.schedulerClient!.CancelTimerAsync(timerId);
+        var result = await this.schedulerClient!.CancelTimerAsync(timerId, CancellationToken.None);
 
         // Assert
         result.ShouldBeTrue();
@@ -191,7 +191,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         string nonexistentTimerId = Guid.NewGuid().ToString();
 
         // Act
-        var result = await this.schedulerClient!.CancelTimerAsync(nonexistentTimerId);
+        var result = await this.schedulerClient!.CancelTimerAsync(nonexistentTimerId, CancellationToken.None);
 
         // Assert
         result.ShouldBeFalse();
@@ -208,7 +208,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         string payload = "test job payload";
 
         // Act
-        await this.schedulerClient!.CreateOrUpdateJobAsync(jobName, topic, cronSchedule, payload);
+        await this.schedulerClient!.CreateOrUpdateJobAsync(jobName, topic, cronSchedule, payload, CancellationToken.None);
 
         // Verify the job was inserted
         await using var connection = new SqlConnection(this.ConnectionString);
@@ -233,7 +233,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         string cronSchedule = "0 */5 * * * *"; // Every 5 minutes
 
         // Act
-        await this.schedulerClient!.CreateOrUpdateJobAsync(jobName, topic, cronSchedule, payload: null);
+        await this.schedulerClient!.CreateOrUpdateJobAsync(jobName, topic, cronSchedule, payload: null, CancellationToken.None);
 
         // Verify the job was inserted with null payload
         await using var connection = new SqlConnection(this.ConnectionString);
@@ -256,10 +256,10 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         string cronSchedule = "0 0 * * * *";
 
         // Create initial job
-        await this.schedulerClient!.CreateOrUpdateJobAsync(jobName, originalTopic, cronSchedule);
+        await this.schedulerClient!.CreateOrUpdateJobAsync(jobName, originalTopic, cronSchedule, CancellationToken.None);
 
         // Act - Update the job
-        await this.schedulerClient!.CreateOrUpdateJobAsync(jobName, updatedTopic, cronSchedule);
+        await this.schedulerClient!.CreateOrUpdateJobAsync(jobName, updatedTopic, cronSchedule, CancellationToken.None);
 
         // Verify the job was updated, not duplicated
         await using var connection = new SqlConnection(this.ConnectionString);
@@ -288,10 +288,10 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         string topic = "test-job-delete-topic";
         string cronSchedule = "0 0 * * * *";
 
-        await this.schedulerClient!.CreateOrUpdateJobAsync(jobName, topic, cronSchedule);
+        await this.schedulerClient!.CreateOrUpdateJobAsync(jobName, topic, cronSchedule, CancellationToken.None);
 
         // Act
-        await this.schedulerClient!.DeleteJobAsync(jobName);
+        await this.schedulerClient!.DeleteJobAsync(jobName, CancellationToken.None);
 
         // Verify the job was deleted
         await using var connection = new SqlConnection(this.ConnectionString);
@@ -312,10 +312,10 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         string topic = "test-job-trigger-topic";
         string cronSchedule = "0 0 * * * *";
 
-        await this.schedulerClient!.CreateOrUpdateJobAsync(jobName, topic, cronSchedule);
+        await this.schedulerClient!.CreateOrUpdateJobAsync(jobName, topic, cronSchedule, CancellationToken.None);
 
         // Act
-        await this.schedulerClient!.TriggerJobAsync(jobName);
+        await this.schedulerClient!.TriggerJobAsync(jobName, CancellationToken.None);
 
         // Verify a job run was created
         await using var connection = new SqlConnection(this.ConnectionString);

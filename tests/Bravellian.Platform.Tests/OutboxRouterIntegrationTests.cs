@@ -187,10 +187,7 @@ public class OutboxRouterIntegrationTests
             var payload = JsonSerializer.Serialize(order);
 
             // Enqueue to the tenant's outbox
-            await outbox.EnqueueAsync(
-                topic: "order.created",
-                payload: payload,
-                correlationId: order.OrderId);
+            await outbox.EnqueueAsync(topic: "order.created", payload: payload, correlationId: order.OrderId, cancellationToken: CancellationToken.None);
 
             this.logger.LogInformation(
                 "Enqueued order {OrderId} to outbox for tenant {TenantId}",
