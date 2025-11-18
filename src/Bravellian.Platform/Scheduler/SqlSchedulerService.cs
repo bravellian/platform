@@ -344,7 +344,8 @@ internal class SqlSchedulerService : BackgroundService
                 topic: timer.Topic,
                 payload: timer.Payload,
                 transaction: transaction,
-                correlationId: timer.Id.ToString())
+                correlationId: timer.Id.ToString(),
+                cancellationToken: CancellationToken.None)
             .ConfigureAwait(false);
         }
     }
@@ -366,7 +367,8 @@ internal class SqlSchedulerService : BackgroundService
                 topic: job.Topic,
                 payload: job.Payload ?? string.Empty, // The payload from the Job definition is passed on.
                 transaction: transaction,
-                correlationId: job.Id.ToString()) // Correlation is the JobRun Id
+                correlationId: job.Id.ToString(), // Correlation is the JobRun Id
+                cancellationToken: CancellationToken.None)
             .ConfigureAwait(false);
         }
     }

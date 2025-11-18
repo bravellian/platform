@@ -70,7 +70,8 @@ internal sealed class FanoutJobRegistrationService : BackgroundService
                 jobName: jobName,
                 topic: "fanout.coordinate",
                 cronSchedule: this.options.Cron,
-                payload: payload).ConfigureAwait(false);
+                payload: payload,
+                cancellationToken: stoppingToken).ConfigureAwait(false);
 
             this.logger.LogInformation(
                 "Registered fanout job {JobName} for topic {FanoutTopic}:{WorkKey} with schedule {CronSchedule}",

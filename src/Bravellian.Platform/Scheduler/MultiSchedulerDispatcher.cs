@@ -157,7 +157,8 @@ public sealed class MultiSchedulerDispatcher
                     await outbox.EnqueueAsync(
                         topic: timer.Topic,
                         payload: timer.Payload,
-                        correlationId: timer.Id.ToString())
+                        correlationId: timer.Id.ToString(),
+                        cancellationToken: cancellationToken)
                     .ConfigureAwait(false);
                     totalProcessed++;
                 }
@@ -181,7 +182,8 @@ public sealed class MultiSchedulerDispatcher
                     await outbox.EnqueueAsync(
                         topic: job.Topic,
                         payload: job.Payload ?? string.Empty,
-                        correlationId: job.Id.ToString())
+                        correlationId: job.Id.ToString(),
+                        cancellationToken: cancellationToken)
                     .ConfigureAwait(false);
                     totalProcessed++;
                 }

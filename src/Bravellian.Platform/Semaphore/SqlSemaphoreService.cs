@@ -40,8 +40,17 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
         string name,
         int ttlSeconds,
         string ownerId,
-        string? clientRequestId = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
+    {
+        return await this.TryAcquireAsync(name, ttlSeconds, ownerId, null, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<SemaphoreAcquireResult> TryAcquireAsync(
+        string name,
+        int ttlSeconds,
+        string ownerId,
+        string? clientRequestId,
+        CancellationToken cancellationToken)
     {
         SemaphoreValidator.ValidateName(name);
         SemaphoreValidator.ValidateOwnerId(ownerId);
@@ -95,7 +104,7 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
         string name,
         Guid token,
         int ttlSeconds,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
         SemaphoreValidator.ValidateName(name);
         SemaphoreValidator.ValidateTtl(ttlSeconds, this.options.MinTtlSeconds, this.options.MaxTtlSeconds);
@@ -141,7 +150,7 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
     public async Task<SemaphoreReleaseResult> ReleaseAsync(
         string name,
         Guid token,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
         SemaphoreValidator.ValidateName(name);
 
@@ -175,10 +184,22 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
         }
     }
 
+    public async Task<int> ReapExpiredAsync(CancellationToken cancellationToken)
+    {
+        return await this.ReapExpiredAsync(null, 1000, cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task<int> ReapExpiredAsync(
-        string? name = null,
-        int maxRows = 1000,
-        CancellationToken cancellationToken = default)
+        string? name,
+        CancellationToken cancellationToken)
+    {
+        return await this.ReapExpiredAsync(name, 1000, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<int> ReapExpiredAsync(
+        string? name,
+        int maxRows,
+        CancellationToken cancellationToken)
     {
         if (name != null)
         {
@@ -212,7 +233,7 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
     public async Task EnsureExistsAsync(
         string name,
         int limit,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
         SemaphoreValidator.ValidateName(name);
         SemaphoreValidator.ValidateLimit(limit, this.options.MaxLimit);
@@ -244,8 +265,16 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
     public async Task UpdateLimitAsync(
         string name,
         int newLimit,
-        bool ensureIfMissing = false,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
+    {
+        await this.UpdateLimitAsync(name, newLimit, false, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task UpdateLimitAsync(
+        string name,
+        int newLimit,
+        bool ensureIfMissing,
+        CancellationToken cancellationToken)
     {
         SemaphoreValidator.ValidateName(name);
         SemaphoreValidator.ValidateLimit(newLimit, this.options.MaxLimit);

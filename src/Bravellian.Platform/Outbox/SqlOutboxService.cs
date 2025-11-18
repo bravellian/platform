@@ -48,7 +48,7 @@ internal class SqlOutboxService : IOutbox
         string payload,
         CancellationToken cancellationToken)
     {
-        await this.EnqueueAsync(topic, payload, null, null, cancellationToken).ConfigureAwait(false);
+        await this.EnqueueAsync(topic, payload, (string?)null, null, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task EnqueueAsync(
@@ -57,7 +57,7 @@ internal class SqlOutboxService : IOutbox
         string? correlationId,
         CancellationToken cancellationToken)
     {
-        await this.EnqueueAsync(topic, payload, correlationId, null, cancellationToken).ConfigureAwait(false);
+        await this.EnqueueAsync(topic, payload, correlationId, (DateTimeOffset?)null, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task EnqueueAsync(
