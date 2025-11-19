@@ -56,5 +56,55 @@
   <Import Condition="'$(SQLDBExtensionsRefPath)' == ''" Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets" />
   <ItemGroup>
     <Folder Include="Properties" />
+    <Folder Include="infra\" />
+    <Folder Include="infra\Tables\" />
+    <Folder Include="infra\Stored Procedures\" />
+    <Folder Include="infra\User Defined Types\" />
+    <Folder Include="Security\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Build Include="infra\Tables\Timers.sql" />
+    <Build Include="infra\Tables\SemaphoreLease.sql" />
+    <Build Include="infra\Tables\Semaphore.sql" />
+    <Build Include="infra\Tables\SchedulerState.sql" />
+    <Build Include="infra\Tables\OutboxState.sql" />
+    <Build Include="infra\Tables\Outbox.sql" />
+    <Build Include="infra\Tables\MetricSeries.sql" />
+    <Build Include="infra\Tables\MetricPointMinute.sql" />
+    <Build Include="infra\Tables\MetricDef.sql" />
+    <Build Include="infra\Tables\Lease.sql" />
+    <Build Include="infra\Tables\Jobs.sql" />
+    <Build Include="infra\Tables\JobRuns.sql" />
+    <Build Include="infra\Tables\Inbox.sql" />
+    <Build Include="infra\Tables\FanoutPolicy.sql" />
+    <Build Include="infra\Tables\FanoutCursor.sql" />
+    <Build Include="infra\Tables\DistributedLock.sql" />
+    <Build Include="infra\Stored Procedures\SpUpsertSeries.sql" />
+    <Build Include="infra\Stored Procedures\SpUpsertMetricPointMinute.sql" />
+    <Build Include="infra\Stored Procedures\Semaphore_Renew.sql" />
+    <Build Include="infra\Stored Procedures\Semaphore_Release.sql" />
+    <Build Include="infra\Stored Procedures\Semaphore_Reap.sql" />
+    <Build Include="infra\Stored Procedures\Semaphore_Acquire.sql" />
+    <Build Include="infra\Stored Procedures\Outbox_ReapExpired.sql" />
+    <Build Include="infra\Stored Procedures\Outbox_Fail.sql" />
+    <Build Include="infra\Stored Procedures\Outbox_Cleanup.sql" />
+    <Build Include="infra\Stored Procedures\Outbox_Claim.sql" />
+    <Build Include="infra\Stored Procedures\Outbox_Ack.sql" />
+    <Build Include="infra\Stored Procedures\Outbox_Abandon.sql" />
+    <Build Include="infra\Stored Procedures\Lock_Renew.sql" />
+    <Build Include="infra\Stored Procedures\Lock_Release.sql" />
+    <Build Include="infra\Stored Procedures\Lock_CleanupExpired.sql" />
+    <Build Include="infra\Stored Procedures\Lock_Acquire.sql" />
+    <Build Include="infra\Stored Procedures\Lease_Renew.sql" />
+    <Build Include="infra\Stored Procedures\Lease_Acquire.sql" />
+    <Build Include="infra\Stored Procedures\Inbox_ReapExpired.sql" />
+    <Build Include="infra\Stored Procedures\Inbox_Fail.sql" />
+    <Build Include="infra\Stored Procedures\Inbox_Cleanup.sql" />
+    <Build Include="infra\Stored Procedures\Inbox_Claim.sql" />
+    <Build Include="infra\Stored Procedures\Inbox_Ack.sql" />
+    <Build Include="infra\Stored Procedures\Inbox_Abandon.sql" />
+    <Build Include="infra\User Defined Types\StringIdList.sql" />
+    <Build Include="infra\User Defined Types\GuidIdList.sql" />
+    <Build Include="Security\infra.sql" />
   </ItemGroup>
 </Project>

@@ -12,14 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
-using System;
-using System.Diagnostics;
-using System.IO;
-using System.Threading.Tasks;
 using Testcontainers.MsSql;
 
+namespace Bravellian.Platform.Tests;
 /// <summary>
 /// Manual test for deploying schema to a SQL Server container and extracting it back to the SQL project.
 /// This is not an automated test - it's a utility to update the SQL Server project from deployed schema.
@@ -40,19 +36,19 @@ public class ManualSchemaExportTests : IAsyncLifetime
     public async ValueTask InitializeAsync()
     {
         // Start SQL Server container
-        this.msSqlContainer = new MsSqlBuilder()
+        msSqlContainer = new MsSqlBuilder()
             .WithImage("mcr.microsoft.com/mssql/server:2022-CU10-ubuntu-22.04")
             .Build();
 
-        await this.msSqlContainer.StartAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
-        this.connectionString = this.msSqlContainer.GetConnectionString();
+        await msSqlContainer.StartAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
+        connectionString = msSqlContainer.GetConnectionString();
     }
 
     public async ValueTask DisposeAsync()
     {
-        if (this.msSqlContainer != null)
+        if (msSqlContainer != null)
         {
-            await this.msSqlContainer.DisposeAsync().ConfigureAwait(false);
+            await msSqlContainer.DisposeAsync().ConfigureAwait(false);
         }
     }
 
@@ -63,30 +59,47 @@ public class ManualSchemaExportTests : IAsyncLifetime
     /// Note: This is marked with [Fact(Skip = "...")] to prevent it from running in CI.
     /// To run manually, comment out the Skip parameter.
     /// </summary>
-    [Fact(Skip = "Manual test only - run explicitly when you want to update the SQL Server project")]
+    //[Fact(Skip = "Manual test only - run explicitly when you want to update the SQL Server project")]
+    [Fact]
     public async Task DeploySchemaAndExportToSqlProject()
     {
         // Ensure connection string is set
-        if (string.IsNullOrEmpty(this.connectionString))
+        if (string.IsNullOrEmpty(connectionString))
         {
             throw new InvalidOperationException("Connection string is not initialized. Ensure InitializeAsync was called.");
         }
 
+        // Create new database:
+        Microsoft.Data.SqlClient.SqlConnectionStringBuilder builder = new(connectionString);
+        string databaseName = "BravellianPlatformSchemaExport";
+        builder.InitialCatalog = "master";
+
+        await using (var connection = new Microsoft.Data.SqlClient.SqlConnection(builder.ConnectionString))
+        {
+            await connection.OpenAsync(Xunit.TestContext.Current.CancellationToken);
+            var createDbCommand = connection.CreateCommand();
+            createDbCommand.CommandText = $"IF DB_ID(N'{databaseName}') IS NULL CREATE DATABASE [{databaseName}];";
+            await createDbCommand.ExecuteNonQueryAsync(Xunit.TestContext.Current.CancellationToken);
+            await connection.CloseAsync();
+            builder.InitialCatalog = databaseName;
+            connectionString = builder.ConnectionString;
+        }
+
         // Arrange - Deploy all schemas to the container
         Console.WriteLine("Deploying platform schemas to SQL Server container...");
-        Console.WriteLine($"Connection string: {this.connectionString}");
+        Console.WriteLine($"Connection string: {connectionString}");
 
         // Deploy all platform schemas
-        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(this.connectionString, "dbo", "Outbox");
-        await DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(this.connectionString, "dbo");
-        await DatabaseSchemaManager.EnsureInboxSchemaAsync(this.connectionString, "dbo", "Inbox");
-        await DatabaseSchemaManager.EnsureInboxWorkQueueSchemaAsync(this.connectionString, "dbo");
-        await DatabaseSchemaManager.EnsureSchedulerSchemaAsync(this.connectionString, "dbo", "Jobs", "JobRuns", "Timers");
-        await DatabaseSchemaManager.EnsureLeaseSchemaAsync(this.connectionString, "dbo", "Lease");
-        await DatabaseSchemaManager.EnsureDistributedLockSchemaAsync(this.connectionString, "dbo", "DistributedLock");
-        await DatabaseSchemaManager.EnsureFanoutSchemaAsync(this.connectionString, "dbo", "FanoutPolicy", "FanoutCursor");
-        await DatabaseSchemaManager.EnsureSemaphoreSchemaAsync(this.connectionString, "dbo");
-        await DatabaseSchemaManager.EnsureMetricsSchemaAsync(this.connectionString, "infra");
+        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(connectionString, "infra", "Outbox");
+        await DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(connectionString, "infra");
+        await DatabaseSchemaManager.EnsureInboxSchemaAsync(connectionString, "infra", "Inbox");
+        await DatabaseSchemaManager.EnsureInboxWorkQueueSchemaAsync(connectionString, "infra");
+        await DatabaseSchemaManager.EnsureSchedulerSchemaAsync(connectionString, "infra", "Jobs", "JobRuns", "Timers");
+        await DatabaseSchemaManager.EnsureLeaseSchemaAsync(connectionString, "infra", "Lease");
+        await DatabaseSchemaManager.EnsureDistributedLockSchemaAsync(connectionString, "infra", "DistributedLock");
+        await DatabaseSchemaManager.EnsureFanoutSchemaAsync(connectionString, "infra", "FanoutPolicy", "FanoutCursor");
+        await DatabaseSchemaManager.EnsureSemaphoreSchemaAsync(connectionString, "infra");
+        await DatabaseSchemaManager.EnsureMetricsSchemaAsync(connectionString, "infra");
 
         Console.WriteLine("Schema deployment completed successfully.");
 
@@ -99,14 +112,14 @@ public class ManualSchemaExportTests : IAsyncLifetime
         Console.WriteLine($"Extracting schema to: {dacpacPath}");
 
         // Extract the schema to a .dacpac file
-        await ExtractDacpac(this.connectionString, dacpacPath).ConfigureAwait(false);
+        await ExtractDacpac(connectionString, dacpacPath).ConfigureAwait(false);
 
         Console.WriteLine("Schema extraction completed successfully.");
         Console.WriteLine($"DACPAC file created at: {dacpacPath}");
 
         // Now update the SQL project from the database
         Console.WriteLine("Updating SQL Server project from deployed database...");
-        await UpdateSqlProjectFromDatabase(this.connectionString, sqlProjectPath).ConfigureAwait(false);
+        await UpdateSqlProjectFromDatabase(connectionString, sqlProjectPath).ConfigureAwait(false);
 
         Console.WriteLine("SQL Server project updated successfully.");
         Console.WriteLine("\nNext steps:");
@@ -135,10 +148,10 @@ public class ManualSchemaExportTests : IAsyncLifetime
             throw new InvalidOperationException("Failed to start SqlPackage process");
         }
 
-        var output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
-        var error = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
+        var output = await process.StandardOutput.ReadToEndAsync(Xunit.TestContext.Current.CancellationToken).ConfigureAwait(false);
+        var error = await process.StandardError.ReadToEndAsync(Xunit.TestContext.Current.CancellationToken).ConfigureAwait(false);
 
-        await process.WaitForExitAsync().ConfigureAwait(false);
+        await process.WaitForExitAsync(Xunit.TestContext.Current.CancellationToken).ConfigureAwait(false);
 
         if (process.ExitCode != 0)
         {
@@ -154,8 +167,8 @@ public class ManualSchemaExportTests : IAsyncLifetime
     /// </summary>
     private static async Task UpdateSqlProjectFromDatabase(string connectionString, string projectPath)
     {
-        var scriptsPath = Path.Combine(projectPath, "dbo");
-        
+        var scriptsPath = Path.Combine(projectPath, "infra");
+
         // Create directories if they don't exist
         Directory.CreateDirectory(scriptsPath);
         Directory.CreateDirectory(Path.Combine(scriptsPath, "Tables"));
@@ -167,12 +180,16 @@ public class ManualSchemaExportTests : IAsyncLifetime
         Directory.CreateDirectory(Path.Combine(infraScriptsPath, "Stored Procedures"));
 
         // Use SqlPackage to script out the database
-        var scriptFilePath = Path.Combine(projectPath, "DeployedSchema.sql");
-        
+        var scriptFilePath = Path.Combine(projectPath, "DeployedSchema.dacpac");
+        var outPath = Path.Combine(projectPath, "output", DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss-ff"));
+
+        var builder = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(connectionString);
+        string databaseName = builder.InitialCatalog;
+
         var startInfo = new ProcessStartInfo
         {
             FileName = "dotnet",
-            Arguments = $"sqlpackage /Action:Script /SourceConnectionString:\"{connectionString}\" /TargetFile:\"{scriptFilePath}\" /p:ScriptDatabaseOptions=false /p:ScriptDeployStateChecks=false",
+            Arguments = $"sqlpackage /Action:Extract /SourceConnectionString:\"{connectionString}\" /TargetFile:\"{scriptFilePath}\"",
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -185,10 +202,10 @@ public class ManualSchemaExportTests : IAsyncLifetime
             throw new InvalidOperationException("Failed to start SqlPackage process");
         }
 
-        var output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
-        var error = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
+        var output = await process.StandardOutput.ReadToEndAsync(Xunit.TestContext.Current.CancellationToken).ConfigureAwait(false);
+        var error = await process.StandardError.ReadToEndAsync(Xunit.TestContext.Current.CancellationToken).ConfigureAwait(false);
 
-        await process.WaitForExitAsync().ConfigureAwait(false);
+        await process.WaitForExitAsync(Xunit.TestContext.Current.CancellationToken).ConfigureAwait(false);
 
         if (process.ExitCode != 0)
         {
