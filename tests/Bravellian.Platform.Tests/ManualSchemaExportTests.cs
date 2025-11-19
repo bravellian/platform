@@ -44,7 +44,7 @@ public class ManualSchemaExportTests : IAsyncLifetime
             .WithImage("mcr.microsoft.com/mssql/server:2022-CU10-ubuntu-22.04")
             .Build();
 
-        await this.msSqlContainer.StartAsync(TestContext.Current.CancellationToken);
+        await this.msSqlContainer.StartAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
         this.connectionString = this.msSqlContainer.GetConnectionString();
     }
 
@@ -52,7 +52,7 @@ public class ManualSchemaExportTests : IAsyncLifetime
     {
         if (this.msSqlContainer != null)
         {
-            await this.msSqlContainer.DisposeAsync();
+            await this.msSqlContainer.DisposeAsync().ConfigureAwait(false);
         }
     }
 
@@ -66,6 +66,12 @@ public class ManualSchemaExportTests : IAsyncLifetime
     [Fact(Skip = "Manual test only - run explicitly when you want to update the SQL Server project")]
     public async Task DeploySchemaAndExportToSqlProject()
     {
+        // Ensure connection string is set
+        if (string.IsNullOrEmpty(this.connectionString))
+        {
+            throw new InvalidOperationException("Connection string is not initialized. Ensure InitializeAsync was called.");
+        }
+
         // Arrange - Deploy all schemas to the container
         Console.WriteLine("Deploying platform schemas to SQL Server container...");
         Console.WriteLine($"Connection string: {this.connectionString}");
@@ -93,14 +99,14 @@ public class ManualSchemaExportTests : IAsyncLifetime
         Console.WriteLine($"Extracting schema to: {dacpacPath}");
 
         // Extract the schema to a .dacpac file
-        await ExtractDacpac(this.connectionString, dacpacPath);
+        await ExtractDacpac(this.connectionString, dacpacPath).ConfigureAwait(false);
 
         Console.WriteLine("Schema extraction completed successfully.");
         Console.WriteLine($"DACPAC file created at: {dacpacPath}");
 
         // Now update the SQL project from the database
         Console.WriteLine("Updating SQL Server project from deployed database...");
-        await UpdateSqlProjectFromDatabase(this.connectionString, sqlProjectPath);
+        await UpdateSqlProjectFromDatabase(this.connectionString, sqlProjectPath).ConfigureAwait(false);
 
         Console.WriteLine("SQL Server project updated successfully.");
         Console.WriteLine("\nNext steps:");
@@ -129,10 +135,10 @@ public class ManualSchemaExportTests : IAsyncLifetime
             throw new InvalidOperationException("Failed to start SqlPackage process");
         }
 
-        var output = await process.StandardOutput.ReadToEndAsync();
-        var error = await process.StandardError.ReadToEndAsync();
+        var output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
+        var error = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
 
-        await process.WaitForExitAsync();
+        await process.WaitForExitAsync().ConfigureAwait(false);
 
         if (process.ExitCode != 0)
         {
@@ -179,10 +185,10 @@ public class ManualSchemaExportTests : IAsyncLifetime
             throw new InvalidOperationException("Failed to start SqlPackage process");
         }
 
-        var output = await process.StandardOutput.ReadToEndAsync();
-        var error = await process.StandardError.ReadToEndAsync();
+        var output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
+        var error = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
 
-        await process.WaitForExitAsync();
+        await process.WaitForExitAsync().ConfigureAwait(false);
 
         if (process.ExitCode != 0)
         {
