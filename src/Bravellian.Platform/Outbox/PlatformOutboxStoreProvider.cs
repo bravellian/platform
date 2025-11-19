@@ -34,13 +34,15 @@ internal sealed class PlatformOutboxStoreProvider : IOutboxStoreProvider
     private readonly Dictionary<string, IOutbox> outboxesByKey = new();
     private readonly ConcurrentDictionary<string, byte> schemasDeployed = new();
     private readonly bool enableSchemaDeployment;
+    private readonly PlatformConfiguration? platformConfiguration;
 
     public PlatformOutboxStoreProvider(
         IPlatformDatabaseDiscovery discovery,
         TimeProvider timeProvider,
         ILoggerFactory loggerFactory,
         string tableName,
-        bool enableSchemaDeployment = true)
+        bool enableSchemaDeployment = true,
+        PlatformConfiguration? platformConfiguration = null)
     {
         this.discovery = discovery;
         this.timeProvider = timeProvider;
@@ -48,6 +50,7 @@ internal sealed class PlatformOutboxStoreProvider : IOutboxStoreProvider
         this.logger = loggerFactory.CreateLogger<PlatformOutboxStoreProvider>();
         this.tableName = tableName;
         this.enableSchemaDeployment = enableSchemaDeployment;
+        this.platformConfiguration = platformConfiguration;
     }
 
     public IReadOnlyList<IOutboxStore> GetAllStores()
@@ -64,6 +67,15 @@ internal sealed class PlatformOutboxStoreProvider : IOutboxStoreProvider
             
                     foreach (var db in databases)
                     {
+                        // Skip control plane database - it should not have outbox tables
+                        if (this.IsControlPlaneDatabase(db))
+                        {
+                            this.logger.LogDebug(
+                                "Skipping outbox store creation for control plane database: {DatabaseName}",
+                                db.Name);
+                            continue;
+                        }
+
                         var options = new SqlOutboxOptions
                         {
                             ConnectionString = db.ConnectionString,
@@ -174,5 +186,37 @@ internal sealed class PlatformOutboxStoreProvider : IOutboxStoreProvider
         return this.outboxesByKey.TryGetValue(key, out var outbox)
             ? outbox
             : throw new KeyNotFoundException($"No outbox found for key: {key}");
+    }
+
+    /// <summary>
+    /// Checks if the given database is the control plane database by comparing connection strings.
+    /// </summary>
+    private bool IsControlPlaneDatabase(PlatformDatabase database)
+    {
+        if (this.platformConfiguration == null || 
+            string.IsNullOrEmpty(this.platformConfiguration.ControlPlaneConnectionString))
+        {
+            return false;
+        }
+
+        // Normalize connection strings for comparison
+        var dbConnStr = NormalizeConnectionString(database.ConnectionString);
+        var cpConnStr = NormalizeConnectionString(this.platformConfiguration.ControlPlaneConnectionString);
+
+        return string.Equals(dbConnStr, cpConnStr, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Normalizes a connection string for comparison by removing whitespace and converting to lowercase.
+    /// </summary>
+    private static string NormalizeConnectionString(string connectionString)
+    {
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            return string.Empty;
+        }
+
+        // Remove all whitespace and convert to lowercase for comparison
+        return new string(connectionString.Where(c => !char.IsWhiteSpace(c)).ToArray()).ToLowerInvariant();
     }
 }

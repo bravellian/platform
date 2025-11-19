@@ -25,9 +25,11 @@ internal sealed class PlatformSchedulerStoreProvider : ISchedulerStoreProvider
     private readonly IPlatformDatabaseDiscovery discovery;
     private readonly TimeProvider timeProvider;
     private readonly ILoggerFactory loggerFactory;
+    private readonly ILogger<PlatformSchedulerStoreProvider> logger;
     private readonly object lockObject = new();
     private IReadOnlyList<ISchedulerStore>? cachedStores;
     private readonly Dictionary<string, StoreEntry> storesByIdentifier = new();
+    private readonly PlatformConfiguration? platformConfiguration;
 
     private class StoreEntry
     {
@@ -40,11 +42,14 @@ internal sealed class PlatformSchedulerStoreProvider : ISchedulerStoreProvider
     public PlatformSchedulerStoreProvider(
         IPlatformDatabaseDiscovery discovery,
         TimeProvider timeProvider,
-        ILoggerFactory loggerFactory)
+        ILoggerFactory loggerFactory,
+        PlatformConfiguration? platformConfiguration = null)
     {
         this.discovery = discovery;
         this.timeProvider = timeProvider;
         this.loggerFactory = loggerFactory;
+        this.logger = loggerFactory.CreateLogger<PlatformSchedulerStoreProvider>();
+        this.platformConfiguration = platformConfiguration;
     }
 
     public IReadOnlyList<ISchedulerStore> GetAllStores()
@@ -60,6 +65,15 @@ internal sealed class PlatformSchedulerStoreProvider : ISchedulerStoreProvider
             
                     foreach (var db in databases)
             {
+                // Skip control plane database - it should not have scheduler tables
+                if (this.IsControlPlaneDatabase(db))
+                {
+                    this.logger.LogDebug(
+                        "Skipping scheduler store creation for control plane database: {DatabaseName}",
+                        db.Name);
+                    continue;
+                }
+
                 var store = new SqlSchedulerStore(
                     Options.Create(new SqlSchedulerOptions
                     {
@@ -160,5 +174,37 @@ internal sealed class PlatformSchedulerStoreProvider : ISchedulerStoreProvider
         return this.storesByIdentifier.TryGetValue(key, out var entry)
             ? entry.Outbox
             : throw new KeyNotFoundException($"No outbox found for key: {key}");
+    }
+
+    /// <summary>
+    /// Checks if the given database is the control plane database by comparing connection strings.
+    /// </summary>
+    private bool IsControlPlaneDatabase(PlatformDatabase database)
+    {
+        if (this.platformConfiguration == null || 
+            string.IsNullOrEmpty(this.platformConfiguration.ControlPlaneConnectionString))
+        {
+            return false;
+        }
+
+        // Normalize connection strings for comparison
+        var dbConnStr = NormalizeConnectionString(database.ConnectionString);
+        var cpConnStr = NormalizeConnectionString(this.platformConfiguration.ControlPlaneConnectionString);
+
+        return string.Equals(dbConnStr, cpConnStr, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Normalizes a connection string for comparison by removing whitespace and converting to lowercase.
+    /// </summary>
+    private static string NormalizeConnectionString(string connectionString)
+    {
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            return string.Empty;
+        }
+
+        // Remove all whitespace and convert to lowercase for comparison
+        return new string(connectionString.Where(c => !char.IsWhiteSpace(c)).ToArray()).ToLowerInvariant();
     }
 }

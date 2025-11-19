@@ -345,7 +345,8 @@ public static class PlatformServiceCollectionExtensions
                 sp.GetRequiredService<TimeProvider>(),
                 sp.GetRequiredService<ILoggerFactory>(),
                 "Outbox",
-                enableSchemaDeployment),
+                enableSchemaDeployment,
+                config), // Pass configuration to filter out control plane
             new RoundRobinOutboxSelectionStrategy());
         
         // Register multi-outbox cleanup service
@@ -364,7 +365,8 @@ public static class PlatformServiceCollectionExtensions
                 sp.GetRequiredService<TimeProvider>(),
                 sp.GetRequiredService<ILoggerFactory>(),
                 "Inbox",
-                enableSchemaDeployment),
+                enableSchemaDeployment,
+                config), // Pass configuration to filter out control plane
             new RoundRobinInboxSelectionStrategy());
         
         // Register multi-inbox cleanup service
@@ -381,7 +383,8 @@ public static class PlatformServiceCollectionExtensions
             sp => new PlatformSchedulerStoreProvider(
                 sp.GetRequiredService<IPlatformDatabaseDiscovery>(),
                 sp.GetRequiredService<TimeProvider>(),
-                sp.GetRequiredService<ILoggerFactory>()),
+                sp.GetRequiredService<ILoggerFactory>(),
+                config), // Pass configuration to filter out control plane
             new RoundRobinOutboxSelectionStrategy());
         
         // Leases
