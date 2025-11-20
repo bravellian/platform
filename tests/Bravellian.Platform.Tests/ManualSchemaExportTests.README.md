@@ -19,19 +19,17 @@ The test is designed to help maintain the SQL Server Database project (`Bravelli
 
 ### Option 1: Run the test explicitly
 
-1. Open `ManualSchemaExportTests.cs`
-2. Comment out or remove the `Skip` parameter from the `[Fact]` attribute:
-   ```csharp
-   // Change from:
-   [Fact(Skip = "Manual test only - run explicitly when you want to update the SQL Server project")]
-   
-   // To:
-   [Fact]
-   ```
-3. Run the test:
+The test is currently enabled by default (no `Skip` parameter). To run it:
+
+1. Run the test:
    ```bash
    dotnet test --filter "FullyQualifiedName~ManualSchemaExportTests.DeploySchemaAndExportToSqlProject"
    ```
+
+If you want to prevent the test from running automatically, you can add a `Skip` parameter to the `[Fact]` attribute in `ManualSchemaExportTests.cs`:
+```csharp
+[Fact(Skip = "Manual test only - run explicitly when you want to update the SQL Server project")]
+```
 
 ### Option 2: Run using test explorer
 
@@ -96,7 +94,8 @@ If the extracted schema differs significantly from what you expect, verify that 
 
 ## Notes
 
-- This is a **manual test** and is marked with `Skip` to prevent it from running in CI/CD pipelines
+- This is a **manual test** that currently runs by default
+- Add a `Skip` parameter to the `[Fact]` attribute to prevent it from running in CI/CD pipelines
 - The test is safe to run multiple times - it creates a fresh container each time
 - The container is automatically cleaned up after the test completes
 - This test does not modify your actual databases - it only uses a temporary Docker container

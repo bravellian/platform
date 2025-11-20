@@ -3,7 +3,7 @@
     [MetricDefId] INT              NOT NULL,
     [Service]     NVARCHAR (64)    NOT NULL,
     [InstanceId]  UNIQUEIDENTIFIER NOT NULL,
-    [TagsJson]    NVARCHAR (1024)  DEFAULT (N'{"}') NOT NULL,
+    [TagsJson]    NVARCHAR (1024)  DEFAULT (N'{}') NOT NULL,
     [TagHash]     VARBINARY (32)   NOT NULL,
     [CreatedUtc]  DATETIME2 (3)    DEFAULT (sysutcdatetime()) NOT NULL,
     PRIMARY KEY CLUSTERED ([SeriesId] ASC),
