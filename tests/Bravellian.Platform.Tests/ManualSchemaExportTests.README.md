@@ -19,7 +19,7 @@ The test is designed to help maintain the SQL Server Database project (`Bravelli
 
 ### Option 1: Run the test explicitly
 
-The test is currently enabled by default (no `Skip` parameter). To run it:
+The test is currently disabled by default (has a `Skip` parameter). To run it:
 
 1. Run the test:
    ```bash

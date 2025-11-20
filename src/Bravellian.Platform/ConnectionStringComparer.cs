@@ -51,7 +51,12 @@ internal static class ConnectionStringComparer
             return string.Equals(builder1.DataSource, builder2.DataSource, StringComparison.OrdinalIgnoreCase) &&
                    string.Equals(builder1.InitialCatalog, builder2.InitialCatalog, StringComparison.OrdinalIgnoreCase);
         }
-        catch
+        catch (ArgumentException)
+        {
+            // If parsing fails, fall back to exact string comparison
+            return string.Equals(connectionString1, connectionString2, StringComparison.OrdinalIgnoreCase);
+        }
+        catch (FormatException)
         {
             // If parsing fails, fall back to exact string comparison
             return string.Equals(connectionString1, connectionString2, StringComparison.OrdinalIgnoreCase);
