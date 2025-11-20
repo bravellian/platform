@@ -59,9 +59,9 @@ public class ManualSchemaExportTests : IAsyncLifetime
     /// Note: This test runs by default. To prevent it from running in CI, add a Skip parameter:
     /// [Fact(Skip = "Manual test only - run explicitly when you want to update the SQL Server project")]
     /// </summary>
-    //[Fact(Skip = "Manual test only - run explicitly when you want to update the SQL Server project")]
-    [Fact]
-    public async Task DeploySchemaAndExportToSqlProject()
+    [Fact(Skip = "Manual test only - run explicitly when you want to update the SQL Server project")]
+    //[Fact]
+    public  async Task DeploySchemaAndExportToSqlProject()
     {
         // Ensure connection string is set
         if (string.IsNullOrEmpty(connectionString))
