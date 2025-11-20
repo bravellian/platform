@@ -1,13 +1,13 @@
 # Manual Schema Export Test
 
-This test (`ManualSchemaExportTests.cs`) provides a utility to deploy all platform schemas to a SQL Server container and extract them back to update the SQL Server project.
+This test (`ManualSchemaExportTests.cs`) provides a utility to deploy all platform schemas to SQL Server containers and extract them back to update the SQL Server project.
 
 ## Purpose
 
 The test is designed to help maintain the SQL Server Database project (`Bravellian.Platform.Database.sqlproj`) by:
-1. Deploying all platform schemas to a fresh SQL Server container
-2. Extracting the deployed schema using SqlPackage
-3. Generating SQL scripts that can be used to update the SQL project
+1. Deploying platform schemas to two separate SQL Server databases (Control Plane and Multi-Database)
+2. Extracting the deployed schemas using SqlPackage
+3. Generating two separate DACPAC files that can be applied independently
 
 ## Prerequisites
 
@@ -40,32 +40,45 @@ If you want to prevent the test from running automatically, you can add a `Skip`
 ## What the Test Does
 
 1. **Spins up a SQL Server container** using Testcontainers
-2. **Deploys all platform schemas** including:
+2. **Creates two separate databases**:
+   - **Control Plane Database** (`BravellianPlatform_ControlPlane`)
+   - **Multi-Database Schema** (`BravellianPlatform_MultiDatabase`)
+3. **Deploys Control Plane schemas** to the Control Plane database:
+   - Semaphore
+   - Central Metrics (infra schema)
+4. **Deploys Multi-Database schemas** to the Multi-Database:
    - Outbox and Outbox work queue
    - Inbox and Inbox work queue
    - Scheduler (Jobs, JobRuns, Timers)
    - Lease and DistributedLock
    - Fanout (Policy and Cursor)
-   - Semaphore
-   - Metrics (infra schema)
-3. **Extracts the schema** to a `.dacpac` file
-4. **Generates SQL scripts** from the deployed database
+   - Metrics (local metrics, infra schema)
+5. **Extracts two separate DACPAC files**:
+   - Control Plane DACPAC
+   - Multi-Database DACPAC
 
 ## Output
 
 After running the test, you'll find:
-- **DACPAC file**: `src/Bravellian.Platform.Database/Bravellian.Platform.Database.dacpac`
-- **SQL script**: `src/Bravellian.Platform.Database/DeployedSchema.sql`
+- **Control Plane DACPAC**: `src/Bravellian.Platform.Database/Bravellian.Platform.ControlPlane.dacpac`
+- **Multi-Database DACPAC**: `src/Bravellian.Platform.Database/Bravellian.Platform.MultiDatabase.dacpac`
+
+These two DACPAC files can be applied separately:
+- The Control Plane DACPAC is applied to the central control plane database
+- The Multi-Database DACPAC is applied to each tenant/application database
 
 ## Next Steps
 
 After running the test:
 
-1. **Review the generated files** to ensure they contain the expected schema
-2. **Use SQL Server Data Tools (SSDT)** in Visual Studio to:
-   - Import the DACPAC or SQL script into the SQL project
-   - Or manually organize the schema objects from the script into the project structure
-3. **Commit the changes** to the SQL project if they are correct
+1. **Review the generated DACPAC files** to ensure they contain the expected schemas
+2. **Use the DACPAC files** to:
+   - Deploy the Control Plane DACPAC to the central control plane database
+   - Deploy the Multi-Database DACPAC to each tenant/application database
+3. **Use SQL Server Data Tools (SSDT)** in Visual Studio to:
+   - Import the DACPACs into the SQL project
+   - Or use Schema Compare to sync the project with the DACPACs
+4. **Commit the changes** to the SQL project if they are correct
 
 ## Using SSDT to Update the SQL Project
 
