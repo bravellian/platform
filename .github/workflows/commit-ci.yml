@@ -1,16 +1,16 @@
 name: 'Continuous Integration on Commit'
 on:
   workflow_dispatch:
+  merge_group:
   push:
-    branches:
-      - 'feature/**'
-      - 'features/**'
-      - 'user/**'
-      - 'users/**'
-      - 'hotfix/**'
+    branches-ignore:
+      - main          # Do NOT run on main
+      - 'release/**'  # Do NOT run on any release/* branch
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
 jobs:
   build:
     name: Standard Commit - Build, Test, and Scan

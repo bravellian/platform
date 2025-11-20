@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
@@ -10,22 +10,25 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.10" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.9" />
-    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" Version="9.9.0" />
-    <PackageReference Include="Testcontainers.MsSql" Version="4.7.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.9.0" />
+    <PackageReference Include="Testcontainers.MsSql" Version="4.8.1" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Update="Meziantou.Analyzer" Version="2.0.221" />
-    <PackageReference Update="Roslynator.Analyzers" Version="4.14.0" />
-    <PackageReference Update="Roslynator.CodeAnalysis.Analyzers" Version="4.14.0" />
-    <PackageReference Update="Roslynator.Formatting.Analyzers" Version="4.14.0" />
+    <PackageReference Update="DotNet.ReproducibleBuilds.Isolated" Version="1.2.39" />
+    <PackageReference Update="Meziantou.Analyzer" Version="2.0.254" />
+    <PackageReference Update="Microsoft.NET.Test.Sdk" Version="18.0.1" />
+    <PackageReference Update="Roslynator.Analyzers" Version="4.14.1" />
+    <PackageReference Update="Roslynator.CodeAnalysis.Analyzers" Version="4.14.1" />
+    <PackageReference Update="Roslynator.Formatting.Analyzers" Version="4.14.1" />
     <PackageReference Update="xunit.runner.visualstudio" Version="3.1.5">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Update="xunit.v3" Version="3.1.0" />
+    <PackageReference Update="xunit.v3" Version="3.2.0" />
   </ItemGroup>
 
   <ItemGroup>

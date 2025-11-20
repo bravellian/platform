@@ -2,7 +2,9 @@ name: 'Main/Release CI/CD'
 on:
   push:
     branches:
-      - main
+      - 'main'
+      - 'release/**'
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
