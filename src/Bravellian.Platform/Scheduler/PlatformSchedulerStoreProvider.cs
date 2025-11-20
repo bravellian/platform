@@ -25,9 +25,11 @@ internal sealed class PlatformSchedulerStoreProvider : ISchedulerStoreProvider
     private readonly IPlatformDatabaseDiscovery discovery;
     private readonly TimeProvider timeProvider;
     private readonly ILoggerFactory loggerFactory;
+    private readonly ILogger<PlatformSchedulerStoreProvider> logger;
     private readonly object lockObject = new();
     private IReadOnlyList<ISchedulerStore>? cachedStores;
     private readonly Dictionary<string, StoreEntry> storesByIdentifier = new();
+    private readonly PlatformConfiguration? platformConfiguration;
 
     private class StoreEntry
     {
@@ -40,11 +42,14 @@ internal sealed class PlatformSchedulerStoreProvider : ISchedulerStoreProvider
     public PlatformSchedulerStoreProvider(
         IPlatformDatabaseDiscovery discovery,
         TimeProvider timeProvider,
-        ILoggerFactory loggerFactory)
+        ILoggerFactory loggerFactory,
+        PlatformConfiguration? platformConfiguration = null)
     {
         this.discovery = discovery;
         this.timeProvider = timeProvider;
         this.loggerFactory = loggerFactory;
+        this.logger = loggerFactory.CreateLogger<PlatformSchedulerStoreProvider>();
+        this.platformConfiguration = platformConfiguration;
     }
 
     public IReadOnlyList<ISchedulerStore> GetAllStores()
@@ -60,6 +65,15 @@ internal sealed class PlatformSchedulerStoreProvider : ISchedulerStoreProvider
             
                     foreach (var db in databases)
             {
+                // Skip control plane database - it should not have scheduler tables
+                if (ConnectionStringComparer.IsControlPlaneDatabase(db, this.platformConfiguration))
+                {
+                    this.logger.LogDebug(
+                        "Skipping scheduler store creation for control plane database: {DatabaseName}",
+                        db.Name);
+                    continue;
+                }
+
                 var store = new SqlSchedulerStore(
                     Options.Create(new SqlSchedulerOptions
                     {

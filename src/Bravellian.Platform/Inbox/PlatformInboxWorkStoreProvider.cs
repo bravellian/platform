@@ -34,13 +34,15 @@ internal sealed class PlatformInboxWorkStoreProvider : IInboxWorkStoreProvider
     private readonly Dictionary<string, IInbox> inboxesByKey = new();
     private readonly ConcurrentDictionary<string, byte> schemasDeployed = new();
     private readonly bool enableSchemaDeployment;
+    private readonly PlatformConfiguration? platformConfiguration;
 
     public PlatformInboxWorkStoreProvider(
         IPlatformDatabaseDiscovery discovery,
         TimeProvider timeProvider,
         ILoggerFactory loggerFactory,
         string tableName,
-        bool enableSchemaDeployment = true)
+        bool enableSchemaDeployment = true,
+        PlatformConfiguration? platformConfiguration = null)
     {
         this.discovery = discovery;
         this.timeProvider = timeProvider;
@@ -48,6 +50,7 @@ internal sealed class PlatformInboxWorkStoreProvider : IInboxWorkStoreProvider
         this.logger = loggerFactory.CreateLogger<PlatformInboxWorkStoreProvider>();
         this.tableName = tableName;
         this.enableSchemaDeployment = enableSchemaDeployment;
+        this.platformConfiguration = platformConfiguration;
     }
 
     public IReadOnlyList<IInboxWorkStore> GetAllStores()
@@ -64,6 +67,15 @@ internal sealed class PlatformInboxWorkStoreProvider : IInboxWorkStoreProvider
             
                     foreach (var db in databases)
                     {
+                        // Skip control plane database - it should not have inbox tables
+                        if (ConnectionStringComparer.IsControlPlaneDatabase(db, this.platformConfiguration))
+                        {
+                            this.logger.LogDebug(
+                                "Skipping inbox store creation for control plane database: {DatabaseName}",
+                                db.Name);
+                            continue;
+                        }
+
                         var options = new SqlInboxOptions
                         {
                             ConnectionString = db.ConnectionString,

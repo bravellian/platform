@@ -420,3 +420,7 @@ FodyWeavers.xsd
 
 # Bravellian code generator output
 **/Generated/__codegen.marker
+
+# SQL Server Database project - generated files from manual test
+src/Bravellian.Platform.Database/*.dacpac
+src/Bravellian.Platform.Database/DeployedSchema.sql
