@@ -14,6 +14,8 @@
 
 namespace Bravellian.Platform;
 
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -52,28 +54,20 @@ internal sealed class PlatformSchedulerStoreProvider : ISchedulerStoreProvider
         this.platformConfiguration = platformConfiguration;
     }
 
-    public IReadOnlyList<ISchedulerStore> GetAllStores()
+    public async Task<IReadOnlyList<ISchedulerStore>> GetAllStoresAsync()
     {
         if (this.cachedStores == null)
         {
+            var databases = (await this.discovery.DiscoverDatabasesAsync().ConfigureAwait(false)).ToList();
+
             lock (this.lockObject)
             {
                 if (this.cachedStores == null)
                 {
-                    var databases = this.discovery.DiscoverDatabasesAsync().GetAwaiter().GetResult();
                     var stores = new List<ISchedulerStore>();
             
                     foreach (var db in databases)
-            {
-                // Skip control plane database - it should not have scheduler tables
-                if (ConnectionStringComparer.IsControlPlaneDatabase(db, this.platformConfiguration))
-                {
-                    this.logger.LogDebug(
-                        "Skipping scheduler store creation for control plane database: {DatabaseName}",
-                        db.Name);
-                    continue;
-                }
-
+                    {
                 var store = new SqlSchedulerStore(
                     Options.Create(new SqlSchedulerOptions
                     {
@@ -138,7 +132,7 @@ internal sealed class PlatformSchedulerStoreProvider : ISchedulerStoreProvider
     {
         if (this.cachedStores == null)
         {
-            GetAllStores(); // Initialize stores
+            this.GetAllStoresAsync().GetAwaiter().GetResult(); // Initialize stores
         }
         
         return this.storesByIdentifier.TryGetValue(key, out var entry)
@@ -150,7 +144,7 @@ internal sealed class PlatformSchedulerStoreProvider : ISchedulerStoreProvider
     {
         if (this.cachedStores == null)
         {
-            GetAllStores(); // Initialize stores
+            this.GetAllStoresAsync().GetAwaiter().GetResult(); // Initialize stores
         }
         
         return this.storesByIdentifier.TryGetValue(key, out var entry)
@@ -168,7 +162,7 @@ internal sealed class PlatformSchedulerStoreProvider : ISchedulerStoreProvider
     {
         if (this.cachedStores == null)
         {
-            GetAllStores(); // Initialize stores
+            this.GetAllStoresAsync().GetAwaiter().GetResult(); // Initialize stores
         }
         
         return this.storesByIdentifier.TryGetValue(key, out var entry)

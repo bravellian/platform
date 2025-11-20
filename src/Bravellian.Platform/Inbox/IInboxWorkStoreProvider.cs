@@ -26,7 +26,7 @@ internal interface IInboxWorkStoreProvider
     /// Each store represents a separate database/tenant with its own inbox.
     /// </summary>
     /// <returns>A read-only list of inbox work stores to poll.</returns>
-    IReadOnlyList<IInboxWorkStore> GetAllStores();
+    Task<IReadOnlyList<IInboxWorkStore>> GetAllStoresAsync();
 
     /// <summary>
     /// Gets a unique identifier for an inbox work store (e.g., database name, tenant ID).

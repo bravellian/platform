@@ -26,7 +26,7 @@ internal interface IOutboxStoreProvider
     /// Each store represents a separate database/tenant with its own outbox.
     /// </summary>
     /// <returns>A read-only list of outbox stores to poll.</returns>
-    IReadOnlyList<IOutboxStore> GetAllStores();
+    Task<IReadOnlyList<IOutboxStore>> GetAllStoresAsync();
 
     /// <summary>
     /// Gets a unique identifier for an outbox store (e.g., database name, tenant ID).

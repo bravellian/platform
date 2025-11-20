@@ -65,7 +65,7 @@ internal sealed class MultiInboxDispatcher
     /// <returns>Number of messages processed.</returns>
     public async Task<int> RunOnceAsync(int batchSize, CancellationToken cancellationToken)
     {
-        var stores = this.storeProvider.GetAllStores();
+        var stores = await this.storeProvider.GetAllStoresAsync().ConfigureAwait(false);
 
         if (stores.Count == 0)
         {

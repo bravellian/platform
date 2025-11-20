@@ -109,7 +109,7 @@ internal sealed class MultiOutboxCleanupService : BackgroundService
 
     private async Task<int> CleanupAllDatabasesAsync(CancellationToken cancellationToken)
     {
-        var stores = this.storeProvider.GetAllStores();
+        var stores = await this.storeProvider.GetAllStoresAsync().ConfigureAwait(false);
         var totalDeleted = 0;
 
         foreach (var store in stores)

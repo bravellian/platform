@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
+using System.Collections.Concurrent;
 using Bravellian.Platform.Tests.TestUtilities;
-using Microsoft.Extensions.Logging;
+using Dapper;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
-using Microsoft.Data.SqlClient;
-using Dapper;
-using System.Collections.Concurrent;
+
+namespace Bravellian.Platform.Tests;
 
 [Collection(SqlServerCollection.Name)]
 [Trait("Category", "Integration")]
@@ -43,19 +43,19 @@ public class MultiOutboxDispatcherTests : SqlServerTestBase
         var schema2 = "tenant1";
 
         // Create schema2 if it doesn't exist
-        await using var setupConnection = new SqlConnection(this.ConnectionString);
+        await using var setupConnection = new SqlConnection(ConnectionString);
         await setupConnection.OpenAsync(TestContext.Current.CancellationToken);
         await setupConnection.ExecuteAsync($"IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = '{schema2}') EXEC('CREATE SCHEMA [{schema2}]')");
 
         // Create outbox tables in both schemas
-        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(this.ConnectionString, schema1, "Outbox");
-        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(this.ConnectionString, schema2, "Outbox");
+        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(ConnectionString, schema1, "Outbox");
+        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(ConnectionString, schema2, "Outbox");
 
         // Insert test messages into both outboxes
         var message1Id = Guid.NewGuid();
         var message2Id = Guid.NewGuid();
 
-        await using var connection = new SqlConnection(this.ConnectionString);
+        await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         await connection.ExecuteAsync(
@@ -86,26 +86,26 @@ public class MultiOutboxDispatcherTests : SqlServerTestBase
 
         // Create outbox stores
         // Create logger
-        var storeLogger = new TestLogger<SqlOutboxStore>(this.TestOutputHelper);
+        var storeLogger = new TestLogger<SqlOutboxStore>(TestOutputHelper);
 
         var store1 = new SqlOutboxStore(
             Options.Create(new SqlOutboxOptions
             {
-                ConnectionString = this.ConnectionString,
+                ConnectionString = ConnectionString,
                 SchemaName = schema1,
                 TableName = "Outbox",
             }),
-            this.timeProvider,
+            timeProvider,
             storeLogger);
 
         var store2 = new SqlOutboxStore(
             Options.Create(new SqlOutboxOptions
             {
-                ConnectionString = this.ConnectionString,
+                ConnectionString = ConnectionString,
                 SchemaName = schema2,
                 TableName = "Outbox",
             }),
-            this.timeProvider,
+            timeProvider,
             storeLogger);
 
         // Create store provider
@@ -115,11 +115,11 @@ public class MultiOutboxDispatcherTests : SqlServerTestBase
         var strategy = new RoundRobinOutboxSelectionStrategy();
 
         // Create handler
-        var handler = new TestOutboxHandler("Test.Topic", this.processedMessages);
+        var handler = new TestOutboxHandler("Test.Topic", processedMessages);
         var resolver = new OutboxHandlerResolver(new[] { handler });
 
         // Create dispatcher
-        var dispatcherLogger = new TestLogger<MultiOutboxDispatcher>(this.TestOutputHelper);
+        var dispatcherLogger = new TestLogger<MultiOutboxDispatcher>(TestOutputHelper);
         var dispatcher = new MultiOutboxDispatcher(storeProvider, strategy, resolver, dispatcherLogger);
 
         // Act - Run the dispatcher twice to process both messages
@@ -129,9 +129,9 @@ public class MultiOutboxDispatcherTests : SqlServerTestBase
         // Assert
         count1.ShouldBe(1);
         count2.ShouldBe(1);
-        this.processedMessages.Count.ShouldBe(2);
-        this.processedMessages.ShouldContain("message from schema1");
-        this.processedMessages.ShouldContain("message from schema2");
+        processedMessages.Count.ShouldBe(2);
+        processedMessages.ShouldContain("message from schema1");
+        processedMessages.ShouldContain("message from schema2");
 
         // Verify messages are marked as processed in both databases
         var processed1 = await connection.QueryFirstAsync<bool>(
@@ -151,10 +151,10 @@ public class MultiOutboxDispatcherTests : SqlServerTestBase
         // Arrange - Create one store with multiple messages
         var schema1 = "dbo";
 
-        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(this.ConnectionString, schema1, "Outbox");
+        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(ConnectionString, schema1, "Outbox");
 
         // Insert 3 messages into the first outbox
-        await using var connection = new SqlConnection(this.ConnectionString);
+        await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         for (int i = 0; i < 3; i++)
@@ -178,26 +178,26 @@ public class MultiOutboxDispatcherTests : SqlServerTestBase
         // We're testing that the drain-first strategy keeps processing from the same store
         // until it's empty, not necessarily that they're different physical stores.
         // Create logger
-        var storeLogger = new TestLogger<SqlOutboxStore>(this.TestOutputHelper);
+        var storeLogger = new TestLogger<SqlOutboxStore>(TestOutputHelper);
 
         var store1 = new SqlOutboxStore(
             Options.Create(new SqlOutboxOptions
             {
-                ConnectionString = this.ConnectionString,
+                ConnectionString = ConnectionString,
                 SchemaName = schema1,
                 TableName = "Outbox",
             }),
-            this.timeProvider,
+            timeProvider,
             storeLogger);
 
         var store2 = new SqlOutboxStore(
             Options.Create(new SqlOutboxOptions
             {
-                ConnectionString = this.ConnectionString,
+                ConnectionString = ConnectionString,
                 SchemaName = schema1,
                 TableName = "Outbox",
             }),
-            this.timeProvider,
+            timeProvider,
             storeLogger);
 
         // Create store provider
@@ -207,11 +207,11 @@ public class MultiOutboxDispatcherTests : SqlServerTestBase
         var strategy = new DrainFirstOutboxSelectionStrategy();
 
         // Create handler
-        var handler = new TestOutboxHandler("Test.Topic", this.processedMessages);
+        var handler = new TestOutboxHandler("Test.Topic", processedMessages);
         var resolver = new OutboxHandlerResolver(new[] { handler });
 
         // Create dispatcher
-        var dispatcherLogger = new TestLogger<MultiOutboxDispatcher>(this.TestOutputHelper);
+        var dispatcherLogger = new TestLogger<MultiOutboxDispatcher>(TestOutputHelper);
         var dispatcher = new MultiOutboxDispatcher(storeProvider, strategy, resolver, dispatcherLogger);
 
         // Act - Process with batch size of 1 to ensure we drain one store first
@@ -225,7 +225,7 @@ public class MultiOutboxDispatcherTests : SqlServerTestBase
         count2.ShouldBe(1);
         count3.ShouldBe(1);
         count4.ShouldBe(0); // No more messages
-        this.processedMessages.Count.ShouldBe(3);
+        processedMessages.Count.ShouldBe(3);
     }
 
     private class TestOutboxStoreProvider : IOutboxStoreProvider
@@ -237,13 +237,13 @@ public class MultiOutboxDispatcherTests : SqlServerTestBase
             this.stores = stores.ToList();
         }
 
-        public IReadOnlyList<IOutboxStore> GetAllStores() => this.stores;
+        public Task<IReadOnlyList<IOutboxStore>> GetAllStoresAsync() => Task.FromResult(stores);
 
         public string GetStoreIdentifier(IOutboxStore store)
         {
-            for (int i = 0; i < this.stores.Count; i++)
+            for (int i = 0; i < stores.Count; i++)
             {
-                if (ReferenceEquals(this.stores[i], store))
+                if (ReferenceEquals(stores[i], store))
                 {
                     return $"Store{i + 1}";
                 }
@@ -255,11 +255,11 @@ public class MultiOutboxDispatcherTests : SqlServerTestBase
         public IOutboxStore? GetStoreByKey(string key)
         {
             // Simple implementation for testing
-            for (int i = 0; i < this.stores.Count; i++)
+            for (int i = 0; i < stores.Count; i++)
             {
                 if ($"Store{i + 1}" == key)
                 {
-                    return this.stores[i];
+                    return stores[i];
                 }
             }
 
@@ -279,7 +279,7 @@ public class MultiOutboxDispatcherTests : SqlServerTestBase
 
         public TestOutboxHandler(string topic, ConcurrentBag<string> processedMessages)
         {
-            this.Topic = topic;
+            Topic = topic;
             this.processedMessages = processedMessages;
         }
 
@@ -287,7 +287,7 @@ public class MultiOutboxDispatcherTests : SqlServerTestBase
 
         public Task HandleAsync(OutboxMessage message, CancellationToken cancellationToken)
         {
-            this.processedMessages.Add(message.Payload);
+            processedMessages.Add(message.Payload);
             return Task.CompletedTask;
         }
     }

@@ -14,6 +14,7 @@
 
 namespace Bravellian.Platform;
 
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -87,6 +88,9 @@ public sealed class DynamicSchedulerStoreProvider : ISchedulerStoreProvider, IDi
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A read-only list of scheduler stores to poll.</returns>
+    public Task<IReadOnlyList<ISchedulerStore>> GetAllStoresAsync() =>
+        this.GetAllStoresAsync(CancellationToken.None);
+
     public async Task<IReadOnlyList<ISchedulerStore>> GetAllStoresAsync(CancellationToken cancellationToken = default)
     {
         // Use lock only for updating shared state, not for awaiting

@@ -14,6 +14,8 @@
 
 namespace Bravellian.Platform;
 
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -24,45 +26,51 @@ internal sealed class PlatformLeaseFactoryProvider : ILeaseFactoryProvider
 {
     private readonly IPlatformDatabaseDiscovery discovery;
     private readonly ILoggerFactory loggerFactory;
+    private readonly ILogger<PlatformLeaseFactoryProvider> logger;
+    private readonly PlatformConfiguration? platformConfiguration;
     private readonly object lockObject = new();
     private IReadOnlyList<ISystemLeaseFactory>? cachedFactories;
     private readonly Dictionary<string, ISystemLeaseFactory> factoriesByKey = new();
 
     public PlatformLeaseFactoryProvider(
         IPlatformDatabaseDiscovery discovery,
-        ILoggerFactory loggerFactory)
+        ILoggerFactory loggerFactory,
+        PlatformConfiguration? platformConfiguration = null)
     {
         this.discovery = discovery;
         this.loggerFactory = loggerFactory;
+        this.platformConfiguration = platformConfiguration;
+        this.logger = loggerFactory.CreateLogger<PlatformLeaseFactoryProvider>();
     }
 
     public IReadOnlyList<ISystemLeaseFactory> GetAllFactories()
     {
         if (this.cachedFactories == null)
         {
+            var databases = this.discovery.DiscoverDatabasesAsync().GetAwaiter().GetResult().ToList();
+
             lock (this.lockObject)
             {
                 if (this.cachedFactories == null)
                 {
-                    var databases = this.discovery.DiscoverDatabasesAsync().GetAwaiter().GetResult();
                     var factories = new List<ISystemLeaseFactory>();
             
                     foreach (var db in databases)
-            {
-                var factoryLogger = this.loggerFactory.CreateLogger<SqlLeaseFactory>();
-                var factory = new SqlLeaseFactory(
-                    Options.Create(new SystemLeaseOptions
                     {
-                        ConnectionString = db.ConnectionString,
-                        SchemaName = db.SchemaName,
-                    }),
-                    factoryLogger);
-                
-                    factories.Add(factory);
-                    this.factoriesByKey[db.Name] = factory;
-                }
+                        var factoryLogger = this.loggerFactory.CreateLogger<SqlLeaseFactory>();
+                        var factory = new SqlLeaseFactory(
+                            Options.Create(new SystemLeaseOptions
+                            {
+                                ConnectionString = db.ConnectionString,
+                                SchemaName = db.SchemaName,
+                            }),
+                            factoryLogger);
+                        
+                        factories.Add(factory);
+                        this.factoriesByKey[db.Name] = factory;
+                    }
             
-                this.cachedFactories = factories;
+                    this.cachedFactories = factories;
                 }
             }
         }
@@ -84,7 +92,7 @@ internal sealed class PlatformLeaseFactoryProvider : ILeaseFactoryProvider
         return "unknown";
     }
 
-    public ISystemLeaseFactory GetFactoryByKey(string key)
+    public ISystemLeaseFactory? GetFactoryByKey(string key)
     {
         if (this.cachedFactories == null)
         {
@@ -93,6 +101,6 @@ internal sealed class PlatformLeaseFactoryProvider : ILeaseFactoryProvider
         
         return this.factoriesByKey.TryGetValue(key, out var factory)
             ? factory
-            : throw new KeyNotFoundException($"No lease factory found for key: {key}");
+            : null;
     }
 }

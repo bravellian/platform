@@ -14,6 +14,7 @@
 
 namespace Bravellian.Platform;
 
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -78,7 +79,8 @@ public sealed class ConfiguredSchedulerStoreProvider : ISchedulerStoreProvider
         }
     }
 
-    public IReadOnlyList<ISchedulerStore> GetAllStores() => this.allStores;
+    public Task<IReadOnlyList<ISchedulerStore>> GetAllStoresAsync() =>
+        Task.FromResult<IReadOnlyList<ISchedulerStore>>(this.allStores);
 
     public string GetStoreIdentifier(ISchedulerStore store)
     {

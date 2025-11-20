@@ -15,6 +15,8 @@
 namespace Bravellian.Platform;
 
 using System.Collections.Concurrent;
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -53,29 +55,21 @@ internal sealed class PlatformOutboxStoreProvider : IOutboxStoreProvider
         this.platformConfiguration = platformConfiguration;
     }
 
-    public IReadOnlyList<IOutboxStore> GetAllStores()
+    public async Task<IReadOnlyList<IOutboxStore>> GetAllStoresAsync()
     {
         if (this.cachedStores == null)
         {
+            var databases = (await this.discovery.DiscoverDatabasesAsync().ConfigureAwait(false)).ToList();
+
             lock (this.lockObject)
             {
                 if (this.cachedStores == null)
                 {
-                    var databases = this.discovery.DiscoverDatabasesAsync().GetAwaiter().GetResult();
                     var stores = new List<IOutboxStore>();
                     var newDatabases = new List<PlatformDatabase>();
             
                     foreach (var db in databases)
                     {
-                        // Skip control plane database - it should not have outbox tables
-                        if (ConnectionStringComparer.IsControlPlaneDatabase(db, this.platformConfiguration))
-                        {
-                            this.logger.LogDebug(
-                                "Skipping outbox store creation for control plane database: {DatabaseName}",
-                                db.Name);
-                            continue;
-                        }
-
                         var options = new SqlOutboxOptions
                         {
                             ConnectionString = db.ConnectionString,
@@ -168,7 +162,7 @@ internal sealed class PlatformOutboxStoreProvider : IOutboxStoreProvider
     {
         if (this.cachedStores == null)
         {
-            GetAllStores(); // Initialize stores
+            this.GetAllStoresAsync().GetAwaiter().GetResult(); // Initialize stores
         }
         
         return this.storesByKey.TryGetValue(key, out var store)
@@ -180,7 +174,7 @@ internal sealed class PlatformOutboxStoreProvider : IOutboxStoreProvider
     {
         if (this.cachedStores == null)
         {
-            GetAllStores(); // Initialize stores
+            this.GetAllStoresAsync().GetAwaiter().GetResult(); // Initialize stores
         }
         
         return this.outboxesByKey.TryGetValue(key, out var outbox)

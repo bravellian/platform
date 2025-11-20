@@ -391,7 +391,8 @@ public static class PlatformServiceCollectionExtensions
         services.AddMultiSystemLeases(
             sp => new PlatformLeaseFactoryProvider(
                 sp.GetRequiredService<IPlatformDatabaseDiscovery>(),
-                sp.GetRequiredService<ILoggerFactory>()));
+                sp.GetRequiredService<ILoggerFactory>(),
+                config));
         
         // Fanout
         services.AddMultiSqlFanout(

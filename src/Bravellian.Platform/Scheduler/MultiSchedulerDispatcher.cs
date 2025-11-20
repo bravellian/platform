@@ -14,6 +14,7 @@
 
 namespace Bravellian.Platform;
 
+using System.Linq;
 using Microsoft.Extensions.Logging;
 
 /// <summary>
@@ -25,7 +26,7 @@ public sealed class MultiSchedulerDispatcher
 {
     private readonly ISchedulerStoreProvider storeProvider;
     private readonly IOutboxSelectionStrategy selectionStrategy;
-    private readonly ISystemLeaseFactory leaseFactory;
+    private readonly ILeaseFactoryProvider leaseFactoryProvider;
     private readonly TimeProvider timeProvider;
     private readonly ILogger<MultiSchedulerDispatcher> logger;
 
@@ -35,13 +36,13 @@ public sealed class MultiSchedulerDispatcher
     public MultiSchedulerDispatcher(
         ISchedulerStoreProvider storeProvider,
         IOutboxSelectionStrategy selectionStrategy,
-        ISystemLeaseFactory leaseFactory,
+        ILeaseFactoryProvider leaseFactoryProvider,
         TimeProvider timeProvider,
         ILogger<MultiSchedulerDispatcher> logger)
     {
         this.storeProvider = storeProvider;
         this.selectionStrategy = selectionStrategy;
-        this.leaseFactory = leaseFactory;
+        this.leaseFactoryProvider = leaseFactoryProvider;
         this.timeProvider = timeProvider;
         this.logger = logger;
     }
@@ -54,7 +55,7 @@ public sealed class MultiSchedulerDispatcher
     /// <returns>Number of work items processed.</returns>
     public async Task<int> RunOnceAsync(CancellationToken cancellationToken)
     {
-        var stores = this.storeProvider.GetAllStores();
+        var stores = await this.storeProvider.GetAllStoresAsync().ConfigureAwait(false);
 
         if (stores.Count == 0)
         {
@@ -100,9 +101,20 @@ public sealed class MultiSchedulerDispatcher
         string storeIdentifier,
         CancellationToken cancellationToken)
     {
+        var leaseFactory = this.leaseFactoryProvider.GetFactoryByKey(storeIdentifier)
+            ?? this.leaseFactoryProvider.GetAllFactories().FirstOrDefault();
+
+        if (leaseFactory == null)
+        {
+            this.logger.LogWarning(
+                "No lease factory available for scheduler store '{StoreIdentifier}'. Skipping processing.",
+                storeIdentifier);
+            return 0;
+        }
+
         // Try to acquire a lease for scheduler processing for this specific database
         var leaseKey = $"scheduler:run:{storeIdentifier}";
-        var lease = await this.leaseFactory.AcquireAsync(
+        var lease = await leaseFactory.AcquireAsync(
             leaseKey,
             TimeSpan.FromSeconds(30),
             cancellationToken: cancellationToken).ConfigureAwait(false);

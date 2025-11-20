@@ -14,6 +14,7 @@
 
 namespace Bravellian.Platform;
 
+using System.Linq;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -572,6 +573,8 @@ public static class SchedulerServiceCollectionExtensions
         IEnumerable<SchedulerDatabaseConfig> schedulerOptions,
         IOutboxSelectionStrategy? selectionStrategy = null)
     {
+        var schedulerOptionsList = schedulerOptions.ToList();
+
         // Add time abstractions
         services.AddTimeAbstractions();
 
@@ -580,15 +583,29 @@ public static class SchedulerServiceCollectionExtensions
         {
             var timeProvider = provider.GetRequiredService<TimeProvider>();
             var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
-            return new ConfiguredSchedulerStoreProvider(schedulerOptions, timeProvider, loggerFactory);
+            return new ConfiguredSchedulerStoreProvider(schedulerOptionsList, timeProvider, loggerFactory);
         });
 
         // Register the selection strategy
         services.AddSingleton<IOutboxSelectionStrategy>(selectionStrategy ?? new RoundRobinOutboxSelectionStrategy());
 
+        // Register lease factories per scheduler database so work runs against the correct tenant database
+        var leaseConfigs = schedulerOptionsList.Select(o => new LeaseDatabaseConfig
+        {
+            Identifier = o.Identifier,
+            ConnectionString = o.ConnectionString,
+            SchemaName = o.SchemaName,
+        }).ToList();
+
+        services.TryAddSingleton<ILeaseFactoryProvider>(provider =>
+        {
+            var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
+            return new ConfiguredLeaseFactoryProvider(leaseConfigs, loggerFactory);
+        });
+
         // Add system leases - we need at least one lease factory for multi-scheduler
         // Use the first scheduler's connection for the lease system
-        var firstScheduler = schedulerOptions.FirstOrDefault();
+        var firstScheduler = schedulerOptionsList.FirstOrDefault();
         if (firstScheduler == null)
         {
             throw new InvalidOperationException("At least one scheduler must be configured. The schedulerOptions collection is empty.");
@@ -632,8 +649,8 @@ public static class SchedulerServiceCollectionExtensions
         // Register the selection strategy
         services.AddSingleton<IOutboxSelectionStrategy>(selectionStrategy ?? new RoundRobinOutboxSelectionStrategy());
 
-        // Note: Caller must register ISystemLeaseFactory separately since we can't determine
-        // connection string from a factory function
+        // Note: Caller must register ILeaseFactoryProvider separately since we can't determine
+        // connection strings from a factory function
 
         // Register shared components
         services.AddSingleton<MultiSchedulerDispatcher>();

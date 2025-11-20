@@ -26,7 +26,7 @@ public interface ISchedulerStoreProvider
     /// Each store represents a separate database/tenant with its own scheduler tables.
     /// </summary>
     /// <returns>A read-only list of scheduler stores to poll.</returns>
-    IReadOnlyList<ISchedulerStore> GetAllStores();
+    Task<IReadOnlyList<ISchedulerStore>> GetAllStoresAsync();
 
     /// <summary>
     /// Gets a unique identifier for a scheduler store (e.g., database name, tenant ID).

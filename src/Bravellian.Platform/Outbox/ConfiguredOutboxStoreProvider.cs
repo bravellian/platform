@@ -14,6 +14,7 @@
 
 namespace Bravellian.Platform;
 
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -123,7 +124,8 @@ internal sealed class ConfiguredOutboxStoreProvider : IOutboxStoreProvider
     }
 
     /// <inheritdoc/>
-    public IReadOnlyList<IOutboxStore> GetAllStores() => this.stores;
+    public Task<IReadOnlyList<IOutboxStore>> GetAllStoresAsync() =>
+        Task.FromResult<IReadOnlyList<IOutboxStore>>(this.stores);
 
     /// <inheritdoc/>
     public string GetStoreIdentifier(IOutboxStore store)

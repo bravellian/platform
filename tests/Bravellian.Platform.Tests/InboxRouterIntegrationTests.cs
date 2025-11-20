@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
 using Bravellian.Platform.Tests.TestUtilities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
 
+namespace Bravellian.Platform.Tests;
 /// <summary>
 /// Integration tests demonstrating end-to-end usage of multi-inbox extension methods
 /// and IInboxRouter for multi-tenant inbox message processing.
@@ -30,16 +30,16 @@ public class InboxRouterIntegrationTests
     public InboxRouterIntegrationTests(ITestOutputHelper testOutputHelper)
     {
         this.testOutputHelper = testOutputHelper;
-        this.timeProvider = new FakeTimeProvider();
+        timeProvider = new FakeTimeProvider();
     }
 
     private ILoggerFactory CreateLoggerFactory()
     {
-        return new TestLoggerFactory(this.testOutputHelper);
+        return new TestLoggerFactory(testOutputHelper);
     }
 
     [Fact]
-    public void AddMultiSqlInbox_WithListOfOptions_RegistersServicesCorrectly()
+    public async Task AddMultiSqlInbox_WithListOfOptions_RegistersServicesCorrectlyAsync()
     {
         // Arrange
         var inboxOptions = new[]
@@ -60,14 +60,14 @@ public class InboxRouterIntegrationTests
             },
         };
 
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
 
         // Act - Create the provider using the same logic as the extension method
         var storeProvider = new ConfiguredInboxWorkStoreProvider(inboxOptions, loggerFactory);
         var router = new InboxRouter(storeProvider);
 
         // Assert - Verify the provider was created correctly
-        var stores = storeProvider.GetAllStores();
+        var stores = await storeProvider.GetAllStoresAsync();
         stores.ShouldNotBeNull();
         stores.Count.ShouldBe(2);
 
@@ -79,7 +79,7 @@ public class InboxRouterIntegrationTests
         tenant2Inbox.ShouldNotBeNull();
         tenant1Inbox.ShouldNotBe(tenant2Inbox);
 
-        this.testOutputHelper.WriteLine("AddMultiSqlInbox pattern successfully creates functional components");
+        testOutputHelper.WriteLine("AddMultiSqlInbox pattern successfully creates functional components");
     }
 
     [Fact]
@@ -98,9 +98,9 @@ public class InboxRouterIntegrationTests
         var customStrategy = new DrainFirstInboxSelectionStrategy();
 
         // Act - Verify the pattern supports custom strategies
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
         var storeProvider = new ConfiguredInboxWorkStoreProvider(inboxOptions, loggerFactory);
-        
+
         // Dispatcher uses the selection strategy
         var handlerResolver = new InboxHandlerResolver(Array.Empty<IInboxHandler>());
         var dispatcher = new MultiInboxDispatcher(
@@ -112,11 +112,11 @@ public class InboxRouterIntegrationTests
         // Assert
         dispatcher.ShouldNotBeNull();
 
-        this.testOutputHelper.WriteLine("Custom selection strategy pattern is supported");
+        testOutputHelper.WriteLine("Custom selection strategy pattern is supported");
     }
 
     [Fact]
-    public void AddMultiSqlInbox_WithStoreProviderFactory_CreatesProviderCorrectly()
+    public async Task AddMultiSqlInbox_WithStoreProviderFactory_CreatesProviderCorrectlyAsync()
     {
         // Arrange
         var inboxOptions = new[]
@@ -128,7 +128,7 @@ public class InboxRouterIntegrationTests
             },
         };
 
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
 
         // Act - Create store provider using factory pattern
         var storeProvider = new ConfiguredInboxWorkStoreProvider(inboxOptions, loggerFactory);
@@ -137,11 +137,11 @@ public class InboxRouterIntegrationTests
         storeProvider.ShouldNotBeNull();
         storeProvider.ShouldBeOfType<ConfiguredInboxWorkStoreProvider>();
 
-        var stores = storeProvider.GetAllStores();
+        var stores = await storeProvider.GetAllStoresAsync();
         stores.ShouldNotBeNull();
         stores.Count.ShouldBe(1);
 
-        this.testOutputHelper.WriteLine("Store provider factory pattern works correctly");
+        testOutputHelper.WriteLine("Store provider factory pattern works correctly");
     }
 
     [Fact]
@@ -149,13 +149,13 @@ public class InboxRouterIntegrationTests
     {
         // Arrange
         var discovery = new SampleInboxDatabaseDiscovery(Array.Empty<InboxDatabaseConfig>());
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
         var logger = loggerFactory.CreateLogger<DynamicInboxWorkStoreProvider>();
 
         // Act - Create dynamic provider
         var storeProvider = new DynamicInboxWorkStoreProvider(
             discovery,
-            this.timeProvider,
+            timeProvider,
             loggerFactory,
             logger);
 
@@ -166,7 +166,7 @@ public class InboxRouterIntegrationTests
         var router = new InboxRouter(storeProvider);
         router.ShouldNotBeNull();
 
-        this.testOutputHelper.WriteLine("AddDynamicMultiSqlInbox pattern creates functional components");
+        testOutputHelper.WriteLine("AddDynamicMultiSqlInbox pattern creates functional components");
     }
 
     [Fact]
@@ -175,13 +175,13 @@ public class InboxRouterIntegrationTests
         // Arrange
         var discovery = new SampleInboxDatabaseDiscovery(Array.Empty<InboxDatabaseConfig>());
         var customRefreshInterval = TimeSpan.FromMinutes(10);
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
         var logger = loggerFactory.CreateLogger<DynamicInboxWorkStoreProvider>();
 
         // Act - Create provider with custom interval
         var storeProvider = new DynamicInboxWorkStoreProvider(
             discovery,
-            this.timeProvider,
+            timeProvider,
             loggerFactory,
             logger,
             customRefreshInterval);
@@ -190,7 +190,7 @@ public class InboxRouterIntegrationTests
         storeProvider.ShouldNotBeNull();
         storeProvider.ShouldBeOfType<DynamicInboxWorkStoreProvider>();
 
-        this.testOutputHelper.WriteLine("Custom refresh interval is supported in pattern");
+        testOutputHelper.WriteLine("Custom refresh interval is supported in pattern");
     }
 
     [Fact]
@@ -215,7 +215,7 @@ public class InboxRouterIntegrationTests
             },
         };
 
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
         var provider = new ConfiguredInboxWorkStoreProvider(tenantOptions, loggerFactory);
         var router = new InboxRouter(provider);
 
@@ -228,8 +228,8 @@ public class InboxRouterIntegrationTests
         tenant2Inbox.ShouldNotBeNull();
         tenant1Inbox.ShouldNotBe(tenant2Inbox);
 
-        this.testOutputHelper.WriteLine($"Successfully routed to Tenant1 inbox: {tenant1Inbox.GetType().Name}");
-        this.testOutputHelper.WriteLine($"Successfully routed to Tenant2 inbox: {tenant2Inbox.GetType().Name}");
+        testOutputHelper.WriteLine($"Successfully routed to Tenant1 inbox: {tenant1Inbox.GetType().Name}");
+        testOutputHelper.WriteLine($"Successfully routed to Tenant2 inbox: {tenant2Inbox.GetType().Name}");
     }
 
     [Fact]
@@ -250,11 +250,11 @@ public class InboxRouterIntegrationTests
             },
         });
 
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
         var logger = loggerFactory.CreateLogger<DynamicInboxWorkStoreProvider>();
         var provider = new DynamicInboxWorkStoreProvider(
             discovery,
-            this.timeProvider,
+            timeProvider,
             loggerFactory,
             logger,
             refreshInterval: TimeSpan.FromMinutes(5));
@@ -273,6 +273,6 @@ public class InboxRouterIntegrationTests
         customerXyzInbox.ShouldNotBeNull();
         customerAbcInbox.ShouldNotBe(customerXyzInbox);
 
-        this.testOutputHelper.WriteLine("Successfully demonstrated dynamic discovery routing");
+        testOutputHelper.WriteLine("Successfully demonstrated dynamic discovery routing");
     }
 }

@@ -15,6 +15,8 @@
 namespace Bravellian.Platform;
 
 using System.Collections.Concurrent;
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -53,29 +55,21 @@ internal sealed class PlatformInboxWorkStoreProvider : IInboxWorkStoreProvider
         this.platformConfiguration = platformConfiguration;
     }
 
-    public IReadOnlyList<IInboxWorkStore> GetAllStores()
+    public async Task<IReadOnlyList<IInboxWorkStore>> GetAllStoresAsync()
     {
         if (this.cachedStores == null)
         {
+            var databases = (await this.discovery.DiscoverDatabasesAsync().ConfigureAwait(false)).ToList();
+
             lock (this.lockObject)
             {
                 if (this.cachedStores == null)
                 {
-                    var databases = this.discovery.DiscoverDatabasesAsync().GetAwaiter().GetResult();
                     var stores = new List<IInboxWorkStore>();
                     var newDatabases = new List<PlatformDatabase>();
             
                     foreach (var db in databases)
                     {
-                        // Skip control plane database - it should not have inbox tables
-                        if (ConnectionStringComparer.IsControlPlaneDatabase(db, this.platformConfiguration))
-                        {
-                            this.logger.LogDebug(
-                                "Skipping inbox store creation for control plane database: {DatabaseName}",
-                                db.Name);
-                            continue;
-                        }
-
                         var options = new SqlInboxOptions
                         {
                             ConnectionString = db.ConnectionString,
@@ -167,7 +161,7 @@ internal sealed class PlatformInboxWorkStoreProvider : IInboxWorkStoreProvider
     {
         if (this.cachedStores == null)
         {
-            GetAllStores(); // Initialize stores
+            this.GetAllStoresAsync().GetAwaiter().GetResult(); // Initialize stores
         }
         
         return this.storesByKey.TryGetValue(key, out var store)
@@ -179,7 +173,7 @@ internal sealed class PlatformInboxWorkStoreProvider : IInboxWorkStoreProvider
     {
         if (this.cachedStores == null)
         {
-            GetAllStores(); // Initialize stores
+            this.GetAllStoresAsync().GetAwaiter().GetResult(); // Initialize stores
         }
         
         return this.inboxesByKey.TryGetValue(key, out var inbox)

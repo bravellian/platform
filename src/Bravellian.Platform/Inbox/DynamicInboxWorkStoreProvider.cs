@@ -14,6 +14,7 @@
 
 namespace Bravellian.Platform;
 
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -120,6 +121,9 @@ internal sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, I
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A read-only list of inbox work stores to poll.</returns>
+    public Task<IReadOnlyList<IInboxWorkStore>> GetAllStoresAsync() =>
+        this.GetAllStoresAsync(CancellationToken.None);
+
     public async Task<IReadOnlyList<IInboxWorkStore>> GetAllStoresAsync(CancellationToken cancellationToken = default)
     {
         // Use lock only for updating shared state, not for awaiting

@@ -14,6 +14,7 @@
 
 namespace Bravellian.Platform;
 
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -128,7 +129,8 @@ internal sealed class ConfiguredInboxWorkStoreProvider : IInboxWorkStoreProvider
     }
 
     /// <inheritdoc/>
-    public IReadOnlyList<IInboxWorkStore> GetAllStores() => this.stores;
+    public Task<IReadOnlyList<IInboxWorkStore>> GetAllStoresAsync() =>
+        Task.FromResult<IReadOnlyList<IInboxWorkStore>>(this.stores);
 
     /// <inheritdoc/>
     public string GetStoreIdentifier(IInboxWorkStore store)
