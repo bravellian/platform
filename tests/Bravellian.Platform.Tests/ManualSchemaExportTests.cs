@@ -13,6 +13,7 @@
 // limitations under the License.
 
 
+using System.Diagnostics;
 using Testcontainers.MsSql;
 
 namespace Bravellian.Platform.Tests;
@@ -60,12 +61,12 @@ public class ManualSchemaExportTests : IAsyncLifetime
     /// 1. Control Plane database - contains Semaphore and Central Metrics schemas
     /// 2. Multi-Database schema - contains Outbox, Inbox, Scheduler, Lease, Fanout, Metrics, and DistributedLock schemas
     /// 
-    /// Note: This test runs by default. To prevent it from running in CI, add a Skip parameter:
-    /// [Fact(Skip = "Manual test only - run explicitly when you want to update the SQL Server project")]
+    /// Note: This test is skipped by default to prevent it from running in CI. 
+    /// To run it, remove the Skip parameter or run it explicitly using the test filter.
     /// </summary>
     [Fact(Skip = "Manual test only - run explicitly when you want to update the SQL Server project")]
     //[Fact]
-    public  async Task DeploySchemaAndExportToSqlProject()
+    public async Task DeploySchemaAndExportToSqlProject()
     {
         // Ensure connection string is set
         if (string.IsNullOrEmpty(connectionString))
