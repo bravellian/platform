@@ -12,13 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
-using System;
-using System.Threading.Tasks;
 using Dapper;
 using Microsoft.Data.SqlClient;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// Manages database schema creation and verification for the Platform components.
 /// </summary>
@@ -1809,13 +1807,13 @@ internal static class DatabaseSchemaManager
 
     private static string GetMetricSeriesCreateScript(string schemaName)
     {
-        return $"""
-            CREATE TABLE [{schemaName}].[MetricSeries] (
+        return $$"""
+            CREATE TABLE [{{schemaName}}].[MetricSeries] (
               SeriesId      BIGINT IDENTITY PRIMARY KEY,
-              MetricDefId   INT NOT NULL REFERENCES [{schemaName}].[MetricDef](MetricDefId),
+              MetricDefId   INT NOT NULL REFERENCES [{{schemaName}}].[MetricDef](MetricDefId),
               Service       NVARCHAR(64) NOT NULL,
               InstanceId    UNIQUEIDENTIFIER NOT NULL,
-              TagsJson      NVARCHAR(1024) NOT NULL DEFAULT N'{"{"}"{"}"}',
+              TagsJson      NVARCHAR(1024) NOT NULL DEFAULT (N'{}'),
               TagHash       VARBINARY(32) NOT NULL,
               CreatedUtc    DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
               CONSTRAINT UQ_MetricSeries UNIQUE (MetricDefId, Service, InstanceId, TagHash)
