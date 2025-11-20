@@ -56,8 +56,8 @@ public class ManualSchemaExportTests : IAsyncLifetime
     /// This manual test deploys all platform schemas to a fresh SQL Server container
     /// and then uses SqlPackage to extract the schema and update the SQL Server project.
     /// 
-    /// Note: This is marked with [Fact(Skip = "...")] to prevent it from running in CI.
-    /// To run manually, comment out the Skip parameter.
+    /// Note: This test runs by default. To prevent it from running in CI, add a Skip parameter:
+    /// [Fact(Skip = "Manual test only - run explicitly when you want to update the SQL Server project")]
     /// </summary>
     //[Fact(Skip = "Manual test only - run explicitly when you want to update the SQL Server project")]
     [Fact]
@@ -167,24 +167,15 @@ public class ManualSchemaExportTests : IAsyncLifetime
     /// </summary>
     private static async Task UpdateSqlProjectFromDatabase(string connectionString, string projectPath)
     {
-        var scriptsPath = Path.Combine(projectPath, "infra");
-
-        // Create directories if they don't exist
-        Directory.CreateDirectory(scriptsPath);
-        Directory.CreateDirectory(Path.Combine(scriptsPath, "Tables"));
-        Directory.CreateDirectory(Path.Combine(scriptsPath, "Stored Procedures"));
-
         var infraScriptsPath = Path.Combine(projectPath, "infra");
+        
+        // Create directories if they don't exist
         Directory.CreateDirectory(infraScriptsPath);
         Directory.CreateDirectory(Path.Combine(infraScriptsPath, "Tables"));
         Directory.CreateDirectory(Path.Combine(infraScriptsPath, "Stored Procedures"));
 
         // Use SqlPackage to script out the database
         var scriptFilePath = Path.Combine(projectPath, "DeployedSchema.dacpac");
-        var outPath = Path.Combine(projectPath, "output", DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss-ff"));
-
-        var builder = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(connectionString);
-        string databaseName = builder.InitialCatalog;
 
         var startInfo = new ProcessStartInfo
         {

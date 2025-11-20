@@ -68,7 +68,7 @@ internal sealed class PlatformInboxWorkStoreProvider : IInboxWorkStoreProvider
                     foreach (var db in databases)
                     {
                         // Skip control plane database - it should not have inbox tables
-                        if (this.IsControlPlaneDatabase(db))
+                        if (ConnectionStringComparer.IsControlPlaneDatabase(db, this.platformConfiguration))
                         {
                             this.logger.LogDebug(
                                 "Skipping inbox store creation for control plane database: {DatabaseName}",
@@ -185,37 +185,5 @@ internal sealed class PlatformInboxWorkStoreProvider : IInboxWorkStoreProvider
         return this.inboxesByKey.TryGetValue(key, out var inbox)
             ? inbox
             : throw new KeyNotFoundException($"No inbox found for key: {key}");
-    }
-
-    /// <summary>
-    /// Checks if the given database is the control plane database by comparing connection strings.
-    /// </summary>
-    private bool IsControlPlaneDatabase(PlatformDatabase database)
-    {
-        if (this.platformConfiguration == null || 
-            string.IsNullOrEmpty(this.platformConfiguration.ControlPlaneConnectionString))
-        {
-            return false;
-        }
-
-        // Normalize connection strings for comparison
-        var dbConnStr = NormalizeConnectionString(database.ConnectionString);
-        var cpConnStr = NormalizeConnectionString(this.platformConfiguration.ControlPlaneConnectionString);
-
-        return string.Equals(dbConnStr, cpConnStr, StringComparison.OrdinalIgnoreCase);
-    }
-
-    /// <summary>
-    /// Normalizes a connection string for comparison by removing whitespace and converting to lowercase.
-    /// </summary>
-    private static string NormalizeConnectionString(string connectionString)
-    {
-        if (string.IsNullOrWhiteSpace(connectionString))
-        {
-            return string.Empty;
-        }
-
-        // Remove all whitespace and convert to lowercase for comparison
-        return new string(connectionString.Where(c => !char.IsWhiteSpace(c)).ToArray()).ToLowerInvariant();
     }
 }
