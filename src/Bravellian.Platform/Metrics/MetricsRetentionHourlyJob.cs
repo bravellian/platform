@@ -55,12 +55,14 @@ internal sealed class MetricsRetentionHourlyJob
 
         try
         {
+            var (server, db) = ParseConnectionInfo(_options.CentralConnectionString);
             var deleted = await DeleteOldHourlyDataAsync(_options.CentralConnectionString, cutoffDate, cancellationToken).ConfigureAwait(false);
-            _logger.LogInformation("Deleted {Count} hourly metric rows from central database", deleted);
+            _logger.LogInformation("Deleted {Count} hourly metric rows from central database ({Server}/{Db})", deleted, server, db);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting hourly metrics from central database");
+            var (server, db) = ParseConnectionInfo(_options.CentralConnectionString);
+            _logger.LogError(ex, "Error deleting hourly metrics from central database ({Server}/{Db})", server, db);
         }
     }
 
@@ -77,5 +79,18 @@ internal sealed class MetricsRetentionHourlyJob
 
         var rowsDeleted = await connection.ExecuteScalarAsync<int>(sql, new { CutoffDate = cutoffDate }).ConfigureAwait(false);
         return rowsDeleted;
+    }
+
+    private static (string Server, string Database) ParseConnectionInfo(string cs)
+    {
+        try
+        {
+            var builder = new SqlConnectionStringBuilder(cs);
+            return (builder.DataSource ?? "unknown-server", builder.InitialCatalog ?? "unknown-database");
+        }
+        catch
+        {
+            return ("unknown-server", "unknown-database");
+        }
     }
 }

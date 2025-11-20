@@ -12,13 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
 using Bravellian.Platform.Tests.TestUtilities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
-using Shouldly;
-using Xunit;
+
+namespace Bravellian.Platform.Tests;
 
 public class DynamicLeaseFactoryProviderTests
 {
@@ -28,12 +27,12 @@ public class DynamicLeaseFactoryProviderTests
     public DynamicLeaseFactoryProviderTests(ITestOutputHelper testOutputHelper)
     {
         this.testOutputHelper = testOutputHelper;
-        this.timeProvider = new FakeTimeProvider();
+        timeProvider = new FakeTimeProvider();
     }
 
     private ILoggerFactory CreateLoggerFactory()
     {
-        return new TestLoggerFactory(this.testOutputHelper);
+        return new TestLoggerFactory(testOutputHelper);
     }
 
     [Fact]
@@ -58,12 +57,12 @@ public class DynamicLeaseFactoryProviderTests
             },
         });
 
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
         var logger = loggerFactory.CreateLogger<DynamicLeaseFactoryProvider>();
 
         var provider = new DynamicLeaseFactoryProvider(
             discovery,
-            this.timeProvider,
+            timeProvider,
             loggerFactory,
             logger,
             refreshInterval: TimeSpan.FromMinutes(5));
@@ -91,12 +90,12 @@ public class DynamicLeaseFactoryProviderTests
             },
         });
 
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
         var logger = loggerFactory.CreateLogger<DynamicLeaseFactoryProvider>();
 
         var provider = new DynamicLeaseFactoryProvider(
             discovery,
-            this.timeProvider,
+            timeProvider,
             loggerFactory,
             logger,
             refreshInterval: TimeSpan.FromMinutes(5));
@@ -142,12 +141,12 @@ public class DynamicLeaseFactoryProviderTests
             },
         });
 
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
         var logger = loggerFactory.CreateLogger<DynamicLeaseFactoryProvider>();
 
         var provider = new DynamicLeaseFactoryProvider(
             discovery,
-            this.timeProvider,
+            timeProvider,
             loggerFactory,
             logger,
             refreshInterval: TimeSpan.FromMinutes(5));
@@ -181,12 +180,12 @@ public class DynamicLeaseFactoryProviderTests
             },
         });
 
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
         var logger = loggerFactory.CreateLogger<DynamicLeaseFactoryProvider>();
 
         var provider = new DynamicLeaseFactoryProvider(
             discovery,
-            this.timeProvider,
+            timeProvider,
             loggerFactory,
             logger,
             refreshInterval: TimeSpan.FromMinutes(5));
@@ -203,7 +202,7 @@ public class DynamicLeaseFactoryProviderTests
         });
 
         // Act - Advance time past refresh interval
-        this.timeProvider.Advance(TimeSpan.FromMinutes(6));
+        timeProvider.Advance(TimeSpan.FromMinutes(6));
         var updatedFactories = await provider.GetAllFactoriesAsync(TestContext.Current.CancellationToken);
 
         // Assert - Should automatically refresh
@@ -232,12 +231,12 @@ public class DynamicLeaseFactoryProviderTests
             },
         });
 
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
         var logger = loggerFactory.CreateLogger<DynamicLeaseFactoryProvider>();
 
         var provider = new DynamicLeaseFactoryProvider(
             discovery,
-            this.timeProvider,
+            timeProvider,
             loggerFactory,
             logger,
             refreshInterval: TimeSpan.FromMinutes(5));
@@ -246,9 +245,9 @@ public class DynamicLeaseFactoryProviderTests
         await provider.GetAllFactoriesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var factory1 = provider.GetFactoryByKey("Customer1");
-        var factory2 = provider.GetFactoryByKey("Customer2");
-        var factoryUnknown = provider.GetFactoryByKey("UnknownCustomer");
+        var factory1 = await provider.GetFactoryByKeyAsync("Customer1");
+        var factory2 = await provider.GetFactoryByKeyAsync("Customer2");
+        var factoryUnknown = await provider.GetFactoryByKeyAsync("UnknownCustomer");
 
         // Assert
         factory1.ShouldNotBeNull();
@@ -273,12 +272,12 @@ public class DynamicLeaseFactoryProviderTests
             },
         });
 
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
         var logger = loggerFactory.CreateLogger<DynamicLeaseFactoryProvider>();
 
         var provider = new DynamicLeaseFactoryProvider(
             discovery,
-            this.timeProvider,
+            timeProvider,
             loggerFactory,
             logger,
             refreshInterval: TimeSpan.FromMinutes(5));
@@ -303,7 +302,7 @@ public class DynamicLeaseFactoryProviderTests
         // Assert
         updatedFactories.Count.ShouldBe(1);
         provider.GetFactoryIdentifier(updatedFactories[0]).ShouldBe("Customer1");
-        
+
         // The factory instance should be different (recreated)
         ReferenceEquals(initialFactory, updatedFactories[0]).ShouldBeFalse();
     }

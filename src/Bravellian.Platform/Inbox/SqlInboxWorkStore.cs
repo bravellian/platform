@@ -29,6 +29,8 @@ internal class SqlInboxWorkStore : IInboxWorkStore
     private readonly string schemaName;
     private readonly string tableName;
     private readonly ILogger<SqlInboxWorkStore> logger;
+    private readonly string serverName;
+    private readonly string databaseName;
 
     public SqlInboxWorkStore(IOptions<SqlInboxOptions> options, ILogger<SqlInboxWorkStore> logger)
     {
@@ -37,6 +39,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
         this.schemaName = opts.SchemaName;
         this.tableName = opts.TableName;
         this.logger = logger;
+        (this.serverName, this.databaseName) = ParseConnectionInfo(this.connectionString);
     }
 
     public async Task<IReadOnlyList<string>> ClaimAsync(
@@ -78,8 +81,12 @@ internal class SqlInboxWorkStore : IInboxWorkStore
         {
             this.logger.LogError(
                 ex,
-                "Failed to claim inbox messages for owner {OwnerToken}",
-                ownerToken);
+                "Failed to claim inbox messages for owner {OwnerToken} in {Schema}.{Table} on {Server}/{Database}",
+                ownerToken,
+                this.schemaName,
+                this.tableName,
+                this.serverName,
+                this.databaseName);
             throw;
         }
     }
@@ -126,8 +133,12 @@ internal class SqlInboxWorkStore : IInboxWorkStore
         {
             this.logger.LogError(
                 ex,
-                "Failed to acknowledge inbox messages for owner {OwnerToken}",
-                ownerToken);
+                "Failed to acknowledge inbox messages for owner {OwnerToken} in {Schema}.{Table} on {Server}/{Database}",
+                ownerToken,
+                this.schemaName,
+                this.tableName,
+                this.serverName,
+                this.databaseName);
             throw;
         }
     }
@@ -174,8 +185,12 @@ internal class SqlInboxWorkStore : IInboxWorkStore
         {
             this.logger.LogError(
                 ex,
-                "Failed to abandon inbox messages for owner {OwnerToken}",
-                ownerToken);
+                "Failed to abandon inbox messages for owner {OwnerToken} in {Schema}.{Table} on {Server}/{Database}",
+                ownerToken,
+                this.schemaName,
+                this.tableName,
+                this.serverName,
+                this.databaseName);
             throw;
         }
     }
@@ -226,8 +241,12 @@ internal class SqlInboxWorkStore : IInboxWorkStore
         {
             this.logger.LogError(
                 ex,
-                "Failed to mark inbox messages as failed for owner {OwnerToken}",
-                ownerToken);
+                "Failed to mark inbox messages as failed for owner {OwnerToken} in {Schema}.{Table} on {Server}/{Database}",
+                ownerToken,
+                this.schemaName,
+                this.tableName,
+                this.serverName,
+                this.databaseName);
             throw;
         }
     }
@@ -258,7 +277,13 @@ internal class SqlInboxWorkStore : IInboxWorkStore
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Failed to reap expired inbox leases");
+            this.logger.LogError(
+                ex,
+                "Failed to reap expired inbox leases in {Schema}.{Table} on {Server}/{Database}",
+                this.schemaName,
+                this.tableName,
+                this.serverName,
+                this.databaseName);
             throw;
         }
     }
@@ -306,7 +331,14 @@ internal class SqlInboxWorkStore : IInboxWorkStore
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Failed to get inbox message {MessageId}", messageId);
+            this.logger.LogError(
+                ex,
+                "Failed to get inbox message {MessageId} from {Schema}.{Table} on {Server}/{Database}",
+                messageId,
+                this.schemaName,
+                this.tableName,
+                this.serverName,
+                this.databaseName);
             throw;
         }
     }
@@ -325,5 +357,18 @@ internal class SqlInboxWorkStore : IInboxWorkStore
         }
 
         return table;
+    }
+
+    private static (string Server, string Database) ParseConnectionInfo(string cs)
+    {
+        try
+        {
+            var builder = new SqlConnectionStringBuilder(cs);
+            return (builder.DataSource ?? "unknown-server", builder.InitialCatalog ?? "unknown-database");
+        }
+        catch
+        {
+            return ("unknown-server", "unknown-database");
+        }
     }
 }

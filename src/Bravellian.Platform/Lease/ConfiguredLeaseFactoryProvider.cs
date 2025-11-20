@@ -103,7 +103,7 @@ internal sealed class ConfiguredLeaseFactoryProvider : ILeaseFactoryProvider
     }
 
     /// <inheritdoc/>
-    public IReadOnlyList<ISystemLeaseFactory> GetAllFactories() => this.allFactories;
+    public Task<IReadOnlyList<ISystemLeaseFactory>> GetAllFactoriesAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<ISystemLeaseFactory>>(this.allFactories);
 
     /// <inheritdoc/>
     public string GetFactoryIdentifier(ISystemLeaseFactory factory)
@@ -120,14 +120,14 @@ internal sealed class ConfiguredLeaseFactoryProvider : ILeaseFactoryProvider
     }
 
     /// <inheritdoc/>
-    public ISystemLeaseFactory? GetFactoryByKey(string key)
+    public Task<ISystemLeaseFactory?> GetFactoryByKeyAsync(string key, CancellationToken cancellationToken = default)
     {
         if (this.factoriesByIdentifier.TryGetValue(key, out var entry))
         {
-            return entry.Factory;
+            return Task.FromResult<ISystemLeaseFactory?>(entry.Factory);
         }
 
-        return null;
+        return Task.FromResult<ISystemLeaseFactory?>(null);
     }
 
     private sealed class FactoryEntry

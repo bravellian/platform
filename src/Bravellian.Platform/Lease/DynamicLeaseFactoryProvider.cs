@@ -124,16 +124,16 @@ internal sealed class DynamicLeaseFactoryProvider : ILeaseFactoryProvider, IDisp
     }
 
     /// <inheritdoc/>
-    public ISystemLeaseFactory? GetFactoryByKey(string key)
+    public Task<ISystemLeaseFactory?> GetFactoryByKeyAsync(string key, CancellationToken cancellationToken = default)
     {
         lock (this.lockObject)
         {
             if (this.factoriesByIdentifier.TryGetValue(key, out var entry))
             {
-                return entry.Factory;
+                return Task.FromResult<ISystemLeaseFactory?>(entry.Factory);
             }
 
-            return null;
+            return Task.FromResult<ISystemLeaseFactory?>(null);
         }
     }
 

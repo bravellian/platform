@@ -43,11 +43,11 @@ internal sealed class PlatformLeaseFactoryProvider : ILeaseFactoryProvider
         this.logger = loggerFactory.CreateLogger<PlatformLeaseFactoryProvider>();
     }
 
-    public IReadOnlyList<ISystemLeaseFactory> GetAllFactories()
+    public async Task<IReadOnlyList<ISystemLeaseFactory>> GetAllFactoriesAsync(CancellationToken cancellationToken = default)
     {
         if (this.cachedFactories == null)
         {
-            var databases = this.discovery.DiscoverDatabasesAsync().GetAwaiter().GetResult().ToList();
+            var databases = await discovery.DiscoverDatabasesAsync(cancellationToken).ConfigureAwait(false);
 
             lock (this.lockObject)
             {
@@ -92,11 +92,11 @@ internal sealed class PlatformLeaseFactoryProvider : ILeaseFactoryProvider
         return "unknown";
     }
 
-    public ISystemLeaseFactory? GetFactoryByKey(string key)
+    public async Task<ISystemLeaseFactory?> GetFactoryByKeyAsync(string key, CancellationToken cancellationToken = default)
     {
         if (this.cachedFactories == null)
         {
-            GetAllFactories(); // Initialize factories
+            await GetAllFactoriesAsync(cancellationToken).ConfigureAwait(false); // Initialize factories
         }
         
         return this.factoriesByKey.TryGetValue(key, out var factory)

@@ -29,6 +29,8 @@ internal class SqlOutboxStore : IOutboxStore
     private readonly string tableName;
     private readonly TimeProvider timeProvider;
     private readonly ILogger<SqlOutboxStore> logger;
+    private readonly string serverName;
+    private readonly string databaseName;
 
     public SqlOutboxStore(IOptions<SqlOutboxOptions> options, TimeProvider timeProvider, ILogger<SqlOutboxStore> logger)
     {
@@ -38,6 +40,8 @@ internal class SqlOutboxStore : IOutboxStore
         this.tableName = opts.TableName;
         this.timeProvider = timeProvider;
         this.logger = logger;
+
+        (this.serverName, this.databaseName) = ParseConnectionInfo(this.connectionString);
     }
 
     public async Task<IReadOnlyList<OutboxMessage>> ClaimDueAsync(int limit, CancellationToken cancellationToken)
@@ -68,7 +72,13 @@ internal class SqlOutboxStore : IOutboxStore
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Failed to claim outbox messages from store");
+            this.logger.LogError(
+                ex,
+                "Failed to claim outbox messages from store {Schema}.{Table} on {Server}/{Database}",
+                this.schemaName,
+                this.tableName,
+                this.serverName,
+                this.databaseName);
             throw;
         }
     }
@@ -101,7 +111,14 @@ internal class SqlOutboxStore : IOutboxStore
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Failed to mark outbox message {MessageId} as dispatched", id);
+            this.logger.LogError(
+                ex,
+                "Failed to mark outbox message {MessageId} as dispatched in {Schema}.{Table} on {Server}/{Database}",
+                id,
+                this.schemaName,
+                this.tableName,
+                this.serverName,
+                this.databaseName);
             throw;
         }
     }
@@ -139,7 +156,14 @@ internal class SqlOutboxStore : IOutboxStore
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Failed to reschedule outbox message {MessageId}", id);
+            this.logger.LogError(
+                ex,
+                "Failed to reschedule outbox message {MessageId} in {Schema}.{Table} on {Server}/{Database}",
+                id,
+                this.schemaName,
+                this.tableName,
+                this.serverName,
+                this.databaseName);
             throw;
         }
     }
@@ -174,8 +198,28 @@ internal class SqlOutboxStore : IOutboxStore
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Failed to mark outbox message {MessageId} as failed", id);
+            this.logger.LogError(
+                ex,
+                "Failed to mark outbox message {MessageId} as failed in {Schema}.{Table} on {Server}/{Database}",
+                id,
+                this.schemaName,
+                this.tableName,
+                this.serverName,
+                this.databaseName);
             throw;
+        }
+    }
+
+    private static (string Server, string Database) ParseConnectionInfo(string cs)
+    {
+        try
+        {
+            var builder = new SqlConnectionStringBuilder(cs);
+            return (builder.DataSource ?? "unknown-server", builder.InitialCatalog ?? "unknown-database");
+        }
+        catch
+        {
+            return ("unknown-server", "unknown-database");
         }
     }
 }

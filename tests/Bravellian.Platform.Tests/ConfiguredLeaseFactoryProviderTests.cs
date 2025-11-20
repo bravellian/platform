@@ -12,12 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
 using Bravellian.Platform.Tests.TestUtilities;
 using Microsoft.Extensions.Logging;
-using Shouldly;
-using Xunit;
+
+namespace Bravellian.Platform.Tests;
 
 public class ConfiguredLeaseFactoryProviderTests
 {
@@ -30,11 +29,11 @@ public class ConfiguredLeaseFactoryProviderTests
 
     private ILoggerFactory CreateLoggerFactory()
     {
-        return new TestLoggerFactory(this.testOutputHelper);
+        return new TestLoggerFactory(testOutputHelper);
     }
 
     [Fact]
-    public void ConfiguredProvider_CreatesFactoriesFromConfigs()
+    public async Task ConfiguredProvider_CreatesFactoriesFromConfigsAsync()
     {
         // Arrange
         var configs = new[]
@@ -55,11 +54,11 @@ public class ConfiguredLeaseFactoryProviderTests
             },
         };
 
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
 
         // Act
         var provider = new ConfiguredLeaseFactoryProvider(configs, loggerFactory);
-        var factories = provider.GetAllFactories();
+        var factories = await provider.GetAllFactoriesAsync(Xunit.TestContext.Current.CancellationToken);
 
         // Assert
         factories.Count.ShouldBe(2);
@@ -68,7 +67,7 @@ public class ConfiguredLeaseFactoryProviderTests
     }
 
     [Fact]
-    public void ConfiguredProvider_GetFactoryByKey_ReturnsCorrectFactory()
+    public async Task ConfiguredProvider_GetFactoryByKey_ReturnsCorrectFactoryAsync()
     {
         // Arrange
         var configs = new[]
@@ -89,13 +88,13 @@ public class ConfiguredLeaseFactoryProviderTests
             },
         };
 
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
         var provider = new ConfiguredLeaseFactoryProvider(configs, loggerFactory);
 
         // Act
-        var factory1 = provider.GetFactoryByKey("Customer1");
-        var factory2 = provider.GetFactoryByKey("Customer2");
-        var factoryUnknown = provider.GetFactoryByKey("UnknownCustomer");
+        var factory1 = await provider.GetFactoryByKeyAsync("Customer1");
+        var factory2 = await provider.GetFactoryByKeyAsync("Customer2");
+        var factoryUnknown = await provider.GetFactoryByKeyAsync("UnknownCustomer");
 
         // Assert
         factory1.ShouldNotBeNull();
@@ -120,7 +119,7 @@ public class ConfiguredLeaseFactoryProviderTests
             },
         };
 
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
         var provider = new ConfiguredLeaseFactoryProvider(configs, loggerFactory);
 
         // Create a factory that's not managed by this provider

@@ -57,14 +57,22 @@ internal sealed class MetricsRetentionMinuteJob
         {
             try
             {
+                var (server, db) = ParseConnectionInfo(database.ConnectionString);
                 var deleted = await DeleteOldMinuteDataAsync(database.ConnectionString, cutoffDate, cancellationToken).ConfigureAwait(false);
                 totalDeleted += deleted;
 
-                _logger.LogInformation("Deleted {Count} minute metric rows from database {Database}", deleted, database.Name);
+                _logger.LogInformation("Deleted {Count} minute metric rows from database {Database} ({Server}/{Db})", deleted, database.Name, server, db);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting minute metrics from database {Database}", database.Name);
+                // TODO: Clean up parameter order/values so the server/db logged match the placeholders without re-parsing repeatedly.
+                _logger.LogError(
+                    ex,
+                    "Error deleting minute metrics from database {Database} ({Server}/{Db})",
+                    database.Name,
+                    database.ConnectionString,
+                    ParseConnectionInfo(database.ConnectionString).Server,
+                    ParseConnectionInfo(database.ConnectionString).Database);
             }
         }
 
@@ -84,5 +92,18 @@ internal sealed class MetricsRetentionMinuteJob
 
         var rowsDeleted = await connection.ExecuteScalarAsync<int>(sql, new { CutoffDate = cutoffDate }).ConfigureAwait(false);
         return rowsDeleted;
+    }
+
+    private static (string Server, string Database) ParseConnectionInfo(string cs)
+    {
+        try
+        {
+            var builder = new SqlConnectionStringBuilder(cs);
+            return (builder.DataSource ?? "unknown-server", builder.InitialCatalog ?? "unknown-database");
+        }
+        catch
+        {
+            return ("unknown-server", "unknown-database");
+        }
     }
 }

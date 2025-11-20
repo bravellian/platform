@@ -12,11 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
-using System.Linq;
 using Microsoft.Extensions.Logging;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// Dispatches scheduler work across multiple databases/tenants using a pluggable
 /// selection strategy to determine which scheduler to process next.
@@ -55,19 +54,19 @@ public sealed class MultiSchedulerDispatcher
     /// <returns>Number of work items processed.</returns>
     public async Task<int> RunOnceAsync(CancellationToken cancellationToken)
     {
-        var stores = await this.storeProvider.GetAllStoresAsync().ConfigureAwait(false);
+        var stores = await storeProvider.GetAllStoresAsync().ConfigureAwait(false);
 
         if (stores.Count == 0)
         {
-            this.logger.LogDebug("No scheduler stores available for processing");
+            logger.LogDebug("No scheduler stores available for processing");
             return 0;
         }
 
         // Use the selection strategy to pick the next store
         // Note: The selection strategy is designed for IOutboxStore, so we fall back to round-robin
         // since we cannot properly cast scheduler stores to outbox stores
-        var selectedStore = this.lastProcessedStore;
-        
+        var selectedStore = lastProcessedStore;
+
         if (selectedStore == null || stores.Count == 1)
         {
             // First time or only one store - pick the first one
@@ -78,20 +77,20 @@ public sealed class MultiSchedulerDispatcher
             // Round-robin through stores for now
             // TODO: Create an ISelectionStrategy<T> to properly support pluggable strategies
             var storesList = stores as List<ISchedulerStore> ?? stores.ToList();
-            var index = storesList.IndexOf(this.lastProcessedStore!);
+            var index = storesList.IndexOf(lastProcessedStore!);
             selectedStore = storesList[(index + 1) % storesList.Count];
         }
 
-        var storeIdentifier = this.storeProvider.GetStoreIdentifier(selectedStore);
-        this.logger.LogDebug(
+        var storeIdentifier = storeProvider.GetStoreIdentifier(selectedStore);
+        logger.LogDebug(
             "Processing scheduler work from store '{StoreIdentifier}'",
             storeIdentifier);
 
-        var processedCount = await this.ProcessStoreAsync(selectedStore, storeIdentifier, cancellationToken)
+        var processedCount = await ProcessStoreAsync(selectedStore, storeIdentifier, cancellationToken)
             .ConfigureAwait(false);
 
-        this.lastProcessedStore = selectedStore;
-        this.lastProcessedCount = processedCount;
+        lastProcessedStore = selectedStore;
+        lastProcessedCount = processedCount;
 
         return processedCount;
     }
@@ -101,12 +100,12 @@ public sealed class MultiSchedulerDispatcher
         string storeIdentifier,
         CancellationToken cancellationToken)
     {
-        var leaseFactory = this.leaseFactoryProvider.GetFactoryByKey(storeIdentifier)
-            ?? this.leaseFactoryProvider.GetAllFactories().FirstOrDefault();
+        var leaseFactory = await leaseFactoryProvider.GetFactoryByKeyAsync(storeIdentifier).ConfigureAwait(false) ??
+            (await leaseFactoryProvider.GetAllFactoriesAsync().ConfigureAwait(false)).FirstOrDefault();
 
         if (leaseFactory == null)
         {
-            this.logger.LogWarning(
+            logger.LogWarning(
                 "No lease factory available for scheduler store '{StoreIdentifier}'. Skipping processing.",
                 storeIdentifier);
             return 0;
@@ -122,7 +121,7 @@ public sealed class MultiSchedulerDispatcher
         if (lease == null)
         {
             // Could not get the lease. Another instance is processing this database.
-            this.logger.LogDebug(
+            logger.LogDebug(
                 "Could not acquire lease for scheduler store '{StoreIdentifier}'. Another instance may be processing it.",
                 storeIdentifier);
             return 0;
@@ -143,17 +142,17 @@ public sealed class MultiSchedulerDispatcher
                     .ConfigureAwait(false);
                 if (jobRunsCreated > 0)
                 {
-                    this.logger.LogInformation(
+                    logger.LogInformation(
                         "Created {Count} job runs for store '{StoreIdentifier}'",
                         jobRunsCreated,
                         storeIdentifier);
                 }
 
                 // 2. Get the outbox for this database
-                var outbox = this.storeProvider.GetOutboxByKey(storeIdentifier);
+                var outbox = storeProvider.GetOutboxByKey(storeIdentifier);
                 if (outbox == null)
                 {
-                    this.logger.LogWarning(
+                    logger.LogWarning(
                         "No outbox found for store '{StoreIdentifier}'. Cannot dispatch scheduler work.",
                         storeIdentifier);
                     return 0;
@@ -177,7 +176,7 @@ public sealed class MultiSchedulerDispatcher
 
                 if (dueTimers.Count > 0)
                 {
-                    this.logger.LogInformation(
+                    logger.LogInformation(
                         "Dispatched {Count} timers for store '{StoreIdentifier}'",
                         dueTimers.Count,
                         storeIdentifier);
@@ -202,7 +201,7 @@ public sealed class MultiSchedulerDispatcher
 
                 if (dueJobs.Count > 0)
                 {
-                    this.logger.LogInformation(
+                    logger.LogInformation(
                         "Dispatched {Count} job runs for store '{StoreIdentifier}'",
                         dueJobs.Count,
                         storeIdentifier);
@@ -214,14 +213,14 @@ public sealed class MultiSchedulerDispatcher
             catch (LostLeaseException)
             {
                 // Lease was lost during processing - stop immediately
-                this.logger.LogWarning(
+                logger.LogWarning(
                     "Lost lease while processing scheduler store '{StoreIdentifier}'",
                     storeIdentifier);
                 return 0;
             }
             catch (Exception ex)
             {
-                this.logger.LogError(
+                logger.LogError(
                     ex,
                     "Error processing scheduler store '{StoreIdentifier}'",
                     storeIdentifier);

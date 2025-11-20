@@ -27,6 +27,8 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
 {
     private readonly SemaphoreOptions options;
     private readonly ILogger<SqlSemaphoreService> logger;
+    private readonly string serverName;
+    private readonly string databaseName;
 
     public SqlSemaphoreService(
         IOptions<SemaphoreOptions> options,
@@ -34,6 +36,7 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
     {
         this.options = options.Value;
         this.logger = logger;
+        (this.serverName, this.databaseName) = ParseConnectionInfo(this.options.ConnectionString);
     }
 
     public async Task<SemaphoreAcquireResult> TryAcquireAsync(
@@ -90,12 +93,26 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
         }
         catch (SqlException ex)
         {
-            this.logger.LogError(ex, "Failed to acquire semaphore '{Name}' for owner '{OwnerId}'", name, ownerId);
+            this.logger.LogError(
+                ex,
+                "Failed to acquire semaphore '{Name}' for owner '{OwnerId}' on {Server}/{Database} (Schema {Schema})",
+                name,
+                ownerId,
+                this.serverName,
+                this.databaseName,
+                this.options.SchemaName);
             return SemaphoreAcquireResult.Unavailable();
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Unexpected error acquiring semaphore '{Name}' for owner '{OwnerId}'", name, ownerId);
+            this.logger.LogError(
+                ex,
+                "Unexpected error acquiring semaphore '{Name}' for owner '{OwnerId}' on {Server}/{Database} (Schema {Schema})",
+                name,
+                ownerId,
+                this.serverName,
+                this.databaseName,
+                this.options.SchemaName);
             return SemaphoreAcquireResult.Unavailable();
         }
     }
@@ -137,12 +154,26 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
         }
         catch (SqlException ex)
         {
-            this.logger.LogError(ex, "Failed to renew semaphore '{Name}' token '{Token}'", name, token);
+            this.logger.LogError(
+                ex,
+                "Failed to renew semaphore '{Name}' token '{Token}' on {Server}/{Database} (Schema {Schema})",
+                name,
+                token,
+                this.serverName,
+                this.databaseName,
+                this.options.SchemaName);
             return SemaphoreRenewResult.Unavailable();
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Unexpected error renewing semaphore '{Name}' token '{Token}'", name, token);
+            this.logger.LogError(
+                ex,
+                "Unexpected error renewing semaphore '{Name}' token '{Token}' on {Server}/{Database} (Schema {Schema})",
+                name,
+                token,
+                this.serverName,
+                this.databaseName,
+                this.options.SchemaName);
             return SemaphoreRenewResult.Unavailable();
         }
     }
@@ -174,12 +205,26 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
         }
         catch (SqlException ex)
         {
-            this.logger.LogError(ex, "Failed to release semaphore '{Name}' token '{Token}'", name, token);
+            this.logger.LogError(
+                ex,
+                "Failed to release semaphore '{Name}' token '{Token}' on {Server}/{Database} (Schema {Schema})",
+                name,
+                token,
+                this.serverName,
+                this.databaseName,
+                this.options.SchemaName);
             return SemaphoreReleaseResult.Unavailable();
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Unexpected error releasing semaphore '{Name}' token '{Token}'", name, token);
+            this.logger.LogError(
+                ex,
+                "Unexpected error releasing semaphore '{Name}' token '{Token}' on {Server}/{Database} (Schema {Schema})",
+                name,
+                token,
+                this.serverName,
+                this.databaseName,
+                this.options.SchemaName);
             return SemaphoreReleaseResult.Unavailable();
         }
     }
@@ -225,7 +270,13 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Failed to reap expired semaphore leases for '{Name}'", name ?? "all");
+            this.logger.LogError(
+                ex,
+                "Failed to reap expired semaphore leases for '{Name}' on {Server}/{Database} (Schema {Schema})",
+                name ?? "all",
+                this.serverName,
+                this.databaseName,
+                this.options.SchemaName);
             return 0;
         }
     }
@@ -257,7 +308,14 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Failed to ensure semaphore '{Name}' exists with limit {Limit}", name, limit);
+            this.logger.LogError(
+                ex,
+                "Failed to ensure semaphore '{Name}' exists with limit {Limit} on {Server}/{Database} (Schema {Schema})",
+                name,
+                limit,
+                this.serverName,
+                this.databaseName,
+                this.options.SchemaName);
             throw;
         }
     }
@@ -321,8 +379,28 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Failed to update semaphore '{Name}' limit to {NewLimit}", name, newLimit);
+            this.logger.LogError(
+                ex,
+                "Failed to update semaphore '{Name}' limit to {NewLimit} on {Server}/{Database} (Schema {Schema})",
+                name,
+                newLimit,
+                this.serverName,
+                this.databaseName,
+                this.options.SchemaName);
             throw;
+        }
+    }
+
+    private static (string Server, string Database) ParseConnectionInfo(string cs)
+    {
+        try
+        {
+            var builder = new SqlConnectionStringBuilder(cs);
+            return (builder.DataSource ?? "unknown-server", builder.InitialCatalog ?? "unknown-database");
+        }
+        catch
+        {
+            return ("unknown-server", "unknown-database");
         }
     }
 }
