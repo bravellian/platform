@@ -56,6 +56,10 @@ public class ManualSchemaExportTests : IAsyncLifetime
     /// This manual test deploys all platform schemas to a fresh SQL Server container
     /// and then uses SqlPackage to extract the schema and update the SQL Server project.
     /// 
+    /// This test creates two separate databases and two separate dacpac files:
+    /// 1. Control Plane database - contains Semaphore and Central Metrics schemas
+    /// 2. Multi-Database schema - contains Outbox, Inbox, Scheduler, Lease, Fanout, Metrics, and DistributedLock schemas
+    /// 
     /// Note: This test runs by default. To prevent it from running in CI, add a Skip parameter:
     /// [Fact(Skip = "Manual test only - run explicitly when you want to update the SQL Server project")]
     /// </summary>
@@ -69,9 +73,53 @@ public class ManualSchemaExportTests : IAsyncLifetime
             throw new InvalidOperationException("Connection string is not initialized. Ensure InitializeAsync was called.");
         }
 
-        // Create new database:
-        Microsoft.Data.SqlClient.SqlConnectionStringBuilder builder = new(connectionString);
-        string databaseName = "BravellianPlatformSchemaExport";
+        var projectRoot = GetProjectRoot();
+        var sqlProjectPath = Path.Combine(projectRoot, "src", "Bravellian.Platform.Database");
+
+        // Create and deploy Control Plane database
+        Console.WriteLine("=== Creating Control Plane Database ===");
+        string controlPlaneConnectionString = await CreateAndDeployControlPlaneDatabase(connectionString);
+        
+        // Create and deploy Multi-Database schema
+        Console.WriteLine("\n=== Creating Multi-Database Schema ===");
+        string multiDatabaseConnectionString = await CreateAndDeployMultiDatabase(connectionString);
+
+        // Extract Control Plane dacpac
+        Console.WriteLine("\n=== Extracting Control Plane DACPAC ===");
+        var controlPlaneDacpacPath = Path.Combine(sqlProjectPath, "Bravellian.Platform.ControlPlane.dacpac");
+        Console.WriteLine($"Extracting Control Plane schema to: {controlPlaneDacpacPath}");
+        await ExtractDacpac(controlPlaneConnectionString, controlPlaneDacpacPath).ConfigureAwait(false);
+        Console.WriteLine($"Control Plane DACPAC file created at: {controlPlaneDacpacPath}");
+
+        // Extract Multi-Database dacpac
+        Console.WriteLine("\n=== Extracting Multi-Database DACPAC ===");
+        var multiDatabaseDacpacPath = Path.Combine(sqlProjectPath, "Bravellian.Platform.MultiDatabase.dacpac");
+        Console.WriteLine($"Extracting Multi-Database schema to: {multiDatabaseDacpacPath}");
+        await ExtractDacpac(multiDatabaseConnectionString, multiDatabaseDacpacPath).ConfigureAwait(false);
+        Console.WriteLine($"Multi-Database DACPAC file created at: {multiDatabaseDacpacPath}");
+
+        // Now update the SQL project from the databases
+        Console.WriteLine("\n=== Updating SQL Server Project ===");
+        Console.WriteLine("Updating SQL Server project from deployed databases...");
+        await UpdateSqlProjectFromDatabase(controlPlaneConnectionString, sqlProjectPath).ConfigureAwait(false);
+        await UpdateSqlProjectFromDatabase(multiDatabaseConnectionString, sqlProjectPath).ConfigureAwait(false);
+
+        Console.WriteLine("\n=== Summary ===");
+        Console.WriteLine("SQL Server project updated successfully.");
+        Console.WriteLine($"Control Plane DACPAC: {controlPlaneDacpacPath}");
+        Console.WriteLine($"Multi-Database DACPAC: {multiDatabaseDacpacPath}");
+        Console.WriteLine("\nNext steps:");
+        Console.WriteLine("1. Review the changes in the SQL project");
+        Console.WriteLine("2. Commit the updated SQL project files if the changes are correct");
+    }
+
+    /// <summary>
+    /// Creates and deploys the Control Plane database with Semaphore and Central Metrics schemas.
+    /// </summary>
+    private async Task<string> CreateAndDeployControlPlaneDatabase(string baseConnectionString)
+    {
+        Microsoft.Data.SqlClient.SqlConnectionStringBuilder builder = new(baseConnectionString);
+        string databaseName = "BravellianPlatform_ControlPlane";
         builder.InitialCatalog = "master";
 
         await using (var connection = new Microsoft.Data.SqlClient.SqlConnection(builder.ConnectionString))
@@ -81,50 +129,61 @@ public class ManualSchemaExportTests : IAsyncLifetime
             createDbCommand.CommandText = $"IF DB_ID(N'{databaseName}') IS NULL CREATE DATABASE [{databaseName}];";
             await createDbCommand.ExecuteNonQueryAsync(Xunit.TestContext.Current.CancellationToken);
             await connection.CloseAsync();
-            builder.InitialCatalog = databaseName;
-            connectionString = builder.ConnectionString;
         }
 
-        // Arrange - Deploy all schemas to the container
-        Console.WriteLine("Deploying platform schemas to SQL Server container...");
-        Console.WriteLine($"Connection string: {connectionString}");
+        builder.InitialCatalog = databaseName;
+        string controlPlaneConnectionString = builder.ConnectionString;
 
-        // Deploy all platform schemas
-        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(connectionString, "infra", "Outbox");
-        await DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(connectionString, "infra");
-        await DatabaseSchemaManager.EnsureInboxSchemaAsync(connectionString, "infra", "Inbox");
-        await DatabaseSchemaManager.EnsureInboxWorkQueueSchemaAsync(connectionString, "infra");
-        await DatabaseSchemaManager.EnsureSchedulerSchemaAsync(connectionString, "infra", "Jobs", "JobRuns", "Timers");
-        await DatabaseSchemaManager.EnsureLeaseSchemaAsync(connectionString, "infra", "Lease");
-        await DatabaseSchemaManager.EnsureDistributedLockSchemaAsync(connectionString, "infra", "DistributedLock");
-        await DatabaseSchemaManager.EnsureFanoutSchemaAsync(connectionString, "infra", "FanoutPolicy", "FanoutCursor");
-        await DatabaseSchemaManager.EnsureSemaphoreSchemaAsync(connectionString, "infra");
-        await DatabaseSchemaManager.EnsureMetricsSchemaAsync(connectionString, "infra");
+        Console.WriteLine($"Deploying Control Plane schemas to database: {databaseName}");
+        Console.WriteLine($"Connection string: {controlPlaneConnectionString}");
 
-        Console.WriteLine("Schema deployment completed successfully.");
+        // Deploy Control Plane schemas
+        await DatabaseSchemaManager.EnsureSemaphoreSchemaAsync(controlPlaneConnectionString, "infra");
+        await DatabaseSchemaManager.EnsureCentralMetricsSchemaAsync(controlPlaneConnectionString, "infra");
 
-        // Act - Extract schema using SqlPackage
-        var projectRoot = GetProjectRoot();
-        var sqlProjectPath = Path.Combine(projectRoot, "src", "Bravellian.Platform.Database");
-        var dacpacPath = Path.Combine(sqlProjectPath, "Bravellian.Platform.Database.dacpac");
+        Console.WriteLine("Control Plane schema deployment completed successfully.");
+        
+        return controlPlaneConnectionString;
+    }
 
-        Console.WriteLine($"SQL Project path: {sqlProjectPath}");
-        Console.WriteLine($"Extracting schema to: {dacpacPath}");
+    /// <summary>
+    /// Creates and deploys the Multi-Database with all tenant/application-level schemas.
+    /// </summary>
+    private async Task<string> CreateAndDeployMultiDatabase(string baseConnectionString)
+    {
+        Microsoft.Data.SqlClient.SqlConnectionStringBuilder builder = new(baseConnectionString);
+        string databaseName = "BravellianPlatform_MultiDatabase";
+        builder.InitialCatalog = "master";
 
-        // Extract the schema to a .dacpac file
-        await ExtractDacpac(connectionString, dacpacPath).ConfigureAwait(false);
+        await using (var connection = new Microsoft.Data.SqlClient.SqlConnection(builder.ConnectionString))
+        {
+            await connection.OpenAsync(Xunit.TestContext.Current.CancellationToken);
+            var createDbCommand = connection.CreateCommand();
+            createDbCommand.CommandText = $"IF DB_ID(N'{databaseName}') IS NULL CREATE DATABASE [{databaseName}];";
+            await createDbCommand.ExecuteNonQueryAsync(Xunit.TestContext.Current.CancellationToken);
+            await connection.CloseAsync();
+        }
 
-        Console.WriteLine("Schema extraction completed successfully.");
-        Console.WriteLine($"DACPAC file created at: {dacpacPath}");
+        builder.InitialCatalog = databaseName;
+        string multiDatabaseConnectionString = builder.ConnectionString;
 
-        // Now update the SQL project from the database
-        Console.WriteLine("Updating SQL Server project from deployed database...");
-        await UpdateSqlProjectFromDatabase(connectionString, sqlProjectPath).ConfigureAwait(false);
+        Console.WriteLine($"Deploying Multi-Database schemas to database: {databaseName}");
+        Console.WriteLine($"Connection string: {multiDatabaseConnectionString}");
 
-        Console.WriteLine("SQL Server project updated successfully.");
-        Console.WriteLine("\nNext steps:");
-        Console.WriteLine("1. Review the changes in the SQL project");
-        Console.WriteLine("2. Commit the updated SQL project files if the changes are correct");
+        // Deploy Multi-Database schemas
+        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(multiDatabaseConnectionString, "infra", "Outbox");
+        await DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(multiDatabaseConnectionString, "infra");
+        await DatabaseSchemaManager.EnsureInboxSchemaAsync(multiDatabaseConnectionString, "infra", "Inbox");
+        await DatabaseSchemaManager.EnsureInboxWorkQueueSchemaAsync(multiDatabaseConnectionString, "infra");
+        await DatabaseSchemaManager.EnsureSchedulerSchemaAsync(multiDatabaseConnectionString, "infra", "Jobs", "JobRuns", "Timers");
+        await DatabaseSchemaManager.EnsureLeaseSchemaAsync(multiDatabaseConnectionString, "infra", "Lease");
+        await DatabaseSchemaManager.EnsureDistributedLockSchemaAsync(multiDatabaseConnectionString, "infra", "DistributedLock");
+        await DatabaseSchemaManager.EnsureFanoutSchemaAsync(multiDatabaseConnectionString, "infra", "FanoutPolicy", "FanoutCursor");
+        await DatabaseSchemaManager.EnsureMetricsSchemaAsync(multiDatabaseConnectionString, "infra");
+
+        Console.WriteLine("Multi-Database schema deployment completed successfully.");
+        
+        return multiDatabaseConnectionString;
     }
 
     /// <summary>
