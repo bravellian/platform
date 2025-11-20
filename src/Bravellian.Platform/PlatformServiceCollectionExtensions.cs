@@ -235,7 +235,7 @@ public static class PlatformServiceCollectionExtensions
         services.AddSingleton(configuration);
 
         // Discovery service must be registered by the caller
-        // Validate it exists at runtime in lifecycle service
+        EnsureSingleDiscoveryRegistered(services);
 
         // Register lifecycle service
         services.AddSingleton<IHostedService, PlatformLifecycleService>();
@@ -275,6 +275,39 @@ public static class PlatformServiceCollectionExtensions
             });
     }
 
+    /// <summary>
+    /// Registers the platform for a multi-database environment with control plane using a discovery factory.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="discoveryFactory">Factory that creates the IPlatformDatabaseDiscovery instance.</param>
+    /// <param name="controlPlaneOptions">The control plane configuration options.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddPlatformMultiDatabaseWithControlPlaneAndDiscovery(
+        this IServiceCollection services,
+        Func<IServiceProvider, IPlatformDatabaseDiscovery> discoveryFactory,
+        PlatformControlPlaneOptions controlPlaneOptions)
+    {
+        ArgumentNullException.ThrowIfNull(discoveryFactory);
+        services.AddSingleton<IPlatformDatabaseDiscovery>(discoveryFactory);
+        return services.AddPlatformMultiDatabaseWithControlPlaneAndDiscovery(controlPlaneOptions);
+    }
+
+    /// <summary>
+    /// Registers the platform for a multi-database environment with control plane using a discovery type.
+    /// </summary>
+    /// <typeparam name="TDiscovery">The discovery implementation.</typeparam>
+    /// <param name="services">The service collection.</param>
+    /// <param name="controlPlaneOptions">The control plane configuration options.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddPlatformMultiDatabaseWithControlPlaneAndDiscovery<TDiscovery>(
+        this IServiceCollection services,
+        PlatformControlPlaneOptions controlPlaneOptions)
+        where TDiscovery : class, IPlatformDatabaseDiscovery
+    {
+        services.AddSingleton<IPlatformDatabaseDiscovery, TDiscovery>();
+        return services.AddPlatformMultiDatabaseWithControlPlaneAndDiscovery(controlPlaneOptions);
+    }
+
     private static void EnsureNotAlreadyRegistered(IServiceCollection services)
     {
         // Check if already registered by looking for PlatformConfiguration
@@ -287,6 +320,46 @@ public static class PlatformServiceCollectionExtensions
                 "AddPlatformMultiDatabaseWithDiscovery, AddPlatformMultiDatabaseWithControlPlaneAndList, or " +
                 "AddPlatformMultiDatabaseWithControlPlaneAndDiscovery.");
         }
+    }
+
+    private static void EnsureSingleDiscoveryRegistered(IServiceCollection services)
+    {
+        var discoveryDescriptors = services
+            .Where(d => d.ServiceType == typeof(IPlatformDatabaseDiscovery))
+            .ToList();
+
+        if (discoveryDescriptors.Count == 0)
+        {
+            throw new InvalidOperationException(
+                "IPlatformDatabaseDiscovery is not registered. Register your discovery implementation before calling AddPlatformMultiDatabaseWithControlPlaneAndDiscovery (or use the overload that accepts a discovery factory/type).");
+        }
+
+        if (discoveryDescriptors.Count > 1)
+        {
+            var details = string.Join(", ", discoveryDescriptors.Select(DescribeDescriptor));
+            throw new InvalidOperationException(
+                $"Multiple IPlatformDatabaseDiscovery registrations were found: {details}. Only one discovery implementation is supported. Ensure exactly one is registered.");
+        }
+    }
+
+    private static string DescribeDescriptor(ServiceDescriptor descriptor)
+    {
+        if (descriptor.ImplementationType != null)
+        {
+            return descriptor.ImplementationType.FullName ?? "UnknownType";
+        }
+
+        if (descriptor.ImplementationInstance != null)
+        {
+            return descriptor.ImplementationInstance.GetType().FullName ?? "UnknownInstance";
+        }
+
+        if (descriptor.ImplementationFactory != null)
+        {
+            return $"Factory:{descriptor.ServiceType.FullName}";
+        }
+
+        return descriptor.ServiceType.FullName ?? "Unknown";
     }
 
     private static void RegisterCoreServices(IServiceCollection services, bool enableSchemaDeployment)

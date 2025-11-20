@@ -44,7 +44,7 @@ public class MultiDatabaseControlPlaneIntegrationTests
     public async Task ListRegistration_WiresControlPlaneAndDiscoversDatabases()
     {
         var tenants = await CreateTenantDatabasesAsync(2).ConfigureAwait(false);
-        var controlPlaneConnection = await fixture.CreateTestDatabaseAsync().ConfigureAwait(false);
+        var controlPlaneConnection = await fixture.CreateTestDatabaseAsync("controlplane").ConfigureAwait(false);
 
         await PrecreateSchemasAsync(tenants, controlPlaneConnection).ConfigureAwait(false);
 
@@ -76,7 +76,7 @@ public class MultiDatabaseControlPlaneIntegrationTests
     public async Task OutboxDispatch_List_MultipleTenants()
     {
         var tenants = await CreateTenantDatabasesAsync(2).ConfigureAwait(false);
-        var controlPlaneConnection = await fixture.CreateTestDatabaseAsync().ConfigureAwait(false);
+        var controlPlaneConnection = await fixture.CreateTestDatabaseAsync("controlplane").ConfigureAwait(false);
         await PrecreateSchemasAsync(tenants, controlPlaneConnection).ConfigureAwait(false);
 
         var processed = new ConcurrentBag<string>();
@@ -103,7 +103,7 @@ public class MultiDatabaseControlPlaneIntegrationTests
     public async Task OutboxDispatch_List_SingleTenant()
     {
         var tenants = await CreateTenantDatabasesAsync(1).ConfigureAwait(false);
-        var controlPlaneConnection = await fixture.CreateTestDatabaseAsync().ConfigureAwait(false);
+        var controlPlaneConnection = await fixture.CreateTestDatabaseAsync("controlplane").ConfigureAwait(false);
         await PrecreateSchemasAsync(tenants, controlPlaneConnection).ConfigureAwait(false);
 
         var processed = new ConcurrentBag<string>();
@@ -126,7 +126,7 @@ public class MultiDatabaseControlPlaneIntegrationTests
     public async Task OutboxDispatch_Discovery_MultipleTenants()
     {
         var tenants = await CreateTenantDatabasesAsync(2).ConfigureAwait(false);
-        var controlPlaneConnection = await fixture.CreateTestDatabaseAsync().ConfigureAwait(false);
+        var controlPlaneConnection = await fixture.CreateTestDatabaseAsync("controlplane").ConfigureAwait(false);
         await PrecreateSchemasAsync(tenants, controlPlaneConnection).ConfigureAwait(false);
 
         var processed = new ConcurrentBag<string>();
@@ -152,7 +152,7 @@ public class MultiDatabaseControlPlaneIntegrationTests
     public async Task OutboxDispatch_Discovery_SingleTenant()
     {
         var tenants = await CreateTenantDatabasesAsync(1).ConfigureAwait(false);
-        var controlPlaneConnection = await fixture.CreateTestDatabaseAsync().ConfigureAwait(false);
+        var controlPlaneConnection = await fixture.CreateTestDatabaseAsync("controlplane").ConfigureAwait(false);
         await PrecreateSchemasAsync(tenants, controlPlaneConnection).ConfigureAwait(false);
 
         var processed = new ConcurrentBag<string>();
@@ -179,7 +179,7 @@ public class MultiDatabaseControlPlaneIntegrationTests
             tenants.Add(new PlatformDatabase
             {
                 Name = $"tenant-{i + 1}",
-                ConnectionString = await fixture.CreateTestDatabaseAsync().ConfigureAwait(false),
+                ConnectionString = await fixture.CreateTestDatabaseAsync($"tenant{i + 1}").ConfigureAwait(false),
                 SchemaName = $"app_{i + 1}",
             });
         }

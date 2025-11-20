@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
 using Microsoft.Data.SqlClient;
 using Testcontainers.MsSql;
 
+namespace Bravellian.Platform.Tests;
 /// <summary>
 /// Base test class that provides a SQL Server TestContainer for integration testing.
 /// Automatically manages the container lifecycle and database schema setup.
@@ -33,11 +33,11 @@ public abstract class SqlServerTestBase : IAsyncLifetime
     /// </summary>
     protected SqlServerTestBase(ITestOutputHelper testOutputHelper)
     {
-        this.msSqlContainer = new MsSqlBuilder()
+        msSqlContainer = new MsSqlBuilder()
             .WithImage("mcr.microsoft.com/mssql/server:2022-CU10-ubuntu-22.04")
             .Build();
 
-        this.TestOutputHelper = testOutputHelper;
+        TestOutputHelper = testOutputHelper;
     }
 
     /// <summary>
@@ -47,7 +47,7 @@ public abstract class SqlServerTestBase : IAsyncLifetime
     protected SqlServerTestBase(ITestOutputHelper testOutputHelper, SqlServerCollectionFixture sharedFixture)
     {
         this.sharedFixture = sharedFixture;
-        this.TestOutputHelper = testOutputHelper;
+        TestOutputHelper = testOutputHelper;
     }
 
     protected ITestOutputHelper TestOutputHelper { get; }
@@ -56,31 +56,31 @@ public abstract class SqlServerTestBase : IAsyncLifetime
     /// Gets the connection string for the running SQL Server container.
     /// Only available after InitializeAsync has been called.
     /// </summary>
-    protected string ConnectionString => this.connectionString ?? throw new InvalidOperationException("Container has not been started yet. Make sure InitializeAsync has been called.");
+    protected string ConnectionString => connectionString ?? throw new InvalidOperationException("Container has not been started yet. Make sure InitializeAsync has been called.");
 
     public virtual async ValueTask InitializeAsync()
     {
-        if (this.sharedFixture != null)
+        if (sharedFixture != null)
         {
             // Using shared container - create a new database in the shared container
-            this.connectionString = await this.sharedFixture.CreateTestDatabaseAsync().ConfigureAwait(false);
+            connectionString = await sharedFixture.CreateTestDatabaseAsync("shared").ConfigureAwait(false);
         }
         else
         {
             // Using standalone container
-            await this.msSqlContainer!.StartAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
-            this.connectionString = this.msSqlContainer.GetConnectionString();
+            await msSqlContainer!.StartAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
+            connectionString = msSqlContainer.GetConnectionString();
         }
 
-        await this.SetupDatabaseSchema().ConfigureAwait(false);
+        await SetupDatabaseSchema().ConfigureAwait(false);
     }
 
     public virtual async ValueTask DisposeAsync()
     {
         // Only dispose the container if we own it (standalone mode)
-        if (this.msSqlContainer != null)
+        if (msSqlContainer != null)
         {
-            await this.msSqlContainer.DisposeAsync().ConfigureAwait(false);
+            await msSqlContainer.DisposeAsync().ConfigureAwait(false);
         }
 
         // In shared mode, we don't dispose the container - it's managed by the collection fixture
@@ -92,25 +92,25 @@ public abstract class SqlServerTestBase : IAsyncLifetime
     /// </summary>
     private async Task SetupDatabaseSchema()
     {
-        var connection = new SqlConnection(this.connectionString);
+        var connection = new SqlConnection(connectionString);
         await using (connection.ConfigureAwait(false))
         {
             await connection.OpenAsync(TestContext.Current.CancellationToken);
 
             // Create the database schema in the correct order (due to foreign key dependencies)
-            await this.ExecuteSqlScript(connection, this.GetOutboxTableScript());
-            await this.ExecuteSqlScript(connection, this.GetOutboxStateTableScript());
-            await this.ExecuteSqlScript(connection, this.GetInboxTableScript());
-            await this.ExecuteSqlScript(connection, this.GetTimersTableScript());
-            await this.ExecuteSqlScript(connection, this.GetJobsTableScript());
-            await this.ExecuteSqlScript(connection, this.GetJobRunsTableScript());
-            await this.ExecuteSqlScript(connection, this.GetSchedulerStateTableScript());
+            await ExecuteSqlScript(connection, GetOutboxTableScript());
+            await ExecuteSqlScript(connection, GetOutboxStateTableScript());
+            await ExecuteSqlScript(connection, GetInboxTableScript());
+            await ExecuteSqlScript(connection, GetTimersTableScript());
+            await ExecuteSqlScript(connection, GetJobsTableScript());
+            await ExecuteSqlScript(connection, GetJobRunsTableScript());
+            await ExecuteSqlScript(connection, GetSchedulerStateTableScript());
 
             // Create stored procedures
-            await this.ExecuteSqlScript(connection, this.GetOutboxCleanupProcedure());
-            await this.ExecuteSqlScript(connection, this.GetInboxCleanupProcedure());
+            await ExecuteSqlScript(connection, GetOutboxCleanupProcedure());
+            await ExecuteSqlScript(connection, GetInboxCleanupProcedure());
 
-            this.TestOutputHelper.WriteLine($"Database schema created successfully on {connection.DataSource}");
+            TestOutputHelper.WriteLine($"Database schema created successfully on {connection.DataSource}");
         }
     }
 

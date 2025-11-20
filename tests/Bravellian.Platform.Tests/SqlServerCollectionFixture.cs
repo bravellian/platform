@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
 using Microsoft.Data.SqlClient;
 using Testcontainers.MsSql;
 
+namespace Bravellian.Platform.Tests;
 /// <summary>
 /// Shared SQL Server container fixture for all database integration tests.
 /// This reduces test execution time by reusing a single Docker container across multiple test classes.
@@ -30,7 +30,7 @@ public sealed class SqlServerCollectionFixture : IAsyncLifetime
 
     public SqlServerCollectionFixture()
     {
-        this.msSqlContainer = new MsSqlBuilder()
+        msSqlContainer = new MsSqlBuilder()
             .WithImage("mcr.microsoft.com/mssql/server:2022-CU10-ubuntu-22.04")
             .WithReuse(true)  // Enable container reuse to avoid rebuilding
             .Build();
@@ -39,17 +39,17 @@ public sealed class SqlServerCollectionFixture : IAsyncLifetime
     /// <summary>
     /// Gets the master connection string for the SQL Server container.
     /// </summary>
-    public string MasterConnectionString => this.connectionString ?? throw new InvalidOperationException("Container has not been started yet.");
+    public string MasterConnectionString => connectionString ?? throw new InvalidOperationException("Container has not been started yet.");
 
     public async ValueTask InitializeAsync()
     {
-        await this.msSqlContainer.StartAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
-        this.connectionString = this.msSqlContainer.GetConnectionString();
+        await msSqlContainer.StartAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
+        connectionString = msSqlContainer.GetConnectionString();
     }
 
     public async ValueTask DisposeAsync()
     {
-        await this.msSqlContainer.DisposeAsync().ConfigureAwait(false);
+        await msSqlContainer.DisposeAsync().ConfigureAwait(false);
     }
 
     /// <summary>
@@ -57,24 +57,24 @@ public sealed class SqlServerCollectionFixture : IAsyncLifetime
     /// This ensures test isolation while sharing the same Docker container.
     /// </summary>
     /// <returns>A connection string to the newly created database.</returns>
-    public async Task<string> CreateTestDatabaseAsync()
+    public async Task<string> CreateTestDatabaseAsync(string name)
     {
-        if (this.connectionString == null)
+        if (connectionString == null)
         {
             throw new InvalidOperationException("Container has not been initialized. Ensure InitializeAsync has been called before creating databases.");
         }
 
-        var dbNumber = Interlocked.Increment(ref this.databaseCounter);
-        var dbName = $"TestDb_{dbNumber}_{Guid.NewGuid():N}";
+        var dbNumber = Interlocked.Increment(ref databaseCounter);
+        var dbName = $"TestDb_{dbNumber}_{name}_{Guid.NewGuid():N}";
 
-        await using var connection = new SqlConnection(this.connectionString);
+        await using var connection = new SqlConnection(connectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
-        
+
         await using var command = new SqlCommand($"CREATE DATABASE [{dbName}]", connection);
         await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
 
         // Build connection string for the new database
-        var builder = new SqlConnectionStringBuilder(this.connectionString)
+        var builder = new SqlConnectionStringBuilder(connectionString)
         {
             InitialCatalog = dbName
         };

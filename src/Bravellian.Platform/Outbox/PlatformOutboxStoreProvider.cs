@@ -17,6 +17,7 @@ namespace Bravellian.Platform;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -59,7 +60,30 @@ internal sealed class PlatformOutboxStoreProvider : IOutboxStoreProvider
     {
         if (this.cachedStores == null)
         {
+            this.logger.LogDebug("Starting platform database discovery for outbox stores");
+
             var databases = (await this.discovery.DiscoverDatabasesAsync().ConfigureAwait(false)).ToList();
+            this.logger.LogDebug(
+                "Discovery returned {Count} database(s): {Databases}",
+                databases.Count,
+                string.Join(", ", databases.Select(FormatDatabase)));
+
+            // If discovery ever returns the control plane DB, surface it loudly but do not remove it
+            // (single-DB setups sometimes intentionally share a connection string).
+            if (this.platformConfiguration?.EnvironmentStyle == PlatformEnvironmentStyle.MultiDatabaseWithControl &&
+                !string.IsNullOrWhiteSpace(this.platformConfiguration.ControlPlaneConnectionString))
+            {
+                foreach (var db in databases)
+                {
+                    if (IsSameConnection(db.ConnectionString, this.platformConfiguration.ControlPlaneConnectionString))
+                    {
+                        this.logger.LogWarning(
+                            "Discovered database {Database} matches the configured control plane connection. " +
+                            "Outbox stores should typically exclude the control plane. Check your discovery source.",
+                            FormatDatabase(db));
+                    }
+                }
+            }
 
             lock (this.lockObject)
             {
@@ -76,6 +100,12 @@ internal sealed class PlatformOutboxStoreProvider : IOutboxStoreProvider
                             SchemaName = db.SchemaName,
                             TableName = this.tableName,
                         };
+
+                        this.logger.LogDebug(
+                            "Creating outbox store for database {Database} (Schema: {Schema}, Catalog: {Catalog})",
+                            db.Name,
+                            db.SchemaName,
+                            TryGetCatalog(db.ConnectionString));
                         
                         var storeLogger = this.loggerFactory.CreateLogger<SqlOutboxStore>();
                         var store = new SqlOutboxStore(
@@ -180,5 +210,41 @@ internal sealed class PlatformOutboxStoreProvider : IOutboxStoreProvider
         return this.outboxesByKey.TryGetValue(key, out var outbox)
             ? outbox
             : throw new KeyNotFoundException($"No outbox found for key: {key}");
+    }
+
+    private static string FormatDatabase(PlatformDatabase db)
+    {
+        return $"{db.Name} (Schema: {db.SchemaName}, Catalog: {TryGetCatalog(db.ConnectionString)})";
+    }
+
+    private static string TryGetCatalog(string connectionString)
+    {
+        try
+        {
+            var builder = new SqlConnectionStringBuilder(connectionString);
+            return string.IsNullOrWhiteSpace(builder.InitialCatalog)
+                ? "<unknown>"
+                : builder.InitialCatalog;
+        }
+        catch
+        {
+            return "<unparsed>";
+        }
+    }
+
+    private static bool IsSameConnection(string a, string b)
+    {
+        try
+        {
+            var builderA = new SqlConnectionStringBuilder(a);
+            var builderB = new SqlConnectionStringBuilder(b);
+            return string.Equals(builderA.DataSource, builderB.DataSource, StringComparison.OrdinalIgnoreCase)
+                   && string.Equals(builderA.InitialCatalog, builderB.InitialCatalog, StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            // If parsing fails, fall back to simple string comparison
+            return string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+        }
     }
 }
