@@ -41,6 +41,7 @@ public static class LeaseServiceCollectionExtensions
 
         services.Configure<SystemLeaseOptions>(o =>
         {
+            o.ConnectionString = options.ConnectionString;
             o.SchemaName = options.SchemaName;
             o.DefaultLeaseDuration = options.DefaultLeaseDuration;
             o.RenewPercent = options.RenewPercent;
@@ -94,6 +95,7 @@ public static class LeaseServiceCollectionExtensions
 
         services.Configure<SystemLeaseOptions>(o =>
         {
+            o.ConnectionString = connectionString;
             o.SchemaName = options.SchemaName;
             o.DefaultLeaseDuration = options.DefaultLeaseDuration;
             o.RenewPercent = options.RenewPercent;

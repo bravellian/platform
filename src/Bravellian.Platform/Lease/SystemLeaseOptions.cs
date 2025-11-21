@@ -19,6 +19,11 @@ namespace Bravellian.Platform;
 public class SystemLeaseOptions
 {
     /// <summary>
+    /// Gets or sets the connection string for the distributed lock database.
+    /// </summary>
+    public string ConnectionString { get; set; } = string.Empty;
+
+    /// <summary>
     /// Gets or sets the schema name for the distributed lock table.
     /// Default is "dbo".
     /// </summary>
