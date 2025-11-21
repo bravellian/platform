@@ -75,6 +75,7 @@ public static class SchedulerServiceCollectionExtensions
     /// <param name="services">The IServiceCollection to add services to.</param>
     /// <param name="options">The configuration, used to set the options.</param>
     /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
+    [Obsolete("This method uses a hardcoded connection string and creates its own lease factories, bypassing dynamic discovery. Use AddPlatformMultiDatabaseWithDiscovery or AddPlatformMultiDatabaseWithList instead to ensure all databases go through IPlatformDatabaseDiscovery.")]
     public static IServiceCollection AddSqlScheduler(this IServiceCollection services, SqlSchedulerOptions options)
     {
         // Add time abstractions
@@ -540,6 +541,7 @@ public static class SchedulerServiceCollectionExtensions
     /// <param name="schedulerOptions">List of scheduler options, one for each database to poll.</param>
     /// <param name="selectionStrategy">Optional selection strategy. Defaults to RoundRobinOutboxSelectionStrategy.</param>
     /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
+    [Obsolete("This method uses hardcoded database configurations and creates its own lease factories, bypassing dynamic discovery. Use AddPlatformMultiDatabaseWithDiscovery or AddPlatformMultiDatabaseWithList instead to ensure all databases go through IPlatformDatabaseDiscovery.")]
     public static IServiceCollection AddMultiSqlScheduler(
         this IServiceCollection services,
         IEnumerable<SchedulerDatabaseConfig> schedulerOptions,
