@@ -146,35 +146,12 @@ internal sealed class FanoutJobRegistrationService : BackgroundService
 
     private async Task InsertPolicyAsync(IFanoutPolicyRepository policyRepository, CancellationToken cancellationToken)
     {
-        // We need to add a method to insert policies. For now, we'll create a simple SQL insert.
-        // This should be moved to the repository interface in the future.
-        var connectionString = serviceProvider.GetRequiredService<IOptionsSnapshot<SqlFanoutOptions>>().Value.ConnectionString;
-        var schemaName = serviceProvider.GetRequiredService<IOptionsSnapshot<SqlFanoutOptions>>().Value.SchemaName;
-        var tableName = serviceProvider.GetRequiredService<IOptionsSnapshot<SqlFanoutOptions>>().Value.PolicyTableName;
-
-        var connection = new SqlConnection(connectionString);
-        await using (connection.ConfigureAwait(false))
-        {
-            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-
-            var sql = $"""
-
-                        INSERT INTO [{schemaName}].[{tableName}] 
-                            (FanoutTopic, WorkKey, DefaultEverySeconds, JitterSeconds, CreatedAt, UpdatedAt)
-                        SELECT @FanoutTopic, @WorkKey, @DefaultEverySeconds, @JitterSeconds, SYSDATETIMEOFFSET(), SYSDATETIMEOFFSET()
-                        WHERE NOT EXISTS (
-                            SELECT 1 FROM [{schemaName}].[{tableName}] 
-                            WHERE FanoutTopic = @FanoutTopic AND WorkKey = @WorkKey
-                        )
-            """;
-
-            using var command = new SqlCommand(sql, connection);
-            command.Parameters.AddWithValue("@FanoutTopic", options.FanoutTopic);
-            command.Parameters.AddWithValue("@WorkKey", options.WorkKey ?? "default");
-            command.Parameters.AddWithValue("@DefaultEverySeconds", options.DefaultEverySeconds);
-            command.Parameters.AddWithValue("@JitterSeconds", options.JitterSeconds);
-
-            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-        }
+        // Use the repository interface to insert the policy instead of direct SQL access
+        await policyRepository.SetCadenceAsync(
+            options.FanoutTopic,
+            options.WorkKey ?? "default",
+            options.DefaultEverySeconds,
+            options.JitterSeconds,
+            cancellationToken).ConfigureAwait(false);
     }
 }
