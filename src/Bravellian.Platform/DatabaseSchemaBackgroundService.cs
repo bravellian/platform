@@ -29,6 +29,7 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
     private readonly IOptionsMonitor<SqlSchedulerOptions> schedulerOptions;
     private readonly IOptionsMonitor<SqlInboxOptions> inboxOptions;
     private readonly IOptionsMonitor<SemaphoreOptions> semaphoreOptions;
+    private readonly IOptionsMonitor<SystemLeaseOptions> systemLeaseOptions;
     private readonly DatabaseSchemaCompletion schemaCompletion;
     private readonly PlatformConfiguration platformConfiguration;
     private readonly IPlatformDatabaseDiscovery? databaseDiscovery;
@@ -39,6 +40,7 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
         IOptionsMonitor<SqlSchedulerOptions> schedulerOptions,
         IOptionsMonitor<SqlInboxOptions> inboxOptions,
         IOptionsMonitor<SemaphoreOptions> semaphoreOptions,
+        IOptionsMonitor<SystemLeaseOptions> systemLeaseOptions,
         DatabaseSchemaCompletion schemaCompletion,
         PlatformConfiguration platformConfiguration,
         IPlatformDatabaseDiscovery? databaseDiscovery = null)
@@ -48,6 +50,7 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
         this.schedulerOptions = schedulerOptions;
         this.inboxOptions = inboxOptions;
         this.semaphoreOptions = semaphoreOptions;
+        this.systemLeaseOptions = systemLeaseOptions;
         this.schemaCompletion = schemaCompletion;
         this.platformConfiguration = platformConfiguration;
         this.databaseDiscovery = databaseDiscovery;
@@ -102,6 +105,13 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
                 if (inboxOpts.EnableSchemaDeployment && !string.IsNullOrEmpty(inboxOpts.ConnectionString))
                 {
                     deploymentTasks.Add(DeployInboxSchemaAsync(inboxOpts, stoppingToken));
+                }
+
+                // Deploy system lease schema if enabled
+                var systemLeaseOpts = systemLeaseOptions.CurrentValue;
+                if (systemLeaseOpts.EnableSchemaDeployment && !string.IsNullOrEmpty(systemLeaseOpts.ConnectionString))
+                {
+                    deploymentTasks.Add(DeploySystemLeaseSchemaAsync(systemLeaseOpts, stoppingToken));
                 }
 
                 // Deploy semaphore schema if enabled
@@ -284,6 +294,14 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
         var options = semaphoreOptions.CurrentValue;
         logger.LogDebug("Deploying semaphore schema at {Schema}", options.SchemaName);
         await DatabaseSchemaManager.EnsureSemaphoreSchemaAsync(
+            options.ConnectionString,
+            options.SchemaName).ConfigureAwait(false);
+    }
+
+    private async Task DeploySystemLeaseSchemaAsync(SystemLeaseOptions options, CancellationToken cancellationToken)
+    {
+        logger.LogDebug("Deploying system lease schema at {Schema}", options.SchemaName);
+        await DatabaseSchemaManager.EnsureDistributedLockSchemaAsync(
             options.ConnectionString,
             options.SchemaName).ConfigureAwait(false);
     }
