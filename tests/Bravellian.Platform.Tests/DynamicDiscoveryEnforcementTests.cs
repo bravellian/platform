@@ -27,8 +27,8 @@ public sealed class DynamicDiscoveryEnforcementTests
     /// <summary>
     /// Verifies that when using platform registration with discovery,
     /// customer database features (Inbox, Outbox, Lease, Scheduler, Fanout) 
-    /// do NOT have IOptions configured in DI (they should use discovery instead).
-    /// Only global features (Semaphores) should have IOptions configured.
+    /// do NOT have services.Configure<TOptions>() called (they should use discovery instead).
+    /// Only global features (Semaphores) should have Configure<TOptions>() called.
     /// </summary>
     [Fact]
     public void PlatformWithDiscovery_ShouldNotConfigureCustomerDatabaseOptions()
@@ -59,12 +59,12 @@ public sealed class DynamicDiscoveryEnforcementTests
 
         var serviceProvider = services.BuildServiceProvider();
 
-        // Act & Assert - Customer database features should NOT have IOptions configured
+        // Act & Assert - Customer database features should NOT have IOptions configured with actual values
+        // Note: We can't check for SystemLeaseOptions because it doesn't have a connection string property
         AssertNoOptionsConfigured<SqlOutboxOptions>(serviceProvider, "Outbox");
         AssertNoOptionsConfigured<SqlInboxOptions>(serviceProvider, "Inbox");
         AssertNoOptionsConfigured<SqlSchedulerOptions>(serviceProvider, "Scheduler");
         AssertNoOptionsConfigured<SqlFanoutOptions>(serviceProvider, "Fanout");
-        AssertNoOptionsConfigured<SystemLeaseOptions>(serviceProvider, "Lease");
 
         // Global features SHOULD have IOptions configured
         AssertOptionsConfigured<SemaphoreOptions>(serviceProvider, "Semaphore");
@@ -72,7 +72,7 @@ public sealed class DynamicDiscoveryEnforcementTests
 
     /// <summary>
     /// Verifies that when using platform registration with a list,
-    /// customer database features do NOT have IOptions configured.
+    /// customer database features do NOT have services.Configure<TOptions>() called.
     /// </summary>
     [Fact]
     public void PlatformWithList_ShouldNotConfigureCustomerDatabaseOptions()
@@ -107,7 +107,6 @@ public sealed class DynamicDiscoveryEnforcementTests
         AssertNoOptionsConfigured<SqlInboxOptions>(serviceProvider, "Inbox");
         AssertNoOptionsConfigured<SqlSchedulerOptions>(serviceProvider, "Scheduler");
         AssertNoOptionsConfigured<SqlFanoutOptions>(serviceProvider, "Fanout");
-        AssertNoOptionsConfigured<SystemLeaseOptions>(serviceProvider, "Lease");
 
         // No global features configured in this scenario
     }
@@ -212,10 +211,6 @@ public sealed class DynamicDiscoveryEnforcementTests
         if (optionsMonitor != null)
         {
             // If IOptionsMonitor is registered, check if it has actual configured values
-            // This is tricky because IOptionsMonitor is always available in DI
-            // We need to check if Configure<TOptions> was actually called
-            var optionsSnapshot = serviceProvider.GetService<IOptionsSnapshot<TOptions>>();
-            
             // The presence of IOptions<TOptions> with non-default values indicates configuration
             var options = serviceProvider.GetService<IOptions<TOptions>>();
             if (options != null)
@@ -253,7 +248,8 @@ public sealed class DynamicDiscoveryEnforcementTests
             SqlInboxOptions inbox => string.IsNullOrEmpty(inbox.ConnectionString),
             SqlSchedulerOptions scheduler => string.IsNullOrEmpty(scheduler.ConnectionString),
             SqlFanoutOptions fanout => string.IsNullOrEmpty(fanout.ConnectionString),
-            SystemLeaseOptions lease => true, // SystemLeaseOptions doesn't have a connection string
+            SystemLeaseOptions => false, // SystemLeaseOptions has no connection string, so we can't determine if it's configured
+                                         // This is OK because leases should not have IOptions configured when using platform discovery
             SemaphoreOptions semaphore => string.IsNullOrEmpty(semaphore.ConnectionString),
             _ => true,
         };
