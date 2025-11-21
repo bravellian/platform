@@ -13,10 +13,6 @@
 // limitations under the License.
 
 namespace Bravellian.Platform;
-
-using System.Collections.Generic;
-using System.Linq;
-
 /// <summary>
 /// Default implementation of IOutboxHandlerResolver that maps handlers by topic.
 /// </summary>
@@ -25,8 +21,8 @@ internal sealed class OutboxHandlerResolver : IOutboxHandlerResolver
     private readonly IReadOnlyDictionary<string, IOutboxHandler> byTopic;
 
     public OutboxHandlerResolver(IEnumerable<IOutboxHandler> handlers)
-        => this.byTopic = handlers.ToDictionary(h => h.Topic, StringComparer.OrdinalIgnoreCase);
+        => byTopic = handlers.ToDictionary(h => h.Topic, StringComparer.OrdinalIgnoreCase);
 
     public bool TryGet(string topic, out IOutboxHandler handler)
-        => this.byTopic.TryGetValue(topic, out handler!);
+        => byTopic.TryGetValue(topic, out handler!);
 }

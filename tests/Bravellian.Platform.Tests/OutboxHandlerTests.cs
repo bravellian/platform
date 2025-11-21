@@ -38,6 +38,20 @@ public class OutboxHandlerTests : SqlServerTestBase
         this.timeProvider = new FakeTimeProvider();
     }
 
+    private MultiOutboxDispatcher CreateDispatcher(
+        IOutboxStore store,
+        IOutboxHandlerResolver resolver,
+        ILogger<MultiOutboxDispatcher>? logger = null)
+    {
+        var provider = new SingleOutboxStoreProvider(store);
+        var strategy = new RoundRobinOutboxSelectionStrategy();
+        return new MultiOutboxDispatcher(
+            provider,
+            strategy,
+            resolver,
+            logger ?? new TestLogger<MultiOutboxDispatcher>(this.TestOutputHelper));
+    }
+
     [Fact]
     public void OutboxHandlerResolver_WithHandlers_ResolvesCorrectly()
     {
@@ -77,14 +91,14 @@ public class OutboxHandlerTests : SqlServerTestBase
     }
 
     [Fact]
-    public async Task OutboxDispatcher_ProcessSingleMessage_Success()
+    public async Task MultiOutboxDispatcher_ProcessSingleMessage_Success()
     {
         // Arrange
         var testHandler = new TestHandler("Test.Topic");
         var resolver = new OutboxHandlerResolver(new[] { testHandler });
         var store = new TestOutboxStore();
-        var logger = new TestLogger<OutboxDispatcher>(this.TestOutputHelper);
-        var dispatcher = new OutboxDispatcher(store, resolver, logger);
+        var logger = new TestLogger<MultiOutboxDispatcher>(this.TestOutputHelper);
+        var dispatcher = this.CreateDispatcher(store, resolver, logger);
 
         var message = new OutboxMessage
         {
@@ -108,13 +122,13 @@ public class OutboxHandlerTests : SqlServerTestBase
     }
 
     [Fact]
-    public async Task OutboxDispatcher_NoHandler_MarksAsFailed()
+    public async Task MultiOutboxDispatcher_NoHandler_MarksAsFailed()
     {
         // Arrange
         var resolver = new OutboxHandlerResolver(Array.Empty<IOutboxHandler>());
         var store = new TestOutboxStore();
-        var logger = new TestLogger<OutboxDispatcher>(this.TestOutputHelper);
-        var dispatcher = new OutboxDispatcher(store, resolver, logger);
+        var logger = new TestLogger<MultiOutboxDispatcher>(this.TestOutputHelper);
+        var dispatcher = this.CreateDispatcher(store, resolver, logger);
 
         var message = new OutboxMessage
         {
@@ -137,15 +151,15 @@ public class OutboxHandlerTests : SqlServerTestBase
     }
 
     [Fact]
-    public async Task OutboxDispatcher_HandlerThrows_ReschedulesWithBackoff()
+    public async Task MultiOutboxDispatcher_HandlerThrows_ReschedulesWithBackoff()
     {
         // Arrange
         var testHandler = new TestHandler("Test.Topic");
         testHandler.ShouldThrow = true;
         var resolver = new OutboxHandlerResolver(new[] { testHandler });
         var store = new TestOutboxStore();
-        var logger = new TestLogger<OutboxDispatcher>(this.TestOutputHelper);
-        var dispatcher = new OutboxDispatcher(store, resolver, logger);
+        var logger = new TestLogger<MultiOutboxDispatcher>(this.TestOutputHelper);
+        var dispatcher = this.CreateDispatcher(store, resolver, logger);
 
         var message = new OutboxMessage
         {
@@ -172,14 +186,14 @@ public class OutboxHandlerTests : SqlServerTestBase
     }
 
     [Fact]
-    public async Task OutboxDispatcher_LogsCorrectly()
+    public async Task MultiOutboxDispatcher_LogsCorrectly()
     {
         // Arrange
         var testHandler = new TestHandler("Test.Topic");
         var resolver = new OutboxHandlerResolver(new[] { testHandler });
         var store = new TestOutboxStore();
-        var logger = new TestLogger<OutboxDispatcher>(this.TestOutputHelper);
-        var dispatcher = new OutboxDispatcher(store, resolver, logger);
+        var logger = new TestLogger<MultiOutboxDispatcher>(this.TestOutputHelper);
+        var dispatcher = this.CreateDispatcher(store, resolver, logger);
 
         var message = new OutboxMessage
         {
@@ -205,15 +219,15 @@ public class OutboxHandlerTests : SqlServerTestBase
     }
 
     [Fact]
-    public async Task OutboxDispatcher_LogsErrors_WhenHandlerFails()
+    public async Task MultiOutboxDispatcher_LogsErrors_WhenHandlerFails()
     {
         // Arrange
         var testHandler = new TestHandler("Test.Topic");
         testHandler.ShouldThrow = true;
         var resolver = new OutboxHandlerResolver(new[] { testHandler });
         var store = new TestOutboxStore();
-        var logger = new TestLogger<OutboxDispatcher>(this.TestOutputHelper);
-        var dispatcher = new OutboxDispatcher(store, resolver, logger);
+        var logger = new TestLogger<MultiOutboxDispatcher>(this.TestOutputHelper);
+        var dispatcher = this.CreateDispatcher(store, resolver, logger);
 
         var message = new OutboxMessage
         {
@@ -238,15 +252,15 @@ public class OutboxHandlerTests : SqlServerTestBase
     }
 
     [Fact]
-    public async Task OutboxDispatcher_LogsAtCorrectLevels()
+    public async Task MultiOutboxDispatcher_LogsAtCorrectLevels()
     {
         // Arrange
-        var capturingLogger = new CapturingLogger<OutboxDispatcher>();
+        var capturingLogger = new CapturingLogger<MultiOutboxDispatcher>();
 
         var testHandler = new TestHandler("Test.Topic");
         var resolver = new OutboxHandlerResolver(new[] { testHandler });
         var store = new TestOutboxStore();
-        var dispatcher = new OutboxDispatcher(store, resolver, capturingLogger);
+        var dispatcher = this.CreateDispatcher(store, resolver, capturingLogger);
 
         var successMessage = new OutboxMessage
         {
@@ -303,13 +317,13 @@ public class OutboxHandlerTests : SqlServerTestBase
     }
 
     [Fact]
-    public void OutboxDispatcher_DefaultBackoff_ExponentialWithJitter()
+    public void MultiOutboxDispatcher_DefaultBackoff_ExponentialWithJitter()
     {
         // Act
-        var delay1 = OutboxDispatcher.DefaultBackoff(1);
-        var delay2 = OutboxDispatcher.DefaultBackoff(2);
-        var delay3 = OutboxDispatcher.DefaultBackoff(3);
-        var delay10 = OutboxDispatcher.DefaultBackoff(10);
+        var delay1 = MultiOutboxDispatcher.DefaultBackoff(1);
+        var delay2 = MultiOutboxDispatcher.DefaultBackoff(2);
+        var delay3 = MultiOutboxDispatcher.DefaultBackoff(3);
+        var delay10 = MultiOutboxDispatcher.DefaultBackoff(10);
 
         // Assert
         // For attempt 1: base = 500ms, jitter = 0-249ms, so range is 500-749ms
@@ -360,6 +374,25 @@ public class OutboxHandlerTests : SqlServerTestBase
         serviceDescriptor.ShouldNotBeNull();
         serviceDescriptor.ImplementationFactory.ShouldNotBeNull();
         serviceDescriptor.Lifetime.ShouldBe(ServiceLifetime.Singleton);
+    }
+
+    private sealed class SingleOutboxStoreProvider : IOutboxStoreProvider
+    {
+        private readonly IOutboxStore store;
+
+        public SingleOutboxStoreProvider(IOutboxStore store)
+        {
+            this.store = store;
+        }
+
+        public Task<IReadOnlyList<IOutboxStore>> GetAllStoresAsync() =>
+            Task.FromResult<IReadOnlyList<IOutboxStore>>(new[] { this.store });
+
+        public string GetStoreIdentifier(IOutboxStore store) => "default";
+
+        public IOutboxStore? GetStoreByKey(string key) => this.store;
+
+        public IOutbox? GetOutboxByKey(string key) => null;
     }
 
     // Test implementation of IOutboxHandler

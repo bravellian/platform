@@ -12,12 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Metrics;
 
-using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
+namespace Bravellian.Platform.Metrics;
 /// <summary>
 /// Extension methods for registering metrics exporter services.
 /// </summary>
@@ -43,10 +42,10 @@ public static class MetricsServiceCollectionExtensions
         {
             var logger = sp.GetRequiredService<ILogger<MetricRegistrar>>();
             var registrar = new MetricRegistrar(logger);
-            
+
             // Automatically register platform metrics
             registrar.RegisterRange(PlatformMetricCatalog.All);
-            
+
             return registrar;
         });
         services.AddSingleton<IMetricRegistrar>(sp => sp.GetRequiredService<MetricRegistrar>());

@@ -12,15 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
 using Bravellian.Platform.Semaphore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System.Threading;
-using System.Threading.Tasks;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// Background service that handles database schema deployment and signals completion to dependent services.
 /// </summary>
@@ -29,7 +27,6 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
     private readonly ILogger<DatabaseSchemaBackgroundService> logger;
     private readonly IOptionsMonitor<SqlOutboxOptions> outboxOptions;
     private readonly IOptionsMonitor<SqlSchedulerOptions> schedulerOptions;
-    private readonly IOptionsMonitor<SystemLeaseOptions> systemLeaseOptions;
     private readonly IOptionsMonitor<SqlInboxOptions> inboxOptions;
     private readonly IOptionsMonitor<SemaphoreOptions> semaphoreOptions;
     private readonly DatabaseSchemaCompletion schemaCompletion;
@@ -40,7 +37,6 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
         ILogger<DatabaseSchemaBackgroundService> logger,
         IOptionsMonitor<SqlOutboxOptions> outboxOptions,
         IOptionsMonitor<SqlSchedulerOptions> schedulerOptions,
-        IOptionsMonitor<SystemLeaseOptions> systemLeaseOptions,
         IOptionsMonitor<SqlInboxOptions> inboxOptions,
         IOptionsMonitor<SemaphoreOptions> semaphoreOptions,
         DatabaseSchemaCompletion schemaCompletion,
@@ -50,7 +46,6 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
         this.logger = logger;
         this.outboxOptions = outboxOptions;
         this.schedulerOptions = schedulerOptions;
-        this.systemLeaseOptions = systemLeaseOptions;
         this.inboxOptions = inboxOptions;
         this.semaphoreOptions = semaphoreOptions;
         this.schemaCompletion = schemaCompletion;
@@ -62,116 +57,109 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
     {
         try
         {
-            this.logger.LogInformation("Starting database schema deployment");
+            logger.LogInformation("Starting database schema deployment");
 
             var deploymentTasks = new List<Task>();
 
             // Check if we're in a multi-database environment
-            if (this.platformConfiguration.EnvironmentStyle == PlatformEnvironmentStyle.MultiDatabaseNoControl ||
-                this.platformConfiguration.EnvironmentStyle == PlatformEnvironmentStyle.MultiDatabaseWithControl)
+            if (platformConfiguration.EnvironmentStyle == PlatformEnvironmentStyle.MultiDatabaseNoControl ||
+                platformConfiguration.EnvironmentStyle == PlatformEnvironmentStyle.MultiDatabaseWithControl)
             {
                 // Multi-database environment - deploy to all discovered databases
-                if (this.platformConfiguration.EnableSchemaDeployment)
+                if (platformConfiguration.EnableSchemaDeployment)
                 {
-                    deploymentTasks.Add(this.DeployMultiDatabaseSchemasAsync(stoppingToken));
+                    deploymentTasks.Add(DeployMultiDatabaseSchemasAsync(stoppingToken));
                 }
 
                 // Deploy semaphore schema to control plane if configured
-                if (this.platformConfiguration.EnableSchemaDeployment &&
-                    this.platformConfiguration.EnvironmentStyle == PlatformEnvironmentStyle.MultiDatabaseWithControl &&
-                    !string.IsNullOrEmpty(this.platformConfiguration.ControlPlaneConnectionString))
+                if (platformConfiguration.EnableSchemaDeployment &&
+                    platformConfiguration.EnvironmentStyle == PlatformEnvironmentStyle.MultiDatabaseWithControl &&
+                    !string.IsNullOrEmpty(platformConfiguration.ControlPlaneConnectionString))
                 {
-                    deploymentTasks.Add(this.DeploySemaphoreSchemaAsync(stoppingToken));
-                    deploymentTasks.Add(this.DeployCentralMetricsSchemaAsync(stoppingToken));
+                    deploymentTasks.Add(DeploySemaphoreSchemaAsync(stoppingToken));
+                    deploymentTasks.Add(DeployCentralMetricsSchemaAsync(stoppingToken));
                 }
             }
             else
             {
                 // Single database environment - use the original logic
                 // Deploy outbox schema if enabled
-                var outboxOpts = this.outboxOptions.CurrentValue;
+                var outboxOpts = outboxOptions.CurrentValue;
                 if (outboxOpts.EnableSchemaDeployment && !string.IsNullOrEmpty(outboxOpts.ConnectionString))
                 {
-                    deploymentTasks.Add(this.DeployOutboxSchemaAsync(outboxOpts, stoppingToken));
+                    deploymentTasks.Add(DeployOutboxSchemaAsync(outboxOpts, stoppingToken));
                 }
 
                 // Deploy scheduler schema if enabled
-                var schedulerOpts = this.schedulerOptions.CurrentValue;
+                var schedulerOpts = schedulerOptions.CurrentValue;
                 if (schedulerOpts.EnableSchemaDeployment && !string.IsNullOrEmpty(schedulerOpts.ConnectionString))
                 {
-                    deploymentTasks.Add(this.DeploySchedulerSchemaAsync(schedulerOpts, stoppingToken));
-                }
-
-                // Deploy system lease schema if enabled
-                var systemLeaseOpts = this.systemLeaseOptions.CurrentValue;
-                if (systemLeaseOpts.EnableSchemaDeployment && !string.IsNullOrEmpty(systemLeaseOpts.ConnectionString))
-                {
-                    deploymentTasks.Add(this.DeploySystemLeaseSchemaAsync(systemLeaseOpts, stoppingToken));
+                    deploymentTasks.Add(DeploySchedulerSchemaAsync(schedulerOpts, stoppingToken));
                 }
 
                 // Deploy inbox schema if enabled
-                var inboxOpts = this.inboxOptions.CurrentValue;
+                var inboxOpts = inboxOptions.CurrentValue;
                 if (inboxOpts.EnableSchemaDeployment && !string.IsNullOrEmpty(inboxOpts.ConnectionString))
                 {
-                    deploymentTasks.Add(this.DeployInboxSchemaAsync(inboxOpts, stoppingToken));
+                    deploymentTasks.Add(DeployInboxSchemaAsync(inboxOpts, stoppingToken));
                 }
 
                 // Deploy semaphore schema if enabled
-                if (this.platformConfiguration.EnableSchemaDeployment)
+                if (platformConfiguration.EnableSchemaDeployment)
                 {
-                    deploymentTasks.Add(this.DeploySemaphoreSchemaAsync(stoppingToken));
+                    deploymentTasks.Add(DeploySemaphoreSchemaAsync(stoppingToken));
                 }
             }
 
             if (deploymentTasks.Count > 0)
             {
                 await Task.WhenAll(deploymentTasks).ConfigureAwait(false);
-                this.logger.LogInformation("Database schema deployment completed successfully");
+                logger.LogInformation("Database schema deployment completed successfully");
             }
             else
             {
-                this.logger.LogInformation("No schema deployments configured - skipping schema deployment");
+                logger.LogInformation("No schema deployments configured - skipping schema deployment");
             }
 
             // Signal completion to dependent services
-            this.schemaCompletion.SetCompleted();
+            schemaCompletion.SetCompleted();
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
-            this.logger.LogInformation("Database schema deployment was cancelled");
-            this.schemaCompletion.SetCancelled(stoppingToken);
+            logger.LogInformation("Database schema deployment was cancelled");
+            schemaCompletion.SetCancelled(stoppingToken);
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Database schema deployment failed");
-            this.schemaCompletion.SetException(ex);
+            logger.LogError(ex, "Database schema deployment failed");
+            schemaCompletion.SetException(ex);
             throw; // Re-throw to stop the host if schema deployment fails
         }
     }
 
     private async Task DeployMultiDatabaseSchemasAsync(CancellationToken cancellationToken)
     {
-        if (this.databaseDiscovery == null)
+        if (databaseDiscovery == null)
         {
-            this.logger.LogWarning("Multi-database schema deployment requested but no database discovery service is available");
+            logger.LogWarning("Multi-database schema deployment requested but no database discovery service is available");
             return;
         }
 
-        this.logger.LogInformation("Discovering databases for schema deployment");
-        var databases = await this.databaseDiscovery.DiscoverDatabasesAsync(cancellationToken).ConfigureAwait(false);
+        logger.LogInformation("Discovering databases for schema deployment");
+        var databases = await databaseDiscovery.DiscoverDatabasesAsync(cancellationToken).ConfigureAwait(false);
 
         if (databases.Count == 0)
         {
-            this.logger.LogWarning("No databases discovered for schema deployment");
+            logger.LogWarning("No databases discovered for schema deployment");
             return;
         }
 
-        this.logger.LogInformation("Deploying schemas to {DatabaseCount} database(s)", databases.Count);
+        logger.LogInformation("Deploying schemas to {DatabaseCount} database(s)", databases.Count);
 
         var tasks = new List<Task>();
         foreach (var database in databases)
         {
-            tasks.Add(this.DeploySchemasToDatabaseAsync(database, cancellationToken));
+            tasks.Add(DeploySchemasToDatabaseAsync(database, cancellationToken));
         }
 
         await Task.WhenAll(tasks).ConfigureAwait(false);
@@ -179,7 +167,7 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
 
     private async Task DeploySchemasToDatabaseAsync(PlatformDatabase database, CancellationToken cancellationToken)
     {
-        this.logger.LogInformation(
+        logger.LogInformation(
             "Deploying platform schemas to database {DatabaseName} (Schema: {SchemaName})",
             database.Name,
             database.SchemaName);
@@ -187,7 +175,7 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
         var deploymentTasks = new List<Task>();
 
         // Deploy Outbox schema
-        this.logger.LogDebug("Deploying outbox schema to database {DatabaseName}", database.Name);
+        logger.LogDebug("Deploying outbox schema to database {DatabaseName}", database.Name);
         deploymentTasks.Add(DatabaseSchemaManager.EnsureOutboxSchemaAsync(
             database.ConnectionString,
             database.SchemaName,
@@ -199,7 +187,7 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
             database.SchemaName));
 
         // Deploy Inbox schema
-        this.logger.LogDebug("Deploying inbox schema to database {DatabaseName}", database.Name);
+        logger.LogDebug("Deploying inbox schema to database {DatabaseName}", database.Name);
         deploymentTasks.Add(DatabaseSchemaManager.EnsureInboxSchemaAsync(
             database.ConnectionString,
             database.SchemaName,
@@ -211,7 +199,7 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
             database.SchemaName));
 
         // Deploy Scheduler schema (Jobs, JobRuns, Timers)
-        this.logger.LogDebug("Deploying scheduler schema to database {DatabaseName}", database.Name);
+        logger.LogDebug("Deploying scheduler schema to database {DatabaseName}", database.Name);
         deploymentTasks.Add(DatabaseSchemaManager.EnsureSchedulerSchemaAsync(
             database.ConnectionString,
             database.SchemaName,
@@ -220,14 +208,14 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
             "Timers"));
 
         // Deploy Lease schema
-        this.logger.LogDebug("Deploying lease schema to database {DatabaseName}", database.Name);
+        logger.LogDebug("Deploying lease schema to database {DatabaseName}", database.Name);
         deploymentTasks.Add(DatabaseSchemaManager.EnsureLeaseSchemaAsync(
             database.ConnectionString,
             database.SchemaName,
             "Lease"));
 
         // Deploy Fanout schema
-        this.logger.LogDebug("Deploying fanout schema to database {DatabaseName}", database.Name);
+        logger.LogDebug("Deploying fanout schema to database {DatabaseName}", database.Name);
         deploymentTasks.Add(DatabaseSchemaManager.EnsureFanoutSchemaAsync(
             database.ConnectionString,
             database.SchemaName,
@@ -235,21 +223,21 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
             "FanoutCursor"));
 
         // Deploy Metrics schema
-        this.logger.LogDebug("Deploying metrics schema to database {DatabaseName}", database.Name);
+        logger.LogDebug("Deploying metrics schema to database {DatabaseName}", database.Name);
         deploymentTasks.Add(DatabaseSchemaManager.EnsureMetricsSchemaAsync(
             database.ConnectionString,
             "infra"));
 
         await Task.WhenAll(deploymentTasks).ConfigureAwait(false);
 
-        this.logger.LogInformation(
+        logger.LogInformation(
             "Successfully deployed all platform schemas to database {DatabaseName}",
             database.Name);
     }
 
     private async Task DeployOutboxSchemaAsync(SqlOutboxOptions options, CancellationToken cancellationToken)
     {
-        this.logger.LogDebug("Deploying outbox schema to {Schema}.{Table}", options.SchemaName, options.TableName);
+        logger.LogDebug("Deploying outbox schema to {Schema}.{Table}", options.SchemaName, options.TableName);
         await DatabaseSchemaManager.EnsureOutboxSchemaAsync(
             options.ConnectionString,
             options.SchemaName,
@@ -263,7 +251,7 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
 
     private async Task DeploySchedulerSchemaAsync(SqlSchedulerOptions options, CancellationToken cancellationToken)
     {
-        this.logger.LogDebug(
+        logger.LogDebug(
             "Deploying scheduler schema to {Schema} with tables {Jobs}, {JobRuns}, {Timers}",
             options.SchemaName,
             options.JobsTableName,
@@ -277,17 +265,9 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
             options.TimersTableName).ConfigureAwait(false);
     }
 
-    private async Task DeploySystemLeaseSchemaAsync(SystemLeaseOptions options, CancellationToken cancellationToken)
-    {
-        this.logger.LogDebug("Deploying system lease schema to {Schema}", options.SchemaName);
-        await DatabaseSchemaManager.EnsureDistributedLockSchemaAsync(
-            options.ConnectionString,
-            options.SchemaName).ConfigureAwait(false);
-    }
-
     private async Task DeployInboxSchemaAsync(SqlInboxOptions options, CancellationToken cancellationToken)
     {
-        this.logger.LogDebug("Deploying inbox schema to {Schema}.{Table}", options.SchemaName, options.TableName);
+        logger.LogDebug("Deploying inbox schema to {Schema}.{Table}", options.SchemaName, options.TableName);
         await DatabaseSchemaManager.EnsureInboxSchemaAsync(
             options.ConnectionString,
             options.SchemaName,
@@ -301,8 +281,8 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
 
     private async Task DeploySemaphoreSchemaAsync(CancellationToken cancellationToken)
     {
-        var options = this.semaphoreOptions.CurrentValue;
-        this.logger.LogDebug("Deploying semaphore schema at {Schema}", options.SchemaName);
+        var options = semaphoreOptions.CurrentValue;
+        logger.LogDebug("Deploying semaphore schema at {Schema}", options.SchemaName);
         await DatabaseSchemaManager.EnsureSemaphoreSchemaAsync(
             options.ConnectionString,
             options.SchemaName).ConfigureAwait(false);
@@ -310,15 +290,15 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
 
     private async Task DeployCentralMetricsSchemaAsync(CancellationToken cancellationToken)
     {
-        if (string.IsNullOrEmpty(this.platformConfiguration.ControlPlaneConnectionString))
+        if (string.IsNullOrEmpty(platformConfiguration.ControlPlaneConnectionString))
         {
-            this.logger.LogWarning("Central metrics schema deployment requested but no control plane connection string is configured");
+            logger.LogWarning("Central metrics schema deployment requested but no control plane connection string is configured");
             return;
         }
 
-        this.logger.LogDebug("Deploying central metrics schema to control plane");
+        logger.LogDebug("Deploying central metrics schema to control plane");
         await DatabaseSchemaManager.EnsureCentralMetricsSchemaAsync(
-            this.platformConfiguration.ControlPlaneConnectionString,
+            platformConfiguration.ControlPlaneConnectionString,
             "infra").ConfigureAwait(false);
     }
 }

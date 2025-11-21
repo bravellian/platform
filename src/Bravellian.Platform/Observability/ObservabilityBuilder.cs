@@ -12,12 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Observability;
 
-using System;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 
+namespace Bravellian.Platform.Observability;
 /// <summary>
 /// Builder for configuring platform observability.
 /// </summary>
@@ -29,7 +27,7 @@ public sealed class ObservabilityBuilder
     /// <param name="services">The service collection.</param>
     public ObservabilityBuilder(IServiceCollection services)
     {
-        this.Services = services;
+        Services = services;
     }
 
     /// <summary>
@@ -45,7 +43,7 @@ public sealed class ObservabilityBuilder
     public ObservabilityBuilder AddWatchdogAlertSink(IWatchdogAlertSink sink)
     {
         ArgumentNullException.ThrowIfNull(sink);
-        this.Services.AddSingleton(sink);
+        Services.AddSingleton(sink);
         return this;
     }
 
@@ -57,7 +55,7 @@ public sealed class ObservabilityBuilder
     public ObservabilityBuilder AddWatchdogAlertSink(Func<IServiceProvider, IWatchdogAlertSink> factory)
     {
         ArgumentNullException.ThrowIfNull(factory);
-        this.Services.AddSingleton(factory);
+        Services.AddSingleton(factory);
         return this;
     }
 
@@ -69,7 +67,7 @@ public sealed class ObservabilityBuilder
     public ObservabilityBuilder AddWatchdogAlertSink(Func<WatchdogAlertContext, System.Threading.CancellationToken, System.Threading.Tasks.Task> handler)
     {
         ArgumentNullException.ThrowIfNull(handler);
-        this.Services.AddSingleton<IWatchdogAlertSink>(new DelegateAlertSink(handler));
+        Services.AddSingleton<IWatchdogAlertSink>(new DelegateAlertSink(handler));
         return this;
     }
 
@@ -81,7 +79,7 @@ public sealed class ObservabilityBuilder
     public ObservabilityBuilder AddHeartbeatSink(IHeartbeatSink sink)
     {
         ArgumentNullException.ThrowIfNull(sink);
-        this.Services.AddSingleton(sink);
+        Services.AddSingleton(sink);
         return this;
     }
 
@@ -93,7 +91,7 @@ public sealed class ObservabilityBuilder
     public ObservabilityBuilder AddHeartbeatSink(Func<IServiceProvider, IHeartbeatSink> factory)
     {
         ArgumentNullException.ThrowIfNull(factory);
-        this.Services.AddSingleton(factory);
+        Services.AddSingleton(factory);
         return this;
     }
 
@@ -105,7 +103,7 @@ public sealed class ObservabilityBuilder
     public ObservabilityBuilder AddHeartbeatSink(Func<HeartbeatContext, System.Threading.CancellationToken, System.Threading.Tasks.Task> handler)
     {
         ArgumentNullException.ThrowIfNull(handler);
-        this.Services.AddSingleton<IHeartbeatSink>(new DelegateHeartbeatSink(handler));
+        Services.AddSingleton<IHeartbeatSink>(new DelegateHeartbeatSink(handler));
         return this;
     }
 
@@ -115,7 +113,7 @@ public sealed class ObservabilityBuilder
     /// <returns>The builder for chaining.</returns>
     public ObservabilityBuilder AddPlatformHealthChecks()
     {
-        this.Services.AddHealthChecks()
+        Services.AddHealthChecks()
             .AddCheck<WatchdogHealthCheck>("watchdog", tags: new[] { "watchdog", "platform" });
         return this;
     }
@@ -131,7 +129,7 @@ public sealed class ObservabilityBuilder
 
         public System.Threading.Tasks.Task OnAlertAsync(WatchdogAlertContext context, System.Threading.CancellationToken cancellationToken)
         {
-            return this.handler(context, cancellationToken);
+            return handler(context, cancellationToken);
         }
     }
 
@@ -146,7 +144,7 @@ public sealed class ObservabilityBuilder
 
         public System.Threading.Tasks.Task OnHeartbeatAsync(HeartbeatContext context, System.Threading.CancellationToken cancellationToken)
         {
-            return this.handler(context, cancellationToken);
+            return handler(context, cancellationToken);
         }
     }
 }

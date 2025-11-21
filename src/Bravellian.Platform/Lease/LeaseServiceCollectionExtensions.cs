@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// Extension methods for registering lease services with the service collection.
 /// </summary>
@@ -32,13 +33,14 @@ public static class LeaseServiceCollectionExtensions
     /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
     public static IServiceCollection AddSystemLeases(this IServiceCollection services, SystemLeaseOptions options)
     {
+        ArgumentNullException.ThrowIfNull(options);
+
         // Add time abstractions
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IMonotonicClock, MonotonicClock>();
 
         services.Configure<SystemLeaseOptions>(o =>
         {
-            o.ConnectionString = options.ConnectionString;
             o.SchemaName = options.SchemaName;
             o.DefaultLeaseDuration = options.DefaultLeaseDuration;
             o.RenewPercent = options.RenewPercent;
@@ -47,7 +49,14 @@ public static class LeaseServiceCollectionExtensions
             o.EnableSchemaDeployment = options.EnableSchemaDeployment;
         });
 
-        services.AddSingleton<ISystemLeaseFactory, SqlLeaseFactory>();
+        // Require an existing lease factory provider (e.g., PlatformLeaseFactoryProvider or a configured/dynamic provider).
+        if (!services.Any(d => d.ServiceType == typeof(ILeaseFactoryProvider)))
+        {
+            throw new InvalidOperationException(
+                "No ILeaseFactoryProvider is registered. Register lease factories (e.g., AddPlatform* or AddMultiSystemLeases) before calling AddSystemLeases.");
+        }
+
+        EnsureLeaseRoutingInfrastructure(services);
 
         // Register schema deployment service if enabled (only register once per service collection)
         if (options.EnableSchemaDeployment)
@@ -71,11 +80,61 @@ public static class LeaseServiceCollectionExtensions
     /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
     public static IServiceCollection AddSystemLeases(this IServiceCollection services, string connectionString, string schemaName = "dbo")
     {
-        return services.AddSystemLeases(new SystemLeaseOptions
+        ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
+
+        // Add time abstractions
+        services.AddSingleton(TimeProvider.System);
+        services.AddSingleton<IMonotonicClock, MonotonicClock>();
+
+        var options = new SystemLeaseOptions
+        {
+            SchemaName = schemaName,
+        };
+
+        services.Configure<SystemLeaseOptions>(o =>
+        {
+            o.SchemaName = options.SchemaName;
+            o.DefaultLeaseDuration = options.DefaultLeaseDuration;
+            o.RenewPercent = options.RenewPercent;
+            o.UseGate = options.UseGate;
+            o.GateTimeoutMs = options.GateTimeoutMs;
+            o.EnableSchemaDeployment = options.EnableSchemaDeployment;
+        });
+
+        var leaseFactoryConfig = new LeaseFactoryConfig
         {
             ConnectionString = connectionString,
             SchemaName = schemaName,
+            RenewPercent = options.RenewPercent,
+            GateTimeoutMs = options.GateTimeoutMs,
+            UseGate = options.UseGate,
+        };
+
+        services.TryAddSingleton<ISystemLeaseFactory>(provider =>
+        {
+            var logger = provider.GetRequiredService<ILogger<SqlLeaseFactory>>();
+            return new SqlLeaseFactory(leaseFactoryConfig, logger);
         });
+
+        services.TryAddSingleton<ILeaseFactoryProvider>(provider =>
+        {
+            var identifier = ExtractIdentifier(connectionString);
+            return new SingleLeaseFactoryProvider(provider.GetRequiredService<ISystemLeaseFactory>(), identifier);
+        });
+
+        EnsureLeaseRoutingInfrastructure(services);
+
+        // Register schema deployment service if enabled (only register once per service collection)
+        if (options.EnableSchemaDeployment)
+        {
+            services.TryAddSingleton<DatabaseSchemaCompletion>();
+            services.TryAddSingleton<IDatabaseSchemaCompletion>(provider => provider.GetRequiredService<DatabaseSchemaCompletion>());
+
+            // Only add hosted service if not already registered using TryAddEnumerable
+            services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, DatabaseSchemaBackgroundService>());
+        }
+
+        return services;
     }
 
     /// <summary>
@@ -99,6 +158,8 @@ public static class LeaseServiceCollectionExtensions
             var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
             return new ConfiguredLeaseFactoryProvider(leaseConfigs, loggerFactory);
         });
+
+        EnsureLeaseRoutingInfrastructure(services);
 
         return services;
     }
@@ -131,6 +192,8 @@ public static class LeaseServiceCollectionExtensions
 
         // Register the custom factory provider
         services.AddSingleton(factoryProviderFactory);
+
+        EnsureLeaseRoutingInfrastructure(services);
 
         return services;
     }
@@ -165,6 +228,51 @@ public static class LeaseServiceCollectionExtensions
             return new DynamicLeaseFactoryProvider(discovery, timeProvider, loggerFactory, logger, refreshInterval);
         });
 
+        EnsureLeaseRoutingInfrastructure(services);
+
         return services;
+    }
+
+    private static void EnsureLeaseRoutingInfrastructure(IServiceCollection services)
+    {
+        services.TryAddSingleton<ILeaseRouter>(provider =>
+        {
+            var factoryProvider = provider.GetRequiredService<ILeaseFactoryProvider>();
+            var logger = provider.GetRequiredService<ILogger<LeaseRouter>>();
+            return new LeaseRouter(factoryProvider, logger);
+        });
+
+        // Provide a default lease factory for legacy consumers that request ISystemLeaseFactory directly.
+        services.TryAddSingleton<ISystemLeaseFactory>(provider =>
+        {
+            return provider.GetRequiredService<ILeaseRouter>()
+                .GetDefaultLeaseFactoryAsync()
+                .ConfigureAwait(false)
+                .GetAwaiter()
+                .GetResult();
+        });
+    }
+
+    private static string ExtractIdentifier(string connectionString)
+    {
+        try
+        {
+            var builder = new SqlConnectionStringBuilder(connectionString);
+            if (!string.IsNullOrWhiteSpace(builder.InitialCatalog))
+            {
+                return builder.InitialCatalog;
+            }
+
+            if (!string.IsNullOrWhiteSpace(builder.DataSource))
+            {
+                return builder.DataSource;
+            }
+        }
+        catch
+        {
+            // Ignore parsing failures and fall back to default.
+        }
+
+        return "default";
     }
 }

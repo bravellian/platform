@@ -34,7 +34,7 @@ internal sealed class SqlFanoutPolicyRepository : IFanoutPolicyRepository
     public SqlFanoutPolicyRepository(IOptions<SqlFanoutOptions> options)
     {
         this.options = options.Value;
-        this.connectionString = this.options.ConnectionString;
+        connectionString = this.options.ConnectionString;
     }
 
     /// <inheritdoc/>
@@ -45,12 +45,12 @@ internal sealed class SqlFanoutPolicyRepository : IFanoutPolicyRepository
 
         // Ensure fanout schema exists before querying
         await DatabaseSchemaManager.EnsureFanoutSchemaAsync(
-            this.connectionString,
-            this.options.SchemaName,
-            this.options.PolicyTableName,
-            this.options.CursorTableName).ConfigureAwait(false);
+            connectionString,
+            options.SchemaName,
+            options.PolicyTableName,
+            options.CursorTableName).ConfigureAwait(false);
 
-        var connection = new SqlConnection(this.connectionString);
+        var connection = new SqlConnection(connectionString);
         await using (connection.ConfigureAwait(false))
         {
             await connection.OpenAsync(ct).ConfigureAwait(false);
@@ -58,7 +58,7 @@ internal sealed class SqlFanoutPolicyRepository : IFanoutPolicyRepository
             var sql = $"""
 
                         SELECT DefaultEverySeconds, JitterSeconds 
-                        FROM [{this.options.SchemaName}].[{this.options.PolicyTableName}]
+                        FROM [{options.SchemaName}].[{options.PolicyTableName}]
                         WHERE FanoutTopic = @FanoutTopic AND WorkKey = @WorkKey
             """;
 
@@ -73,14 +73,14 @@ internal sealed class SqlFanoutPolicyRepository : IFanoutPolicyRepository
     /// <inheritdoc/>
     public async Task SetCadenceAsync(string fanoutTopic, string workKey, int everySeconds, int jitterSeconds, CancellationToken ct)
     {
-        var connection = new SqlConnection(this.connectionString);
+        var connection = new SqlConnection(connectionString);
         await using (connection.ConfigureAwait(false))
         {
             await connection.OpenAsync(ct).ConfigureAwait(false);
 
             var sql = $"""
 
-                        MERGE [{this.options.SchemaName}].[{this.options.PolicyTableName}] AS target
+                        MERGE [{options.SchemaName}].[{options.PolicyTableName}] AS target
                         USING (VALUES (@FanoutTopic, @WorkKey, @DefaultEverySeconds, @JitterSeconds)) AS source (FanoutTopic, WorkKey, DefaultEverySeconds, JitterSeconds)
                         ON target.FanoutTopic = source.FanoutTopic AND target.WorkKey = source.WorkKey
                         WHEN MATCHED THEN

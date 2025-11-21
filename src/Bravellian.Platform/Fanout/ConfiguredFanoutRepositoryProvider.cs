@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// Provides access to multiple fanout repositories configured at startup.
 /// This implementation creates repositories based on the provided options.
@@ -69,14 +69,14 @@ internal sealed class ConfiguredFanoutRepositoryProvider : IFanoutRepositoryProv
             cursorKeyDict[identifier] = cursorRepo;
         }
 
-        this.policyRepositories = policyReposList;
-        this.cursorRepositories = cursorReposList;
-        this.policyIdentifiers = policyIdentifiersDict;
-        this.cursorIdentifiers = cursorIdentifiersDict;
-        this.policyRepositoriesByKey = policyKeyDict;
-        this.cursorRepositoriesByKey = cursorKeyDict;
+        policyRepositories = policyReposList;
+        cursorRepositories = cursorReposList;
+        policyIdentifiers = policyIdentifiersDict;
+        cursorIdentifiers = cursorIdentifiersDict;
+        policyRepositoriesByKey = policyKeyDict;
+        cursorRepositoriesByKey = cursorKeyDict;
         this.fanoutOptions = optionsList;
-        this.logger = loggerFactory.CreateLogger<ConfiguredFanoutRepositoryProvider>();
+        logger = loggerFactory.CreateLogger<ConfiguredFanoutRepositoryProvider>();
     }
 
     /// <summary>
@@ -88,7 +88,7 @@ internal sealed class ConfiguredFanoutRepositoryProvider : IFanoutRepositoryProv
     /// <returns>A task representing the asynchronous operation.</returns>
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
-        foreach (var options in this.fanoutOptions)
+        foreach (var options in fanoutOptions)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -98,7 +98,7 @@ internal sealed class ConfiguredFanoutRepositoryProvider : IFanoutRepositoryProv
 
                 try
                 {
-                    this.logger.LogInformation(
+                    logger.LogInformation(
                         "Deploying fanout schema for database: {Identifier}",
                         identifier);
 
@@ -108,13 +108,13 @@ internal sealed class ConfiguredFanoutRepositoryProvider : IFanoutRepositoryProv
                         options.PolicyTableName,
                         options.CursorTableName).ConfigureAwait(false);
 
-                    this.logger.LogInformation(
+                    logger.LogInformation(
                         "Successfully deployed fanout schema for database: {Identifier}",
                         identifier);
                 }
                 catch (Exception ex)
                 {
-                    this.logger.LogError(
+                    logger.LogError(
                         ex,
                         "Failed to deploy fanout schema for database: {Identifier}. Repository will be available but may fail on first use.",
                         identifier);
@@ -126,19 +126,19 @@ internal sealed class ConfiguredFanoutRepositoryProvider : IFanoutRepositoryProv
     /// <inheritdoc/>
     public Task<IReadOnlyList<IFanoutPolicyRepository>> GetAllPolicyRepositoriesAsync(CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(this.policyRepositories);
+        return Task.FromResult(policyRepositories);
     }
 
     /// <inheritdoc/>
     public Task<IReadOnlyList<IFanoutCursorRepository>> GetAllCursorRepositoriesAsync(CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(this.cursorRepositories);
+        return Task.FromResult(cursorRepositories);
     }
 
     /// <inheritdoc/>
     public string GetRepositoryIdentifier(IFanoutPolicyRepository repository)
     {
-        return this.policyIdentifiers.TryGetValue(repository, out var identifier)
+        return policyIdentifiers.TryGetValue(repository, out var identifier)
             ? identifier
             : "Unknown";
     }
@@ -146,7 +146,7 @@ internal sealed class ConfiguredFanoutRepositoryProvider : IFanoutRepositoryProv
     /// <inheritdoc/>
     public string GetRepositoryIdentifier(IFanoutCursorRepository repository)
     {
-        return this.cursorIdentifiers.TryGetValue(repository, out var identifier)
+        return cursorIdentifiers.TryGetValue(repository, out var identifier)
             ? identifier
             : "Unknown";
     }
@@ -154,25 +154,25 @@ internal sealed class ConfiguredFanoutRepositoryProvider : IFanoutRepositoryProv
     /// <inheritdoc/>
     public IFanoutPolicyRepository? GetPolicyRepositoryByKey(string key)
     {
-        return this.policyRepositoriesByKey.TryGetValue(key, out var repo) ? repo : null;
+        return policyRepositoriesByKey.TryGetValue(key, out var repo) ? repo : null;
     }
 
     /// <inheritdoc/>
     public IFanoutCursorRepository? GetCursorRepositoryByKey(string key)
     {
-        return this.cursorRepositoriesByKey.TryGetValue(key, out var repo) ? repo : null;
+        return cursorRepositoriesByKey.TryGetValue(key, out var repo) ? repo : null;
     }
 
     /// <inheritdoc/>
     public void Dispose()
     {
         // Dispose all repositories if they implement IDisposable
-        foreach (var repo in this.policyRepositories)
+        foreach (var repo in policyRepositories)
         {
             (repo as IDisposable)?.Dispose();
         }
 
-        foreach (var repo in this.cursorRepositories)
+        foreach (var repo in cursorRepositories)
         {
             (repo as IDisposable)?.Dispose();
         }

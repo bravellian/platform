@@ -12,13 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// A lease runner that acquires a lease and automatically renews it using monotonic timing.
 /// </summary>
@@ -82,7 +79,7 @@ public sealed class LeaseRunner : IAsyncDisposable
         var initialDelay = renewInterval + jitter;
 
         // Start the renewal timer
-        this.renewTimer = new Timer(this.RenewTimerCallback, null, initialDelay, renewInterval);
+        renewTimer = new Timer(RenewTimerCallback, null, initialDelay, renewInterval);
 
         this.logger.LogInformation(
             "Lease runner started for '{LeaseName}' with owner '{Owner}', renew at {RenewPercent:P1}",
@@ -94,22 +91,22 @@ public sealed class LeaseRunner : IAsyncDisposable
     /// <summary>
     /// Gets the name of the lease.
     /// </summary>
-    public string LeaseName => this.leaseName;
+    public string LeaseName => leaseName;
 
     /// <summary>
     /// Gets the owner identifier.
     /// </summary>
-    public string Owner => this.owner;
+    public string Owner => owner;
 
     /// <summary>
     /// Gets a value indicating whether the lease has been lost.
     /// </summary>
-    public bool IsLost => this.isLost;
+    public bool IsLost => isLost;
 
     /// <summary>
     /// Gets a cancellation token that is canceled when the lease is lost or disposed.
     /// </summary>
-    public CancellationToken CancellationToken => this.internalCts.Token;
+    public CancellationToken CancellationToken => internalCts.Token;
 
     /// <summary>
     /// Acquires a lease and returns a lease runner that will automatically renew it.
@@ -163,9 +160,9 @@ public sealed class LeaseRunner : IAsyncDisposable
     /// <exception cref="LostLeaseException">Thrown when the lease has been lost.</exception>
     public void ThrowIfLost()
     {
-        if (this.isLost)
+        if (isLost)
         {
-            throw new LostLeaseException(this.leaseName, this.owner);
+            throw new LostLeaseException(leaseName, owner);
         }
     }
 
@@ -176,53 +173,53 @@ public sealed class LeaseRunner : IAsyncDisposable
     /// <returns>True if the lease was successfully renewed, false if it was lost.</returns>
     public async Task<bool> TryRenewNowAsync(CancellationToken cancellationToken = default)
     {
-        if (this.isLost || this.isDisposed)
+        if (isLost || isDisposed)
         {
             return false;
         }
 
-        return await this.RenewLeaseAsync(cancellationToken).ConfigureAwait(false);
+        return await RenewLeaseAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
     public async ValueTask DisposeAsync()
     {
-        if (this.isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        this.isDisposed = true;
+        isDisposed = true;
 
         // Stop the renewal timer
-        await this.renewTimer.DisposeAsync().ConfigureAwait(false);
+        await renewTimer.DisposeAsync().ConfigureAwait(false);
 
         // Cancel any ongoing operations
-        this.internalCts.Cancel();
+        internalCts.Cancel();
 
-        this.logger.LogInformation("Lease runner disposed for '{LeaseName}' with owner '{Owner}'", this.leaseName, this.owner);
+        logger.LogInformation("Lease runner disposed for '{LeaseName}' with owner '{Owner}'", leaseName, owner);
 
-        this.internalCts.Dispose();
+        internalCts.Dispose();
     }
 
     private void UpdateLeaseExpiry(DateTime serverUtcNow, DateTime? leaseUntilUtc)
     {
-        lock (this.lockObject)
+        lock (lockObject)
         {
             this.leaseUntilUtc = leaseUntilUtc;
 
             if (leaseUntilUtc.HasValue)
             {
                 // Calculate when to next renew based on monotonic time
-                var renewIn = TimeSpan.FromMilliseconds(this.leaseDuration.TotalMilliseconds * this.renewPercent);
-                this.nextRenewMonotonicTime = this.monotonicClock.Seconds + renewIn.TotalSeconds;
+                var renewIn = TimeSpan.FromMilliseconds(leaseDuration.TotalMilliseconds * renewPercent);
+                nextRenewMonotonicTime = monotonicClock.Seconds + renewIn.TotalSeconds;
             }
         }
     }
 
     private async void RenewTimerCallback(object? state)
     {
-        if (this.isLost || this.isDisposed)
+        if (isLost || isDisposed)
         {
             return;
         }
@@ -230,64 +227,64 @@ public sealed class LeaseRunner : IAsyncDisposable
         try
         {
             // Check if it's time to renew based on monotonic time
-            var currentMonotonicTime = this.monotonicClock.Seconds;
-            if (currentMonotonicTime < this.nextRenewMonotonicTime)
+            var currentMonotonicTime = monotonicClock.Seconds;
+            if (currentMonotonicTime < nextRenewMonotonicTime)
             {
                 // Not time yet, skip this tick
                 return;
             }
 
-            var renewed = await this.RenewLeaseAsync(CancellationToken.None).ConfigureAwait(false);
+            var renewed = await RenewLeaseAsync(CancellationToken.None).ConfigureAwait(false);
             if (!renewed)
             {
-                this.MarkAsLost();
+                MarkAsLost();
             }
         }
         catch (Exception ex)
         {
-            this.logger.LogWarning(
+            logger.LogWarning(
                 ex,
                 "Error during lease renewal for '{LeaseName}' with owner '{Owner}'",
-                this.leaseName,
-                this.owner);
+                leaseName,
+                owner);
 
             // Consider the lease lost on renewal errors
-            this.MarkAsLost();
+            MarkAsLost();
         }
     }
 
     private async Task<bool> RenewLeaseAsync(CancellationToken cancellationToken)
     {
-        var leaseSeconds = (int)Math.Ceiling(this.leaseDuration.TotalSeconds);
-        var result = await this.leaseApi.RenewAsync(this.leaseName, this.owner, leaseSeconds, cancellationToken).ConfigureAwait(false);
+        var leaseSeconds = (int)Math.Ceiling(leaseDuration.TotalSeconds);
+        var result = await leaseApi.RenewAsync(leaseName, owner, leaseSeconds, cancellationToken).ConfigureAwait(false);
 
         if (result.renewed)
         {
-            this.UpdateLeaseExpiry(result.serverUtcNow, result.leaseUntilUtc);
-            this.logger.LogDebug(
+            UpdateLeaseExpiry(result.serverUtcNow, result.leaseUntilUtc);
+            logger.LogDebug(
                 "Renewed lease '{LeaseName}' for owner '{Owner}', expires at {LeaseUntilUtc:yyyy-MM-dd HH:mm:ss.fff} UTC",
-                this.leaseName,
-                this.owner,
+                leaseName,
+                owner,
                 result.leaseUntilUtc);
             return true;
         }
         else
         {
-            this.logger.LogWarning(
+            logger.LogWarning(
                 "Failed to renew lease '{LeaseName}' for owner '{Owner}' - lease may have expired",
-                this.leaseName,
-                this.owner);
+                leaseName,
+                owner);
             return false;
         }
     }
 
     private void MarkAsLost()
     {
-        if (!this.isLost)
+        if (!isLost)
         {
-            this.isLost = true;
-            this.internalCts.Cancel();
-            this.logger.LogWarning("Lease '{LeaseName}' for owner '{Owner}' has been lost", this.leaseName, this.owner);
+            isLost = true;
+            internalCts.Cancel();
+            logger.LogWarning("Lease '{LeaseName}' for owner '{Owner}' has been lost", leaseName, owner);
         }
     }
 }

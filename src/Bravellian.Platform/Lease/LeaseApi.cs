@@ -12,14 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
-using System;
 using System.Data;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// Provides data access operations for the lease functionality.
 /// </summary>
@@ -53,10 +50,10 @@ public sealed class LeaseApi
         int leaseSeconds,
         CancellationToken cancellationToken = default)
     {
-        using var connection = new SqlConnection(this.connectionString);
+        using var connection = new SqlConnection(connectionString);
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-        using var command = new SqlCommand($"[{this.schemaName}].[Lease_Acquire]", connection)
+        using var command = new SqlCommand($"[{schemaName}].[Lease_Acquire]", connection)
         {
             CommandType = CommandType.StoredProcedure,
         };
@@ -96,10 +93,10 @@ public sealed class LeaseApi
         int leaseSeconds,
         CancellationToken cancellationToken = default)
     {
-        using var connection = new SqlConnection(this.connectionString);
+        using var connection = new SqlConnection(connectionString);
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-        using var command = new SqlCommand($"[{this.schemaName}].[Lease_Renew]", connection)
+        using var command = new SqlCommand($"[{schemaName}].[Lease_Renew]", connection)
         {
             CommandType = CommandType.StoredProcedure,
         };

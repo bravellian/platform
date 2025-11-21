@@ -13,12 +13,6 @@
 // limitations under the License.
 
 namespace Bravellian.Platform.Observability;
-
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-
 /// <summary>
 /// Provides state information about the inbox for monitoring.
 /// </summary>

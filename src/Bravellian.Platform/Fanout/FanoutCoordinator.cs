@@ -55,7 +55,7 @@ internal sealed class FanoutCoordinator : IFanoutCoordinator
         var leaseName = workKey is null ? $"fanout:{fanoutTopic}" : $"fanout:{fanoutTopic}:{workKey}";
         var contextJson = $"{{\"fanoutTopic\":\"{fanoutTopic}\",\"workKey\":\"{workKey}\",\"machineName\":\"{Environment.MachineName}\"}}";
 
-        var lease = await this.leaseFactory.AcquireAsync(
+        var lease = await leaseFactory.AcquireAsync(
             leaseName,
             TimeSpan.FromSeconds(90),
             contextJson,
@@ -64,33 +64,33 @@ internal sealed class FanoutCoordinator : IFanoutCoordinator
         {
             if (lease is null)
             {
-                this.logger.LogDebug("Could not acquire lease for fanout {FanoutTopic}:{WorkKey}, another instance is already running", fanoutTopic, workKey);
+                logger.LogDebug("Could not acquire lease for fanout {FanoutTopic}:{WorkKey}, another instance is already running", fanoutTopic, workKey);
                 return 0;
             }
 
-            this.logger.LogInformation("Acquired lease for fanout {FanoutTopic}:{WorkKey}, starting planning pass", fanoutTopic, workKey);
+            logger.LogInformation("Acquired lease for fanout {FanoutTopic}:{WorkKey}, starting planning pass", fanoutTopic, workKey);
 
             try
             {
                 // 2) Ask planner what's due
-                var slices = await this.planner.GetDueSlicesAsync(fanoutTopic, workKey, ct).ConfigureAwait(false);
+                var slices = await planner.GetDueSlicesAsync(fanoutTopic, workKey, ct).ConfigureAwait(false);
                 if (slices.Count == 0)
                 {
-                    this.logger.LogDebug("No slices due for fanout {FanoutTopic}:{WorkKey}", fanoutTopic, workKey);
+                    logger.LogDebug("No slices due for fanout {FanoutTopic}:{WorkKey}", fanoutTopic, workKey);
                     return 0;
                 }
 
-                this.logger.LogInformation("Found {SliceCount} slices due for fanout {FanoutTopic}:{WorkKey}", slices.Count, fanoutTopic, workKey);
+                logger.LogInformation("Found {SliceCount} slices due for fanout {FanoutTopic}:{WorkKey}", slices.Count, fanoutTopic, workKey);
 
                 // 3) Dispatch to messaging system
-                var dispatched = await this.dispatcher.DispatchAsync(slices, ct).ConfigureAwait(false);
+                var dispatched = await dispatcher.DispatchAsync(slices, ct).ConfigureAwait(false);
 
-                this.logger.LogInformation("Successfully dispatched {DispatchedCount} slices for fanout {FanoutTopic}:{WorkKey}", dispatched, fanoutTopic, workKey);
+                logger.LogInformation("Successfully dispatched {DispatchedCount} slices for fanout {FanoutTopic}:{WorkKey}", dispatched, fanoutTopic, workKey);
                 return dispatched;
             }
             catch (Exception ex)
             {
-                this.logger.LogError(ex, "Error during fanout coordination for {FanoutTopic}:{WorkKey}", fanoutTopic, workKey);
+                logger.LogError(ex, "Error during fanout coordination for {FanoutTopic}:{WorkKey}", fanoutTopic, workKey);
                 throw;
             }
         }

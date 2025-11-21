@@ -13,9 +13,6 @@
 // limitations under the License.
 
 namespace Bravellian.Platform.Observability;
-
-using System;
-
 /// <summary>
 /// Configuration options for the watchdog service.
 /// </summary>

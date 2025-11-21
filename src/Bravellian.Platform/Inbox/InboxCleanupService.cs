@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// Background service that periodically cleans up old processed inbox messages
 /// based on the configured retention period.
@@ -41,11 +41,11 @@ public sealed class InboxCleanupService : BackgroundService
         IDatabaseSchemaCompletion? schemaCompletion = null)
     {
         var opts = options.Value;
-        this.connectionString = opts.ConnectionString;
-        this.schemaName = opts.SchemaName;
-        this.tableName = opts.TableName;
-        this.retentionPeriod = opts.RetentionPeriod;
-        this.cleanupInterval = opts.CleanupInterval;
+        connectionString = opts.ConnectionString;
+        schemaName = opts.SchemaName;
+        tableName = opts.TableName;
+        retentionPeriod = opts.RetentionPeriod;
+        cleanupInterval = opts.CleanupInterval;
         this.mono = mono;
         this.logger = logger;
         this.schemaCompletion = schemaCompletion;
@@ -53,77 +53,77 @@ public sealed class InboxCleanupService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        this.logger.LogInformation(
+        logger.LogInformation(
             "Starting inbox cleanup service with retention period {RetentionPeriod} and cleanup interval {CleanupInterval}",
-            this.retentionPeriod, this.cleanupInterval);
+            retentionPeriod, cleanupInterval);
 
         // Wait for schema deployment to complete if available
-        if (this.schemaCompletion != null)
+        if (schemaCompletion != null)
         {
-            this.logger.LogDebug("Waiting for database schema deployment to complete");
+            logger.LogDebug("Waiting for database schema deployment to complete");
             try
             {
-                await this.schemaCompletion.SchemaDeploymentCompleted.ConfigureAwait(false);
-                this.logger.LogInformation("Database schema deployment completed successfully");
+                await schemaCompletion.SchemaDeploymentCompleted.ConfigureAwait(false);
+                logger.LogInformation("Database schema deployment completed successfully");
             }
             catch (Exception ex)
             {
                 // Log and continue - schema deployment errors should not prevent cleanup
-                this.logger.LogWarning(ex, "Schema deployment failed, but continuing with inbox cleanup");
+                logger.LogWarning(ex, "Schema deployment failed, but continuing with inbox cleanup");
             }
         }
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            var next = this.mono.Seconds + this.cleanupInterval.TotalSeconds;
+            var next = mono.Seconds + cleanupInterval.TotalSeconds;
 
             try
             {
-                var deletedCount = await this.CleanupOldMessagesAsync(stoppingToken).ConfigureAwait(false);
+                var deletedCount = await CleanupOldMessagesAsync(stoppingToken).ConfigureAwait(false);
                 if (deletedCount > 0)
                 {
-                    this.logger.LogInformation("Inbox cleanup completed: {DeletedCount} old messages deleted", deletedCount);
+                    logger.LogInformation("Inbox cleanup completed: {DeletedCount} old messages deleted", deletedCount);
                 }
                 else
                 {
-                    this.logger.LogDebug("Inbox cleanup completed: no old messages to delete");
+                    logger.LogDebug("Inbox cleanup completed: no old messages to delete");
                 }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
-                this.logger.LogDebug("Inbox cleanup service stopped due to cancellation");
+                logger.LogDebug("Inbox cleanup service stopped due to cancellation");
                 break;
             }
             catch (Exception ex)
             {
                 // Log and continue - don't let cleanup errors stop the service
-                this.logger.LogError(ex, "Error during inbox cleanup - continuing with next iteration");
+                logger.LogError(ex, "Error during inbox cleanup - continuing with next iteration");
             }
 
             // Sleep until next interval, using monotonic clock to avoid time jumps
-            var sleep = Math.Max(0, next - this.mono.Seconds);
+            var sleep = Math.Max(0, next - mono.Seconds);
             if (sleep > 0)
             {
                 await Task.Delay(TimeSpan.FromSeconds(sleep), stoppingToken).ConfigureAwait(false);
             }
         }
 
-        this.logger.LogInformation("Inbox cleanup service stopped");
+        logger.LogInformation("Inbox cleanup service stopped");
     }
 
     private async Task<int> CleanupOldMessagesAsync(CancellationToken cancellationToken)
     {
-        this.logger.LogDebug("Starting inbox cleanup for messages older than {RetentionPeriod}", this.retentionPeriod);
+        logger.LogDebug("Starting inbox cleanup for messages older than {RetentionPeriod}", retentionPeriod);
 
-        var sql = $"EXEC [{this.schemaName}].[{this.tableName}_Cleanup] @RetentionSeconds";
+        var sql = $"EXEC [{schemaName}].[{tableName}_Cleanup] @RetentionSeconds";
 
         try
         {
-            using var connection = new SqlConnection(this.connectionString);
+            using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             using var command = new SqlCommand(sql, connection);
-            command.Parameters.AddWithValue("@RetentionSeconds", (int)this.retentionPeriod.TotalSeconds);
+            command.Parameters.AddWithValue("@RetentionSeconds", (int)retentionPeriod.TotalSeconds);
 
             var result = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
             return result != null && result != DBNull.Value ? Convert.ToInt32(result) : 0;
@@ -132,16 +132,16 @@ public sealed class InboxCleanupService : BackgroundService
         {
             // Stored procedure doesn't exist yet - this is expected in multi-database setups
             // where databases may not be fully initialized
-            this.logger.LogWarning(
+            logger.LogWarning(
                 "Inbox cleanup stored procedure [{SchemaName}].[{TableName}_Cleanup] not found - skipping cleanup. " +
                 "This is expected if the database schema hasn't been deployed yet.",
-                this.schemaName,
-                this.tableName);
+                schemaName,
+                tableName);
             return 0;
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Failed to cleanup old inbox messages");
+            logger.LogError(ex, "Failed to cleanup old inbox messages");
             throw;
         }
     }

@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
 using Bravellian.Platform.Semaphore;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,6 +19,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// Extension methods for unified platform registration.
 /// </summary>
@@ -362,6 +362,36 @@ public static class PlatformServiceCollectionExtensions
         return descriptor.ServiceType.FullName ?? "Unknown";
     }
 
+    private static void ValidateMultiDatabaseStoreRegistrations(IServiceCollection services, PlatformConfiguration config)
+    {
+        if (config.EnvironmentStyle is PlatformEnvironmentStyle.MultiDatabaseNoControl or PlatformEnvironmentStyle.MultiDatabaseWithControl)
+        {
+            var outboxStores = services.Where(d => d.ServiceType == typeof(IOutboxStore)).ToList();
+            if (outboxStores.Count > 0)
+            {
+                var details = string.Join(", ", outboxStores.Select(DescribeDescriptor));
+                throw new InvalidOperationException(
+                    $"Direct IOutboxStore registrations are not supported in multi-database configurations. Remove the following registrations and rely on discovery/IOutboxStoreProvider instead: {details}.");
+            }
+
+            var inboxStores = services.Where(d => d.ServiceType == typeof(IInboxWorkStore)).ToList();
+            if (inboxStores.Count > 0)
+            {
+                var details = string.Join(", ", inboxStores.Select(DescribeDescriptor));
+                throw new InvalidOperationException(
+                    $"Direct IInboxWorkStore registrations are not supported in multi-database configurations. Remove the following registrations and rely on discovery/IInboxWorkStoreProvider instead: {details}.");
+            }
+
+            var outboxes = services.Where(d => d.ServiceType == typeof(IOutbox)).ToList();
+            if (outboxes.Count > 0)
+            {
+                var details = string.Join(", ", outboxes.Select(DescribeDescriptor));
+                throw new InvalidOperationException(
+                    $"Direct IOutbox registrations are not supported in multi-database configurations. Use IOutboxRouter via discovery instead. Remove: {details}.");
+            }
+        }
+    }
+
     private static void RegisterCoreServices(IServiceCollection services, bool enableSchemaDeployment)
     {
         // Add time abstractions
@@ -398,6 +428,7 @@ public static class PlatformServiceCollectionExtensions
         }
 
         // All platforms use multi-database features
+        ValidateMultiDatabaseStoreRegistrations(services, config);
         RegisterMultiDatabaseFeatures(services);
     }
 
@@ -410,7 +441,7 @@ public static class PlatformServiceCollectionExtensions
 
         // For multi-database, use the multi-database registration methods with platform providers
         // These use store providers that can discover databases dynamically
-        
+
         // Outbox
         services.AddMultiSqlOutbox(
             sp => new PlatformOutboxStoreProvider(
@@ -421,7 +452,7 @@ public static class PlatformServiceCollectionExtensions
                 enableSchemaDeployment,
                 config), // Pass configuration to filter out control plane
             new RoundRobinOutboxSelectionStrategy());
-        
+
         // Register multi-outbox cleanup service
         services.AddHostedService<MultiOutboxCleanupService>(sp => new MultiOutboxCleanupService(
             sp.GetRequiredService<IOutboxStoreProvider>(),
@@ -430,7 +461,7 @@ public static class PlatformServiceCollectionExtensions
             retentionPeriod: TimeSpan.FromDays(7),
             cleanupInterval: TimeSpan.FromHours(1),
             schemaCompletion: sp.GetService<IDatabaseSchemaCompletion>()));
-        
+
         // Inbox
         services.AddMultiSqlInbox(
             sp => new PlatformInboxWorkStoreProvider(
@@ -441,7 +472,7 @@ public static class PlatformServiceCollectionExtensions
                 enableSchemaDeployment,
                 config), // Pass configuration to filter out control plane
             new RoundRobinInboxSelectionStrategy());
-        
+
         // Register multi-inbox cleanup service
         services.AddHostedService<MultiInboxCleanupService>(sp => new MultiInboxCleanupService(
             sp.GetRequiredService<IInboxWorkStoreProvider>(),
@@ -450,7 +481,7 @@ public static class PlatformServiceCollectionExtensions
             retentionPeriod: TimeSpan.FromDays(7),
             cleanupInterval: TimeSpan.FromHours(1),
             schemaCompletion: sp.GetService<IDatabaseSchemaCompletion>()));
-        
+
         // Scheduler (Timers + Jobs)
         services.AddMultiSqlScheduler(
             sp => new PlatformSchedulerStoreProvider(
@@ -459,14 +490,15 @@ public static class PlatformServiceCollectionExtensions
                 sp.GetRequiredService<ILoggerFactory>(),
                 config), // Pass configuration to filter out control plane
             new RoundRobinOutboxSelectionStrategy());
-        
+
         // Leases
         services.AddMultiSystemLeases(
             sp => new PlatformLeaseFactoryProvider(
                 sp.GetRequiredService<IPlatformDatabaseDiscovery>(),
                 sp.GetRequiredService<ILoggerFactory>(),
-                config));
-        
+                config,
+                enableSchemaDeployment));
+
         // Fanout
         services.AddMultiSqlFanout(
             sp => new PlatformFanoutRepositoryProvider(

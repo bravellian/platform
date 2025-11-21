@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Semaphore;
 
 using System.Data;
 using Dapper;
@@ -20,6 +19,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
+namespace Bravellian.Platform.Semaphore;
 /// <summary>
 /// SQL Server implementation of the semaphore service.
 /// </summary>
@@ -36,7 +36,7 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
     {
         this.options = options.Value;
         this.logger = logger;
-        (this.serverName, this.databaseName) = ParseConnectionInfo(this.options.ConnectionString);
+        (serverName, databaseName) = ParseConnectionInfo(this.options.ConnectionString);
     }
 
     public async Task<SemaphoreAcquireResult> TryAcquireAsync(
@@ -45,7 +45,7 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
         string ownerId,
         CancellationToken cancellationToken)
     {
-        return await this.TryAcquireAsync(name, ttlSeconds, ownerId, null, cancellationToken).ConfigureAwait(false);
+        return await TryAcquireAsync(name, ttlSeconds, ownerId, null, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<SemaphoreAcquireResult> TryAcquireAsync(
@@ -57,11 +57,11 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
     {
         SemaphoreValidator.ValidateName(name);
         SemaphoreValidator.ValidateOwnerId(ownerId);
-        SemaphoreValidator.ValidateTtl(ttlSeconds, this.options.MinTtlSeconds, this.options.MaxTtlSeconds);
+        SemaphoreValidator.ValidateTtl(ttlSeconds, options.MinTtlSeconds, options.MaxTtlSeconds);
 
         try
         {
-            using var connection = new SqlConnection(this.options.ConnectionString);
+            using var connection = new SqlConnection(options.ConnectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             var parameters = new DynamicParameters();
@@ -75,7 +75,7 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
             parameters.Add("@ExpiresAtUtc", dbType: DbType.DateTime2, direction: ParameterDirection.Output);
 
             await connection.ExecuteAsync(
-                $"[{this.options.SchemaName}].[Semaphore_Acquire]",
+                $"[{options.SchemaName}].[Semaphore_Acquire]",
                 parameters,
                 commandType: CommandType.StoredProcedure).ConfigureAwait(false);
 
@@ -93,26 +93,26 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
         }
         catch (SqlException ex)
         {
-            this.logger.LogError(
+            logger.LogError(
                 ex,
                 "Failed to acquire semaphore '{Name}' for owner '{OwnerId}' on {Server}/{Database} (Schema {Schema})",
                 name,
                 ownerId,
-                this.serverName,
-                this.databaseName,
-                this.options.SchemaName);
+                serverName,
+                databaseName,
+                options.SchemaName);
             return SemaphoreAcquireResult.Unavailable();
         }
         catch (Exception ex)
         {
-            this.logger.LogError(
+            logger.LogError(
                 ex,
                 "Unexpected error acquiring semaphore '{Name}' for owner '{OwnerId}' on {Server}/{Database} (Schema {Schema})",
                 name,
                 ownerId,
-                this.serverName,
-                this.databaseName,
-                this.options.SchemaName);
+                serverName,
+                databaseName,
+                options.SchemaName);
             return SemaphoreAcquireResult.Unavailable();
         }
     }
@@ -124,11 +124,11 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
         CancellationToken cancellationToken)
     {
         SemaphoreValidator.ValidateName(name);
-        SemaphoreValidator.ValidateTtl(ttlSeconds, this.options.MinTtlSeconds, this.options.MaxTtlSeconds);
+        SemaphoreValidator.ValidateTtl(ttlSeconds, options.MinTtlSeconds, options.MaxTtlSeconds);
 
         try
         {
-            using var connection = new SqlConnection(this.options.ConnectionString);
+            using var connection = new SqlConnection(options.ConnectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             var parameters = new DynamicParameters();
@@ -139,7 +139,7 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
             parameters.Add("@ExpiresAtUtc", dbType: DbType.DateTime2, direction: ParameterDirection.Output);
 
             await connection.ExecuteAsync(
-                $"[{this.options.SchemaName}].[Semaphore_Renew]",
+                $"[{options.SchemaName}].[Semaphore_Renew]",
                 parameters,
                 commandType: CommandType.StoredProcedure).ConfigureAwait(false);
 
@@ -154,26 +154,26 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
         }
         catch (SqlException ex)
         {
-            this.logger.LogError(
+            logger.LogError(
                 ex,
                 "Failed to renew semaphore '{Name}' token '{Token}' on {Server}/{Database} (Schema {Schema})",
                 name,
                 token,
-                this.serverName,
-                this.databaseName,
-                this.options.SchemaName);
+                serverName,
+                databaseName,
+                options.SchemaName);
             return SemaphoreRenewResult.Unavailable();
         }
         catch (Exception ex)
         {
-            this.logger.LogError(
+            logger.LogError(
                 ex,
                 "Unexpected error renewing semaphore '{Name}' token '{Token}' on {Server}/{Database} (Schema {Schema})",
                 name,
                 token,
-                this.serverName,
-                this.databaseName,
-                this.options.SchemaName);
+                serverName,
+                databaseName,
+                options.SchemaName);
             return SemaphoreRenewResult.Unavailable();
         }
     }
@@ -187,7 +187,7 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
 
         try
         {
-            using var connection = new SqlConnection(this.options.ConnectionString);
+            using var connection = new SqlConnection(options.ConnectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             var parameters = new DynamicParameters();
@@ -196,7 +196,7 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
             parameters.Add("@Released", dbType: DbType.Boolean, direction: ParameterDirection.Output);
 
             await connection.ExecuteAsync(
-                $"[{this.options.SchemaName}].[Semaphore_Release]",
+                $"[{options.SchemaName}].[Semaphore_Release]",
                 parameters,
                 commandType: CommandType.StoredProcedure).ConfigureAwait(false);
 
@@ -205,40 +205,40 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
         }
         catch (SqlException ex)
         {
-            this.logger.LogError(
+            logger.LogError(
                 ex,
                 "Failed to release semaphore '{Name}' token '{Token}' on {Server}/{Database} (Schema {Schema})",
                 name,
                 token,
-                this.serverName,
-                this.databaseName,
-                this.options.SchemaName);
+                serverName,
+                databaseName,
+                options.SchemaName);
             return SemaphoreReleaseResult.Unavailable();
         }
         catch (Exception ex)
         {
-            this.logger.LogError(
+            logger.LogError(
                 ex,
                 "Unexpected error releasing semaphore '{Name}' token '{Token}' on {Server}/{Database} (Schema {Schema})",
                 name,
                 token,
-                this.serverName,
-                this.databaseName,
-                this.options.SchemaName);
+                serverName,
+                databaseName,
+                options.SchemaName);
             return SemaphoreReleaseResult.Unavailable();
         }
     }
 
     public async Task<int> ReapExpiredAsync(CancellationToken cancellationToken)
     {
-        return await this.ReapExpiredAsync(null, 1000, cancellationToken).ConfigureAwait(false);
+        return await ReapExpiredAsync(null, 1000, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<int> ReapExpiredAsync(
         string? name,
         CancellationToken cancellationToken)
     {
-        return await this.ReapExpiredAsync(name, 1000, cancellationToken).ConfigureAwait(false);
+        return await ReapExpiredAsync(name, 1000, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<int> ReapExpiredAsync(
@@ -253,7 +253,7 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
 
         try
         {
-            using var connection = new SqlConnection(this.options.ConnectionString);
+            using var connection = new SqlConnection(options.ConnectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             var parameters = new DynamicParameters();
@@ -262,7 +262,7 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
             parameters.Add("@DeletedCount", dbType: DbType.Int32, direction: ParameterDirection.Output);
 
             await connection.ExecuteAsync(
-                $"[{this.options.SchemaName}].[Semaphore_Reap]",
+                $"[{options.SchemaName}].[Semaphore_Reap]",
                 parameters,
                 commandType: CommandType.StoredProcedure).ConfigureAwait(false);
 
@@ -270,13 +270,13 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
         }
         catch (Exception ex)
         {
-            this.logger.LogError(
+            logger.LogError(
                 ex,
                 "Failed to reap expired semaphore leases for '{Name}' on {Server}/{Database} (Schema {Schema})",
                 name ?? "all",
-                this.serverName,
-                this.databaseName,
-                this.options.SchemaName);
+                serverName,
+                databaseName,
+                options.SchemaName);
             return 0;
         }
     }
@@ -287,17 +287,17 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
         CancellationToken cancellationToken)
     {
         SemaphoreValidator.ValidateName(name);
-        SemaphoreValidator.ValidateLimit(limit, this.options.MaxLimit);
+        SemaphoreValidator.ValidateLimit(limit, options.MaxLimit);
 
         try
         {
-            using var connection = new SqlConnection(this.options.ConnectionString);
+            using var connection = new SqlConnection(options.ConnectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             var sql = $"""
-                IF NOT EXISTS (SELECT 1 FROM [{this.options.SchemaName}].[Semaphore] WHERE [Name] = @Name)
+                IF NOT EXISTS (SELECT 1 FROM [{options.SchemaName}].[Semaphore] WHERE [Name] = @Name)
                 BEGIN
-                    INSERT INTO [{this.options.SchemaName}].[Semaphore] ([Name], [Limit], [NextFencingCounter], [UpdatedUtc])
+                    INSERT INTO [{options.SchemaName}].[Semaphore] ([Name], [Limit], [NextFencingCounter], [UpdatedUtc])
                     VALUES (@Name, @Limit, 1, SYSUTCDATETIME())
                 END
                 """;
@@ -308,14 +308,14 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
         }
         catch (Exception ex)
         {
-            this.logger.LogError(
+            logger.LogError(
                 ex,
                 "Failed to ensure semaphore '{Name}' exists with limit {Limit} on {Server}/{Database} (Schema {Schema})",
                 name,
                 limit,
-                this.serverName,
-                this.databaseName,
-                this.options.SchemaName);
+                serverName,
+                databaseName,
+                options.SchemaName);
             throw;
         }
     }
@@ -325,7 +325,7 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
         int newLimit,
         CancellationToken cancellationToken)
     {
-        await this.UpdateLimitAsync(name, newLimit, false, cancellationToken).ConfigureAwait(false);
+        await UpdateLimitAsync(name, newLimit, false, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task UpdateLimitAsync(
@@ -335,17 +335,17 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
         CancellationToken cancellationToken)
     {
         SemaphoreValidator.ValidateName(name);
-        SemaphoreValidator.ValidateLimit(newLimit, this.options.MaxLimit);
+        SemaphoreValidator.ValidateLimit(newLimit, options.MaxLimit);
 
         try
         {
-            using var connection = new SqlConnection(this.options.ConnectionString);
+            using var connection = new SqlConnection(options.ConnectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             if (ensureIfMissing)
             {
                 var sql = $"""
-                    MERGE [{this.options.SchemaName}].[Semaphore] AS target
+                    MERGE [{options.SchemaName}].[Semaphore] AS target
                     USING (SELECT @Name AS [Name], @NewLimit AS [Limit]) AS source
                     ON (target.[Name] = source.[Name])
                     WHEN MATCHED THEN
@@ -362,7 +362,7 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
             else
             {
                 var sql = $"""
-                    UPDATE [{this.options.SchemaName}].[Semaphore]
+                    UPDATE [{options.SchemaName}].[Semaphore]
                     SET [Limit] = @NewLimit, [UpdatedUtc] = SYSUTCDATETIME()
                     WHERE [Name] = @Name
                     """;
@@ -379,14 +379,14 @@ internal sealed class SqlSemaphoreService : ISemaphoreService
         }
         catch (Exception ex)
         {
-            this.logger.LogError(
+            logger.LogError(
                 ex,
                 "Failed to update semaphore '{Name}' limit to {NewLimit} on {Server}/{Database} (Schema {Schema})",
                 name,
                 newLimit,
-                this.serverName,
-                this.databaseName,
-                this.options.SchemaName);
+                serverName,
+                databaseName,
+                options.SchemaName);
             throw;
         }
     }

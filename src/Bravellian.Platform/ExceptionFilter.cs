@@ -13,9 +13,6 @@
 // limitations under the License.
 
 namespace Bravellian.Platform;
-
-using System;
-using System.Linq;
 /// <summary>
 /// Provides utility methods for filtering exceptions in catch blocks.
 /// This helper is designed to prevent catching critical exceptions that should

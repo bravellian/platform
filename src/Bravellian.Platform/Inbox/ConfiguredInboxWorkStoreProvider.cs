@@ -12,12 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// Provides access to multiple inbox work stores configured at startup.
 /// This implementation creates stores based on the provided options.
@@ -72,12 +71,12 @@ internal sealed class ConfiguredInboxWorkStoreProvider : IInboxWorkStoreProvider
             inboxDict[identifier] = inbox;
         }
 
-        this.stores = storesList;
-        this.storeIdentifiers = identifiersDict;
-        this.storesByKey = keyDict;
-        this.inboxesByKey = inboxDict;
+        stores = storesList;
+        storeIdentifiers = identifiersDict;
+        storesByKey = keyDict;
+        inboxesByKey = inboxDict;
         this.inboxOptions = optionsList;
-        this.logger = loggerFactory.CreateLogger<ConfiguredInboxWorkStoreProvider>();
+        logger = loggerFactory.CreateLogger<ConfiguredInboxWorkStoreProvider>();
     }
 
     /// <summary>
@@ -88,7 +87,7 @@ internal sealed class ConfiguredInboxWorkStoreProvider : IInboxWorkStoreProvider
     /// <returns>A task representing the asynchronous operation.</returns>
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
-        foreach (var options in this.inboxOptions)
+        foreach (var options in inboxOptions)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -100,7 +99,7 @@ internal sealed class ConfiguredInboxWorkStoreProvider : IInboxWorkStoreProvider
 
                 try
                 {
-                    this.logger.LogInformation(
+                    logger.LogInformation(
                         "Deploying inbox schema for database: {Identifier}",
                         identifier);
 
@@ -113,13 +112,13 @@ internal sealed class ConfiguredInboxWorkStoreProvider : IInboxWorkStoreProvider
                         options.ConnectionString,
                         options.SchemaName).ConfigureAwait(false);
 
-                    this.logger.LogInformation(
+                    logger.LogInformation(
                         "Successfully deployed inbox schema for database: {Identifier}",
                         identifier);
                 }
                 catch (Exception ex)
                 {
-                    this.logger.LogError(
+                    logger.LogError(
                         ex,
                         "Failed to deploy inbox schema for database: {Identifier}. Store will be available but may fail on first use.",
                         identifier);
@@ -130,12 +129,12 @@ internal sealed class ConfiguredInboxWorkStoreProvider : IInboxWorkStoreProvider
 
     /// <inheritdoc/>
     public Task<IReadOnlyList<IInboxWorkStore>> GetAllStoresAsync() =>
-        Task.FromResult<IReadOnlyList<IInboxWorkStore>>(this.stores);
+        Task.FromResult<IReadOnlyList<IInboxWorkStore>>(stores);
 
     /// <inheritdoc/>
     public string GetStoreIdentifier(IInboxWorkStore store)
     {
-        return this.storeIdentifiers.TryGetValue(store, out var identifier)
+        return storeIdentifiers.TryGetValue(store, out var identifier)
             ? identifier
             : "Unknown";
     }
@@ -143,13 +142,13 @@ internal sealed class ConfiguredInboxWorkStoreProvider : IInboxWorkStoreProvider
     /// <inheritdoc/>
     public IInboxWorkStore? GetStoreByKey(string key)
     {
-        return this.storesByKey.TryGetValue(key, out var store) ? store : null;
+        return storesByKey.TryGetValue(key, out var store) ? store : null;
     }
 
     /// <inheritdoc/>
     public IInbox? GetInboxByKey(string key)
     {
-        return this.inboxesByKey.TryGetValue(key, out var inbox) ? inbox : null;
+        return inboxesByKey.TryGetValue(key, out var inbox) ? inbox : null;
     }
 
     private static string ExtractDatabaseName(string connectionString)

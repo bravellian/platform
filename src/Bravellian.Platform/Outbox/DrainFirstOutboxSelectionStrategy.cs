@@ -43,8 +43,8 @@ public sealed class DrainFirstOutboxSelectionStrategy : IOutboxSelectionStrategy
             if (lastIndex >= 0)
             {
                 // Use Interlocked to ensure thread-safe update
-                System.Threading.Interlocked.Exchange(ref this.currentIndex, lastIndex);
-                return stores[this.currentIndex];
+                System.Threading.Interlocked.Exchange(ref currentIndex, lastIndex);
+                return stores[currentIndex];
             }
         }
 
@@ -54,17 +54,17 @@ public sealed class DrainFirstOutboxSelectionStrategy : IOutboxSelectionStrategy
             var lastIndex = FindStoreIndex(stores, lastProcessedStore);
             if (lastIndex >= 0)
             {
-                System.Threading.Interlocked.Exchange(ref this.currentIndex, (lastIndex + 1) % stores.Count);
+                System.Threading.Interlocked.Exchange(ref currentIndex, (lastIndex + 1) % stores.Count);
             }
         }
 
-        return stores[System.Threading.Interlocked.CompareExchange(ref this.currentIndex, this.currentIndex, this.currentIndex)];
+        return stores[System.Threading.Interlocked.CompareExchange(ref currentIndex, currentIndex, currentIndex)];
     }
 
     /// <inheritdoc/>
     public void Reset()
     {
-        System.Threading.Interlocked.Exchange(ref this.currentIndex, 0);
+        System.Threading.Interlocked.Exchange(ref currentIndex, 0);
     }
 
     private static int FindStoreIndex(IReadOnlyList<IOutboxStore> stores, IOutboxStore store)

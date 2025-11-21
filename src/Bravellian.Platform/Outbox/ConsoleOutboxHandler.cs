@@ -29,7 +29,7 @@ internal class ConsoleOutboxHandler : IOutboxHandler
     /// <param name="timeProvider">The time provider for adding timestamp information.</param>
     public ConsoleOutboxHandler(string topic, TimeProvider timeProvider)
     {
-        this.Topic = topic;
+        Topic = topic;
         this.timeProvider = timeProvider;
     }
 
@@ -39,7 +39,7 @@ internal class ConsoleOutboxHandler : IOutboxHandler
     /// <inheritdoc />
     public async Task HandleAsync(OutboxMessage message, CancellationToken cancellationToken)
     {
-        var timestamp = this.timeProvider.GetUtcNow();
+        var timestamp = timeProvider.GetUtcNow();
         System.Console.WriteLine($"[{timestamp:yyyy-MM-dd HH:mm:ss.fff}] Handling message {message.Id} for topic '{message.Topic}': {message.Payload}");
 
         // Simulate some processing time

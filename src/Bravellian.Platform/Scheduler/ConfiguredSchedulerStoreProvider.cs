@@ -12,12 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// Provides access to a pre-configured list of scheduler stores.
 /// Each scheduler store represents a separate database/tenant.
@@ -74,17 +73,17 @@ public sealed class ConfiguredSchedulerStoreProvider : ISchedulerStoreProvider
                 Outbox = outbox,
             };
 
-            this.storesByIdentifier[config.Identifier] = entry;
-            this.allStores.Add(store);
+            storesByIdentifier[config.Identifier] = entry;
+            allStores.Add(store);
         }
     }
 
     public Task<IReadOnlyList<ISchedulerStore>> GetAllStoresAsync() =>
-        Task.FromResult<IReadOnlyList<ISchedulerStore>>(this.allStores);
+        Task.FromResult<IReadOnlyList<ISchedulerStore>>(allStores);
 
     public string GetStoreIdentifier(ISchedulerStore store)
     {
-        foreach (var entry in this.storesByIdentifier.Values)
+        foreach (var entry in storesByIdentifier.Values)
         {
             if (ReferenceEquals(entry.Store, store))
             {
@@ -97,7 +96,7 @@ public sealed class ConfiguredSchedulerStoreProvider : ISchedulerStoreProvider
 
     public ISchedulerStore? GetStoreByKey(string key)
     {
-        if (this.storesByIdentifier.TryGetValue(key, out var entry))
+        if (storesByIdentifier.TryGetValue(key, out var entry))
         {
             return entry.Store;
         }
@@ -107,7 +106,7 @@ public sealed class ConfiguredSchedulerStoreProvider : ISchedulerStoreProvider
 
     public ISchedulerClient? GetSchedulerClientByKey(string key)
     {
-        if (this.storesByIdentifier.TryGetValue(key, out var entry))
+        if (storesByIdentifier.TryGetValue(key, out var entry))
         {
             return entry.Client;
         }
@@ -117,7 +116,7 @@ public sealed class ConfiguredSchedulerStoreProvider : ISchedulerStoreProvider
 
     public IOutbox? GetOutboxByKey(string key)
     {
-        if (this.storesByIdentifier.TryGetValue(key, out var entry))
+        if (storesByIdentifier.TryGetValue(key, out var entry))
         {
             return entry.Outbox;
         }

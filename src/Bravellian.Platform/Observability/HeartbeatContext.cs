@@ -13,9 +13,6 @@
 // limitations under the License.
 
 namespace Bravellian.Platform.Observability;
-
-using System;
-
 /// <summary>
 /// Represents the context of a heartbeat event.
 /// </summary>

@@ -12,14 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System.Threading.Tasks;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// SQL Server implementation of the Inbox pattern for at-most-once message processing.
 /// </summary>
@@ -37,14 +36,14 @@ internal class SqlInboxService : IInbox
     public SqlInboxService(IOptions<SqlInboxOptions> options, ILogger<SqlInboxService> logger)
     {
         this.options = options.Value;
-        this.connectionString = this.options.ConnectionString;
+        connectionString = this.options.ConnectionString;
         this.logger = logger;
 
         // Build SQL queries using configured schema and table names
         var tableName = $"[{this.options.SchemaName}].[{this.options.TableName}]";
 
         // MERGE statement for atomic upsert operation with concurrency safety
-        this.upsertSql = $"""
+        upsertSql = $"""
 
                         MERGE {tableName} AS target
                         USING (SELECT @MessageId AS MessageId, @Source AS Source, @Hash AS Hash) AS source
@@ -59,7 +58,7 @@ internal class SqlInboxService : IInbox
                         OUTPUT ISNULL(inserted.ProcessedUtc, deleted.ProcessedUtc) AS ProcessedUtc;
             """;
 
-        this.markProcessedSql = $"""
+        markProcessedSql = $"""
 
                         UPDATE {tableName}
                         SET ProcessedUtc = GETUTCDATE(),
@@ -68,7 +67,7 @@ internal class SqlInboxService : IInbox
                         WHERE MessageId = @MessageId;
             """;
 
-        this.markProcessingSql = $"""
+        markProcessingSql = $"""
 
                         UPDATE {tableName}
                         SET Status = 'Processing',
@@ -76,7 +75,7 @@ internal class SqlInboxService : IInbox
                         WHERE MessageId = @MessageId;
             """;
 
-        this.markDeadSql = $"""
+        markDeadSql = $"""
 
                         UPDATE {tableName}
                         SET Status = 'Dead',
@@ -84,7 +83,7 @@ internal class SqlInboxService : IInbox
                         WHERE MessageId = @MessageId;
             """;
 
-        this.enqueueSql = $"""
+        enqueueSql = $"""
 
                         MERGE {tableName} AS target
                         USING (SELECT @MessageId AS MessageId, @Source AS Source, @Topic AS Topic, @Payload AS Payload, @Hash AS Hash, @DueTimeUtc AS DueTimeUtc) AS source
@@ -107,7 +106,7 @@ internal class SqlInboxService : IInbox
         string source,
         CancellationToken cancellationToken)
     {
-        return await this.AlreadyProcessedAsync(messageId, source, null, cancellationToken).ConfigureAwait(false);
+        return await AlreadyProcessedAsync(messageId, source, null, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<bool> AlreadyProcessedAsync(
@@ -128,18 +127,18 @@ internal class SqlInboxService : IInbox
 
         try
         {
-            using var connection = new SqlConnection(this.connectionString);
+            using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             // Execute MERGE and get the ProcessedUtc value
             var processedUtc = await connection.QuerySingleOrDefaultAsync<DateTime?>(
-                this.upsertSql,
+                upsertSql,
                 new { MessageId = messageId, Source = source, Hash = hash }).ConfigureAwait(false);
 
             // If ProcessedUtc has a value, the message was already processed
             var alreadyProcessed = processedUtc.HasValue;
 
-            this.logger.LogDebug(
+            logger.LogDebug(
                 "Message {MessageId} from {Source}: {AlreadyProcessed}",
                 messageId,
                 source,
@@ -149,7 +148,7 @@ internal class SqlInboxService : IInbox
         }
         catch (SqlException ex)
         {
-            this.logger.LogError(
+            logger.LogError(
                 ex,
                 "Failed to check/record message {MessageId} from {Source}",
                 messageId,
@@ -169,29 +168,29 @@ internal class SqlInboxService : IInbox
 
         try
         {
-            using var connection = new SqlConnection(this.connectionString);
+            using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             var rowsAffected = await connection.ExecuteAsync(
-                this.markProcessedSql,
+                markProcessedSql,
                 new { MessageId = messageId }).ConfigureAwait(false);
 
             if (rowsAffected == 0)
             {
-                this.logger.LogWarning(
+                logger.LogWarning(
                     "Attempted to mark message {MessageId} as processed, but no rows were affected. Message may not exist.",
                     messageId);
             }
             else
             {
-                this.logger.LogDebug(
+                logger.LogDebug(
                     "Message {MessageId} marked as processed",
                     messageId);
             }
         }
         catch (SqlException ex)
         {
-            this.logger.LogError(
+            logger.LogError(
                 ex,
                 "Failed to mark message {MessageId} as processed",
                 messageId);
@@ -210,21 +209,21 @@ internal class SqlInboxService : IInbox
 
         try
         {
-            using var connection = new SqlConnection(this.connectionString);
+            using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             var rowsAffected = await connection.ExecuteAsync(
-                this.markProcessingSql,
+                markProcessingSql,
                 new { MessageId = messageId }).ConfigureAwait(false);
 
-            this.logger.LogDebug(
+            logger.LogDebug(
                 "Message {MessageId} marked as processing (rows affected: {RowsAffected})",
                 messageId,
                 rowsAffected);
         }
         catch (SqlException ex)
         {
-            this.logger.LogError(
+            logger.LogError(
                 ex,
                 "Failed to mark message {MessageId} as processing",
                 messageId);
@@ -243,21 +242,21 @@ internal class SqlInboxService : IInbox
 
         try
         {
-            using var connection = new SqlConnection(this.connectionString);
+            using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             var rowsAffected = await connection.ExecuteAsync(
-                this.markDeadSql,
+                markDeadSql,
                 new { MessageId = messageId }).ConfigureAwait(false);
 
-            this.logger.LogWarning(
+            logger.LogWarning(
                 "Message {MessageId} marked as dead/poison (rows affected: {RowsAffected})",
                 messageId,
                 rowsAffected);
         }
         catch (SqlException ex)
         {
-            this.logger.LogError(
+            logger.LogError(
                 ex,
                 "Failed to mark message {MessageId} as dead",
                 messageId);
@@ -272,7 +271,7 @@ internal class SqlInboxService : IInbox
         string payload,
         CancellationToken cancellationToken)
     {
-        await this.EnqueueAsync(topic, source, messageId, payload, null, null, cancellationToken).ConfigureAwait(false);
+        await EnqueueAsync(topic, source, messageId, payload, null, null, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task EnqueueAsync(
@@ -283,7 +282,7 @@ internal class SqlInboxService : IInbox
         byte[]? hash,
         CancellationToken cancellationToken)
     {
-        await this.EnqueueAsync(topic, source, messageId, payload, hash, null, cancellationToken).ConfigureAwait(false);
+        await EnqueueAsync(topic, source, messageId, payload, hash, null, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task EnqueueAsync(
@@ -317,11 +316,11 @@ internal class SqlInboxService : IInbox
 
         try
         {
-            using var connection = new SqlConnection(this.connectionString);
+            using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             await connection.ExecuteAsync(
-                this.enqueueSql,
+                enqueueSql,
                 new
                 {
                     MessageId = messageId,
@@ -332,7 +331,7 @@ internal class SqlInboxService : IInbox
                     DueTimeUtc = dueTimeUtc?.UtcDateTime,
                 }).ConfigureAwait(false);
 
-            this.logger.LogDebug(
+            logger.LogDebug(
                 "Enqueued message {MessageId} with topic '{Topic}' from source '{Source}' with due time '{DueTimeUtc}'",
                 messageId,
                 topic,
@@ -341,7 +340,7 @@ internal class SqlInboxService : IInbox
         }
         catch (SqlException ex)
         {
-            this.logger.LogError(
+            logger.LogError(
                 ex,
                 "Failed to enqueue message {MessageId} with topic '{Topic}' from source '{Source}'",
                 messageId,

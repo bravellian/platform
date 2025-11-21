@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
+using System.Data;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System.Data;
-using System.Threading.Tasks;
+
+namespace Bravellian.Platform;
 
 internal class SqlOutboxService : IOutbox
 {
@@ -31,11 +31,11 @@ internal class SqlOutboxService : IOutbox
     public SqlOutboxService(IOptions<SqlOutboxOptions> options, ILogger<SqlOutboxService> logger)
     {
         this.options = options.Value;
-        this.connectionString = this.options.ConnectionString;
+        connectionString = this.options.ConnectionString;
         this.logger = logger;
 
         // Build the SQL query using configured schema and table names
-        this.enqueueSql = $"""
+        enqueueSql = $"""
 
                         INSERT INTO [{this.options.SchemaName}].[{this.options.TableName}] (Topic, Payload, CorrelationId, MessageId, DueTimeUtc)
                         VALUES (@Topic, @Payload, @CorrelationId, NEWID(), @DueTimeUtc);
@@ -48,7 +48,7 @@ internal class SqlOutboxService : IOutbox
         string payload,
         CancellationToken cancellationToken)
     {
-        await this.EnqueueAsync(topic, payload, (string?)null, null, cancellationToken).ConfigureAwait(false);
+        await EnqueueAsync(topic, payload, (string?)null, null, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task EnqueueAsync(
@@ -57,7 +57,7 @@ internal class SqlOutboxService : IOutbox
         string? correlationId,
         CancellationToken cancellationToken)
     {
-        await this.EnqueueAsync(topic, payload, correlationId, (DateTimeOffset?)null, cancellationToken).ConfigureAwait(false);
+        await EnqueueAsync(topic, payload, correlationId, (DateTimeOffset?)null, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task EnqueueAsync(
@@ -68,16 +68,16 @@ internal class SqlOutboxService : IOutbox
         CancellationToken cancellationToken)
     {
         // Ensure outbox table exists before attempting to enqueue (if enabled)
-        if (this.options.EnableSchemaDeployment)
+        if (options.EnableSchemaDeployment)
         {
             await DatabaseSchemaManager.EnsureOutboxSchemaAsync(
-                this.connectionString,
-                this.options.SchemaName,
-                this.options.TableName).ConfigureAwait(false);
+                connectionString,
+                options.SchemaName,
+                options.TableName).ConfigureAwait(false);
         }
 
         // Create our own connection and transaction for reliability
-        var connection = new SqlConnection(this.connectionString);
+        var connection = new SqlConnection(connectionString);
 
         // Create our own connection and transaction for reliability
         await using (connection.ConfigureAwait(false))
@@ -89,7 +89,7 @@ internal class SqlOutboxService : IOutbox
             {
                 try
                 {
-                    await connection.ExecuteAsync(this.enqueueSql, new
+                    await connection.ExecuteAsync(enqueueSql, new
                     {
                         Topic = topic,
                         Payload = payload,
@@ -114,7 +114,7 @@ internal class SqlOutboxService : IOutbox
         IDbTransaction transaction,
         CancellationToken cancellationToken)
     {
-        await this.EnqueueAsync(topic, payload, transaction, null, null, cancellationToken).ConfigureAwait(false);
+        await EnqueueAsync(topic, payload, transaction, null, null, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task EnqueueAsync(
@@ -124,7 +124,7 @@ internal class SqlOutboxService : IOutbox
         string? correlationId,
         CancellationToken cancellationToken)
     {
-        await this.EnqueueAsync(topic, payload, transaction, correlationId, null, cancellationToken).ConfigureAwait(false);
+        await EnqueueAsync(topic, payload, transaction, correlationId, null, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task EnqueueAsync(
@@ -136,7 +136,7 @@ internal class SqlOutboxService : IOutbox
         CancellationToken cancellationToken)
     {
         // Note: We use the connection from the provided transaction.
-        await transaction.Connection.ExecuteAsync(this.enqueueSql, new
+        await transaction.Connection.ExecuteAsync(enqueueSql, new
         {
             Topic = topic,
             Payload = payload,
@@ -156,12 +156,12 @@ internal class SqlOutboxService : IOutbox
 
         try
         {
-            var connection = new SqlConnection(this.connectionString);
+            var connection = new SqlConnection(connectionString);
             await using (connection.ConfigureAwait(false))
             {
                 await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-                await using var command = new SqlCommand($"[{this.options.SchemaName}].[Outbox_Claim]", connection)
+                await using var command = new SqlCommand($"[{options.SchemaName}].[Outbox_Claim]", connection)
                 {
                     CommandType = CommandType.StoredProcedure,
                 };
@@ -176,14 +176,14 @@ internal class SqlOutboxService : IOutbox
                     result.Add((Guid)reader.GetValue(0));
                 }
 
-                this.logger.LogDebug("Claimed {Count} outbox items with owner {OwnerToken}", result.Count, ownerToken);
+                logger.LogDebug("Claimed {Count} outbox items with owner {OwnerToken}", result.Count, ownerToken);
                 SchedulerMetrics.OutboxItemsClaimed.Add(result.Count);
                 return result;
             }
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Failed to claim outbox items with owner {OwnerToken}", ownerToken);
+            logger.LogError(ex, "Failed to claim outbox items with owner {OwnerToken}", ownerToken);
             throw;
         }
     }
@@ -203,13 +203,13 @@ internal class SqlOutboxService : IOutbox
 
         try
         {
-            await this.ExecuteWithIdsAsync($"[{this.options.SchemaName}].[Outbox_Ack]", ownerToken, idList, cancellationToken).ConfigureAwait(false);
-            this.logger.LogDebug("Acknowledged {Count} outbox items with owner {OwnerToken}", idList.Count, ownerToken);
+            await ExecuteWithIdsAsync($"[{options.SchemaName}].[Outbox_Ack]", ownerToken, idList, cancellationToken).ConfigureAwait(false);
+            logger.LogDebug("Acknowledged {Count} outbox items with owner {OwnerToken}", idList.Count, ownerToken);
             SchedulerMetrics.OutboxItemsAcknowledged.Add(idList.Count);
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Failed to acknowledge {Count} outbox items with owner {OwnerToken}", idList.Count, ownerToken);
+            logger.LogError(ex, "Failed to acknowledge {Count} outbox items with owner {OwnerToken}", idList.Count, ownerToken);
             throw;
         }
     }
@@ -229,13 +229,13 @@ internal class SqlOutboxService : IOutbox
 
         try
         {
-            await this.ExecuteWithIdsAsync($"[{this.options.SchemaName}].[Outbox_Abandon]", ownerToken, idList, cancellationToken).ConfigureAwait(false);
-            this.logger.LogDebug("Abandoned {Count} outbox items with owner {OwnerToken}", idList.Count, ownerToken);
+            await ExecuteWithIdsAsync($"[{options.SchemaName}].[Outbox_Abandon]", ownerToken, idList, cancellationToken).ConfigureAwait(false);
+            logger.LogDebug("Abandoned {Count} outbox items with owner {OwnerToken}", idList.Count, ownerToken);
             SchedulerMetrics.OutboxItemsAbandoned.Add(idList.Count);
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Failed to abandon {Count} outbox items with owner {OwnerToken}", idList.Count, ownerToken);
+            logger.LogError(ex, "Failed to abandon {Count} outbox items with owner {OwnerToken}", idList.Count, ownerToken);
             throw;
         }
     }
@@ -255,13 +255,13 @@ internal class SqlOutboxService : IOutbox
 
         try
         {
-            await this.ExecuteWithIdsAsync($"[{this.options.SchemaName}].[Outbox_Fail]", ownerToken, idList, cancellationToken).ConfigureAwait(false);
-            this.logger.LogDebug("Failed {Count} outbox items with owner {OwnerToken}", idList.Count, ownerToken);
+            await ExecuteWithIdsAsync($"[{options.SchemaName}].[Outbox_Fail]", ownerToken, idList, cancellationToken).ConfigureAwait(false);
+            logger.LogDebug("Failed {Count} outbox items with owner {OwnerToken}", idList.Count, ownerToken);
             SchedulerMetrics.OutboxItemsFailed.Add(idList.Count);
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Failed to mark {Count} outbox items as failed with owner {OwnerToken}", idList.Count, ownerToken);
+            logger.LogError(ex, "Failed to mark {Count} outbox items as failed with owner {OwnerToken}", idList.Count, ownerToken);
             throw;
         }
     }
@@ -272,12 +272,12 @@ internal class SqlOutboxService : IOutbox
 
         try
         {
-            var connection = new SqlConnection(this.connectionString);
+            var connection = new SqlConnection(connectionString);
             await using (connection.ConfigureAwait(false))
             {
                 await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-                await using var command = new SqlCommand($"[{this.options.SchemaName}].[Outbox_ReapExpired]", connection)
+                await using var command = new SqlCommand($"[{options.SchemaName}].[Outbox_ReapExpired]", connection)
                 {
                     CommandType = CommandType.StoredProcedure,
                 };
@@ -285,13 +285,13 @@ internal class SqlOutboxService : IOutbox
                 var reapedCount = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
                 var count = Convert.ToInt32(reapedCount ?? 0);
 
-                this.logger.LogDebug("Reaped {Count} expired outbox items", count);
+                logger.LogDebug("Reaped {Count} expired outbox items", count);
                 SchedulerMetrics.OutboxItemsReaped.Add(count);
             }
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Failed to reap expired outbox items");
+            logger.LogError(ex, "Failed to reap expired outbox items");
             throw;
         }
     }
@@ -315,7 +315,7 @@ internal class SqlOutboxService : IOutbox
             tvp.Rows.Add(id);
         }
 
-        var connection = new SqlConnection(this.connectionString);
+        var connection = new SqlConnection(connectionString);
         await using (connection.ConfigureAwait(false))
         {
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
@@ -328,7 +328,7 @@ internal class SqlOutboxService : IOutbox
             command.Parameters.AddWithValue("@OwnerToken", ownerToken);
             var parameter = command.Parameters.AddWithValue("@Ids", tvp);
             parameter.SqlDbType = SqlDbType.Structured;
-            parameter.TypeName = $"[{this.options.SchemaName}].[GuidIdList]";
+            parameter.TypeName = $"[{options.SchemaName}].[GuidIdList]";
 
             await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }

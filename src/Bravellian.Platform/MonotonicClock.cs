@@ -13,9 +13,6 @@
 // limitations under the License.
 
 namespace Bravellian.Platform;
-
-using System.Diagnostics;
-
 /// <summary>
 /// Provides monotonic time measurements using <see cref="Stopwatch"/>.
 /// This implementation is suitable for measuring durations, timeouts, and relative timing
@@ -29,5 +26,5 @@ internal sealed class MonotonicClock : IMonotonicClock
     public long Ticks => Stopwatch.GetTimestamp();
 
     /// <inheritdoc/>
-    public double Seconds => this.Ticks * TicksToSeconds;
+    public double Seconds => Ticks * TicksToSeconds;
 }

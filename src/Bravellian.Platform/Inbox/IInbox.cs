@@ -13,9 +13,6 @@
 // limitations under the License.
 
 namespace Bravellian.Platform;
-
-using System.Threading.Tasks;
-
 /// <summary>
 /// Provides a mechanism to track processed inbound messages for at-most-once processing guarantees.
 /// Implements the Inbox pattern to prevent duplicate message processing.

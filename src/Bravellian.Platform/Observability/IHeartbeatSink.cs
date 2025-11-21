@@ -13,10 +13,6 @@
 // limitations under the License.
 
 namespace Bravellian.Platform.Observability;
-
-using System.Threading;
-using System.Threading.Tasks;
-
 /// <summary>
 /// Defines a sink for processing heartbeat events.
 /// </summary>

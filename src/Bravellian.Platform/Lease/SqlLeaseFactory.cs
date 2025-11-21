@@ -12,31 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
-using System;
-using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// SQL Server-based implementation of a system lease factory.
 /// </summary>
 internal sealed class SqlLeaseFactory : ISystemLeaseFactory
 {
-    private readonly SystemLeaseOptions options;
+    private readonly LeaseFactoryConfig config;
     private readonly ILogger<SqlLeaseFactory> logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SqlLeaseFactory"/> class.
     /// </summary>
-    /// <param name="options">The lease options.</param>
+    /// <param name="config">The lease configuration.</param>
     /// <param name="logger">The logger.</param>
-    public SqlLeaseFactory(IOptions<SystemLeaseOptions> options, ILogger<SqlLeaseFactory> logger)
+    public SqlLeaseFactory(LeaseFactoryConfig config, ILogger<SqlLeaseFactory> logger)
     {
-        this.options = options.Value;
+        this.config = config;
         this.logger = logger;
     }
 
@@ -54,17 +49,17 @@ internal sealed class SqlLeaseFactory : ISystemLeaseFactory
         var finalContextJson = contextJson ?? CreateDefaultContext();
 
         var lease = await SqlLease.AcquireAsync(
-            this.options.ConnectionString,
-            this.options.SchemaName,
+            config.ConnectionString,
+            config.SchemaName,
             resourceName,
             leaseDuration,
-            this.options.RenewPercent,
-            this.options.UseGate,
-            this.options.GateTimeoutMs,
+            config.RenewPercent,
+            config.UseGate,
+            config.GateTimeoutMs,
             finalContextJson,
             ownerToken,
             cancellationToken,
-            this.logger).ConfigureAwait(false);
+            logger).ConfigureAwait(false);
 
         if (lease != null)
         {
@@ -87,4 +82,20 @@ internal sealed class SqlLeaseFactory : ISystemLeaseFactory
 
         return JsonSerializer.Serialize(context);
     }
+}
+
+/// <summary>
+/// Configuration for a SQL lease factory instance.
+/// </summary>
+internal sealed record LeaseFactoryConfig
+{
+    public required string ConnectionString { get; init; }
+
+    public required string SchemaName { get; init; }
+
+    public double RenewPercent { get; init; } = 0.6;
+
+    public bool UseGate { get; init; }
+
+    public int GateTimeoutMs { get; init; } = 200;
 }

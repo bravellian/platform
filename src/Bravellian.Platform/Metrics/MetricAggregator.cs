@@ -13,12 +13,6 @@
 // limitations under the License.
 
 namespace Bravellian.Platform.Metrics;
-
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-
 /// <summary>
 /// Aggregates metric values for a time window.
 /// </summary>

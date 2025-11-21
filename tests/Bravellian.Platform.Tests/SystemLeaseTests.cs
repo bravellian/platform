@@ -24,8 +24,6 @@ using Xunit;
 [Trait("RequiresDocker", "true")]
 public class SystemLeaseTests : SqlServerTestBase
 {
-    private SystemLeaseOptions? options;
-    private IOptions<SystemLeaseOptions>? mockOptions;
     private SqlLeaseFactory? leaseFactory;
 
     public SystemLeaseTests(ITestOutputHelper testOutputHelper, SqlServerCollectionFixture fixture)
@@ -37,25 +35,22 @@ public class SystemLeaseTests : SqlServerTestBase
     {
         await base.InitializeAsync().ConfigureAwait(false);
 
-        this.options = new SystemLeaseOptions
+        var config = new LeaseFactoryConfig
         {
             ConnectionString = this.ConnectionString,
             SchemaName = "dbo",
-            DefaultLeaseDuration = TimeSpan.FromSeconds(30),
             RenewPercent = 0.6,
             UseGate = false,
             GateTimeoutMs = 200,
         };
 
-        this.mockOptions = Options.Create(this.options);
-
         var logger = NullLogger<SqlLeaseFactory>.Instance;
-        this.leaseFactory = new SqlLeaseFactory(this.mockOptions, logger);
+        this.leaseFactory = new SqlLeaseFactory(config, logger);
 
         // Ensure the distributed lock schema exists
         await DatabaseSchemaManager.EnsureDistributedLockSchemaAsync(
             this.ConnectionString,
-            this.options.SchemaName).ConfigureAwait(false);
+            config.SchemaName).ConfigureAwait(false);
     }
 
     [Fact]

@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// Provides a mechanism for discovering fanout database configurations dynamically.
 /// Implementations can query a registry, database, or configuration service to get
@@ -114,33 +114,33 @@ internal sealed class DynamicFanoutRepositoryProvider : IFanoutRepositoryProvide
     /// <inheritdoc/>
     public async Task<IReadOnlyList<IFanoutPolicyRepository>> GetAllPolicyRepositoriesAsync(CancellationToken cancellationToken = default)
     {
-        await this.EnsureRefreshedAsync(cancellationToken).ConfigureAwait(false);
+        await EnsureRefreshedAsync(cancellationToken).ConfigureAwait(false);
 
-        lock (this.lockObject)
+        lock (lockObject)
         {
             // Return defensive copy to prevent external mutation
-            return this.currentPolicyRepositories.ToList();
+            return currentPolicyRepositories.ToList();
         }
     }
 
     /// <inheritdoc/>
     public async Task<IReadOnlyList<IFanoutCursorRepository>> GetAllCursorRepositoriesAsync(CancellationToken cancellationToken = default)
     {
-        await this.EnsureRefreshedAsync(cancellationToken).ConfigureAwait(false);
+        await EnsureRefreshedAsync(cancellationToken).ConfigureAwait(false);
 
-        lock (this.lockObject)
+        lock (lockObject)
         {
             // Return defensive copy to prevent external mutation
-            return this.currentCursorRepositories.ToList();
+            return currentCursorRepositories.ToList();
         }
     }
 
     /// <inheritdoc/>
     public string GetRepositoryIdentifier(IFanoutPolicyRepository repository)
     {
-        lock (this.lockObject)
+        lock (lockObject)
         {
-            foreach (var entry in this.repositoriesByIdentifier.Values)
+            foreach (var entry in repositoriesByIdentifier.Values)
             {
                 if (ReferenceEquals(entry.PolicyRepository, repository))
                 {
@@ -155,9 +155,9 @@ internal sealed class DynamicFanoutRepositoryProvider : IFanoutRepositoryProvide
     /// <inheritdoc/>
     public string GetRepositoryIdentifier(IFanoutCursorRepository repository)
     {
-        lock (this.lockObject)
+        lock (lockObject)
         {
-            foreach (var entry in this.repositoriesByIdentifier.Values)
+            foreach (var entry in repositoriesByIdentifier.Values)
             {
                 if (ReferenceEquals(entry.CursorRepository, repository))
                 {
@@ -172,9 +172,9 @@ internal sealed class DynamicFanoutRepositoryProvider : IFanoutRepositoryProvide
     /// <inheritdoc/>
     public IFanoutPolicyRepository? GetPolicyRepositoryByKey(string key)
     {
-        lock (this.lockObject)
+        lock (lockObject)
         {
-            if (this.repositoriesByIdentifier.TryGetValue(key, out var entry))
+            if (repositoriesByIdentifier.TryGetValue(key, out var entry))
             {
                 return entry.PolicyRepository;
             }
@@ -186,9 +186,9 @@ internal sealed class DynamicFanoutRepositoryProvider : IFanoutRepositoryProvide
     /// <inheritdoc/>
     public IFanoutCursorRepository? GetCursorRepositoryByKey(string key)
     {
-        lock (this.lockObject)
+        lock (lockObject)
         {
-            if (this.repositoriesByIdentifier.TryGetValue(key, out var entry))
+            if (repositoriesByIdentifier.TryGetValue(key, out var entry))
             {
                 return entry.CursorRepository;
             }
@@ -202,75 +202,75 @@ internal sealed class DynamicFanoutRepositoryProvider : IFanoutRepositoryProvide
     /// </summary>
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
-        await this.RefreshRepositoriesAsync(cancellationToken).ConfigureAwait(false);
-        lock (this.lockObject)
+        await RefreshRepositoriesAsync(cancellationToken).ConfigureAwait(false);
+        lock (lockObject)
         {
-            this.lastRefresh = this.timeProvider.GetUtcNow();
+            lastRefresh = timeProvider.GetUtcNow();
         }
     }
 
     /// <inheritdoc/>
     public void Dispose()
     {
-        lock (this.lockObject)
+        lock (lockObject)
         {
             // Dispose all repositories if they implement IDisposable
-            foreach (var entry in this.repositoriesByIdentifier.Values)
+            foreach (var entry in repositoriesByIdentifier.Values)
             {
                 (entry.PolicyRepository as IDisposable)?.Dispose();
                 (entry.CursorRepository as IDisposable)?.Dispose();
             }
 
-            this.repositoriesByIdentifier.Clear();
-            this.currentPolicyRepositories.Clear();
-            this.currentCursorRepositories.Clear();
+            repositoriesByIdentifier.Clear();
+            currentPolicyRepositories.Clear();
+            currentCursorRepositories.Clear();
         }
 
-        this.refreshSemaphore?.Dispose();
+        refreshSemaphore?.Dispose();
     }
 
     private async Task EnsureRefreshedAsync(CancellationToken cancellationToken)
     {
-        var now = this.timeProvider.GetUtcNow();
+        var now = timeProvider.GetUtcNow();
         bool needsRefresh;
-        lock (this.lockObject)
+        lock (lockObject)
         {
-            needsRefresh = (now - this.lastRefresh >= this.refreshInterval);
+            needsRefresh = (now - lastRefresh >= refreshInterval);
         }
 
         if (needsRefresh)
         {
             // Try to acquire the semaphore immediately
-            if (await this.refreshSemaphore.WaitAsync(0, cancellationToken).ConfigureAwait(false))
+            if (await refreshSemaphore.WaitAsync(0, cancellationToken).ConfigureAwait(false))
             {
                 try
                 {
                     // Double-check in case another thread already refreshed
-                    now = this.timeProvider.GetUtcNow();
-                    lock (this.lockObject)
+                    now = timeProvider.GetUtcNow();
+                    lock (lockObject)
                     {
-                        needsRefresh = (now - this.lastRefresh >= this.refreshInterval);
+                        needsRefresh = (now - lastRefresh >= refreshInterval);
                     }
 
                     if (needsRefresh)
                     {
-                        await this.RefreshRepositoriesAsync(cancellationToken).ConfigureAwait(false);
-                        lock (this.lockObject)
+                        await RefreshRepositoriesAsync(cancellationToken).ConfigureAwait(false);
+                        lock (lockObject)
                         {
-                            this.lastRefresh = now;
+                            lastRefresh = now;
                         }
                     }
                 }
                 finally
                 {
-                    this.refreshSemaphore.Release();
+                    refreshSemaphore.Release();
                 }
             }
             else
             {
                 // Wait for the ongoing refresh to complete
-                await this.refreshSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
-                this.refreshSemaphore.Release();
+                await refreshSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+                refreshSemaphore.Release();
             }
         }
     }
@@ -279,14 +279,14 @@ internal sealed class DynamicFanoutRepositoryProvider : IFanoutRepositoryProvide
     {
         try
         {
-            this.logger.LogDebug("Discovering fanout databases...");
-            var configs = await this.discovery.DiscoverDatabasesAsync(cancellationToken).ConfigureAwait(false);
+            logger.LogDebug("Discovering fanout databases...");
+            var configs = await discovery.DiscoverDatabasesAsync(cancellationToken).ConfigureAwait(false);
             var configList = configs.ToList();
 
             // Track configurations that need schema deployment
             var schemasToDeploy = new List<FanoutDatabaseConfig>();
 
-            lock (this.lockObject)
+            lock (lockObject)
             {
                 // Track which identifiers we've seen in this refresh
                 var seenIdentifiers = new HashSet<string>();
@@ -296,15 +296,15 @@ internal sealed class DynamicFanoutRepositoryProvider : IFanoutRepositoryProvide
                 {
                     seenIdentifiers.Add(config.Identifier);
 
-                    if (!this.repositoriesByIdentifier.TryGetValue(config.Identifier, out var entry))
+                    if (!repositoriesByIdentifier.TryGetValue(config.Identifier, out var entry))
                     {
                         // New database discovered
-                        this.logger.LogInformation(
+                        logger.LogInformation(
                             "Discovered new fanout database: {Identifier}",
                             config.Identifier);
 
-                        var policyRepo = this.CreatePolicyRepository(config);
-                        var cursorRepo = this.CreateCursorRepository(config);
+                        var policyRepo = CreatePolicyRepository(config);
+                        var cursorRepo = CreateCursorRepository(config);
 
                         entry = new RepositoryEntry
                         {
@@ -314,9 +314,9 @@ internal sealed class DynamicFanoutRepositoryProvider : IFanoutRepositoryProvide
                             Config = config,
                         };
 
-                        this.repositoriesByIdentifier[config.Identifier] = entry;
-                        this.currentPolicyRepositories.Add(policyRepo);
-                        this.currentCursorRepositories.Add(cursorRepo);
+                        repositoriesByIdentifier[config.Identifier] = entry;
+                        currentPolicyRepositories.Add(policyRepo);
+                        currentCursorRepositories.Add(cursorRepo);
 
                         // Mark for schema deployment
                         if (config.EnableSchemaDeployment)
@@ -330,26 +330,26 @@ internal sealed class DynamicFanoutRepositoryProvider : IFanoutRepositoryProvide
                              entry.Config.CursorTableName != config.CursorTableName)
                     {
                         // Configuration changed - recreate the repositories
-                        this.logger.LogInformation(
+                        logger.LogInformation(
                             "Fanout database configuration changed for {Identifier}, recreating repositories",
                             config.Identifier);
 
-                        this.currentPolicyRepositories.Remove(entry.PolicyRepository);
-                        this.currentCursorRepositories.Remove(entry.CursorRepository);
+                        currentPolicyRepositories.Remove(entry.PolicyRepository);
+                        currentCursorRepositories.Remove(entry.CursorRepository);
 
                         // Dispose old instances if they implement IDisposable
                         (entry.PolicyRepository as IDisposable)?.Dispose();
                         (entry.CursorRepository as IDisposable)?.Dispose();
 
-                        var policyRepo = this.CreatePolicyRepository(config);
-                        var cursorRepo = this.CreateCursorRepository(config);
+                        var policyRepo = CreatePolicyRepository(config);
+                        var cursorRepo = CreateCursorRepository(config);
 
                         entry.PolicyRepository = policyRepo;
                         entry.CursorRepository = cursorRepo;
                         entry.Config = config;
 
-                        this.currentPolicyRepositories.Add(policyRepo);
-                        this.currentCursorRepositories.Add(cursorRepo);
+                        currentPolicyRepositories.Add(policyRepo);
+                        currentCursorRepositories.Add(cursorRepo);
 
                         // Mark for schema deployment
                         if (config.EnableSchemaDeployment)
@@ -360,30 +360,30 @@ internal sealed class DynamicFanoutRepositoryProvider : IFanoutRepositoryProvide
                 }
 
                 // Remove repositories that are no longer present
-                var removedIdentifiers = this.repositoriesByIdentifier.Keys
+                var removedIdentifiers = repositoriesByIdentifier.Keys
                     .Where(id => !seenIdentifiers.Contains(id))
                     .ToList();
 
                 foreach (var identifier in removedIdentifiers)
                 {
-                    this.logger.LogInformation(
+                    logger.LogInformation(
                         "Fanout database removed: {Identifier}",
                         identifier);
 
-                    var entry = this.repositoriesByIdentifier[identifier];
+                    var entry = repositoriesByIdentifier[identifier];
 
                     // Dispose repositories if they implement IDisposable
                     (entry.PolicyRepository as IDisposable)?.Dispose();
                     (entry.CursorRepository as IDisposable)?.Dispose();
 
-                    this.currentPolicyRepositories.Remove(entry.PolicyRepository);
-                    this.currentCursorRepositories.Remove(entry.CursorRepository);
-                    this.repositoriesByIdentifier.Remove(identifier);
+                    currentPolicyRepositories.Remove(entry.PolicyRepository);
+                    currentCursorRepositories.Remove(entry.CursorRepository);
+                    repositoriesByIdentifier.Remove(identifier);
                 }
 
-                this.logger.LogDebug(
+                logger.LogDebug(
                     "Discovery complete. Managing {Count} fanout databases",
-                    this.repositoriesByIdentifier.Count);
+                    repositoriesByIdentifier.Count);
             }
 
             // Deploy schemas outside the lock for databases that need it
@@ -393,7 +393,7 @@ internal sealed class DynamicFanoutRepositoryProvider : IFanoutRepositoryProvide
 
                 try
                 {
-                    this.logger.LogInformation(
+                    logger.LogInformation(
                         "Deploying fanout schema for database: {Identifier}",
                         config.Identifier);
 
@@ -403,13 +403,13 @@ internal sealed class DynamicFanoutRepositoryProvider : IFanoutRepositoryProvide
                         config.PolicyTableName,
                         config.CursorTableName).ConfigureAwait(false);
 
-                    this.logger.LogInformation(
+                    logger.LogInformation(
                         "Successfully deployed fanout schema for database: {Identifier}",
                         config.Identifier);
                 }
                 catch (Exception ex)
                 {
-                    this.logger.LogError(
+                    logger.LogError(
                         ex,
                         "Failed to deploy fanout schema for database: {Identifier}. Repository will be available but may fail on first use.",
                         config.Identifier);
@@ -418,7 +418,7 @@ internal sealed class DynamicFanoutRepositoryProvider : IFanoutRepositoryProvide
         }
         catch (Exception ex)
         {
-            this.logger.LogError(
+            logger.LogError(
                 ex,
                 "Error discovering fanout databases. Continuing with existing configuration.");
         }
@@ -438,12 +438,12 @@ internal sealed class DynamicFanoutRepositoryProvider : IFanoutRepositoryProvide
 
     private SqlFanoutPolicyRepository CreatePolicyRepository(FanoutDatabaseConfig config)
     {
-        return new SqlFanoutPolicyRepository(Options.Create(this.CreateSqlFanoutOptions(config)));
+        return new SqlFanoutPolicyRepository(Options.Create(CreateSqlFanoutOptions(config)));
     }
 
     private SqlFanoutCursorRepository CreateCursorRepository(FanoutDatabaseConfig config)
     {
-        return new SqlFanoutCursorRepository(Options.Create(this.CreateSqlFanoutOptions(config)));
+        return new SqlFanoutCursorRepository(Options.Create(CreateSqlFanoutOptions(config)));
     }
 
     private sealed class RepositoryEntry

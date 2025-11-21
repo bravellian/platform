@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// Background service that periodically cleans up old processed outbox messages
 /// from multiple databases based on the configured retention period.
@@ -49,88 +49,88 @@ internal sealed class MultiOutboxCleanupService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        this.logger.LogInformation(
+        logger.LogInformation(
             "Starting multi-outbox cleanup service with retention period {RetentionPeriod} and cleanup interval {CleanupInterval}",
-            this.retentionPeriod, this.cleanupInterval);
+            retentionPeriod, cleanupInterval);
 
         // Wait for schema deployment to complete if available
-        if (this.schemaCompletion != null)
+        if (schemaCompletion != null)
         {
-            this.logger.LogDebug("Waiting for database schema deployment to complete");
+            logger.LogDebug("Waiting for database schema deployment to complete");
             try
             {
-                await this.schemaCompletion.SchemaDeploymentCompleted.ConfigureAwait(false);
-                this.logger.LogInformation("Database schema deployment completed successfully");
+                await schemaCompletion.SchemaDeploymentCompleted.ConfigureAwait(false);
+                logger.LogInformation("Database schema deployment completed successfully");
             }
             catch (Exception ex)
             {
                 // Log and continue - schema deployment errors should not prevent cleanup
-                this.logger.LogWarning(ex, "Schema deployment failed, but continuing with outbox cleanup");
+                logger.LogWarning(ex, "Schema deployment failed, but continuing with outbox cleanup");
             }
         }
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            var next = this.mono.Seconds + this.cleanupInterval.TotalSeconds;
+            var next = mono.Seconds + cleanupInterval.TotalSeconds;
 
             try
             {
-                var totalDeleted = await this.CleanupAllDatabasesAsync(stoppingToken).ConfigureAwait(false);
+                var totalDeleted = await CleanupAllDatabasesAsync(stoppingToken).ConfigureAwait(false);
                 if (totalDeleted > 0)
                 {
-                    this.logger.LogInformation("Multi-outbox cleanup completed: {DeletedCount} old messages deleted across all databases", totalDeleted);
+                    logger.LogInformation("Multi-outbox cleanup completed: {DeletedCount} old messages deleted across all databases", totalDeleted);
                 }
                 else
                 {
-                    this.logger.LogDebug("Multi-outbox cleanup completed: no old messages to delete");
+                    logger.LogDebug("Multi-outbox cleanup completed: no old messages to delete");
                 }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
-                this.logger.LogDebug("Multi-outbox cleanup service stopped due to cancellation");
+                logger.LogDebug("Multi-outbox cleanup service stopped due to cancellation");
                 break;
             }
             catch (Exception ex)
             {
                 // Log and continue - don't let cleanup errors stop the service
-                this.logger.LogError(ex, "Error during multi-outbox cleanup - continuing with next iteration");
+                logger.LogError(ex, "Error during multi-outbox cleanup - continuing with next iteration");
             }
 
             // Sleep until next interval, using monotonic clock to avoid time jumps
-            var sleep = Math.Max(0, next - this.mono.Seconds);
+            var sleep = Math.Max(0, next - mono.Seconds);
             if (sleep > 0)
             {
                 await Task.Delay(TimeSpan.FromSeconds(sleep), stoppingToken).ConfigureAwait(false);
             }
         }
 
-        this.logger.LogInformation("Multi-outbox cleanup service stopped");
+        logger.LogInformation("Multi-outbox cleanup service stopped");
     }
 
     private async Task<int> CleanupAllDatabasesAsync(CancellationToken cancellationToken)
     {
-        var stores = await this.storeProvider.GetAllStoresAsync().ConfigureAwait(false);
+        var stores = await storeProvider.GetAllStoresAsync().ConfigureAwait(false);
         var totalDeleted = 0;
 
         foreach (var store in stores)
         {
             try
             {
-                var identifier = this.storeProvider.GetStoreIdentifier(store);
-                this.logger.LogDebug("Starting outbox cleanup for database: {DatabaseIdentifier}", identifier);
+                var identifier = storeProvider.GetStoreIdentifier(store);
+                logger.LogDebug("Starting outbox cleanup for database: {DatabaseIdentifier}", identifier);
 
-                var deleted = await this.CleanupDatabaseAsync(store, identifier, cancellationToken).ConfigureAwait(false);
+                var deleted = await CleanupDatabaseAsync(store, identifier, cancellationToken).ConfigureAwait(false);
                 totalDeleted += deleted;
 
                 if (deleted > 0)
                 {
-                    this.logger.LogDebug("Deleted {DeletedCount} old messages from database: {DatabaseIdentifier}", deleted, identifier);
+                    logger.LogDebug("Deleted {DeletedCount} old messages from database: {DatabaseIdentifier}", deleted, identifier);
                 }
             }
             catch (Exception ex)
             {
-                var identifier = this.storeProvider.GetStoreIdentifier(store);
-                this.logger.LogError(ex, "Failed to cleanup old outbox messages from database: {DatabaseIdentifier}", identifier);
+                var identifier = storeProvider.GetStoreIdentifier(store);
+                logger.LogError(ex, "Failed to cleanup old outbox messages from database: {DatabaseIdentifier}", identifier);
                 // Continue with other databases
             }
         }
@@ -144,10 +144,10 @@ internal sealed class MultiOutboxCleanupService : BackgroundService
         // We need to get the connection string, schema name, and table name
         // These are stored as private readonly fields in SqlOutboxStore
         var storeType = store.GetType();
-        
+
         if (storeType.Name != "SqlOutboxStore")
         {
-            this.logger.LogWarning("Skipping cleanup for non-SQL store: {StoreType}", storeType.Name);
+            logger.LogWarning("Skipping cleanup for non-SQL store: {StoreType}", storeType.Name);
             return 0;
         }
 
@@ -158,7 +158,7 @@ internal sealed class MultiOutboxCleanupService : BackgroundService
 
         if (connectionStringField == null || schemaNameField == null || tableNameField == null)
         {
-            this.logger.LogWarning("Could not access required fields for store: {DatabaseIdentifier}", identifier);
+            logger.LogWarning("Could not access required fields for store: {DatabaseIdentifier}", identifier);
             return 0;
         }
 
@@ -168,7 +168,7 @@ internal sealed class MultiOutboxCleanupService : BackgroundService
 
         if (string.IsNullOrEmpty(connectionString) || string.IsNullOrEmpty(schemaName) || string.IsNullOrEmpty(tableName))
         {
-            this.logger.LogWarning("Invalid field values for store: {DatabaseIdentifier}", identifier);
+            logger.LogWarning("Invalid field values for store: {DatabaseIdentifier}", identifier);
             return 0;
         }
 
@@ -180,7 +180,7 @@ internal sealed class MultiOutboxCleanupService : BackgroundService
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             using var command = new SqlCommand(sql, connection);
-            command.Parameters.AddWithValue("@RetentionSeconds", (int)this.retentionPeriod.TotalSeconds);
+            command.Parameters.AddWithValue("@RetentionSeconds", (int)retentionPeriod.TotalSeconds);
 
             var result = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
             return result != null && result != DBNull.Value ? Convert.ToInt32(result) : 0;
@@ -189,7 +189,7 @@ internal sealed class MultiOutboxCleanupService : BackgroundService
         {
             // Stored procedure doesn't exist yet - this is expected in multi-database setups
             // where databases may not be fully initialized
-            this.logger.LogWarning(
+            logger.LogWarning(
                 "Outbox cleanup stored procedure [{SchemaName}].[{TableName}_Cleanup] not found for database {DatabaseIdentifier} - skipping cleanup. " +
                 "This is expected if the database schema hasn't been deployed yet.",
                 schemaName,
@@ -199,7 +199,7 @@ internal sealed class MultiOutboxCleanupService : BackgroundService
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Failed to execute cleanup stored procedure for database: {DatabaseIdentifier}", identifier);
+            logger.LogError(ex, "Failed to execute cleanup stored procedure for database: {DatabaseIdentifier}", identifier);
             throw;
         }
     }

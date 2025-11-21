@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
-using System.Diagnostics;
 using System.Diagnostics.Metrics;
+
+namespace Bravellian.Platform;
 
 internal static class SchedulerMetrics
 {

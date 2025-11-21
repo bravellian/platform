@@ -50,6 +50,6 @@ internal sealed class ListBasedDatabaseDiscovery : IPlatformDatabaseDiscovery
     /// <inheritdoc/>
     public Task<IReadOnlyCollection<PlatformDatabase>> DiscoverDatabasesAsync(CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(this.databases);
+        return Task.FromResult(databases);
     }
 }

@@ -12,12 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// Provides a mechanism for discovering outbox database configurations dynamically.
 /// Implementations can query a registry, database, or configuration service to get
@@ -112,37 +111,37 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A read-only list of outbox stores to poll.</returns>
     public Task<IReadOnlyList<IOutboxStore>> GetAllStoresAsync() =>
-        this.GetAllStoresAsync(CancellationToken.None);
+        GetAllStoresAsync(CancellationToken.None);
 
     public async Task<IReadOnlyList<IOutboxStore>> GetAllStoresAsync(CancellationToken cancellationToken = default)
     {
         // Use lock only for updating shared state, not for awaiting
-        var now = this.timeProvider.GetUtcNow();
+        var now = timeProvider.GetUtcNow();
         bool needsRefresh;
-        lock (this.lockObject)
+        lock (lockObject)
         {
-            needsRefresh = (now - this.lastRefresh >= this.refreshInterval);
+            needsRefresh = (now - lastRefresh >= refreshInterval);
         }
         if (needsRefresh)
         {
-            await this.RefreshStoresAsync(cancellationToken).ConfigureAwait(false);
-            lock (this.lockObject)
+            await RefreshStoresAsync(cancellationToken).ConfigureAwait(false);
+            lock (lockObject)
             {
-                this.lastRefresh = now;
+                lastRefresh = now;
             }
         }
-        lock (this.lockObject)
+        lock (lockObject)
         {
-            return this.currentStores;
+            return currentStores;
         }
     }
 
     /// <inheritdoc/>
     public string GetStoreIdentifier(IOutboxStore store)
     {
-        lock (this.lockObject)
+        lock (lockObject)
         {
-            foreach (var entry in this.storesByIdentifier.Values)
+            foreach (var entry in storesByIdentifier.Values)
             {
                 if (ReferenceEquals(entry.Store, store))
                 {
@@ -157,9 +156,9 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
     /// <inheritdoc/>
     public IOutboxStore? GetStoreByKey(string key)
     {
-        lock (this.lockObject)
+        lock (lockObject)
         {
-            if (this.storesByIdentifier.TryGetValue(key, out var entry))
+            if (storesByIdentifier.TryGetValue(key, out var entry))
             {
                 return entry.Store;
             }
@@ -171,9 +170,9 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
     /// <inheritdoc/>
     public IOutbox? GetOutboxByKey(string key)
     {
-        lock (this.lockObject)
+        lock (lockObject)
         {
-            if (this.storesByIdentifier.TryGetValue(key, out var entry))
+            if (storesByIdentifier.TryGetValue(key, out var entry))
             {
                 return entry.Outbox;
             }
@@ -187,21 +186,21 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
     /// </summary>
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
-        await this.RefreshStoresAsync(cancellationToken).ConfigureAwait(false);
-        lock (this.lockObject)
+        await RefreshStoresAsync(cancellationToken).ConfigureAwait(false);
+        lock (lockObject)
         {
-            this.lastRefresh = this.timeProvider.GetUtcNow();
+            lastRefresh = timeProvider.GetUtcNow();
         }
     }
 
     /// <inheritdoc/>
     public void Dispose()
     {
-        lock (this.lockObject)
+        lock (lockObject)
         {
             // Clean up any disposable resources in stores if needed
-            this.storesByIdentifier.Clear();
-            this.currentStores.Clear();
+            storesByIdentifier.Clear();
+            currentStores.Clear();
         }
     }
 
@@ -209,14 +208,14 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
     {
         try
         {
-            this.logger.LogDebug("Discovering outbox databases...");
-            var configs = await this.discovery.DiscoverDatabasesAsync(cancellationToken).ConfigureAwait(false);
+            logger.LogDebug("Discovering outbox databases...");
+            var configs = await discovery.DiscoverDatabasesAsync(cancellationToken).ConfigureAwait(false);
             var configList = configs.ToList();
 
             // Track configurations that need schema deployment
             var schemasToDeploy = new List<OutboxDatabaseConfig>();
 
-            lock (this.lockObject)
+            lock (lockObject)
             {
                 // Track which identifiers we've seen in this refresh
                 var seenIdentifiers = new HashSet<string>();
@@ -226,14 +225,14 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
                 {
                     seenIdentifiers.Add(config.Identifier);
 
-                    if (!this.storesByIdentifier.TryGetValue(config.Identifier, out var entry))
+                    if (!storesByIdentifier.TryGetValue(config.Identifier, out var entry))
                     {
                         // New database discovered
-                        this.logger.LogInformation(
+                        logger.LogInformation(
                             "Discovered new outbox database: {Identifier}",
                             config.Identifier);
 
-                        var storeLogger = this.loggerFactory.CreateLogger<SqlOutboxStore>();
+                        var storeLogger = loggerFactory.CreateLogger<SqlOutboxStore>();
                         var store = new SqlOutboxStore(
                             Options.Create(new SqlOutboxOptions
                             {
@@ -242,10 +241,10 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
                                 TableName = config.TableName,
                                 EnableSchemaDeployment = config.EnableSchemaDeployment,
                             }),
-                            this.timeProvider,
+                            timeProvider,
                             storeLogger);
 
-                        var outboxLogger = this.loggerFactory.CreateLogger<SqlOutboxService>();
+                        var outboxLogger = loggerFactory.CreateLogger<SqlOutboxService>();
                         var outbox = new SqlOutboxService(
                             Options.Create(new SqlOutboxOptions
                             {
@@ -264,8 +263,8 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
                             Config = config,
                         };
 
-                        this.storesByIdentifier[config.Identifier] = entry;
-                        this.currentStores.Add(store);
+                        storesByIdentifier[config.Identifier] = entry;
+                        currentStores.Add(store);
 
                         // Mark for schema deployment
                         if (config.EnableSchemaDeployment)
@@ -278,13 +277,13 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
                              entry.Config.TableName != config.TableName)
                     {
                         // Configuration changed - recreate the store
-                        this.logger.LogInformation(
+                        logger.LogInformation(
                             "Outbox database configuration changed for {Identifier}, recreating store",
                             config.Identifier);
 
-                        this.currentStores.Remove(entry.Store);
+                        currentStores.Remove(entry.Store);
 
-                        var storeLogger = this.loggerFactory.CreateLogger<SqlOutboxStore>();
+                        var storeLogger = loggerFactory.CreateLogger<SqlOutboxStore>();
                         var store = new SqlOutboxStore(
                             Options.Create(new SqlOutboxOptions
                             {
@@ -293,10 +292,10 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
                                 TableName = config.TableName,
                                 EnableSchemaDeployment = config.EnableSchemaDeployment,
                             }),
-                            this.timeProvider,
+                            timeProvider,
                             storeLogger);
 
-                        var outboxLogger = this.loggerFactory.CreateLogger<SqlOutboxService>();
+                        var outboxLogger = loggerFactory.CreateLogger<SqlOutboxService>();
                         var outbox = new SqlOutboxService(
                             Options.Create(new SqlOutboxOptions
                             {
@@ -311,7 +310,7 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
                         entry.Outbox = outbox;
                         entry.Config = config;
 
-                        this.currentStores.Add(store);
+                        currentStores.Add(store);
 
                         // Mark for schema deployment
                         if (config.EnableSchemaDeployment)
@@ -322,24 +321,24 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
                 }
 
                 // Remove stores that are no longer present
-                var removedIdentifiers = this.storesByIdentifier.Keys
+                var removedIdentifiers = storesByIdentifier.Keys
                     .Where(id => !seenIdentifiers.Contains(id))
                     .ToList();
 
                 foreach (var identifier in removedIdentifiers)
                 {
-                    this.logger.LogInformation(
+                    logger.LogInformation(
                         "Outbox database removed: {Identifier}",
                         identifier);
 
-                    var entry = this.storesByIdentifier[identifier];
-                    this.currentStores.Remove(entry.Store);
-                    this.storesByIdentifier.Remove(identifier);
+                    var entry = storesByIdentifier[identifier];
+                    currentStores.Remove(entry.Store);
+                    storesByIdentifier.Remove(identifier);
                 }
 
-                this.logger.LogDebug(
+                logger.LogDebug(
                     "Discovery complete. Managing {Count} outbox databases",
-                    this.storesByIdentifier.Count);
+                    storesByIdentifier.Count);
             }
 
             // Deploy schemas outside the lock for databases that need it
@@ -349,7 +348,7 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
 
                 try
                 {
-                    this.logger.LogInformation(
+                    logger.LogInformation(
                         "Deploying outbox schema for database: {Identifier}",
                         config.Identifier);
 
@@ -362,13 +361,13 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
                         config.ConnectionString,
                         config.SchemaName).ConfigureAwait(false);
 
-                    this.logger.LogInformation(
+                    logger.LogInformation(
                         "Successfully deployed outbox schema for database: {Identifier}",
                         config.Identifier);
                 }
                 catch (Exception ex)
                 {
-                    this.logger.LogError(
+                    logger.LogError(
                         ex,
                         "Failed to deploy outbox schema for database: {Identifier}. Store will be available but may fail on first use.",
                         config.Identifier);
@@ -377,7 +376,7 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
         }
         catch (Exception ex)
         {
-            this.logger.LogError(
+            logger.LogError(
                 ex,
                 "Error discovering outbox databases. Continuing with existing configuration.");
         }

@@ -12,14 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Metrics;
 
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
 using Microsoft.Extensions.Logging;
 
+namespace Bravellian.Platform.Metrics;
 /// <summary>
 /// Default implementation of <see cref="IMetricRegistrar"/>.
 /// </summary>

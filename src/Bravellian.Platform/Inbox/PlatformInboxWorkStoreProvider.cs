@@ -12,14 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
 using System.Collections.Concurrent;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// Inbox work store provider that uses the unified platform database discovery.
 /// </summary>
@@ -49,7 +47,7 @@ internal sealed class PlatformInboxWorkStoreProvider : IInboxWorkStoreProvider
         this.discovery = discovery;
         this.timeProvider = timeProvider;
         this.loggerFactory = loggerFactory;
-        this.logger = loggerFactory.CreateLogger<PlatformInboxWorkStoreProvider>();
+        logger = loggerFactory.CreateLogger<PlatformInboxWorkStoreProvider>();
         this.tableName = tableName;
         this.enableSchemaDeployment = enableSchemaDeployment;
         this.platformConfiguration = platformConfiguration;
@@ -57,48 +55,48 @@ internal sealed class PlatformInboxWorkStoreProvider : IInboxWorkStoreProvider
 
     public async Task<IReadOnlyList<IInboxWorkStore>> GetAllStoresAsync()
     {
-        if (this.cachedStores == null)
+        if (cachedStores == null)
         {
-            var databases = (await this.discovery.DiscoverDatabasesAsync().ConfigureAwait(false)).ToList();
+            var databases = (await discovery.DiscoverDatabasesAsync().ConfigureAwait(false)).ToList();
 
-            lock (this.lockObject)
+            lock (lockObject)
             {
-                if (this.cachedStores == null)
+                if (cachedStores == null)
                 {
                     var stores = new List<IInboxWorkStore>();
                     var newDatabases = new List<PlatformDatabase>();
-            
+
                     foreach (var db in databases)
                     {
                         var options = new SqlInboxOptions
                         {
                             ConnectionString = db.ConnectionString,
                             SchemaName = db.SchemaName,
-                            TableName = this.tableName,
+                            TableName = tableName,
                         };
-                        
-                        var storeLogger = this.loggerFactory.CreateLogger<SqlInboxWorkStore>();
+
+                        var storeLogger = loggerFactory.CreateLogger<SqlInboxWorkStore>();
                         var store = new SqlInboxWorkStore(
                             Options.Create(options),
                             storeLogger);
-                        
-                        var inboxLogger = this.loggerFactory.CreateLogger<SqlInboxService>();
+
+                        var inboxLogger = loggerFactory.CreateLogger<SqlInboxService>();
                         var inbox = new SqlInboxService(
                             Options.Create(options),
                             inboxLogger);
-                        
+
                         stores.Add(store);
-                        this.storesByKey[db.Name] = store;
-                        this.inboxesByKey[db.Name] = inbox;
+                        storesByKey[db.Name] = store;
+                        inboxesByKey[db.Name] = inbox;
 
                         // Track new databases for schema deployment
-                        if (this.enableSchemaDeployment && this.schemasDeployed.TryAdd(db.Name, 0))
+                        if (enableSchemaDeployment && schemasDeployed.TryAdd(db.Name, 0))
                         {
                             newDatabases.Add(db);
                         }
                     }
-            
-                    this.cachedStores = stores;
+
+                    cachedStores = stores;
 
                     // Deploy schemas for new databases outside the lock
                     if (newDatabases.Count > 0)
@@ -109,26 +107,26 @@ internal sealed class PlatformInboxWorkStoreProvider : IInboxWorkStoreProvider
                             {
                                 try
                                 {
-                                    this.logger.LogInformation(
+                                    logger.LogInformation(
                                         "Deploying inbox schema for newly discovered database: {DatabaseName}",
                                         db.Name);
 
                                     await DatabaseSchemaManager.EnsureInboxSchemaAsync(
                                         db.ConnectionString,
                                         db.SchemaName,
-                                        this.tableName).ConfigureAwait(false);
+                                        tableName).ConfigureAwait(false);
 
                                     await DatabaseSchemaManager.EnsureInboxWorkQueueSchemaAsync(
                                         db.ConnectionString,
                                         db.SchemaName).ConfigureAwait(false);
 
-                                    this.logger.LogInformation(
+                                    logger.LogInformation(
                                         "Successfully deployed inbox schema for database: {DatabaseName}",
                                         db.Name);
                                 }
                                 catch (Exception ex)
                                 {
-                                    this.logger.LogError(
+                                    logger.LogError(
                                         ex,
                                         "Failed to deploy inbox schema for database: {DatabaseName}. Store may fail on first use.",
                                         db.Name);
@@ -139,44 +137,44 @@ internal sealed class PlatformInboxWorkStoreProvider : IInboxWorkStoreProvider
                 }
             }
         }
-        
-        return this.cachedStores;
+
+        return cachedStores;
     }
 
     public string GetStoreIdentifier(IInboxWorkStore store)
     {
         // Find the database name for this store
-        foreach (var kvp in this.storesByKey)
+        foreach (var kvp in storesByKey)
         {
             if (ReferenceEquals(kvp.Value, store))
             {
                 return kvp.Key;
             }
         }
-        
+
         return "unknown";
     }
 
     public IInboxWorkStore GetStoreByKey(string key)
     {
-        if (this.cachedStores == null)
+        if (cachedStores == null)
         {
-            this.GetAllStoresAsync().GetAwaiter().GetResult(); // Initialize stores
+            GetAllStoresAsync().GetAwaiter().GetResult(); // Initialize stores
         }
-        
-        return this.storesByKey.TryGetValue(key, out var store)
+
+        return storesByKey.TryGetValue(key, out var store)
             ? store
             : throw new KeyNotFoundException($"No inbox work store found for key: {key}");
     }
 
     public IInbox GetInboxByKey(string key)
     {
-        if (this.cachedStores == null)
+        if (cachedStores == null)
         {
-            this.GetAllStoresAsync().GetAwaiter().GetResult(); // Initialize stores
+            GetAllStoresAsync().GetAwaiter().GetResult(); // Initialize stores
         }
-        
-        return this.inboxesByKey.TryGetValue(key, out var inbox)
+
+        return inboxesByKey.TryGetValue(key, out var inbox)
             ? inbox
             : throw new KeyNotFoundException($"No inbox found for key: {key}");
     }

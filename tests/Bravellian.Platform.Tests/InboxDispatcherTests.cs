@@ -170,10 +170,31 @@ public class InboxDispatcherTests : SqlServerTestBase
         return new InboxHandlerResolver(handlers);
     }
 
-    private InboxDispatcher CreateDispatcher(IInboxWorkStore store, IInboxHandlerResolver resolver)
+    private MultiInboxDispatcher CreateDispatcher(IInboxWorkStore store, IInboxHandlerResolver resolver)
     {
-        var logger = new TestLogger<InboxDispatcher>(this.TestOutputHelper);
-        return new InboxDispatcher(store, resolver, logger);
+        var provider = new SingleInboxWorkStoreProvider(store);
+        var logger = new TestLogger<MultiInboxDispatcher>(this.TestOutputHelper);
+        var strategy = new RoundRobinInboxSelectionStrategy();
+        return new MultiInboxDispatcher(provider, strategy, resolver, logger);
+    }
+
+    private sealed class SingleInboxWorkStoreProvider : IInboxWorkStoreProvider
+    {
+        private readonly IInboxWorkStore store;
+
+        public SingleInboxWorkStoreProvider(IInboxWorkStore store)
+        {
+            this.store = store;
+        }
+
+        public Task<IReadOnlyList<IInboxWorkStore>> GetAllStoresAsync() =>
+            Task.FromResult<IReadOnlyList<IInboxWorkStore>>(new[] { this.store });
+
+        public string GetStoreIdentifier(IInboxWorkStore store) => "default";
+
+        public IInboxWorkStore? GetStoreByKey(string key) => this.store;
+
+        public IInbox? GetInboxByKey(string key) => null;
     }
 
     /// <summary>

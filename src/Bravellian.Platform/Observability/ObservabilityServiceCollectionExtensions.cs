@@ -12,14 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Observability;
 
-using System;
-using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 
+namespace Bravellian.Platform.Observability;
 /// <summary>
 /// Extension methods for registering platform observability services.
 /// </summary>
@@ -65,7 +63,7 @@ public static class ObservabilityServiceCollectionExtensions
         // Register watchdog service
         services.TryAddSingleton<WatchdogService>();
         services.TryAddSingleton<IWatchdog>(sp => sp.GetRequiredService<WatchdogService>());
-        
+
         // Register as IHostedService
         // Note: Using AddSingleton instead of TryAddEnumerable because the watchdog service
         // is already registered above and needs to be retrieved from DI

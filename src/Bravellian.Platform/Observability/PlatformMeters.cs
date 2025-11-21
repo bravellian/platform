@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Observability;
 
 using System.Diagnostics.Metrics;
 
+namespace Bravellian.Platform.Observability;
 /// <summary>
 /// Contains all platform observability metrics.
 /// </summary>

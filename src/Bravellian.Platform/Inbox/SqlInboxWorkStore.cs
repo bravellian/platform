@@ -12,14 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
-using System;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// SQL Server implementation of IInboxWorkStore using work queue stored procedures.
 /// </summary>
@@ -35,11 +34,11 @@ internal class SqlInboxWorkStore : IInboxWorkStore
     public SqlInboxWorkStore(IOptions<SqlInboxOptions> options, ILogger<SqlInboxWorkStore> logger)
     {
         var opts = options.Value;
-        this.connectionString = opts.ConnectionString;
-        this.schemaName = opts.SchemaName;
-        this.tableName = opts.TableName;
+        connectionString = opts.ConnectionString;
+        schemaName = opts.SchemaName;
+        tableName = opts.TableName;
         this.logger = logger;
-        (this.serverName, this.databaseName) = ParseConnectionInfo(this.connectionString);
+        (serverName, databaseName) = ParseConnectionInfo(connectionString);
     }
 
     public async Task<IReadOnlyList<string>> ClaimAsync(
@@ -48,7 +47,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
         int batchSize,
         CancellationToken cancellationToken)
     {
-        this.logger.LogDebug(
+        logger.LogDebug(
             "Claiming up to {BatchSize} inbox messages with {LeaseSeconds}s lease for owner {OwnerToken}",
             batchSize,
             leaseSeconds,
@@ -56,11 +55,11 @@ internal class SqlInboxWorkStore : IInboxWorkStore
 
         try
         {
-            using var connection = new SqlConnection(this.connectionString);
+            using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             var messageIds = await connection.QueryAsync<string>(
-                $"[{this.schemaName}].[{this.tableName}_Claim]",
+                $"[{schemaName}].[{tableName}_Claim]",
                 new
                 {
                     OwnerToken = ownerToken,
@@ -70,7 +69,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
                 commandType: System.Data.CommandType.StoredProcedure).ConfigureAwait(false);
 
             var result = messageIds.ToList();
-            this.logger.LogDebug(
+            logger.LogDebug(
                 "Successfully claimed {ClaimedCount} inbox messages for owner {OwnerToken}",
                 result.Count,
                 ownerToken);
@@ -79,14 +78,14 @@ internal class SqlInboxWorkStore : IInboxWorkStore
         }
         catch (Exception ex)
         {
-            this.logger.LogError(
+            logger.LogError(
                 ex,
                 "Failed to claim inbox messages for owner {OwnerToken} in {Schema}.{Table} on {Server}/{Database}",
                 ownerToken,
-                this.schemaName,
-                this.tableName,
-                this.serverName,
-                this.databaseName);
+                schemaName,
+                tableName,
+                serverName,
+                databaseName);
             throw;
         }
     }
@@ -102,43 +101,43 @@ internal class SqlInboxWorkStore : IInboxWorkStore
             return;
         }
 
-        this.logger.LogDebug(
+        logger.LogDebug(
             "Acknowledging {MessageCount} inbox messages for owner {OwnerToken}",
             messageIdList.Count,
             ownerToken);
 
         try
         {
-            using var connection = new SqlConnection(this.connectionString);
+            using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             var idsTable = CreateStringIdTable(messageIdList);
-            using var command = new SqlCommand($"[{this.schemaName}].[{this.tableName}_Ack]", connection)
+            using var command = new SqlCommand($"[{schemaName}].[{tableName}_Ack]", connection)
             {
                 CommandType = System.Data.CommandType.StoredProcedure,
             };
             command.Parameters.AddWithValue("@OwnerToken", ownerToken);
             var parameter = command.Parameters.AddWithValue("@Ids", idsTable);
             parameter.SqlDbType = System.Data.SqlDbType.Structured;
-            parameter.TypeName = $"[{this.schemaName}].[StringIdList]";
+            parameter.TypeName = $"[{schemaName}].[StringIdList]";
 
             await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
 
-            this.logger.LogDebug(
+            logger.LogDebug(
                 "Successfully acknowledged {MessageCount} inbox messages for owner {OwnerToken}",
                 messageIdList.Count,
                 ownerToken);
         }
         catch (Exception ex)
         {
-            this.logger.LogError(
+            logger.LogError(
                 ex,
                 "Failed to acknowledge inbox messages for owner {OwnerToken} in {Schema}.{Table} on {Server}/{Database}",
                 ownerToken,
-                this.schemaName,
-                this.tableName,
-                this.serverName,
-                this.databaseName);
+                schemaName,
+                tableName,
+                serverName,
+                databaseName);
             throw;
         }
     }
@@ -154,43 +153,43 @@ internal class SqlInboxWorkStore : IInboxWorkStore
             return;
         }
 
-        this.logger.LogDebug(
+        logger.LogDebug(
             "Abandoning {MessageCount} inbox messages for owner {OwnerToken}",
             messageIdList.Count,
             ownerToken);
 
         try
         {
-            using var connection = new SqlConnection(this.connectionString);
+            using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             var idsTable = CreateStringIdTable(messageIdList);
-            using var command = new SqlCommand($"[{this.schemaName}].[{this.tableName}_Abandon]", connection)
+            using var command = new SqlCommand($"[{schemaName}].[{tableName}_Abandon]", connection)
             {
                 CommandType = System.Data.CommandType.StoredProcedure,
             };
             command.Parameters.AddWithValue("@OwnerToken", ownerToken);
             var parameter = command.Parameters.AddWithValue("@Ids", idsTable);
             parameter.SqlDbType = System.Data.SqlDbType.Structured;
-            parameter.TypeName = $"[{this.schemaName}].[StringIdList]";
+            parameter.TypeName = $"[{schemaName}].[StringIdList]";
 
             await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
 
-            this.logger.LogDebug(
+            logger.LogDebug(
                 "Successfully abandoned {MessageCount} inbox messages for owner {OwnerToken}",
                 messageIdList.Count,
                 ownerToken);
         }
         catch (Exception ex)
         {
-            this.logger.LogError(
+            logger.LogError(
                 ex,
                 "Failed to abandon inbox messages for owner {OwnerToken} in {Schema}.{Table} on {Server}/{Database}",
                 ownerToken,
-                this.schemaName,
-                this.tableName,
-                this.serverName,
-                this.databaseName);
+                schemaName,
+                tableName,
+                serverName,
+                databaseName);
             throw;
         }
     }
@@ -207,7 +206,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
             return;
         }
 
-        this.logger.LogDebug(
+        logger.LogDebug(
             "Failing {MessageCount} inbox messages for owner {OwnerToken}: {Error}",
             messageIdList.Count,
             ownerToken,
@@ -215,23 +214,23 @@ internal class SqlInboxWorkStore : IInboxWorkStore
 
         try
         {
-            using var connection = new SqlConnection(this.connectionString);
+            using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             var idsTable = CreateStringIdTable(messageIdList);
-            using var command = new SqlCommand($"[{this.schemaName}].[{this.tableName}_Fail]", connection)
+            using var command = new SqlCommand($"[{schemaName}].[{tableName}_Fail]", connection)
             {
                 CommandType = System.Data.CommandType.StoredProcedure,
             };
             command.Parameters.AddWithValue("@OwnerToken", ownerToken);
             var parameter = command.Parameters.AddWithValue("@Ids", idsTable);
             parameter.SqlDbType = System.Data.SqlDbType.Structured;
-            parameter.TypeName = $"[{this.schemaName}].[StringIdList]";
+            parameter.TypeName = $"[{schemaName}].[StringIdList]";
             command.Parameters.AddWithValue("@Reason", error ?? (object)DBNull.Value);
 
             await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
 
-            this.logger.LogWarning(
+            logger.LogWarning(
                 "Failed {MessageCount} inbox messages for owner {OwnerToken}: {Error}",
                 messageIdList.Count,
                 ownerToken,
@@ -239,51 +238,51 @@ internal class SqlInboxWorkStore : IInboxWorkStore
         }
         catch (Exception ex)
         {
-            this.logger.LogError(
+            logger.LogError(
                 ex,
                 "Failed to mark inbox messages as failed for owner {OwnerToken} in {Schema}.{Table} on {Server}/{Database}",
                 ownerToken,
-                this.schemaName,
-                this.tableName,
-                this.serverName,
-                this.databaseName);
+                schemaName,
+                tableName,
+                serverName,
+                databaseName);
             throw;
         }
     }
 
     public async Task ReapExpiredAsync(CancellationToken cancellationToken)
     {
-        this.logger.LogDebug("Reaping expired inbox leases");
+        logger.LogDebug("Reaping expired inbox leases");
 
         try
         {
-            using var connection = new SqlConnection(this.connectionString);
+            using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             var result = await connection.QuerySingleAsync<int>(
-                $"[{this.schemaName}].[{this.tableName}_ReapExpired]",
+                $"[{schemaName}].[{tableName}_ReapExpired]",
                 commandType: System.Data.CommandType.StoredProcedure).ConfigureAwait(false);
 
             if (result > 0)
             {
-                this.logger.LogInformation(
+                logger.LogInformation(
                     "Reaped {ReapedCount} expired inbox leases",
                     result);
             }
             else
             {
-                this.logger.LogDebug("No expired inbox leases found to reap");
+                logger.LogDebug("No expired inbox leases found to reap");
             }
         }
         catch (Exception ex)
         {
-            this.logger.LogError(
+            logger.LogError(
                 ex,
                 "Failed to reap expired inbox leases in {Schema}.{Table} on {Server}/{Database}",
-                this.schemaName,
-                this.tableName,
-                this.serverName,
-                this.databaseName);
+                schemaName,
+                tableName,
+                serverName,
+                databaseName);
             throw;
         }
     }
@@ -295,17 +294,17 @@ internal class SqlInboxWorkStore : IInboxWorkStore
             throw new ArgumentException("MessageId cannot be null or empty", nameof(messageId));
         }
 
-        this.logger.LogDebug("Getting inbox message {MessageId}", messageId);
+        logger.LogDebug("Getting inbox message {MessageId}", messageId);
 
         try
         {
-            using var connection = new SqlConnection(this.connectionString);
+            using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             var sql = $"""
 
                                 SELECT MessageId, Source, Topic, Payload, Hash, Attempts, FirstSeenUtc, LastSeenUtc, DueTimeUtc
-                                FROM [{this.schemaName}].[{this.tableName}]
+                                FROM [{schemaName}].[{tableName}]
                                 WHERE MessageId = @MessageId
                 """;
 
@@ -331,14 +330,14 @@ internal class SqlInboxWorkStore : IInboxWorkStore
         }
         catch (Exception ex)
         {
-            this.logger.LogError(
+            logger.LogError(
                 ex,
                 "Failed to get inbox message {MessageId} from {Schema}.{Table} on {Server}/{Database}",
                 messageId,
-                this.schemaName,
-                this.tableName,
-                this.serverName,
-                this.databaseName);
+                schemaName,
+                tableName,
+                serverName,
+                databaseName);
             throw;
         }
     }

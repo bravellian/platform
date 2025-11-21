@@ -58,12 +58,12 @@ public abstract class BaseFanoutPlanner : IFanoutPlanner
     {
         var list = new List<FanoutSlice>();
 
-        await foreach (var (shardKey, wk) in this.EnumerateCandidatesAsync(fanoutTopic, workKey, ct))
+        await foreach (var (shardKey, wk) in EnumerateCandidatesAsync(fanoutTopic, workKey, ct))
         {
-            var (everySeconds, jitterSeconds) = await this.policyRepository.GetCadenceAsync(fanoutTopic, wk, ct).ConfigureAwait(false);
-            var lastCompleted = await this.cursorRepository.GetLastAsync(fanoutTopic, wk, shardKey, ct).ConfigureAwait(false);
+            var (everySeconds, jitterSeconds) = await policyRepository.GetCadenceAsync(fanoutTopic, wk, ct).ConfigureAwait(false);
+            var lastCompleted = await cursorRepository.GetLastAsync(fanoutTopic, wk, shardKey, ct).ConfigureAwait(false);
 
-            var now = this.timeProvider.GetUtcNow();
+            var now = timeProvider.GetUtcNow();
             var spacing = TimeSpan.FromSeconds(everySeconds + Random.Shared.Next(0, jitterSeconds <= 0 ? 1 : jitterSeconds));
 
             if (lastCompleted is null || (now - lastCompleted) >= spacing)

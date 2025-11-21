@@ -12,17 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Metrics;
 
-using System;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 using Dapper;
 using Microsoft.Data.SqlClient;
 
+namespace Bravellian.Platform.Metrics;
 /// <summary>
 /// Writes metrics to SQL Server databases.
 /// </summary>

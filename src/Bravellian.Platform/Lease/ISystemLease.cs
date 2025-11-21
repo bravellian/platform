@@ -13,11 +13,6 @@
 // limitations under the License.
 
 namespace Bravellian.Platform;
-
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-
 /// <summary>
 /// Represents a distributed system lease with fencing token support.
 /// </summary>

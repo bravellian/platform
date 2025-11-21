@@ -12,12 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// Provides access to multiple outbox stores configured at startup.
 /// This implementation creates stores based on the provided options.
@@ -67,12 +66,12 @@ internal sealed class ConfiguredOutboxStoreProvider : IOutboxStoreProvider
             outboxDict[identifier] = outbox;
         }
 
-        this.stores = storesList;
-        this.storeIdentifiers = identifiersDict;
-        this.storesByKey = keyDict;
-        this.outboxesByKey = outboxDict;
+        stores = storesList;
+        storeIdentifiers = identifiersDict;
+        storesByKey = keyDict;
+        outboxesByKey = outboxDict;
         this.outboxOptions = optionsList;
-        this.logger = loggerFactory.CreateLogger<ConfiguredOutboxStoreProvider>();
+        logger = loggerFactory.CreateLogger<ConfiguredOutboxStoreProvider>();
     }
 
     /// <summary>
@@ -83,7 +82,7 @@ internal sealed class ConfiguredOutboxStoreProvider : IOutboxStoreProvider
     /// <returns>A task representing the asynchronous operation.</returns>
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
-        foreach (var options in this.outboxOptions)
+        foreach (var options in outboxOptions)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -95,7 +94,7 @@ internal sealed class ConfiguredOutboxStoreProvider : IOutboxStoreProvider
 
                 try
                 {
-                    this.logger.LogInformation(
+                    logger.LogInformation(
                         "Deploying outbox schema for database: {Identifier}",
                         identifier);
 
@@ -108,13 +107,13 @@ internal sealed class ConfiguredOutboxStoreProvider : IOutboxStoreProvider
                         options.ConnectionString,
                         options.SchemaName).ConfigureAwait(false);
 
-                    this.logger.LogInformation(
+                    logger.LogInformation(
                         "Successfully deployed outbox schema for database: {Identifier}",
                         identifier);
                 }
                 catch (Exception ex)
                 {
-                    this.logger.LogError(
+                    logger.LogError(
                         ex,
                         "Failed to deploy outbox schema for database: {Identifier}. Store will be available but may fail on first use.",
                         identifier);
@@ -125,12 +124,12 @@ internal sealed class ConfiguredOutboxStoreProvider : IOutboxStoreProvider
 
     /// <inheritdoc/>
     public Task<IReadOnlyList<IOutboxStore>> GetAllStoresAsync() =>
-        Task.FromResult<IReadOnlyList<IOutboxStore>>(this.stores);
+        Task.FromResult<IReadOnlyList<IOutboxStore>>(stores);
 
     /// <inheritdoc/>
     public string GetStoreIdentifier(IOutboxStore store)
     {
-        return this.storeIdentifiers.TryGetValue(store, out var identifier)
+        return storeIdentifiers.TryGetValue(store, out var identifier)
             ? identifier
             : "Unknown";
     }
@@ -138,13 +137,13 @@ internal sealed class ConfiguredOutboxStoreProvider : IOutboxStoreProvider
     /// <inheritdoc/>
     public IOutboxStore? GetStoreByKey(string key)
     {
-        return this.storesByKey.TryGetValue(key, out var store) ? store : null;
+        return storesByKey.TryGetValue(key, out var store) ? store : null;
     }
 
     /// <inheritdoc/>
     public IOutbox? GetOutboxByKey(string key)
     {
-        return this.outboxesByKey.TryGetValue(key, out var outbox) ? outbox : null;
+        return outboxesByKey.TryGetValue(key, out var outbox) ? outbox : null;
     }
 
     private static string ExtractDatabaseName(string connectionString)

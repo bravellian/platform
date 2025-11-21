@@ -13,10 +13,6 @@
 // limitations under the License.
 
 namespace Bravellian.Platform.Observability;
-
-using System;
-using System.Collections.Generic;
-
 /// <summary>
 /// Represents the context of a watchdog alert that is passed to alert sinks.
 /// </summary>

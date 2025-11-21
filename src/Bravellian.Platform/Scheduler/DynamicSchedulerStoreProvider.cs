@@ -12,12 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// Provides a mechanism for discovering scheduler database configurations dynamically.
 /// Implementations can query a registry, database, or configuration service to get
@@ -80,48 +79,48 @@ public sealed class DynamicSchedulerStoreProvider : ISchedulerStoreProvider, IDi
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A read-only list of scheduler stores to poll.</returns>
     public Task<IReadOnlyList<ISchedulerStore>> GetAllStoresAsync() =>
-        this.GetAllStoresAsync(CancellationToken.None);
+        GetAllStoresAsync(CancellationToken.None);
 
     public async Task<IReadOnlyList<ISchedulerStore>> GetAllStoresAsync(CancellationToken cancellationToken = default)
     {
         // Use lock only for updating shared state, not for awaiting
-        var now = this.timeProvider.GetUtcNow();
+        var now = timeProvider.GetUtcNow();
         bool needsRefresh;
-        lock (this.lockObject)
+        lock (lockObject)
         {
-            needsRefresh = (now - this.lastRefresh >= this.refreshInterval);
+            needsRefresh = (now - lastRefresh >= refreshInterval);
         }
 
         // Use semaphore to ensure only one thread performs refresh
-        if (needsRefresh && await this.refreshSemaphore.WaitAsync(0, cancellationToken).ConfigureAwait(false))
+        if (needsRefresh && await refreshSemaphore.WaitAsync(0, cancellationToken).ConfigureAwait(false))
         {
             try
             {
-                await this.RefreshStoresAsync(cancellationToken).ConfigureAwait(false);
-                lock (this.lockObject)
+                await RefreshStoresAsync(cancellationToken).ConfigureAwait(false);
+                lock (lockObject)
                 {
-                    this.lastRefresh = now;
+                    lastRefresh = now;
                 }
             }
             finally
             {
-                this.refreshSemaphore.Release();
+                refreshSemaphore.Release();
             }
         }
 
-        lock (this.lockObject)
+        lock (lockObject)
         {
             // Return defensive copy to prevent external mutation
-            return this.currentStores.ToList();
+            return currentStores.ToList();
         }
     }
 
     /// <inheritdoc/>
     public string GetStoreIdentifier(ISchedulerStore store)
     {
-        lock (this.lockObject)
+        lock (lockObject)
         {
-            foreach (var entry in this.storesByIdentifier.Values)
+            foreach (var entry in storesByIdentifier.Values)
             {
                 if (ReferenceEquals(entry.Store, store))
                 {
@@ -136,9 +135,9 @@ public sealed class DynamicSchedulerStoreProvider : ISchedulerStoreProvider, IDi
     /// <inheritdoc/>
     public ISchedulerStore? GetStoreByKey(string key)
     {
-        lock (this.lockObject)
+        lock (lockObject)
         {
-            if (this.storesByIdentifier.TryGetValue(key, out var entry))
+            if (storesByIdentifier.TryGetValue(key, out var entry))
             {
                 return entry.Store;
             }
@@ -150,9 +149,9 @@ public sealed class DynamicSchedulerStoreProvider : ISchedulerStoreProvider, IDi
     /// <inheritdoc/>
     public ISchedulerClient? GetSchedulerClientByKey(string key)
     {
-        lock (this.lockObject)
+        lock (lockObject)
         {
-            if (this.storesByIdentifier.TryGetValue(key, out var entry))
+            if (storesByIdentifier.TryGetValue(key, out var entry))
             {
                 return entry.Client;
             }
@@ -164,9 +163,9 @@ public sealed class DynamicSchedulerStoreProvider : ISchedulerStoreProvider, IDi
     /// <inheritdoc/>
     public IOutbox? GetOutboxByKey(string key)
     {
-        lock (this.lockObject)
+        lock (lockObject)
         {
-            if (this.storesByIdentifier.TryGetValue(key, out var entry))
+            if (storesByIdentifier.TryGetValue(key, out var entry))
             {
                 return entry.Outbox;
             }
@@ -180,35 +179,35 @@ public sealed class DynamicSchedulerStoreProvider : ISchedulerStoreProvider, IDi
     /// </summary>
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
-        await this.RefreshStoresAsync(cancellationToken).ConfigureAwait(false);
-        lock (this.lockObject)
+        await RefreshStoresAsync(cancellationToken).ConfigureAwait(false);
+        lock (lockObject)
         {
-            this.lastRefresh = this.timeProvider.GetUtcNow();
+            lastRefresh = timeProvider.GetUtcNow();
         }
     }
 
     /// <inheritdoc/>
     public void Dispose()
     {
-        lock (this.lockObject)
+        lock (lockObject)
         {
             // Clean up any disposable resources in stores if needed
-            this.storesByIdentifier.Clear();
-            this.currentStores.Clear();
+            storesByIdentifier.Clear();
+            currentStores.Clear();
         }
 
-        this.refreshSemaphore?.Dispose();
+        refreshSemaphore?.Dispose();
     }
 
     private async Task RefreshStoresAsync(CancellationToken cancellationToken)
     {
         try
         {
-            this.logger.LogDebug("Discovering scheduler databases...");
-            var configs = await this.discovery.DiscoverDatabasesAsync(cancellationToken).ConfigureAwait(false);
+            logger.LogDebug("Discovering scheduler databases...");
+            var configs = await discovery.DiscoverDatabasesAsync(cancellationToken).ConfigureAwait(false);
             var configList = configs.ToList();
 
-            lock (this.lockObject)
+            lock (lockObject)
             {
                 // Track which identifiers we've seen in this refresh
                 var seenIdentifiers = new HashSet<string>();
@@ -218,10 +217,10 @@ public sealed class DynamicSchedulerStoreProvider : ISchedulerStoreProvider, IDi
                 {
                     seenIdentifiers.Add(config.Identifier);
 
-                    if (!this.storesByIdentifier.TryGetValue(config.Identifier, out var entry))
+                    if (!storesByIdentifier.TryGetValue(config.Identifier, out var entry))
                     {
                         // New database discovered
-                        this.logger.LogInformation(
+                        logger.LogInformation(
                             "Discovered new scheduler database: {Identifier}",
                             config.Identifier);
 
@@ -234,7 +233,7 @@ public sealed class DynamicSchedulerStoreProvider : ISchedulerStoreProvider, IDi
                                 JobRunsTableName = config.JobRunsTableName,
                                 TimersTableName = config.TimersTableName,
                             }),
-                            this.timeProvider);
+                            timeProvider);
 
                         var client = new SqlSchedulerClient(
                             Options.Create(new SqlSchedulerOptions
@@ -245,9 +244,9 @@ public sealed class DynamicSchedulerStoreProvider : ISchedulerStoreProvider, IDi
                                 JobRunsTableName = config.JobRunsTableName,
                                 TimersTableName = config.TimersTableName,
                             }),
-                            this.timeProvider);
+                            timeProvider);
 
-                        var outboxLogger = this.loggerFactory.CreateLogger<SqlOutboxService>();
+                        var outboxLogger = loggerFactory.CreateLogger<SqlOutboxService>();
                         var outbox = new SqlOutboxService(
                             Options.Create(new SqlOutboxOptions
                             {
@@ -266,8 +265,8 @@ public sealed class DynamicSchedulerStoreProvider : ISchedulerStoreProvider, IDi
                             Config = config,
                         };
 
-                        this.storesByIdentifier[config.Identifier] = entry;
-                        this.currentStores.Add(store);
+                        storesByIdentifier[config.Identifier] = entry;
+                        currentStores.Add(store);
                     }
                     else if (entry.Config.ConnectionString != config.ConnectionString ||
                              entry.Config.SchemaName != config.SchemaName ||
@@ -276,11 +275,11 @@ public sealed class DynamicSchedulerStoreProvider : ISchedulerStoreProvider, IDi
                              entry.Config.TimersTableName != config.TimersTableName)
                     {
                         // Configuration changed - recreate the store
-                        this.logger.LogInformation(
+                        logger.LogInformation(
                             "Scheduler database configuration changed for {Identifier}, recreating store",
                             config.Identifier);
 
-                        this.currentStores.Remove(entry.Store);
+                        currentStores.Remove(entry.Store);
 
                         var store = new SqlSchedulerStore(
                             Options.Create(new SqlSchedulerOptions
@@ -291,7 +290,7 @@ public sealed class DynamicSchedulerStoreProvider : ISchedulerStoreProvider, IDi
                                 JobRunsTableName = config.JobRunsTableName,
                                 TimersTableName = config.TimersTableName,
                             }),
-                            this.timeProvider);
+                            timeProvider);
 
                         var client = new SqlSchedulerClient(
                             Options.Create(new SqlSchedulerOptions
@@ -302,9 +301,9 @@ public sealed class DynamicSchedulerStoreProvider : ISchedulerStoreProvider, IDi
                                 JobRunsTableName = config.JobRunsTableName,
                                 TimersTableName = config.TimersTableName,
                             }),
-                            this.timeProvider);
+                            timeProvider);
 
-                        var outboxLogger = this.loggerFactory.CreateLogger<SqlOutboxService>();
+                        var outboxLogger = loggerFactory.CreateLogger<SqlOutboxService>();
                         var outbox = new SqlOutboxService(
                             Options.Create(new SqlOutboxOptions
                             {
@@ -319,34 +318,34 @@ public sealed class DynamicSchedulerStoreProvider : ISchedulerStoreProvider, IDi
                         entry.Outbox = outbox;
                         entry.Config = config;
 
-                        this.currentStores.Add(store);
+                        currentStores.Add(store);
                     }
                 }
 
                 // Remove stores that are no longer present
-                var removedIdentifiers = this.storesByIdentifier.Keys
+                var removedIdentifiers = storesByIdentifier.Keys
                     .Where(id => !seenIdentifiers.Contains(id))
                     .ToList();
 
                 foreach (var identifier in removedIdentifiers)
                 {
-                    this.logger.LogInformation(
+                    logger.LogInformation(
                         "Scheduler database removed: {Identifier}",
                         identifier);
 
-                    var entry = this.storesByIdentifier[identifier];
-                    this.currentStores.Remove(entry.Store);
-                    this.storesByIdentifier.Remove(identifier);
+                    var entry = storesByIdentifier[identifier];
+                    currentStores.Remove(entry.Store);
+                    storesByIdentifier.Remove(identifier);
                 }
 
-                this.logger.LogDebug(
+                logger.LogDebug(
                     "Discovery complete. Managing {Count} scheduler databases",
-                    this.storesByIdentifier.Count);
+                    storesByIdentifier.Count);
             }
         }
         catch (Exception ex)
         {
-            this.logger.LogError(
+            logger.LogError(
                 ex,
                 "Error discovering scheduler databases. Continuing with existing configuration.");
         }

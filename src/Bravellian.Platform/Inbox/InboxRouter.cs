@@ -39,7 +39,7 @@ internal sealed class InboxRouter : IInboxRouter
             throw new ArgumentException("Routing key cannot be null, empty, or whitespace.", nameof(routingKey));
         }
 
-        var inbox = this.storeProvider.GetInboxByKey(routingKey);
+        var inbox = storeProvider.GetInboxByKey(routingKey);
         if (inbox == null)
         {
             throw new InvalidOperationException($"No inbox found for routing key: {routingKey}");
@@ -51,6 +51,6 @@ internal sealed class InboxRouter : IInboxRouter
     /// <inheritdoc/>
     public IInbox GetInbox(Guid routingKey)
     {
-        return this.GetInbox(routingKey.ToString());
+        return GetInbox(routingKey.ToString());
     }
 }

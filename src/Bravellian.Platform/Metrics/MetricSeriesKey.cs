@@ -13,10 +13,6 @@
 // limitations under the License.
 
 namespace Bravellian.Platform.Metrics;
-
-using System;
-using System.Collections.Generic;
-
 /// <summary>
 /// Represents a unique key for a metric time series.
 /// </summary>

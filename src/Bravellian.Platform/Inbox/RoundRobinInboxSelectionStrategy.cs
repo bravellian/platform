@@ -31,7 +31,7 @@ public sealed class RoundRobinInboxSelectionStrategy : IInboxSelectionStrategy
         IInboxWorkStore? lastProcessedStore,
         int lastProcessedCount)
     {
-        lock (this.lockObject)
+        lock (lockObject)
         {
             if (stores.Count == 0)
             {
@@ -44,18 +44,18 @@ public sealed class RoundRobinInboxSelectionStrategy : IInboxSelectionStrategy
                 var lastIndex = FindStoreIndex(stores, lastProcessedStore);
                 if (lastIndex >= 0)
                 {
-                    this.currentIndex = (lastIndex + 1) % stores.Count;
+                    currentIndex = (lastIndex + 1) % stores.Count;
                 }
             }
 
             // Bounds check in case stores changed
-            if (this.currentIndex >= stores.Count)
+            if (currentIndex >= stores.Count)
             {
-                this.currentIndex = 0;
+                currentIndex = 0;
             }
 
-            var selected = stores[this.currentIndex];
-            this.currentIndex = (this.currentIndex + 1) % stores.Count;
+            var selected = stores[currentIndex];
+            currentIndex = (currentIndex + 1) % stores.Count;
             return selected;
         }
     }
@@ -63,9 +63,9 @@ public sealed class RoundRobinInboxSelectionStrategy : IInboxSelectionStrategy
     /// <inheritdoc/>
     public void Reset()
     {
-        lock (this.lockObject)
+        lock (lockObject)
         {
-            this.currentIndex = 0;
+            currentIndex = 0;
         }
     }
 

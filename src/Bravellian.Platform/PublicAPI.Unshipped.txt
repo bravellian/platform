@@ -241,8 +241,6 @@ Bravellian.Platform.SqlSchedulerOptions.MaxPollingInterval.get -> System.TimeSpa
 Bravellian.Platform.SqlSchedulerOptions.MaxPollingInterval.set -> void
 Bravellian.Platform.SqlSchedulerOptions.SqlSchedulerOptions() -> void
 Bravellian.Platform.SystemLeaseOptions
-Bravellian.Platform.SystemLeaseOptions.ConnectionString.get -> string!
-Bravellian.Platform.SystemLeaseOptions.ConnectionString.set -> void
 Bravellian.Platform.SystemLeaseOptions.DefaultLeaseDuration.get -> System.TimeSpan
 Bravellian.Platform.SystemLeaseOptions.DefaultLeaseDuration.set -> void
 Bravellian.Platform.SystemLeaseOptions.GateTimeoutMs.get -> int
@@ -332,6 +330,9 @@ Bravellian.Platform.ILeaseFactoryProvider
 Bravellian.Platform.ILeaseFactoryProvider.GetAllFactories() -> System.Collections.Generic.IReadOnlyList<Bravellian.Platform.ISystemLeaseFactory!>!
 Bravellian.Platform.ILeaseFactoryProvider.GetFactoryByKey(string! key) -> Bravellian.Platform.ISystemLeaseFactory?
 Bravellian.Platform.ILeaseFactoryProvider.GetFactoryIdentifier(Bravellian.Platform.ISystemLeaseFactory! factory) -> string!
+Bravellian.Platform.ILeaseRouter
+Bravellian.Platform.ILeaseRouter.GetDefaultLeaseFactoryAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Bravellian.Platform.ISystemLeaseFactory!>!
+Bravellian.Platform.ILeaseRouter.GetLeaseFactoryAsync(string! routingKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Bravellian.Platform.ISystemLeaseFactory!>!
 Bravellian.Platform.LeaseDatabaseConfig
 Bravellian.Platform.LeaseDatabaseConfig.ConnectionString.get -> string!
 Bravellian.Platform.LeaseDatabaseConfig.ConnectionString.set -> void

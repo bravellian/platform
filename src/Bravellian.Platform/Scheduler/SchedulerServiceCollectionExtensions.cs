@@ -12,51 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
-using System.Linq;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+
+namespace Bravellian.Platform;
 
 public static class SchedulerServiceCollectionExtensions
 {
-    /// <summary>
-    /// Registers all required services for the SQL-based scheduler, outbox, and timer system.
-    /// This includes the client, background workers, and distributed lock implementation.
-    /// </summary>
-    /// <param name="services">The IServiceCollection to add services to.</param>
-    /// <param name="configuration">The application configuration, used to bind SqlSchedulerOptions.</param>
-    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
-    public static IServiceCollection AddSqlScheduler(this IServiceCollection services, IConfiguration configuration)
-    {
-        // 1. Configure and validate the options class
-        // services.AddOptions<SqlSchedulerOptions>()
-        //    .Bind(configuration.GetSection(SqlSchedulerOptions.SectionName))
-        //    .ValidateDataAnnotations();
-
-        // 2. Register the public-facing client and internal services as singletons
-        services.AddSingleton<ISchedulerClient, SqlSchedulerClient>();
-        services.AddSingleton<IOutbox, SqlOutboxService>();
-
-        // 3. Register the health check
-        // Note: This method requires configuration to be properly set up
-        // Use AddSqlScheduler(SqlSchedulerOptions) overload instead
-        // services.AddSingleton<SchedulerHealthCheck>();
-
-        // 4. Conditionally register the background workers
-        // var options = configuration.GetSection(SqlSchedulerOptions.SectionName).Get<SqlSchedulerOptions>() ?? new SqlSchedulerOptions();
-        // if (options.EnableBackgroundWorkers)
-        {
-            services.AddHostedService<SqlSchedulerService>();
-        }
-
-        return services;
-    }
-
     /// <summary>
     /// </summary>
     /// <param name="services">The IServiceCollection to add services to.</param>
@@ -64,9 +31,6 @@ public static class SchedulerServiceCollectionExtensions
     /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
     public static IServiceCollection AddSqlOutbox(this IServiceCollection services, SqlOutboxOptions options)
     {
-        // Add time abstractions
-        services.AddTimeAbstractions();
-
         services.Configure<SqlOutboxOptions>(o =>
         {
             o.ConnectionString = options.ConnectionString;
@@ -78,16 +42,19 @@ public static class SchedulerServiceCollectionExtensions
             o.CleanupInterval = options.CleanupInterval;
         });
 
-        services.AddSingleton<IOutbox, SqlOutboxService>();
-        services.AddSingleton<IOutboxStore, SqlOutboxStore>();
-        services.AddSingleton<IOutboxHandlerResolver, OutboxHandlerResolver>();
-        services.AddSingleton<OutboxDispatcher>();
-        services.AddHostedService<OutboxPollingService>();
+        // Use the multi-outbox infrastructure even for single-database setups so DI only contains global abstractions.
+        services.AddMultiSqlOutbox(new[] { options });
 
         // Register cleanup service if enabled
         if (options.EnableAutomaticCleanup)
         {
-            services.AddHostedService<OutboxCleanupService>();
+            services.AddHostedService(sp => new MultiOutboxCleanupService(
+                sp.GetRequiredService<IOutboxStoreProvider>(),
+                sp.GetRequiredService<IMonotonicClock>(),
+                sp.GetRequiredService<ILogger<MultiOutboxCleanupService>>(),
+                options.RetentionPeriod,
+                options.CleanupInterval,
+                sp.GetService<IDatabaseSchemaCompletion>()));
         }
 
         // Register schema deployment service if enabled (only register once per service collection)
@@ -120,12 +87,8 @@ public static class SchedulerServiceCollectionExtensions
             TableName = "Outbox", // Keep Outbox table name consistent
         });
 
-        // Add lease system for scheduler processing coordination
-        services.AddSystemLeases(new SystemLeaseOptions
-        {
-            ConnectionString = options.ConnectionString,
-            SchemaName = options.SchemaName,
-        });
+        // Add lease system for scheduler processing coordination (single database)
+        services.AddSystemLeases(options.ConnectionString, options.SchemaName);
 
         services.Configure<SqlSchedulerOptions>(o =>
         {
@@ -138,6 +101,9 @@ public static class SchedulerServiceCollectionExtensions
             o.EnableBackgroundWorkers = options.EnableBackgroundWorkers;
             o.EnableSchemaDeployment = options.EnableSchemaDeployment;
         });
+
+        // Expose the configured options instance directly for consumers that depend on the concrete type.
+        services.TryAddSingleton(sp => sp.GetRequiredService<IOptions<SqlSchedulerOptions>>().Value);
 
         services.AddSingleton<ISchedulerClient, SqlSchedulerClient>();
         services.AddSingleton<SchedulerHealthCheck>();
@@ -402,16 +368,22 @@ public static class SchedulerServiceCollectionExtensions
             o.CleanupInterval = options.CleanupInterval;
         });
 
-        services.AddSingleton<IInbox, SqlInboxService>();
-        services.AddSingleton<IInboxWorkStore, SqlInboxWorkStore>();
-        services.AddSingleton<IInboxHandlerResolver, InboxHandlerResolver>();
-        services.AddSingleton<InboxDispatcher>();
-        services.AddHostedService<InboxPollingService>();
+        // Use the multi-inbox infrastructure even for single-database setups so DI only contains global abstractions.
+        services.AddMultiSqlInbox(new[] { options });
+
+        // Back-compat convenience: expose the sole inbox instance when exactly one store is configured.
+        services.TryAddSingleton<IInbox>(provider => ResolveDefaultInbox(provider));
 
         // Register cleanup service if enabled
         if (options.EnableAutomaticCleanup)
         {
-            services.AddHostedService<InboxCleanupService>();
+            services.AddHostedService(sp => new MultiInboxCleanupService(
+                sp.GetRequiredService<IInboxWorkStoreProvider>(),
+                sp.GetRequiredService<IMonotonicClock>(),
+                sp.GetRequiredService<ILogger<MultiInboxCleanupService>>(),
+                options.RetentionPeriod,
+                options.CleanupInterval,
+                sp.GetService<IDatabaseSchemaCompletion>()));
         }
 
         // Register schema deployment service if enabled (only register once per service collection)
@@ -574,6 +546,10 @@ public static class SchedulerServiceCollectionExtensions
         IOutboxSelectionStrategy? selectionStrategy = null)
     {
         var schedulerOptionsList = schedulerOptions.ToList();
+        if (schedulerOptionsList.Count == 0)
+        {
+            throw new InvalidOperationException("At least one scheduler must be configured. The schedulerOptions collection is empty.");
+        }
 
         // Add time abstractions
         services.AddTimeAbstractions();
@@ -603,19 +579,15 @@ public static class SchedulerServiceCollectionExtensions
             return new ConfiguredLeaseFactoryProvider(leaseConfigs, loggerFactory);
         });
 
-        // Add system leases - we need at least one lease factory for multi-scheduler
-        // Use the first scheduler's connection for the lease system
-        var firstScheduler = schedulerOptionsList.FirstOrDefault();
-        if (firstScheduler == null)
+        services.TryAddSingleton<ILeaseRouter>(provider =>
         {
-            throw new InvalidOperationException("At least one scheduler must be configured. The schedulerOptions collection is empty.");
-        }
-
-        services.AddSystemLeases(new SystemLeaseOptions
-        {
-            ConnectionString = firstScheduler.ConnectionString,
-            SchemaName = firstScheduler.SchemaName,
+            var factoryProvider = provider.GetRequiredService<ILeaseFactoryProvider>();
+            var logger = provider.GetRequiredService<ILogger<LeaseRouter>>();
+            return new LeaseRouter(factoryProvider, logger);
         });
+
+        services.TryAddSingleton<ISystemLeaseFactory>(provider =>
+            provider.GetRequiredService<ILeaseRouter>().GetDefaultLeaseFactoryAsync().ConfigureAwait(false).GetAwaiter().GetResult());
 
         // Register shared components
         services.AddSingleton<MultiSchedulerDispatcher>();
@@ -651,6 +623,15 @@ public static class SchedulerServiceCollectionExtensions
 
         // Note: Caller must register ILeaseFactoryProvider separately since we can't determine
         // connection strings from a factory function
+        services.TryAddSingleton<ILeaseRouter>(provider =>
+        {
+            var factoryProvider = provider.GetRequiredService<ILeaseFactoryProvider>();
+            var logger = provider.GetRequiredService<ILogger<LeaseRouter>>();
+            return new LeaseRouter(factoryProvider, logger);
+        });
+
+        services.TryAddSingleton<ISystemLeaseFactory>(provider =>
+            provider.GetRequiredService<ILeaseRouter>().GetDefaultLeaseFactoryAsync().ConfigureAwait(false).GetAwaiter().GetResult());
 
         // Register shared components
         services.AddSingleton<MultiSchedulerDispatcher>();
@@ -823,5 +804,57 @@ public static class SchedulerServiceCollectionExtensions
         services.AddSingleton<IOutboxRouter, OutboxRouter>();
 
         return services;
+    }
+
+    /// <summary>
+    /// Resolves the single configured outbox, throwing if multiple stores exist to force callers to use routing.
+    /// </summary>
+    /// <param name="provider">The service provider.</param>
+    /// <returns>The default outbox.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when zero or multiple stores are registered.</exception>
+    private static IOutbox ResolveDefaultOutbox(IServiceProvider provider)
+    {
+        var storeProvider = provider.GetRequiredService<IOutboxStoreProvider>();
+        var stores = storeProvider.GetAllStoresAsync().GetAwaiter().GetResult();
+
+        if (stores.Count == 0)
+        {
+            throw new InvalidOperationException("No outbox stores are configured. Configure at least one store or use IOutboxRouter.");
+        }
+
+        if (stores.Count > 1)
+        {
+            throw new InvalidOperationException("Multiple outbox stores are configured. Resolve IOutboxRouter instead of IOutbox for multi-database setups.");
+        }
+
+        var router = provider.GetRequiredService<IOutboxRouter>();
+        var key = storeProvider.GetStoreIdentifier(stores[0]);
+        return router.GetOutbox(key);
+    }
+
+    /// <summary>
+    /// Resolves the single configured inbox, throwing if multiple stores exist to force callers to use routing.
+    /// </summary>
+    /// <param name="provider">The service provider.</param>
+    /// <returns>The default inbox.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when zero or multiple stores are registered.</exception>
+    private static IInbox ResolveDefaultInbox(IServiceProvider provider)
+    {
+        var storeProvider = provider.GetRequiredService<IInboxWorkStoreProvider>();
+        var stores = storeProvider.GetAllStoresAsync().GetAwaiter().GetResult();
+
+        if (stores.Count == 0)
+        {
+            throw new InvalidOperationException("No inbox work stores are configured. Configure at least one store or use IInboxRouter.");
+        }
+
+        if (stores.Count > 1)
+        {
+            throw new InvalidOperationException("Multiple inbox stores are configured. Resolve IInboxRouter instead of IInbox for multi-database setups.");
+        }
+
+        var router = provider.GetRequiredService<IInboxRouter>();
+        var key = storeProvider.GetStoreIdentifier(stores[0]);
+        return router.GetInbox(key);
     }
 }

@@ -12,11 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// Provides access to multiple lease factories that are discovered dynamically at runtime.
 /// This implementation queries an ILeaseDatabaseDiscovery service to detect new or
@@ -63,7 +62,7 @@ internal sealed class DynamicLeaseFactoryProvider : ILeaseFactoryProvider, IDisp
         // Synchronous version that triggers refresh if needed
         // Note: This uses GetAwaiter().GetResult() which can cause deadlocks in certain contexts.
         // Consider using GetAllFactoriesAsync when possible.
-        return this.GetAllFactoriesAsync(CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+        return GetAllFactoriesAsync(CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
     }
 
     /// <summary>
@@ -75,43 +74,43 @@ internal sealed class DynamicLeaseFactoryProvider : ILeaseFactoryProvider, IDisp
     public async Task<IReadOnlyList<ISystemLeaseFactory>> GetAllFactoriesAsync(CancellationToken cancellationToken = default)
     {
         // Use lock only for updating shared state, not for awaiting
-        var now = this.timeProvider.GetUtcNow();
+        var now = timeProvider.GetUtcNow();
         bool needsRefresh;
-        lock (this.lockObject)
+        lock (lockObject)
         {
-            needsRefresh = (now - this.lastRefresh >= this.refreshInterval);
+            needsRefresh = (now - lastRefresh >= refreshInterval);
         }
 
         // Use semaphore to ensure only one thread performs refresh
-        if (needsRefresh && await this.refreshSemaphore.WaitAsync(0, cancellationToken).ConfigureAwait(false))
+        if (needsRefresh && await refreshSemaphore.WaitAsync(0, cancellationToken).ConfigureAwait(false))
         {
             try
             {
-                await this.RefreshFactoriesAsync(cancellationToken).ConfigureAwait(false);
-                lock (this.lockObject)
+                await RefreshFactoriesAsync(cancellationToken).ConfigureAwait(false);
+                lock (lockObject)
                 {
-                    this.lastRefresh = now;
+                    lastRefresh = now;
                 }
             }
             finally
             {
-                this.refreshSemaphore.Release();
+                refreshSemaphore.Release();
             }
         }
 
-        lock (this.lockObject)
+        lock (lockObject)
         {
             // Return defensive copy to prevent external mutation
-            return this.currentFactories.ToList();
+            return currentFactories.ToList();
         }
     }
 
     /// <inheritdoc/>
     public string GetFactoryIdentifier(ISystemLeaseFactory factory)
     {
-        lock (this.lockObject)
+        lock (lockObject)
         {
-            foreach (var entry in this.factoriesByIdentifier.Values)
+            foreach (var entry in factoriesByIdentifier.Values)
             {
                 if (ReferenceEquals(entry.Factory, factory))
                 {
@@ -126,9 +125,9 @@ internal sealed class DynamicLeaseFactoryProvider : ILeaseFactoryProvider, IDisp
     /// <inheritdoc/>
     public Task<ISystemLeaseFactory?> GetFactoryByKeyAsync(string key, CancellationToken cancellationToken = default)
     {
-        lock (this.lockObject)
+        lock (lockObject)
         {
-            if (this.factoriesByIdentifier.TryGetValue(key, out var entry))
+            if (factoriesByIdentifier.TryGetValue(key, out var entry))
             {
                 return Task.FromResult<ISystemLeaseFactory?>(entry.Factory);
             }
@@ -142,43 +141,43 @@ internal sealed class DynamicLeaseFactoryProvider : ILeaseFactoryProvider, IDisp
     /// </summary>
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
-        await this.RefreshFactoriesAsync(cancellationToken).ConfigureAwait(false);
-        lock (this.lockObject)
+        await RefreshFactoriesAsync(cancellationToken).ConfigureAwait(false);
+        lock (lockObject)
         {
-            this.lastRefresh = this.timeProvider.GetUtcNow();
+            lastRefresh = timeProvider.GetUtcNow();
         }
     }
 
     /// <inheritdoc/>
     public void Dispose()
     {
-        lock (this.lockObject)
+        lock (lockObject)
         {
             // Dispose all factories if they implement IDisposable
-            foreach (var entry in this.factoriesByIdentifier.Values)
+            foreach (var entry in factoriesByIdentifier.Values)
             {
                 (entry.Factory as IDisposable)?.Dispose();
             }
 
-            this.factoriesByIdentifier.Clear();
-            this.currentFactories.Clear();
+            factoriesByIdentifier.Clear();
+            currentFactories.Clear();
         }
 
-        this.refreshSemaphore?.Dispose();
+        refreshSemaphore?.Dispose();
     }
 
     private async Task RefreshFactoriesAsync(CancellationToken cancellationToken)
     {
         try
         {
-            this.logger.LogDebug("Discovering lease databases...");
-            var configs = await this.discovery.DiscoverDatabasesAsync(cancellationToken).ConfigureAwait(false);
+            logger.LogDebug("Discovering lease databases...");
+            var configs = await discovery.DiscoverDatabasesAsync(cancellationToken).ConfigureAwait(false);
             var configList = configs.ToList();
 
             // Track configurations that need schema deployment
             var schemasToDeploy = new List<LeaseDatabaseConfig>();
 
-            lock (this.lockObject)
+            lock (lockObject)
             {
                 // Track which identifiers we've seen in this refresh
                 var seenIdentifiers = new HashSet<string>();
@@ -188,21 +187,23 @@ internal sealed class DynamicLeaseFactoryProvider : ILeaseFactoryProvider, IDisp
                 {
                     seenIdentifiers.Add(config.Identifier);
 
-                    if (!this.factoriesByIdentifier.TryGetValue(config.Identifier, out var entry))
+                    if (!factoriesByIdentifier.TryGetValue(config.Identifier, out var entry))
                     {
                         // New database discovered
-                        this.logger.LogInformation(
+                        logger.LogInformation(
                             "Discovered new lease database: {Identifier}",
                             config.Identifier);
 
-                        var factoryLogger = this.loggerFactory.CreateLogger<SqlLeaseFactory>();
+                        var factoryLogger = loggerFactory.CreateLogger<SqlLeaseFactory>();
                         var factory = new SqlLeaseFactory(
-                            Options.Create(new SystemLeaseOptions
+                            new LeaseFactoryConfig
                             {
                                 ConnectionString = config.ConnectionString,
                                 SchemaName = config.SchemaName,
-                                EnableSchemaDeployment = config.EnableSchemaDeployment,
-                            }),
+                                RenewPercent = 0.6,
+                                GateTimeoutMs = 200,
+                                UseGate = false,
+                            },
                             factoryLogger);
 
                         entry = new FactoryEntry
@@ -212,8 +213,8 @@ internal sealed class DynamicLeaseFactoryProvider : ILeaseFactoryProvider, IDisp
                             Config = config,
                         };
 
-                        this.factoriesByIdentifier[config.Identifier] = entry;
-                        this.currentFactories.Add(factory);
+                        factoriesByIdentifier[config.Identifier] = entry;
+                        currentFactories.Add(factory);
 
                         // Mark for schema deployment
                         if (config.EnableSchemaDeployment)
@@ -225,29 +226,31 @@ internal sealed class DynamicLeaseFactoryProvider : ILeaseFactoryProvider, IDisp
                              entry.Config.SchemaName != config.SchemaName)
                     {
                         // Configuration changed - recreate the factory
-                        this.logger.LogInformation(
+                        logger.LogInformation(
                             "Lease database configuration changed for {Identifier}, recreating factory",
                             config.Identifier);
 
-                        this.currentFactories.Remove(entry.Factory);
+                        currentFactories.Remove(entry.Factory);
 
                         // Dispose old instance if it implements IDisposable
                         (entry.Factory as IDisposable)?.Dispose();
 
-                        var factoryLogger = this.loggerFactory.CreateLogger<SqlLeaseFactory>();
+                        var factoryLogger = loggerFactory.CreateLogger<SqlLeaseFactory>();
                         var factory = new SqlLeaseFactory(
-                            Options.Create(new SystemLeaseOptions
+                            new LeaseFactoryConfig
                             {
                                 ConnectionString = config.ConnectionString,
                                 SchemaName = config.SchemaName,
-                                EnableSchemaDeployment = config.EnableSchemaDeployment,
-                            }),
+                                RenewPercent = 0.6,
+                                GateTimeoutMs = 200,
+                                UseGate = false,
+                            },
                             factoryLogger);
 
                         entry.Factory = factory;
                         entry.Config = config;
 
-                        this.currentFactories.Add(factory);
+                        currentFactories.Add(factory);
 
                         // Mark for schema deployment
                         if (config.EnableSchemaDeployment)
@@ -258,28 +261,28 @@ internal sealed class DynamicLeaseFactoryProvider : ILeaseFactoryProvider, IDisp
                 }
 
                 // Remove factories that are no longer present
-                var removedIdentifiers = this.factoriesByIdentifier.Keys
+                var removedIdentifiers = factoriesByIdentifier.Keys
                     .Where(id => !seenIdentifiers.Contains(id))
                     .ToList();
 
                 foreach (var identifier in removedIdentifiers)
                 {
-                    this.logger.LogInformation(
+                    logger.LogInformation(
                         "Lease database removed: {Identifier}",
                         identifier);
 
-                    var entry = this.factoriesByIdentifier[identifier];
-                    
+                    var entry = factoriesByIdentifier[identifier];
+
                     // Dispose factory if it implements IDisposable
                     (entry.Factory as IDisposable)?.Dispose();
 
-                    this.currentFactories.Remove(entry.Factory);
-                    this.factoriesByIdentifier.Remove(identifier);
+                    currentFactories.Remove(entry.Factory);
+                    factoriesByIdentifier.Remove(identifier);
                 }
 
-                this.logger.LogDebug(
+                logger.LogDebug(
                     "Discovery complete. Managing {Count} lease databases",
-                    this.factoriesByIdentifier.Count);
+                    factoriesByIdentifier.Count);
             }
 
             // Deploy schemas outside the lock for databases that need it
@@ -289,7 +292,7 @@ internal sealed class DynamicLeaseFactoryProvider : ILeaseFactoryProvider, IDisp
 
                 try
                 {
-                    this.logger.LogInformation(
+                    logger.LogInformation(
                         "Deploying lease schema for database: {Identifier}",
                         config.Identifier);
 
@@ -297,13 +300,13 @@ internal sealed class DynamicLeaseFactoryProvider : ILeaseFactoryProvider, IDisp
                         config.ConnectionString,
                         config.SchemaName).ConfigureAwait(false);
 
-                    this.logger.LogInformation(
+                    logger.LogInformation(
                         "Successfully deployed lease schema for database: {Identifier}",
                         config.Identifier);
                 }
                 catch (Exception ex)
                 {
-                    this.logger.LogError(
+                    logger.LogError(
                         ex,
                         "Failed to deploy lease schema for database: {Identifier}. Factory will be available but may fail on first use.",
                         config.Identifier);
@@ -312,7 +315,7 @@ internal sealed class DynamicLeaseFactoryProvider : ILeaseFactoryProvider, IDisp
         }
         catch (Exception ex)
         {
-            this.logger.LogError(
+            logger.LogError(
                 ex,
                 "Error discovering lease databases. Continuing with existing configuration.");
         }

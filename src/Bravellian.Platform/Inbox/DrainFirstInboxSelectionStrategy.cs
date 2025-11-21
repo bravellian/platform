@@ -32,7 +32,7 @@ public sealed class DrainFirstInboxSelectionStrategy : IInboxSelectionStrategy
         IInboxWorkStore? lastProcessedStore,
         int lastProcessedCount)
     {
-        lock (this.lockObject)
+        lock (lockObject)
         {
             if (stores.Count == 0)
             {
@@ -45,8 +45,8 @@ public sealed class DrainFirstInboxSelectionStrategy : IInboxSelectionStrategy
                 var lastIndex = FindStoreIndex(stores, lastProcessedStore);
                 if (lastIndex >= 0)
                 {
-                    this.currentIndex = lastIndex;
-                    return stores[this.currentIndex];
+                    currentIndex = lastIndex;
+                    return stores[currentIndex];
                 }
             }
 
@@ -56,26 +56,26 @@ public sealed class DrainFirstInboxSelectionStrategy : IInboxSelectionStrategy
                 var lastIndex = FindStoreIndex(stores, lastProcessedStore);
                 if (lastIndex >= 0)
                 {
-                    this.currentIndex = (lastIndex + 1) % stores.Count;
+                    currentIndex = (lastIndex + 1) % stores.Count;
                 }
             }
 
             // Bounds check in case stores changed
-            if (this.currentIndex >= stores.Count)
+            if (currentIndex >= stores.Count)
             {
-                this.currentIndex = 0;
+                currentIndex = 0;
             }
 
-            return stores[this.currentIndex];
+            return stores[currentIndex];
         }
     }
 
     /// <inheritdoc/>
     public void Reset()
     {
-        lock (this.lockObject)
+        lock (lockObject)
         {
-            this.currentIndex = 0;
+            currentIndex = 0;
         }
     }
 

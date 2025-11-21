@@ -12,10 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 using System.Data;
-using System.Threading.Tasks;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// Provides a mechanism to enqueue messages for later processing
 /// as part of a transactional operation, and to claim and process
