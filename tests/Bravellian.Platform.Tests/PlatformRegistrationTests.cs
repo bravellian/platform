@@ -12,12 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
 using System.Data;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Xunit;
+
+namespace Bravellian.Platform.Tests;
 
 public class PlatformRegistrationTests
 {
@@ -69,7 +68,7 @@ public class PlatformRegistrationTests
                 new PlatformDatabase { Name = "db2", ConnectionString = "Server=localhost;Database=Db2;" },
             }));
 
-        Assert.Contains("already been called", ex.Message);
+        Assert.Contains("already been called", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -107,7 +106,7 @@ public class PlatformRegistrationTests
         var ex = Assert.Throws<ArgumentException>(
             () => services.AddPlatformMultiDatabaseWithList(databases));
 
-        Assert.Contains("must not be empty", ex.Message);
+        Assert.Contains("must not be empty", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -146,6 +145,7 @@ public class PlatformRegistrationTests
     }
 
     [Fact]
+    [Obsolete]
     public void AddPlatformMultiDatabaseWithControlPlaneAndList_RegistersControlPlane()
     {
         // Arrange
@@ -184,8 +184,8 @@ public class PlatformRegistrationTests
 
         // Assert
         Assert.Equal(2, result.Count);
-        Assert.Contains(result, db => db.Name == "db1" && db.ConnectionString == "conn1");
-        Assert.Contains(result, db => db.Name == "db2" && db.ConnectionString == "conn2");
+        Assert.Contains(result, db => string.Equals(db.Name, "db1", StringComparison.Ordinal) && string.Equals(db.ConnectionString, "conn1", StringComparison.Ordinal));
+        Assert.Contains(result, db => string.Equals(db.Name, "db2", StringComparison.Ordinal) && string.Equals(db.ConnectionString, "conn2", StringComparison.Ordinal));
     }
 
     private static T GetRequiredService<T>(IServiceCollection services)
@@ -227,7 +227,7 @@ public class PlatformRegistrationTests
         var ex = Assert.Throws<InvalidOperationException>(
             () => services.AddPlatformMultiDatabaseWithControlPlaneAndDiscovery(options));
 
-        Assert.Contains("Direct IOutboxStore registrations are not supported", ex.Message);
+        Assert.Contains("Direct IOutboxStore registrations are not supported", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -247,7 +247,7 @@ public class PlatformRegistrationTests
         var ex = Assert.Throws<InvalidOperationException>(
             () => services.AddPlatformMultiDatabaseWithControlPlaneAndDiscovery(options));
 
-        Assert.Contains("Direct IInboxWorkStore registrations are not supported", ex.Message);
+        Assert.Contains("Direct IInboxWorkStore registrations are not supported", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -267,7 +267,7 @@ public class PlatformRegistrationTests
         var ex = Assert.Throws<InvalidOperationException>(
             () => services.AddPlatformMultiDatabaseWithControlPlaneAndDiscovery(options));
 
-        Assert.Contains("Direct IOutbox registrations are not supported", ex.Message);
+        Assert.Contains("Direct IOutbox registrations are not supported", ex.Message, StringComparison.Ordinal);
     }
 
     private sealed class DummyOutboxStore : IOutboxStore

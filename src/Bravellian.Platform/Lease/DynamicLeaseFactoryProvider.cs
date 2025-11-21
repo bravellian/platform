@@ -29,7 +29,7 @@ internal sealed class DynamicLeaseFactoryProvider : ILeaseFactoryProvider, IDisp
     private readonly ILogger<DynamicLeaseFactoryProvider> logger;
     private readonly object lockObject = new();
     private readonly SemaphoreSlim refreshSemaphore = new(1, 1);
-    private readonly Dictionary<string, FactoryEntry> factoriesByIdentifier = new();
+    private readonly Dictionary<string, FactoryEntry> factoriesByIdentifier = new(StringComparer.Ordinal);
     private readonly List<ISystemLeaseFactory> currentFactories = new();
     private DateTimeOffset lastRefresh = DateTimeOffset.MinValue;
     private readonly TimeSpan refreshInterval;
@@ -180,7 +180,7 @@ internal sealed class DynamicLeaseFactoryProvider : ILeaseFactoryProvider, IDisp
             lock (lockObject)
             {
                 // Track which identifiers we've seen in this refresh
-                var seenIdentifiers = new HashSet<string>();
+                var seenIdentifiers = new HashSet<string>(StringComparer.Ordinal);
 
                 // Update or add factories
                 foreach (var config in configList)
@@ -222,8 +222,8 @@ internal sealed class DynamicLeaseFactoryProvider : ILeaseFactoryProvider, IDisp
                             schemasToDeploy.Add(config);
                         }
                     }
-                    else if (entry.Config.ConnectionString != config.ConnectionString ||
-                             entry.Config.SchemaName != config.SchemaName)
+                    else if (!string.Equals(entry.Config.ConnectionString, config.ConnectionString, StringComparison.Ordinal) ||
+!string.Equals(entry.Config.SchemaName, config.SchemaName, StringComparison.Ordinal))
                     {
                         // Configuration changed - recreate the factory
                         logger.LogInformation(

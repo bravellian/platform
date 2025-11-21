@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests.TestUtilities;
 
 using Microsoft.Extensions.Logging;
 
+namespace Bravellian.Platform.Tests.TestUtilities;
 /// <summary>
 /// A test logger implementation that outputs log messages to xUnit test output.
 /// This logger can be used for any type T and outputs formatted log messages
@@ -46,10 +46,10 @@ public class TestLogger<T> : ILogger<T>
     /// <inheritdoc />
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
     {
-        this.testOutputHelper.WriteLine($"[{logLevel}] {formatter(state, exception)}");
+        testOutputHelper.WriteLine($"[{logLevel}] {formatter(state, exception)}");
         if (exception != null)
         {
-            this.testOutputHelper.WriteLine($"Exception: {exception}");
+            testOutputHelper.WriteLine($"Exception: {exception}");
         }
     }
 }

@@ -12,9 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
 using Bravellian.Platform.Tests.TestUtilities;
+
+namespace Bravellian.Platform.Tests;
 
 public class InboxSelectionStrategyTests
 {

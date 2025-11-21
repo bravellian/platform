@@ -41,8 +41,8 @@ internal sealed class ConfiguredFanoutRepositoryProvider : IFanoutRepositoryProv
         var cursorReposList = new List<IFanoutCursorRepository>();
         var policyIdentifiersDict = new Dictionary<IFanoutPolicyRepository, string>();
         var cursorIdentifiersDict = new Dictionary<IFanoutCursorRepository, string>();
-        var policyKeyDict = new Dictionary<string, IFanoutPolicyRepository>();
-        var cursorKeyDict = new Dictionary<string, IFanoutCursorRepository>();
+        var policyKeyDict = new Dictionary<string, IFanoutPolicyRepository>(StringComparer.Ordinal);
+        var cursorKeyDict = new Dictionary<string, IFanoutCursorRepository>(StringComparer.Ordinal);
         var optionsList = fanoutOptions.ToList();
 
         foreach (var options in optionsList)

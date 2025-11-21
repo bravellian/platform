@@ -45,7 +45,7 @@ public sealed class DynamicSchedulerStoreProvider : ISchedulerStoreProvider, IDi
     private readonly ILogger<DynamicSchedulerStoreProvider> logger;
     private readonly object lockObject = new();
     private readonly SemaphoreSlim refreshSemaphore = new(1, 1);
-    private readonly Dictionary<string, StoreEntry> storesByIdentifier = new();
+    private readonly Dictionary<string, StoreEntry> storesByIdentifier = new(StringComparer.Ordinal);
     private readonly List<ISchedulerStore> currentStores = new();
     private DateTimeOffset lastRefresh = DateTimeOffset.MinValue;
     private readonly TimeSpan refreshInterval;
@@ -76,7 +76,6 @@ public sealed class DynamicSchedulerStoreProvider : ISchedulerStoreProvider, IDi
     /// Asynchronously gets all available scheduler stores that should be processed.
     /// This is the preferred method to avoid potential deadlocks.
     /// </summary>
-    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A read-only list of scheduler stores to poll.</returns>
     public Task<IReadOnlyList<ISchedulerStore>> GetAllStoresAsync() =>
         GetAllStoresAsync(CancellationToken.None);
@@ -210,7 +209,7 @@ public sealed class DynamicSchedulerStoreProvider : ISchedulerStoreProvider, IDi
             lock (lockObject)
             {
                 // Track which identifiers we've seen in this refresh
-                var seenIdentifiers = new HashSet<string>();
+                var seenIdentifiers = new HashSet<string>(StringComparer.Ordinal);
 
                 // Update or add stores
                 foreach (var config in configList)
@@ -268,11 +267,11 @@ public sealed class DynamicSchedulerStoreProvider : ISchedulerStoreProvider, IDi
                         storesByIdentifier[config.Identifier] = entry;
                         currentStores.Add(store);
                     }
-                    else if (entry.Config.ConnectionString != config.ConnectionString ||
-                             entry.Config.SchemaName != config.SchemaName ||
-                             entry.Config.JobsTableName != config.JobsTableName ||
-                             entry.Config.JobRunsTableName != config.JobRunsTableName ||
-                             entry.Config.TimersTableName != config.TimersTableName)
+                    else if (!string.Equals(entry.Config.ConnectionString, config.ConnectionString, StringComparison.Ordinal) ||
+!string.Equals(entry.Config.SchemaName, config.SchemaName, StringComparison.Ordinal) ||
+!string.Equals(entry.Config.JobsTableName, config.JobsTableName, StringComparison.Ordinal) ||
+!string.Equals(entry.Config.JobRunsTableName, config.JobRunsTableName, StringComparison.Ordinal) ||
+!string.Equals(entry.Config.TimersTableName, config.TimersTableName, StringComparison.Ordinal))
                     {
                         // Configuration changed - recreate the store
                         logger.LogInformation(

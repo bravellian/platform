@@ -12,17 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
 using Bravellian.Platform.Semaphore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Shouldly;
 using Testcontainers.MsSql;
-using Xunit;
 
+namespace Bravellian.Platform.Tests;
 /// <summary>
 /// Tests for semaphore registration and control-plane integration.
 /// </summary>
@@ -33,23 +31,24 @@ public class SemaphoreRegistrationTests : IAsyncLifetime
 
     public SemaphoreRegistrationTests()
     {
-        this.msSqlContainer = new MsSqlBuilder()
+        msSqlContainer = new MsSqlBuilder()
             .WithImage("mcr.microsoft.com/mssql/server:2022-CU10-ubuntu-22.04")
             .Build();
     }
 
     public async ValueTask InitializeAsync()
     {
-        await this.msSqlContainer.StartAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
-        this.connectionString = this.msSqlContainer.GetConnectionString();
+        await msSqlContainer.StartAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
+        connectionString = msSqlContainer.GetConnectionString();
     }
 
     public async ValueTask DisposeAsync()
     {
-        await this.msSqlContainer.DisposeAsync().ConfigureAwait(false);
+        await msSqlContainer.DisposeAsync().ConfigureAwait(false);
     }
 
     [Fact]
+    [Obsolete]
     public void SemaphoreService_RegisteredOnlyInControlPlane_WithList()
     {
         // Arrange & Act
@@ -61,11 +60,11 @@ public class SemaphoreRegistrationTests : IAsyncLifetime
                 new PlatformDatabase
                 {
                     Name = "db1",
-                    ConnectionString = this.connectionString!,
+                    ConnectionString = connectionString!,
                     SchemaName = "dbo",
                 },
             },
-            controlPlaneConnectionString: this.connectionString!,
+            controlPlaneConnectionString: connectionString!,
             enableSchemaDeployment: false);
 
         var serviceProvider = services.BuildServiceProvider();
@@ -76,12 +75,13 @@ public class SemaphoreRegistrationTests : IAsyncLifetime
     }
 
     [Fact]
+    [Obsolete]
     public void SemaphoreService_RegisteredOnlyInControlPlane_WithDiscovery()
     {
         // Arrange
         var services = new ServiceCollection();
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>)); // Add null logger
-        
+
         // Register a mock discovery service
         services.AddSingleton<IPlatformDatabaseDiscovery>(
             new ListBasedDatabaseDiscovery(new[]
@@ -89,14 +89,14 @@ public class SemaphoreRegistrationTests : IAsyncLifetime
                 new PlatformDatabase
                 {
                     Name = "db1",
-                    ConnectionString = this.connectionString!,
+                    ConnectionString = connectionString!,
                     SchemaName = "dbo",
                 },
             }));
 
         // Act
         services.AddPlatformMultiDatabaseWithControlPlaneAndDiscovery(
-            controlPlaneConnectionString: this.connectionString!,
+            controlPlaneConnectionString: connectionString!,
             enableSchemaDeployment: false);
 
         var serviceProvider = services.BuildServiceProvider();
@@ -107,6 +107,7 @@ public class SemaphoreRegistrationTests : IAsyncLifetime
     }
 
     [Fact]
+    [Obsolete]
     public void SemaphoreService_Registered_WithSingleDatabaseInList()
     {
         // Arrange & Act
@@ -118,11 +119,11 @@ public class SemaphoreRegistrationTests : IAsyncLifetime
                 new PlatformDatabase
                 {
                     Name = "test",
-                    ConnectionString = this.connectionString!,
+                    ConnectionString = connectionString!,
                     SchemaName = "dbo",
                 },
             },
-            controlPlaneConnectionString: this.connectionString!,
+            controlPlaneConnectionString: connectionString!,
             enableSchemaDeployment: false);
 
         var serviceProvider = services.BuildServiceProvider();
@@ -144,7 +145,7 @@ public class SemaphoreRegistrationTests : IAsyncLifetime
                 new PlatformDatabase
                 {
                     Name = "db1",
-                    ConnectionString = this.connectionString!,
+                    ConnectionString = connectionString!,
                     SchemaName = "dbo",
                 },
             },
@@ -158,6 +159,7 @@ public class SemaphoreRegistrationTests : IAsyncLifetime
     }
 
     [Fact]
+    [Obsolete]
     public void SemaphoreReaperService_RegisteredInControlPlane()
     {
         // Arrange & Act
@@ -169,11 +171,11 @@ public class SemaphoreRegistrationTests : IAsyncLifetime
                 new PlatformDatabase
                 {
                     Name = "db1",
-                    ConnectionString = this.connectionString!,
+                    ConnectionString = connectionString!,
                     SchemaName = "dbo",
                 },
             },
-            controlPlaneConnectionString: this.connectionString!,
+            controlPlaneConnectionString: connectionString!,
             enableSchemaDeployment: false);
 
         // Assert - Check if SemaphoreReaperService is registered without building the service provider
@@ -184,6 +186,7 @@ public class SemaphoreRegistrationTests : IAsyncLifetime
     }
 
     [Fact]
+    [Obsolete]
     public void SemaphoreReaperService_RegisteredWithSingleDatabaseInList()
     {
         // Arrange & Act
@@ -195,11 +198,11 @@ public class SemaphoreRegistrationTests : IAsyncLifetime
                 new PlatformDatabase
                 {
                     Name = "test",
-                    ConnectionString = this.connectionString!,
+                    ConnectionString = connectionString!,
                     SchemaName = "dbo",
                 },
             },
-            controlPlaneConnectionString: this.connectionString!,
+            controlPlaneConnectionString: connectionString!,
             enableSchemaDeployment: false);
 
         // Assert - Check if SemaphoreReaperService is registered without building the service provider

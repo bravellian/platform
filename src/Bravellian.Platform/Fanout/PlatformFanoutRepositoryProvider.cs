@@ -29,8 +29,8 @@ internal sealed class PlatformFanoutRepositoryProvider : IFanoutRepositoryProvid
     private IReadOnlyList<IFanoutCursorRepository>? cachedCursorRepositories;
     private readonly Dictionary<IFanoutPolicyRepository, string> policyIdentifiers = new();
     private readonly Dictionary<IFanoutCursorRepository, string> cursorIdentifiers = new();
-    private readonly Dictionary<string, IFanoutPolicyRepository> policyRepositoriesByKey = new();
-    private readonly Dictionary<string, IFanoutCursorRepository> cursorRepositoriesByKey = new();
+    private readonly Dictionary<string, IFanoutPolicyRepository> policyRepositoriesByKey = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, IFanoutCursorRepository> cursorRepositoriesByKey = new(StringComparer.Ordinal);
 
     public PlatformFanoutRepositoryProvider(
         IPlatformDatabaseDiscovery discovery,

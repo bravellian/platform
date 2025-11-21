@@ -145,7 +145,7 @@ internal sealed class MultiInboxCleanupService : BackgroundService
         // These are stored as private readonly fields in SqlInboxWorkStore
         var storeType = store.GetType();
 
-        if (storeType.Name != "SqlInboxWorkStore")
+        if (!string.Equals(storeType.Name, "SqlInboxWorkStore", StringComparison.Ordinal))
         {
             logger.LogWarning("Skipping cleanup for non-SQL store: {StoreType}", storeType.Name);
             return 0;

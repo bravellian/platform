@@ -14,10 +14,6 @@
 
 namespace Bravellian.Platform.Tests;
 
-using System;
-using Shouldly;
-using Xunit;
-
 public class ExceptionFilterTests
 {
     [Fact]
@@ -353,7 +349,7 @@ public class ExceptionFilterTests
     {
         // This test demonstrates a real-world pattern where you want to catch
         // only specific database-related exceptions while avoiding critical ones
-        
+
         // Arrange
         var sqlException = new InvalidOperationException("Database timeout"); // Simulating SQL exception
         var criticalException = new OutOfMemoryException();
@@ -362,7 +358,7 @@ public class ExceptionFilterTests
         var shouldCatchSql = ExceptionFilter.IsCatchableAndExpected(
             sqlException,
             typeof(InvalidOperationException));
-        
+
         var shouldCatchCritical = ExceptionFilter.IsCatchableAndExpected(
             criticalException,
             typeof(OutOfMemoryException));

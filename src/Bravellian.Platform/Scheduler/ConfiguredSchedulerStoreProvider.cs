@@ -23,7 +23,7 @@ namespace Bravellian.Platform;
 /// </summary>
 public sealed class ConfiguredSchedulerStoreProvider : ISchedulerStoreProvider
 {
-    private readonly Dictionary<string, StoreEntry> storesByIdentifier = new();
+    private readonly Dictionary<string, StoreEntry> storesByIdentifier = new(StringComparer.Ordinal);
     private readonly List<ISchedulerStore> allStores = new();
 
     public ConfiguredSchedulerStoreProvider(

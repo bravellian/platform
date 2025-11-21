@@ -12,11 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
 using Microsoft.Extensions.Logging.Abstractions;
-using Shouldly;
-using Xunit;
+
+namespace Bravellian.Platform.Tests;
 
 [Collection(SqlServerCollection.Name)]
 [Trait("Category", "Integration")]
@@ -35,9 +34,9 @@ public class LeaseTests : SqlServerTestBase
         await base.InitializeAsync().ConfigureAwait(false);
 
         // Ensure the lease schema exists
-        await DatabaseSchemaManager.EnsureLeaseSchemaAsync(this.ConnectionString, "dbo").ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureLeaseSchemaAsync(ConnectionString, "dbo").ConfigureAwait(false);
 
-        this.leaseApi = new LeaseApi(this.ConnectionString, "dbo");
+        leaseApi = new LeaseApi(ConnectionString, "dbo");
     }
 
     [Fact]
@@ -49,7 +48,7 @@ public class LeaseTests : SqlServerTestBase
         var leaseSeconds = 30;
 
         // Act
-        var result = await this.leaseApi!.AcquireAsync(leaseName, owner, leaseSeconds, TestContext.Current.CancellationToken);
+        var result = await leaseApi!.AcquireAsync(leaseName, owner, leaseSeconds, TestContext.Current.CancellationToken);
 
         // Assert
         result.acquired.ShouldBeTrue();
@@ -72,11 +71,11 @@ public class LeaseTests : SqlServerTestBase
         var leaseSeconds = 30;
 
         // First acquisition
-        var firstResult = await this.leaseApi!.AcquireAsync(leaseName, owner1, leaseSeconds, TestContext.Current.CancellationToken);
+        var firstResult = await leaseApi!.AcquireAsync(leaseName, owner1, leaseSeconds, TestContext.Current.CancellationToken);
         firstResult.acquired.ShouldBeTrue();
 
         // Act - Second acquisition attempt
-        var secondResult = await this.leaseApi.AcquireAsync(leaseName, owner2, leaseSeconds, TestContext.Current.CancellationToken);
+        var secondResult = await leaseApi.AcquireAsync(leaseName, owner2, leaseSeconds, TestContext.Current.CancellationToken);
 
         // Assert
         secondResult.acquired.ShouldBeFalse();
@@ -94,14 +93,14 @@ public class LeaseTests : SqlServerTestBase
         var shortLeaseSeconds = 1; // Very short lease
 
         // First acquisition with short lease
-        var firstResult = await this.leaseApi!.AcquireAsync(leaseName, owner1, shortLeaseSeconds, TestContext.Current.CancellationToken);
+        var firstResult = await leaseApi!.AcquireAsync(leaseName, owner1, shortLeaseSeconds, TestContext.Current.CancellationToken);
         firstResult.acquired.ShouldBeTrue();
 
         // Wait for lease to expire
         await Task.Delay(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         // Act - Second acquisition after expiry
-        var secondResult = await this.leaseApi.AcquireAsync(leaseName, owner2, 30, TestContext.Current.CancellationToken);
+        var secondResult = await leaseApi.AcquireAsync(leaseName, owner2, 30, TestContext.Current.CancellationToken);
 
         // Assert
         secondResult.acquired.ShouldBeTrue();
@@ -119,14 +118,14 @@ public class LeaseTests : SqlServerTestBase
         var leaseSeconds = 30;
 
         // Acquire lease first
-        var acquireResult = await this.leaseApi!.AcquireAsync(leaseName, owner, leaseSeconds, TestContext.Current.CancellationToken);
+        var acquireResult = await leaseApi!.AcquireAsync(leaseName, owner, leaseSeconds, TestContext.Current.CancellationToken);
         acquireResult.acquired.ShouldBeTrue();
 
         // Wait a moment
         await Task.Delay(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken);
 
         // Act - Renew the lease
-        var renewResult = await this.leaseApi.RenewAsync(leaseName, owner, leaseSeconds, TestContext.Current.CancellationToken);
+        var renewResult = await leaseApi.RenewAsync(leaseName, owner, leaseSeconds, TestContext.Current.CancellationToken);
 
         // Assert
         renewResult.renewed.ShouldBeTrue();
@@ -146,11 +145,11 @@ public class LeaseTests : SqlServerTestBase
         var leaseSeconds = 30;
 
         // Acquire lease with owner1
-        var acquireResult = await this.leaseApi!.AcquireAsync(leaseName, owner1, leaseSeconds, TestContext.Current.CancellationToken);
+        var acquireResult = await leaseApi!.AcquireAsync(leaseName, owner1, leaseSeconds, TestContext.Current.CancellationToken);
         acquireResult.acquired.ShouldBeTrue();
 
         // Act - Try to renew with owner2
-        var renewResult = await this.leaseApi.RenewAsync(leaseName, owner2, leaseSeconds, TestContext.Current.CancellationToken);
+        var renewResult = await leaseApi.RenewAsync(leaseName, owner2, leaseSeconds, TestContext.Current.CancellationToken);
 
         // Assert
         renewResult.renewed.ShouldBeFalse();
@@ -167,14 +166,14 @@ public class LeaseTests : SqlServerTestBase
         var shortLeaseSeconds = 1;
 
         // Acquire lease with short duration
-        var acquireResult = await this.leaseApi!.AcquireAsync(leaseName, owner, shortLeaseSeconds, TestContext.Current.CancellationToken);
+        var acquireResult = await leaseApi!.AcquireAsync(leaseName, owner, shortLeaseSeconds, TestContext.Current.CancellationToken);
         acquireResult.acquired.ShouldBeTrue();
 
         // Wait for lease to expire
         await Task.Delay(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         // Act - Try to renew expired lease
-        var renewResult = await this.leaseApi.RenewAsync(leaseName, owner, 30, TestContext.Current.CancellationToken);
+        var renewResult = await leaseApi.RenewAsync(leaseName, owner, 30, TestContext.Current.CancellationToken);
 
         // Assert
         renewResult.renewed.ShouldBeFalse();
@@ -200,9 +199,9 @@ public class LeaseRunnerTests : SqlServerTestBase
         await base.InitializeAsync().ConfigureAwait(false);
 
         // Ensure the lease schema exists
-        await DatabaseSchemaManager.EnsureLeaseSchemaAsync(this.ConnectionString, "dbo").ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureLeaseSchemaAsync(ConnectionString, "dbo").ConfigureAwait(false);
 
-        this.leaseApi = new LeaseApi(this.ConnectionString, "dbo");
+        leaseApi = new LeaseApi(ConnectionString, "dbo");
     }
 
     [Fact]
@@ -217,7 +216,7 @@ public class LeaseRunnerTests : SqlServerTestBase
         var logger = NullLogger.Instance;
 
         // Act
-        var runner = await LeaseRunner.AcquireAsync(this.leaseApi!,
+        var runner = await LeaseRunner.AcquireAsync(leaseApi!,
             monotonicClock,
             timeProvider,
             leaseName,
@@ -250,7 +249,7 @@ public class LeaseRunnerTests : SqlServerTestBase
 
         // First runner acquires the lease
         var runner1 = await LeaseRunner.AcquireAsync(
-            this.leaseApi!,
+            leaseApi!,
             monotonicClock,
             timeProvider,
             leaseName,
@@ -263,7 +262,7 @@ public class LeaseRunnerTests : SqlServerTestBase
 
         // Act - Second runner tries to acquire the same lease
         var runner2 = await LeaseRunner.AcquireAsync(
-            this.leaseApi,
+            leaseApi,
             monotonicClock,
             timeProvider,
             leaseName,
@@ -290,7 +289,7 @@ public class LeaseRunnerTests : SqlServerTestBase
         var timeProvider = TimeProvider.System;
         var logger = NullLogger.Instance;
 
-        var runner = await LeaseRunner.AcquireAsync(this.leaseApi!,
+        var runner = await LeaseRunner.AcquireAsync(leaseApi!,
             monotonicClock,
             timeProvider,
             leaseName,
@@ -322,7 +321,7 @@ public class LeaseRunnerTests : SqlServerTestBase
         var timeProvider = TimeProvider.System;
         var logger = NullLogger.Instance;
 
-        var runner = await LeaseRunner.AcquireAsync(this.leaseApi!,
+        var runner = await LeaseRunner.AcquireAsync(leaseApi!,
             monotonicClock,
             timeProvider,
             leaseName,
@@ -351,7 +350,7 @@ public class LeaseRunnerTests : SqlServerTestBase
         var timeProvider = TimeProvider.System;
         var logger = NullLogger.Instance;
 
-        var runner = await LeaseRunner.AcquireAsync(this.leaseApi!,
+        var runner = await LeaseRunner.AcquireAsync(leaseApi!,
             monotonicClock,
             timeProvider,
             leaseName,
@@ -384,7 +383,7 @@ public class LeaseRunnerTests : SqlServerTestBase
         var timeProvider = TimeProvider.System;
         var logger = NullLogger.Instance;
 
-        var runner = await LeaseRunner.AcquireAsync(this.leaseApi!,
+        var runner = await LeaseRunner.AcquireAsync(leaseApi!,
             monotonicClock,
             timeProvider,
             leaseName,

@@ -13,7 +13,6 @@
 // limitations under the License.
 
 
-using System.Diagnostics;
 using Testcontainers.MsSql;
 
 namespace Bravellian.Platform.Tests;
@@ -80,7 +79,7 @@ public class ManualSchemaExportTests : IAsyncLifetime
         // Create and deploy Control Plane database
         Console.WriteLine("=== Creating Control Plane Database ===");
         string controlPlaneConnectionString = await CreateAndDeployControlPlaneDatabase(connectionString);
-        
+
         // Create and deploy Multi-Database schema
         Console.WriteLine("\n=== Creating Multi-Database Schema ===");
         string multiDatabaseConnectionString = await CreateAndDeployMultiDatabase(connectionString);
@@ -143,7 +142,7 @@ public class ManualSchemaExportTests : IAsyncLifetime
         await DatabaseSchemaManager.EnsureCentralMetricsSchemaAsync(controlPlaneConnectionString, "infra");
 
         Console.WriteLine("Control Plane schema deployment completed successfully.");
-        
+
         return controlPlaneConnectionString;
     }
 
@@ -183,7 +182,7 @@ public class ManualSchemaExportTests : IAsyncLifetime
         await DatabaseSchemaManager.EnsureMetricsSchemaAsync(multiDatabaseConnectionString, "infra");
 
         Console.WriteLine("Multi-Database schema deployment completed successfully.");
-        
+
         return multiDatabaseConnectionString;
     }
 
@@ -228,7 +227,7 @@ public class ManualSchemaExportTests : IAsyncLifetime
     private static async Task UpdateSqlProjectFromDatabase(string connectionString, string projectPath)
     {
         var infraScriptsPath = Path.Combine(projectPath, "infra");
-        
+
         // Create directories if they don't exist
         Directory.CreateDirectory(infraScriptsPath);
         Directory.CreateDirectory(Path.Combine(infraScriptsPath, "Tables"));

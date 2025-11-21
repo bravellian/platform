@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests.TestUtilities;
 
 using Microsoft.Extensions.Logging;
 
+namespace Bravellian.Platform.Tests.TestUtilities;
 /// <summary>
 /// Test logger factory for creating test loggers with xUnit output helper.
 /// </summary>
@@ -34,7 +34,7 @@ public class TestLoggerFactory : ILoggerFactory
 
     public ILogger CreateLogger(string categoryName)
     {
-        return new TestLogger<object>(this.testOutputHelper);
+        return new TestLogger<object>(testOutputHelper);
     }
 
     public void Dispose()

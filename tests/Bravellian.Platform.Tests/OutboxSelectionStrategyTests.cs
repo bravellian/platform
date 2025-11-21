@@ -12,14 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
 using Bravellian.Platform.Tests.TestUtilities;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Time.Testing;
-using Microsoft.Data.SqlClient;
-using Dapper;
+
+namespace Bravellian.Platform.Tests;
 
 public class RoundRobinSelectionStrategyTests
 {
@@ -31,7 +27,7 @@ public class RoundRobinSelectionStrategyTests
         this.testOutputHelper = testOutputHelper;
 
         // Create mock stores for testing
-        this.mockStores = new List<IOutboxStore>
+        mockStores = new List<IOutboxStore>
         {
             new MockOutboxStore("Store1"),
             new MockOutboxStore("Store2"),
@@ -60,18 +56,18 @@ public class RoundRobinSelectionStrategyTests
         var strategy = new RoundRobinOutboxSelectionStrategy();
 
         // Act & Assert - Should cycle through all stores in order
-        var first = strategy.SelectNext(this.mockStores, null, 0);
-        first.ShouldBe(this.mockStores[0]);
+        var first = strategy.SelectNext(mockStores, null, 0);
+        first.ShouldBe(mockStores[0]);
 
-        var second = strategy.SelectNext(this.mockStores, first, 5);
-        second.ShouldBe(this.mockStores[1]);
+        var second = strategy.SelectNext(mockStores, first, 5);
+        second.ShouldBe(mockStores[1]);
 
-        var third = strategy.SelectNext(this.mockStores, second, 5);
-        third.ShouldBe(this.mockStores[2]);
+        var third = strategy.SelectNext(mockStores, second, 5);
+        third.ShouldBe(mockStores[2]);
 
         // Should wrap around to the first store
-        var fourth = strategy.SelectNext(this.mockStores, third, 5);
-        fourth.ShouldBe(this.mockStores[0]);
+        var fourth = strategy.SelectNext(mockStores, third, 5);
+        fourth.ShouldBe(mockStores[0]);
     }
 
     [Fact]
@@ -81,15 +77,15 @@ public class RoundRobinSelectionStrategyTests
         var strategy = new RoundRobinOutboxSelectionStrategy();
 
         // Advance through some stores
-        strategy.SelectNext(this.mockStores, null, 0);
-        strategy.SelectNext(this.mockStores, this.mockStores[0], 5);
+        strategy.SelectNext(mockStores, null, 0);
+        strategy.SelectNext(mockStores, mockStores[0], 5);
 
         // Act
         strategy.Reset();
 
         // Assert - Should start from the first store again
-        var result = strategy.SelectNext(this.mockStores, null, 0);
-        result.ShouldBe(this.mockStores[0]);
+        var result = strategy.SelectNext(mockStores, null, 0);
+        result.ShouldBe(mockStores[0]);
     }
 
 }
@@ -104,7 +100,7 @@ public class DrainFirstSelectionStrategyTests
         this.testOutputHelper = testOutputHelper;
 
         // Create mock stores for testing
-        this.mockStores = new List<IOutboxStore>
+        mockStores = new List<IOutboxStore>
         {
             new MockOutboxStore("Store1"),
             new MockOutboxStore("Store2"),
@@ -133,15 +129,15 @@ public class DrainFirstSelectionStrategyTests
         var strategy = new DrainFirstOutboxSelectionStrategy();
 
         // Act & Assert
-        var first = strategy.SelectNext(this.mockStores, null, 0);
-        first.ShouldBe(this.mockStores[0]);
+        var first = strategy.SelectNext(mockStores, null, 0);
+        first.ShouldBe(mockStores[0]);
 
         // Keep processing the same store as long as it has messages
-        var second = strategy.SelectNext(this.mockStores, first, 10); // Processed 10 messages
-        second.ShouldBe(this.mockStores[0]); // Should stay on Store1
+        var second = strategy.SelectNext(mockStores, first, 10); // Processed 10 messages
+        second.ShouldBe(mockStores[0]); // Should stay on Store1
 
-        var third = strategy.SelectNext(this.mockStores, second, 5); // Processed 5 messages
-        third.ShouldBe(this.mockStores[0]); // Should still be Store1
+        var third = strategy.SelectNext(mockStores, second, 5); // Processed 5 messages
+        third.ShouldBe(mockStores[0]); // Should still be Store1
     }
 
     [Fact]
@@ -151,20 +147,20 @@ public class DrainFirstSelectionStrategyTests
         var strategy = new DrainFirstOutboxSelectionStrategy();
 
         // Act & Assert
-        var first = strategy.SelectNext(this.mockStores, null, 0);
-        first.ShouldBe(this.mockStores[0]);
+        var first = strategy.SelectNext(mockStores, null, 0);
+        first.ShouldBe(mockStores[0]);
 
         // No messages processed, should move to next store
-        var second = strategy.SelectNext(this.mockStores, first, 0);
-        second.ShouldBe(this.mockStores[1]);
+        var second = strategy.SelectNext(mockStores, first, 0);
+        second.ShouldBe(mockStores[1]);
 
         // Still no messages, move to next
-        var third = strategy.SelectNext(this.mockStores, second, 0);
-        third.ShouldBe(this.mockStores[2]);
+        var third = strategy.SelectNext(mockStores, second, 0);
+        third.ShouldBe(mockStores[2]);
 
         // Wrap around
-        var fourth = strategy.SelectNext(this.mockStores, third, 0);
-        fourth.ShouldBe(this.mockStores[0]);
+        var fourth = strategy.SelectNext(mockStores, third, 0);
+        fourth.ShouldBe(mockStores[0]);
     }
 
     [Fact]
@@ -174,24 +170,24 @@ public class DrainFirstSelectionStrategyTests
         var strategy = new DrainFirstOutboxSelectionStrategy();
 
         // Act & Assert - Simulate realistic behavior
-        var first = strategy.SelectNext(this.mockStores, null, 0);
-        first.ShouldBe(this.mockStores[0]);
+        var first = strategy.SelectNext(mockStores, null, 0);
+        first.ShouldBe(mockStores[0]);
 
         // Process some messages from Store1
-        var second = strategy.SelectNext(this.mockStores, first, 10);
-        second.ShouldBe(this.mockStores[0]);
+        var second = strategy.SelectNext(mockStores, first, 10);
+        second.ShouldBe(mockStores[0]);
 
         // Store1 is now empty
-        var third = strategy.SelectNext(this.mockStores, second, 0);
-        third.ShouldBe(this.mockStores[1]);
+        var third = strategy.SelectNext(mockStores, second, 0);
+        third.ShouldBe(mockStores[1]);
 
         // Process messages from Store2
-        var fourth = strategy.SelectNext(this.mockStores, third, 20);
-        fourth.ShouldBe(this.mockStores[1]);
+        var fourth = strategy.SelectNext(mockStores, third, 20);
+        fourth.ShouldBe(mockStores[1]);
 
         // Store2 is empty
-        var fifth = strategy.SelectNext(this.mockStores, fourth, 0);
-        fifth.ShouldBe(this.mockStores[2]);
+        var fifth = strategy.SelectNext(mockStores, fourth, 0);
+        fifth.ShouldBe(mockStores[2]);
     }
 
 }

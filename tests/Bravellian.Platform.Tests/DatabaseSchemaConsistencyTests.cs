@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
 using Dapper;
 using Microsoft.Data.SqlClient;
 
+namespace Bravellian.Platform.Tests;
 /// <summary>
 /// Tests to ensure that the database schema used in tests is consistent with production schema.
 /// This prevents issues where test schemas diverge from production schemas.
@@ -36,8 +36,8 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
         await base.InitializeAsync().ConfigureAwait(false);
 
         // Apply work queue migrations to add Status, LockedUntil, OwnerToken columns
-        await DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(this.ConnectionString).ConfigureAwait(false);
-        await DatabaseSchemaManager.EnsureInboxWorkQueueSchemaAsync(this.ConnectionString).ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(ConnectionString).ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureInboxWorkQueueSchemaAsync(ConnectionString).ConfigureAwait(false);
     }
 
     [Fact]
@@ -56,12 +56,12 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
         };
 
         // Act & Assert
-        await using var connection = new SqlConnection(this.ConnectionString);
+        await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         foreach (var tableName in expectedTables)
         {
-            var exists = await this.TableExistsAsync(connection, "dbo", tableName);
+            var exists = await TableExistsAsync(connection, "dbo", tableName);
             exists.ShouldBeTrue($"Table dbo.{tableName} should exist");
         }
     }
@@ -70,7 +70,7 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
     public async Task OutboxTable_HasCorrectSchema()
     {
         // Arrange & Act
-        var columns = await this.GetTableColumnsAsync("dbo", "Outbox");
+        var columns = await GetTableColumnsAsync("dbo", "Outbox");
 
         // Assert - Check essential columns exist with correct types
         var expectedColumns = new Dictionary<string, string>
@@ -106,7 +106,7 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
     public async Task JobsTable_HasCorrectSchema()
     {
         // Arrange & Act
-        var columns = await this.GetTableColumnsAsync("dbo", "Jobs");
+        var columns = await GetTableColumnsAsync("dbo", "Jobs");
 
         // Assert
         var expectedColumns = new Dictionary<string, string>
@@ -134,7 +134,7 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
     public async Task TimersTable_HasCorrectSchema()
     {
         // Arrange & Act
-        var columns = await this.GetTableColumnsAsync("dbo", "Timers");
+        var columns = await GetTableColumnsAsync("dbo", "Timers");
 
         // Assert
         var expectedColumns = new Dictionary<string, string>
@@ -165,7 +165,7 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
     public async Task JobRunsTable_HasCorrectSchema()
     {
         // Arrange & Act
-        var columns = await this.GetTableColumnsAsync("dbo", "JobRuns");
+        var columns = await GetTableColumnsAsync("dbo", "JobRuns");
 
         // Assert
         var expectedColumns = new Dictionary<string, string>
@@ -195,7 +195,7 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
     public async Task InboxTable_HasCorrectSchema()
     {
         // Arrange & Act
-        var columns = await this.GetTableColumnsAsync("dbo", "Inbox");
+        var columns = await GetTableColumnsAsync("dbo", "Inbox");
 
         // Assert
         var expectedColumns = new Dictionary<string, string>
@@ -222,20 +222,20 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
     public async Task RequiredIndexes_ExistOnAllTables()
     {
         // Act & Assert
-        await using var connection = new SqlConnection(this.ConnectionString);
+        await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         // Check critical indexes exist
-        var indexExists = await this.IndexExistsAsync(connection, "dbo", "Outbox", "IX_Outbox_GetNext");
+        var indexExists = await IndexExistsAsync(connection, "dbo", "Outbox", "IX_Outbox_GetNext");
         indexExists.ShouldBeTrue("Outbox should have IX_Outbox_GetNext index");
 
-        indexExists = await this.IndexExistsAsync(connection, "dbo", "Jobs", "UQ_Jobs_JobName");
+        indexExists = await IndexExistsAsync(connection, "dbo", "Jobs", "UQ_Jobs_JobName");
         indexExists.ShouldBeTrue("Jobs should have UQ_Jobs_JobName index");
 
-        indexExists = await this.IndexExistsAsync(connection, "dbo", "Timers", "IX_Timers_GetNext");
+        indexExists = await IndexExistsAsync(connection, "dbo", "Timers", "IX_Timers_GetNext");
         indexExists.ShouldBeTrue("Timers should have IX_Timers_GetNext index");
 
-        indexExists = await this.IndexExistsAsync(connection, "dbo", "JobRuns", "IX_JobRuns_GetNext");
+        indexExists = await IndexExistsAsync(connection, "dbo", "JobRuns", "IX_JobRuns_GetNext");
         indexExists.ShouldBeTrue("JobRuns should have IX_JobRuns_GetNext index");
     }
 
@@ -244,7 +244,7 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
     {
         // Arrange
         var customSchema = "custom_test";
-        var customConnectionString = this.ConnectionString;
+        var customConnectionString = ConnectionString;
 
         // Create the custom schema first
         await using var setupConnection = new SqlConnection(customConnectionString);
@@ -263,17 +263,17 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
         await using var connection = new SqlConnection(customConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
-        var tablesExist = await this.TableExistsAsync(connection, customSchema, "CustomJobs");
+        var tablesExist = await TableExistsAsync(connection, customSchema, "CustomJobs");
         tablesExist.ShouldBeTrue($"Custom table {customSchema}.CustomJobs should exist");
 
-        tablesExist = await this.TableExistsAsync(connection, customSchema, "CustomJobRuns");
+        tablesExist = await TableExistsAsync(connection, customSchema, "CustomJobRuns");
         tablesExist.ShouldBeTrue($"Custom table {customSchema}.CustomJobRuns should exist");
 
-        tablesExist = await this.TableExistsAsync(connection, customSchema, "CustomTimers");
+        tablesExist = await TableExistsAsync(connection, customSchema, "CustomTimers");
         tablesExist.ShouldBeTrue($"Custom table {customSchema}.CustomTimers should exist");
 
         // Check indexes have correct parameterized names
-        var indexExists = await this.IndexExistsAsync(connection, customSchema, "CustomJobs", "UQ_CustomJobs_JobName");
+        var indexExists = await IndexExistsAsync(connection, customSchema, "CustomJobs", "UQ_CustomJobs_JobName");
         indexExists.ShouldBeTrue("Custom Jobs table should have correctly named unique index");
     }
 
@@ -281,7 +281,7 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
     public async Task WorkQueueColumns_ExistAfterMigration()
     {
         // Arrange & Act - WorkQueue migration should have been applied during setup
-        var columns = await this.GetTableColumnsAsync("dbo", "Outbox");
+        var columns = await GetTableColumnsAsync("dbo", "Outbox");
 
         // Assert - Work queue columns should exist
         columns.ShouldContainKey("Status", "Status column should exist after work queue migration");
@@ -289,7 +289,7 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
         columns.ShouldContainKey("OwnerToken", "OwnerToken column should exist after work queue migration");
 
         // Check that the type dbo.GuidIdList exists
-        await using var connection = new SqlConnection(this.ConnectionString);
+        await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var typeExists = await connection.QuerySingleOrDefaultAsync<int>(
@@ -317,7 +317,7 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
     /// </summary>
     private async Task<Dictionary<string, string>> GetTableColumnsAsync(string schemaName, string tableName)
     {
-        var connection = new SqlConnection(this.ConnectionString);
+        var connection = new SqlConnection(ConnectionString);
         await using (connection.ConfigureAwait(false))
         {
             await connection.OpenAsync(TestContext.Current.CancellationToken);

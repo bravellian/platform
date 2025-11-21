@@ -30,9 +30,9 @@ internal sealed class PlatformInboxWorkStoreProvider : IInboxWorkStoreProvider
     private readonly string tableName;
     private readonly object lockObject = new();
     private IReadOnlyList<IInboxWorkStore>? cachedStores;
-    private readonly Dictionary<string, IInboxWorkStore> storesByKey = new();
-    private readonly Dictionary<string, IInbox> inboxesByKey = new();
-    private readonly ConcurrentDictionary<string, byte> schemasDeployed = new();
+    private readonly Dictionary<string, IInboxWorkStore> storesByKey = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, IInbox> inboxesByKey = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, byte> schemasDeployed = new(StringComparer.Ordinal);
     private readonly bool enableSchemaDeployment;
     private readonly PlatformConfiguration? platformConfiguration;
 

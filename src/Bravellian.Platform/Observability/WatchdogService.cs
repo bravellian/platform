@@ -34,7 +34,7 @@ internal sealed class WatchdogService : BackgroundService, IWatchdog
     private readonly IOutboxState? outboxState;
     private readonly IProcessingState? processingState;
 
-    private readonly ConcurrentDictionary<string, AlertEntry> activeAlerts = new();
+    private readonly ConcurrentDictionary<string, AlertEntry> activeAlerts = new(StringComparer.Ordinal);
     private DateTimeOffset lastScanAt;
     private DateTimeOffset lastHeartbeatAt;
     private long heartbeatSequence;
@@ -202,6 +202,7 @@ internal sealed class WatchdogService : BackgroundService, IWatchdog
                     Key = $"job:{jobId}",
                     Message = $"Job {jobId} is overdue by {delay.TotalSeconds:F0} seconds.",
                     Attributes = new Dictionary<string, object?>
+(StringComparer.Ordinal)
                     {
                         ["job_id"] = jobId,
                         ["due_time"] = dueTime,
@@ -225,6 +226,7 @@ internal sealed class WatchdogService : BackgroundService, IWatchdog
                     Key = $"inbox:{queue}:{messageId}",
                     Message = $"Inbox message {messageId} in queue {queue} is stuck for {age.TotalMinutes:F0} minutes.",
                     Attributes = new Dictionary<string, object?>
+(StringComparer.Ordinal)
                     {
                         ["message_id"] = messageId,
                         ["queue"] = queue,
@@ -249,6 +251,7 @@ internal sealed class WatchdogService : BackgroundService, IWatchdog
                     Key = $"outbox:{queue}:{messageId}",
                     Message = $"Outbox message {messageId} in queue {queue} is stuck for {age.TotalMinutes:F0} minutes.",
                     Attributes = new Dictionary<string, object?>
+(StringComparer.Ordinal)
                     {
                         ["message_id"] = messageId,
                         ["queue"] = queue,
@@ -273,6 +276,7 @@ internal sealed class WatchdogService : BackgroundService, IWatchdog
                     Key = $"processor:{component}:{processorId}",
                     Message = $"Processor {processorId} in {component} has been idle for {idleTime.TotalMinutes:F0} minutes.",
                     Attributes = new Dictionary<string, object?>
+(StringComparer.Ordinal)
                     {
                         ["processor_id"] = processorId,
                         ["component"] = component,
@@ -291,7 +295,7 @@ internal sealed class WatchdogService : BackgroundService, IWatchdog
     {
         var now = timeProvider.GetUtcNow();
         var opts = options.Value;
-        var detectedKeys = new HashSet<string>(detectedAlerts.Select(a => a.Key));
+        var detectedKeys = new HashSet<string>(detectedAlerts.Select(a => a.Key), StringComparer.Ordinal);
 
         // Raise or update alerts
         foreach (var alert in detectedAlerts)
@@ -382,7 +386,7 @@ internal sealed class WatchdogService : BackgroundService, IWatchdog
 
         public string Message { get; init; } = string.Empty;
 
-        public IReadOnlyDictionary<string, object?> Attributes { get; init; } = new Dictionary<string, object?>();
+        public IReadOnlyDictionary<string, object?> Attributes { get; init; } = new Dictionary<string, object?>(StringComparer.Ordinal);
     }
 
     private class AlertEntry
@@ -401,6 +405,6 @@ internal sealed class WatchdogService : BackgroundService, IWatchdog
 
         public DateTimeOffset LastEmittedAt { get; set; }
 
-        public IReadOnlyDictionary<string, object?> Attributes { get; set; } = new Dictionary<string, object?>();
+        public IReadOnlyDictionary<string, object?> Attributes { get; set; } = new Dictionary<string, object?>(StringComparer.Ordinal);
     }
 }

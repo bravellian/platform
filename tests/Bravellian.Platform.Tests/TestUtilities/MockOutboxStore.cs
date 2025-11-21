@@ -48,5 +48,5 @@ public class MockOutboxStore : IOutboxStore
         => Task.CompletedTask;
 
     /// <inheritdoc/>
-    public override string ToString() => this.name;
+    public override string ToString() => name;
 }

@@ -83,7 +83,7 @@ internal sealed class DynamicFanoutRepositoryProvider : IFanoutRepositoryProvide
     private readonly ILogger<DynamicFanoutRepositoryProvider> logger;
     private readonly object lockObject = new();
     private readonly SemaphoreSlim refreshSemaphore = new(1, 1);
-    private readonly Dictionary<string, RepositoryEntry> repositoriesByIdentifier = new();
+    private readonly Dictionary<string, RepositoryEntry> repositoriesByIdentifier = new(StringComparer.Ordinal);
     private readonly List<IFanoutPolicyRepository> currentPolicyRepositories = new();
     private readonly List<IFanoutCursorRepository> currentCursorRepositories = new();
     private DateTimeOffset lastRefresh = DateTimeOffset.MinValue;
@@ -289,7 +289,7 @@ internal sealed class DynamicFanoutRepositoryProvider : IFanoutRepositoryProvide
             lock (lockObject)
             {
                 // Track which identifiers we've seen in this refresh
-                var seenIdentifiers = new HashSet<string>();
+                var seenIdentifiers = new HashSet<string>(StringComparer.Ordinal);
 
                 // Update or add repositories
                 foreach (var config in configList)
@@ -324,10 +324,10 @@ internal sealed class DynamicFanoutRepositoryProvider : IFanoutRepositoryProvide
                             schemasToDeploy.Add(config);
                         }
                     }
-                    else if (entry.Config.ConnectionString != config.ConnectionString ||
-                             entry.Config.SchemaName != config.SchemaName ||
-                             entry.Config.PolicyTableName != config.PolicyTableName ||
-                             entry.Config.CursorTableName != config.CursorTableName)
+                    else if (!string.Equals(entry.Config.ConnectionString, config.ConnectionString, StringComparison.Ordinal) ||
+!string.Equals(entry.Config.SchemaName, config.SchemaName, StringComparison.Ordinal) ||
+!string.Equals(entry.Config.PolicyTableName, config.PolicyTableName, StringComparison.Ordinal) ||
+!string.Equals(entry.Config.CursorTableName, config.CursorTableName, StringComparison.Ordinal))
                     {
                         // Configuration changed - recreate the repositories
                         logger.LogInformation(

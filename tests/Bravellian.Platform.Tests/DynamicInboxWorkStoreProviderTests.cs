@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
 using Bravellian.Platform.Tests.TestUtilities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
+
+namespace Bravellian.Platform.Tests;
 
 public class DynamicInboxWorkStoreProviderTests
 {
@@ -26,12 +27,12 @@ public class DynamicInboxWorkStoreProviderTests
     public DynamicInboxWorkStoreProviderTests(ITestOutputHelper testOutputHelper)
     {
         this.testOutputHelper = testOutputHelper;
-        this.timeProvider = new FakeTimeProvider();
+        timeProvider = new FakeTimeProvider();
     }
 
     private ILoggerFactory CreateLoggerFactory()
     {
-        return new TestLoggerFactory(this.testOutputHelper);
+        return new TestLoggerFactory(testOutputHelper);
     }
 
     [Fact]
@@ -56,12 +57,12 @@ public class DynamicInboxWorkStoreProviderTests
             },
         });
 
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
         var logger = loggerFactory.CreateLogger<DynamicInboxWorkStoreProvider>();
 
         var provider = new DynamicInboxWorkStoreProvider(
             discovery,
-            this.timeProvider,
+            timeProvider,
             loggerFactory,
             logger,
             refreshInterval: TimeSpan.FromMinutes(5));
@@ -88,13 +89,13 @@ public class DynamicInboxWorkStoreProviderTests
             },
         });
 
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
 
         var logger = loggerFactory.CreateLogger<DynamicInboxWorkStoreProvider>();
 
         var provider = new DynamicInboxWorkStoreProvider(
             discovery,
-            this.timeProvider,
+            timeProvider,
             loggerFactory,
             logger,
             refreshInterval: TimeSpan.FromMinutes(5));
@@ -137,13 +138,13 @@ public class DynamicInboxWorkStoreProviderTests
             },
         });
 
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
 
         var logger = loggerFactory.CreateLogger<DynamicInboxWorkStoreProvider>();
 
         var provider = new DynamicInboxWorkStoreProvider(
             discovery,
-            this.timeProvider,
+            timeProvider,
             loggerFactory,
             logger,
             refreshInterval: TimeSpan.FromMinutes(5));
@@ -176,13 +177,13 @@ public class DynamicInboxWorkStoreProviderTests
             },
         });
 
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
 
         var logger = loggerFactory.CreateLogger<DynamicInboxWorkStoreProvider>();
 
         var provider = new DynamicInboxWorkStoreProvider(
             discovery,
-            this.timeProvider,
+            timeProvider,
             loggerFactory,
             logger,
             refreshInterval: TimeSpan.FromMinutes(5));
@@ -198,7 +199,7 @@ public class DynamicInboxWorkStoreProviderTests
         });
 
         // Act - Advance time past refresh interval
-        this.timeProvider.Advance(TimeSpan.FromMinutes(6));
+        timeProvider.Advance(TimeSpan.FromMinutes(6));
         var updatedStores = await provider.GetAllStoresAsync(TestContext.Current.CancellationToken);
 
         // Assert - Should automatically refresh

@@ -36,8 +36,8 @@ internal sealed class ConfiguredInboxWorkStoreProvider : IInboxWorkStoreProvider
     {
         var storesList = new List<IInboxWorkStore>();
         var identifiersDict = new Dictionary<IInboxWorkStore, string>();
-        var keyDict = new Dictionary<string, IInboxWorkStore>();
-        var inboxDict = new Dictionary<string, IInbox>();
+        var keyDict = new Dictionary<string, IInboxWorkStore>(StringComparer.Ordinal);
+        var inboxDict = new Dictionary<string, IInbox>(StringComparer.Ordinal);
         var optionsList = inboxOptions.ToList();
 
         foreach (var options in optionsList)

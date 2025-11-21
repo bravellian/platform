@@ -77,7 +77,7 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
     private readonly ILoggerFactory loggerFactory;
     private readonly ILogger<DynamicOutboxStoreProvider> logger;
     private readonly object lockObject = new();
-    private readonly Dictionary<string, StoreEntry> storesByIdentifier = new();
+    private readonly Dictionary<string, StoreEntry> storesByIdentifier = new(StringComparer.Ordinal);
     private readonly List<IOutboxStore> currentStores = new();
     private DateTimeOffset lastRefresh = DateTimeOffset.MinValue;
     private readonly TimeSpan refreshInterval;
@@ -108,7 +108,6 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
     /// Asynchronously gets all available outbox stores that should be processed.
     /// This is the preferred method to avoid potential deadlocks.
     /// </summary>
-    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A read-only list of outbox stores to poll.</returns>
     public Task<IReadOnlyList<IOutboxStore>> GetAllStoresAsync() =>
         GetAllStoresAsync(CancellationToken.None);
@@ -218,7 +217,7 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
             lock (lockObject)
             {
                 // Track which identifiers we've seen in this refresh
-                var seenIdentifiers = new HashSet<string>();
+                var seenIdentifiers = new HashSet<string>(StringComparer.Ordinal);
 
                 // Update or add stores
                 foreach (var config in configList)
@@ -272,9 +271,9 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
                             schemasToDeploy.Add(config);
                         }
                     }
-                    else if (entry.Config.ConnectionString != config.ConnectionString ||
-                             entry.Config.SchemaName != config.SchemaName ||
-                             entry.Config.TableName != config.TableName)
+                    else if (!string.Equals(entry.Config.ConnectionString, config.ConnectionString, StringComparison.Ordinal) ||
+!string.Equals(entry.Config.SchemaName, config.SchemaName, StringComparison.Ordinal) ||
+!string.Equals(entry.Config.TableName, config.TableName, StringComparison.Ordinal))
                     {
                         // Configuration changed - recreate the store
                         logger.LogInformation(

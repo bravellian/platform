@@ -37,8 +37,8 @@ internal sealed class ConfiguredOutboxStoreProvider : IOutboxStoreProvider
     {
         var storesList = new List<IOutboxStore>();
         var identifiersDict = new Dictionary<IOutboxStore, string>();
-        var keyDict = new Dictionary<string, IOutboxStore>();
-        var outboxDict = new Dictionary<string, IOutbox>();
+        var keyDict = new Dictionary<string, IOutboxStore>(StringComparer.Ordinal);
+        var outboxDict = new Dictionary<string, IOutbox>(StringComparer.Ordinal);
         var optionsList = outboxOptions.ToList();
 
         foreach (var options in optionsList)

@@ -12,11 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
 using Microsoft.Extensions.Time.Testing;
-using Shouldly;
-using Xunit;
+
+namespace Bravellian.Platform.Tests;
 
 public class TimeAbstractionTests
 {
@@ -115,13 +114,13 @@ public class TimeAbstractionTests
     {
         private double currentSeconds = 1000.0; // Start at some arbitrary time
 
-        public long Ticks => (long)(this.currentSeconds * Stopwatch.Frequency);
+        public long Ticks => (long)(currentSeconds * Stopwatch.Frequency);
 
-        public double Seconds => this.currentSeconds;
+        public double Seconds => currentSeconds;
 
         public void Advance(TimeSpan timeSpan)
         {
-            this.currentSeconds += timeSpan.TotalSeconds;
+            currentSeconds += timeSpan.TotalSeconds;
         }
     }
 }

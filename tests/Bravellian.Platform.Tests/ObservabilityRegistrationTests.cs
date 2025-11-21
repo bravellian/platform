@@ -12,17 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
-using System;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Bravellian.Platform.Observability;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Shouldly;
-using Xunit;
+
+namespace Bravellian.Platform.Tests;
 
 public class ObservabilityRegistrationTests
 {
@@ -132,6 +127,7 @@ public class ObservabilityRegistrationTests
     {
         // Arrange
         var attributes = new System.Collections.Generic.Dictionary<string, object?>
+(StringComparer.Ordinal)
         {
             ["test_key"] = "test_value",
         };
@@ -169,7 +165,7 @@ public class ObservabilityRegistrationTests
                 "Message stuck",
                 DateTimeOffset.Parse("2024-01-01T00:00:00Z"),
                 DateTimeOffset.Parse("2024-01-01T00:05:00Z"),
-                new System.Collections.Generic.Dictionary<string, object?>()),
+                new System.Collections.Generic.Dictionary<string, object?>(StringComparer.Ordinal)),
         };
 
         // Act

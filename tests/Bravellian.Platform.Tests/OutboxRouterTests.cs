@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
 using Bravellian.Platform.Tests.TestUtilities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
+
+namespace Bravellian.Platform.Tests;
 
 public class OutboxRouterTests
 {
@@ -26,12 +27,12 @@ public class OutboxRouterTests
     public OutboxRouterTests(ITestOutputHelper testOutputHelper)
     {
         this.testOutputHelper = testOutputHelper;
-        this.timeProvider = new FakeTimeProvider();
+        timeProvider = new FakeTimeProvider();
     }
 
     private ILoggerFactory CreateLoggerFactory()
     {
-        return new TestLoggerFactory(this.testOutputHelper);
+        return new TestLoggerFactory(testOutputHelper);
     }
 
     [Fact]
@@ -54,8 +55,8 @@ public class OutboxRouterTests
             },
         };
 
-        var loggerFactory = this.CreateLoggerFactory();
-        var provider = new ConfiguredOutboxStoreProvider(options, this.timeProvider, loggerFactory);
+        var loggerFactory = CreateLoggerFactory();
+        var provider = new ConfiguredOutboxStoreProvider(options, timeProvider, loggerFactory);
         var router = new OutboxRouter(provider);
 
         // Act
@@ -83,8 +84,8 @@ public class OutboxRouterTests
             },
         };
 
-        var loggerFactory = this.CreateLoggerFactory();
-        var provider = new ConfiguredOutboxStoreProvider(options, this.timeProvider, loggerFactory);
+        var loggerFactory = CreateLoggerFactory();
+        var provider = new ConfiguredOutboxStoreProvider(options, timeProvider, loggerFactory);
         var router = new OutboxRouter(provider);
 
         // Act
@@ -108,8 +109,8 @@ public class OutboxRouterTests
             },
         };
 
-        var loggerFactory = this.CreateLoggerFactory();
-        var provider = new ConfiguredOutboxStoreProvider(options, this.timeProvider, loggerFactory);
+        var loggerFactory = CreateLoggerFactory();
+        var provider = new ConfiguredOutboxStoreProvider(options, timeProvider, loggerFactory);
         var router = new OutboxRouter(provider);
 
         // Act & Assert
@@ -131,8 +132,8 @@ public class OutboxRouterTests
             },
         };
 
-        var loggerFactory = this.CreateLoggerFactory();
-        var provider = new ConfiguredOutboxStoreProvider(options, this.timeProvider, loggerFactory);
+        var loggerFactory = CreateLoggerFactory();
+        var provider = new ConfiguredOutboxStoreProvider(options, timeProvider, loggerFactory);
         var router = new OutboxRouter(provider);
 
         // Act & Assert
@@ -153,8 +154,8 @@ public class OutboxRouterTests
             },
         };
 
-        var loggerFactory = this.CreateLoggerFactory();
-        var provider = new ConfiguredOutboxStoreProvider(options, this.timeProvider, loggerFactory);
+        var loggerFactory = CreateLoggerFactory();
+        var provider = new ConfiguredOutboxStoreProvider(options, timeProvider, loggerFactory);
         var router = new OutboxRouter(provider);
 
         // Act & Assert
@@ -183,12 +184,12 @@ public class OutboxRouterTests
             },
         });
 
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
         var logger = loggerFactory.CreateLogger<DynamicOutboxStoreProvider>();
 
         var provider = new DynamicOutboxStoreProvider(
             discovery,
-            this.timeProvider,
+            timeProvider,
             loggerFactory,
             logger,
             refreshInterval: TimeSpan.FromMinutes(5));
@@ -221,12 +222,12 @@ public class OutboxRouterTests
             },
         });
 
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
         var logger = loggerFactory.CreateLogger<DynamicOutboxStoreProvider>();
 
         var provider = new DynamicOutboxStoreProvider(
             discovery,
-            this.timeProvider,
+            timeProvider,
             loggerFactory,
             logger,
             refreshInterval: TimeSpan.FromMinutes(5));
@@ -266,8 +267,8 @@ public class OutboxRouterTests
             },
         };
 
-        var loggerFactory = this.CreateLoggerFactory();
-        var provider = new ConfiguredOutboxStoreProvider(options, this.timeProvider, loggerFactory);
+        var loggerFactory = CreateLoggerFactory();
+        var provider = new ConfiguredOutboxStoreProvider(options, timeProvider, loggerFactory);
         var router = new OutboxRouter(provider);
 
         // Act
@@ -295,8 +296,8 @@ public class OutboxRouterTests
             },
         };
 
-        var loggerFactory = this.CreateLoggerFactory();
-        var provider = new ConfiguredOutboxStoreProvider(options, this.timeProvider, loggerFactory);
+        var loggerFactory = CreateLoggerFactory();
+        var provider = new ConfiguredOutboxStoreProvider(options, timeProvider, loggerFactory);
 
         // Create router - but it should use Customer1 as the identifier, not the GUID
         var router = new OutboxRouter(provider);

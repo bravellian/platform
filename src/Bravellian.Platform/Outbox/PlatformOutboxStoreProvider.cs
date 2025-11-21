@@ -31,9 +31,9 @@ internal sealed class PlatformOutboxStoreProvider : IOutboxStoreProvider
     private readonly string tableName;
     private readonly object lockObject = new();
     private IReadOnlyList<IOutboxStore>? cachedStores;
-    private readonly Dictionary<string, IOutboxStore> storesByKey = new();
-    private readonly Dictionary<string, IOutbox> outboxesByKey = new();
-    private readonly ConcurrentDictionary<string, byte> schemasDeployed = new();
+    private readonly Dictionary<string, IOutboxStore> storesByKey = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, IOutbox> outboxesByKey = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, byte> schemasDeployed = new(StringComparer.Ordinal);
     private readonly bool enableSchemaDeployment;
     private readonly PlatformConfiguration? platformConfiguration;
 

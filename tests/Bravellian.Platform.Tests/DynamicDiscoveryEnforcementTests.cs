@@ -231,10 +231,10 @@ public sealed class DynamicDiscoveryEnforcementTests
     {
         var options = serviceProvider.GetService<IOptions<TOptions>>();
         Assert.NotNull(options);
-        
+
         var value = options.Value;
         Assert.NotNull(value);
-        Assert.False(IsDefaultOptions(value), 
+        Assert.False(IsDefaultOptions(value),
             $"{featureName} (global feature) should have IOptions<{typeof(TOptions).Name}> configured.");
     }
 

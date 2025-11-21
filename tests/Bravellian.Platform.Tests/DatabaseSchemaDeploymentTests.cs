@@ -1,10 +1,10 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
 namespace Bravellian.Platform.Tests
 {
-    using Microsoft.Extensions.DependencyInjection;
-    using Microsoft.Extensions.Hosting;
-    using Microsoft.Extensions.Logging;
-    using Microsoft.Extensions.Logging.Abstractions;
-
     public class DatabaseSchemaDeploymentTests
     {
         [Fact]
@@ -52,6 +52,7 @@ namespace Bravellian.Platform.Tests
         }
 
         [Fact]
+        [Obsolete]
         public void AddSqlScheduler_WithSchemaDeploymentEnabled_RegistersSchemaService()
         {
             // Arrange
@@ -74,6 +75,7 @@ namespace Bravellian.Platform.Tests
         }
 
         [Fact]
+        [Obsolete]
         public void MultipleServices_WithSchemaDeploymentEnabled_RegistersSingleSchemaService()
         {
             // Arrange

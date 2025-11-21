@@ -26,28 +26,28 @@ public class SampleSchedulerDatabaseDiscovery : ISchedulerDatabaseDiscovery
     {
         if (initialDatabases != null)
         {
-            this.databases.AddRange(initialDatabases);
+            databases.AddRange(initialDatabases);
         }
     }
 
     public Task<IEnumerable<SchedulerDatabaseConfig>> DiscoverDatabasesAsync(CancellationToken cancellationToken = default)
     {
         // Return a copy to prevent external modification
-        return Task.FromResult<IEnumerable<SchedulerDatabaseConfig>>(this.databases.ToList());
+        return Task.FromResult<IEnumerable<SchedulerDatabaseConfig>>(databases.ToList());
     }
 
     public void AddDatabase(SchedulerDatabaseConfig config)
     {
-        this.databases.Add(config);
+        databases.Add(config);
     }
 
     public void RemoveDatabase(string identifier)
     {
-        this.databases.RemoveAll(db => db.Identifier == identifier);
+        databases.RemoveAll(db => string.Equals(db.Identifier, identifier, StringComparison.Ordinal));
     }
 
     public void ClearDatabases()
     {
-        this.databases.Clear();
+        databases.Clear();
     }
 }

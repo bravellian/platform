@@ -145,7 +145,7 @@ internal sealed class MultiOutboxCleanupService : BackgroundService
         // These are stored as private readonly fields in SqlOutboxStore
         var storeType = store.GetType();
 
-        if (storeType.Name != "SqlOutboxStore")
+        if (!string.Equals(storeType.Name, "SqlOutboxStore", StringComparison.Ordinal))
         {
             logger.LogWarning("Skipping cleanup for non-SQL store: {StoreType}", storeType.Name);
             return 0;

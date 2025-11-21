@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
 using Bravellian.Platform.Tests.TestUtilities;
 using Dapper;
 using Microsoft.Extensions.Options;
+
+namespace Bravellian.Platform.Tests;
 
 [Collection(SqlServerCollection.Name)]
 [Trait("Category", "Integration")]
@@ -33,14 +34,14 @@ public class InboxWorkStoreTests : SqlServerTestBase
         await base.InitializeAsync().ConfigureAwait(false);
 
         // Ensure inbox work queue schema is set up (stored procedures and types)
-        await DatabaseSchemaManager.EnsureInboxWorkQueueSchemaAsync(this.ConnectionString).ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureInboxWorkQueueSchemaAsync(ConnectionString).ConfigureAwait(false);
     }
 
     [Fact]
     public async Task ClaimAsync_WithNoMessages_ReturnsEmpty()
     {
         // Arrange
-        var store = this.CreateInboxWorkStore();
+        var store = CreateInboxWorkStore();
         var ownerToken = Guid.NewGuid();
 
         // Act
@@ -54,8 +55,8 @@ public class InboxWorkStoreTests : SqlServerTestBase
     public async Task ClaimAsync_WithAvailableMessage_ClaimsSuccessfully()
     {
         // Arrange
-        var inbox = this.CreateInboxService();
-        var store = this.CreateInboxWorkStore();
+        var inbox = CreateInboxService();
+        var store = CreateInboxWorkStore();
         var ownerToken = Guid.NewGuid();
 
         // Enqueue a test message
@@ -69,7 +70,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
         Assert.Contains("msg-1", claimedIds);
 
         // Verify message status is Processing and has owner token
-        await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
+        await using var connection = new Microsoft.Data.SqlClient.SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var result = await connection.QuerySingleAsync(
@@ -84,8 +85,8 @@ public class InboxWorkStoreTests : SqlServerTestBase
     public async Task ClaimAsync_WithConcurrentWorkers_EnsuresExclusiveClaims()
     {
         // Arrange
-        var inbox = this.CreateInboxService();
-        var store = this.CreateInboxWorkStore();
+        var inbox = CreateInboxService();
+        var store = CreateInboxWorkStore();
         var owner1 = Guid.NewGuid();
         var owner2 = Guid.NewGuid();
 
@@ -111,8 +112,8 @@ public class InboxWorkStoreTests : SqlServerTestBase
     public async Task AckAsync_WithClaimedMessage_MarksAsDone()
     {
         // Arrange
-        var inbox = this.CreateInboxService();
-        var store = this.CreateInboxWorkStore();
+        var inbox = CreateInboxService();
+        var store = CreateInboxWorkStore();
         var ownerToken = Guid.NewGuid();
 
         // Enqueue and claim a message
@@ -124,7 +125,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
         await store.AckAsync(ownerToken, claimedIds, CancellationToken.None);
 
         // Assert
-        await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
+        await using var connection = new Microsoft.Data.SqlClient.SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var result = await connection.QuerySingleAsync(
@@ -140,8 +141,8 @@ public class InboxWorkStoreTests : SqlServerTestBase
     public async Task AbandonAsync_WithClaimedMessage_ReturnsToSeen()
     {
         // Arrange
-        var inbox = this.CreateInboxService();
-        var store = this.CreateInboxWorkStore();
+        var inbox = CreateInboxService();
+        var store = CreateInboxWorkStore();
         var ownerToken = Guid.NewGuid();
 
         // Enqueue and claim a message
@@ -153,7 +154,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
         await store.AbandonAsync(ownerToken, claimedIds, CancellationToken.None);
 
         // Assert
-        await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
+        await using var connection = new Microsoft.Data.SqlClient.SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var result = await connection.QuerySingleAsync(
@@ -168,8 +169,8 @@ public class InboxWorkStoreTests : SqlServerTestBase
     public async Task FailAsync_WithClaimedMessage_MarksAsDead()
     {
         // Arrange
-        var inbox = this.CreateInboxService();
-        var store = this.CreateInboxWorkStore();
+        var inbox = CreateInboxService();
+        var store = CreateInboxWorkStore();
         var ownerToken = Guid.NewGuid();
 
         // Enqueue and claim a message
@@ -181,7 +182,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
         await store.FailAsync(ownerToken, claimedIds, "Test failure", CancellationToken.None);
 
         // Assert
-        await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
+        await using var connection = new Microsoft.Data.SqlClient.SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var result = await connection.QuerySingleAsync(
@@ -196,8 +197,8 @@ public class InboxWorkStoreTests : SqlServerTestBase
     public async Task OwnerTokenEnforcement_OnlyAllowsOperationsByOwner()
     {
         // Arrange
-        var inbox = this.CreateInboxService();
-        var store = this.CreateInboxWorkStore();
+        var inbox = CreateInboxService();
+        var store = CreateInboxWorkStore();
         var rightOwner = Guid.NewGuid();
         var wrongOwner = Guid.NewGuid();
 
@@ -210,7 +211,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
         await store.AckAsync(wrongOwner, claimedIds, CancellationToken.None);
 
         // Assert - Message should still be Processing (ack should have been ignored)
-        await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
+        await using var connection = new Microsoft.Data.SqlClient.SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var result = await connection.QuerySingleAsync(
@@ -225,8 +226,8 @@ public class InboxWorkStoreTests : SqlServerTestBase
     public async Task GetAsync_WithValidMessageId_ReturnsMessage()
     {
         // Arrange
-        var inbox = this.CreateInboxService();
-        var store = this.CreateInboxWorkStore();
+        var inbox = CreateInboxService();
+        var store = CreateInboxWorkStore();
 
         // Enqueue a test message
         await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload", cancellationToken: TestContext.Current.CancellationToken);
@@ -247,7 +248,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
     public async Task GetAsync_WithInvalidMessageId_ThrowsException()
     {
         // Arrange
-        var store = this.CreateInboxWorkStore();
+        var store = CreateInboxWorkStore();
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
@@ -258,12 +259,12 @@ public class InboxWorkStoreTests : SqlServerTestBase
     {
         var options = Options.Create(new SqlInboxOptions
         {
-            ConnectionString = this.ConnectionString,
+            ConnectionString = ConnectionString,
             SchemaName = "dbo",
             TableName = "Inbox",
         });
 
-        var logger = new TestLogger<SqlInboxService>(this.TestOutputHelper);
+        var logger = new TestLogger<SqlInboxService>(TestOutputHelper);
         return new SqlInboxService(options, logger);
     }
 
@@ -271,12 +272,12 @@ public class InboxWorkStoreTests : SqlServerTestBase
     {
         var options = Options.Create(new SqlInboxOptions
         {
-            ConnectionString = this.ConnectionString,
+            ConnectionString = ConnectionString,
             SchemaName = "dbo",
             TableName = "Inbox",
         });
 
-        var logger = new TestLogger<SqlInboxWorkStore>(this.TestOutputHelper);
+        var logger = new TestLogger<SqlInboxWorkStore>(TestOutputHelper);
         return new SqlInboxWorkStore(options, logger);
     }
 }

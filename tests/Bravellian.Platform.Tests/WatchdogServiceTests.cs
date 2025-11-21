@@ -12,21 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Bravellian.Platform.Observability;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
-using Shouldly;
-using Xunit;
+
+namespace Bravellian.Platform.Tests;
 
 public class WatchdogServiceTests
 {
@@ -102,10 +95,10 @@ public class WatchdogServiceTests
 
         // Act
         var watchdogTask = watchdog.StartAsync(cts.Token);
-        
+
         // Advance time to trigger heartbeat (HeartbeatPeriod is 10s)
         fakeTime.Advance(TimeSpan.FromSeconds(11));
-        
+
         // Give the service a moment to process (minimal real time needed)
         await Task.Delay(50);
 
@@ -161,7 +154,7 @@ public class WatchdogServiceTests
 
         // Act
         var watchdogTask = watchdog.StartAsync(cts.Token);
-        
+
         // Advance time to trigger scan
         fakeTime.Advance(TimeSpan.FromSeconds(6));
         await Task.Delay(100); // Give the service time to process
@@ -182,7 +175,7 @@ public class WatchdogServiceTests
     {
         // Arrange
         var fakeTime = new FakeTimeProvider(DateTimeOffset.Parse("2024-01-01T00:00:00Z"));
-        
+
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton<TimeProvider>(fakeTime);
@@ -214,7 +207,7 @@ public class WatchdogServiceTests
 
         public Task<IReadOnlyList<(string JobId, DateTimeOffset DueTime)>> GetOverdueJobsAsync(TimeSpan threshold, CancellationToken cancellationToken)
         {
-            return Task.FromResult<IReadOnlyList<(string JobId, DateTimeOffset DueTime)>>(this.OverdueJobs);
+            return Task.FromResult<IReadOnlyList<(string JobId, DateTimeOffset DueTime)>>(OverdueJobs);
         }
     }
 
@@ -229,7 +222,7 @@ public class WatchdogServiceTests
 
         public Task OnAlertAsync(WatchdogAlertContext context, CancellationToken cancellationToken)
         {
-            return this.handler(context, cancellationToken);
+            return handler(context, cancellationToken);
         }
     }
 
@@ -244,7 +237,7 @@ public class WatchdogServiceTests
 
         public Task OnHeartbeatAsync(HeartbeatContext context, CancellationToken cancellationToken)
         {
-            return this.handler(context, cancellationToken);
+            return handler(context, cancellationToken);
         }
     }
 }

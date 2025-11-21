@@ -78,7 +78,7 @@ internal sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, I
     private readonly ILogger<DynamicInboxWorkStoreProvider> logger;
     private readonly object lockObject = new();
     private readonly SemaphoreSlim refreshSemaphore = new(1, 1);
-    private readonly Dictionary<string, StoreEntry> storesByIdentifier = new();
+    private readonly Dictionary<string, StoreEntry> storesByIdentifier = new(StringComparer.Ordinal);
     private readonly List<IInboxWorkStore> currentStores = new();
     private DateTimeOffset lastRefresh = DateTimeOffset.MinValue;
     private readonly TimeSpan refreshInterval;
@@ -109,7 +109,6 @@ internal sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, I
     /// Asynchronously gets all available inbox work stores that should be processed.
     /// This is the preferred method to avoid potential deadlocks.
     /// </summary>
-    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A read-only list of inbox work stores to poll.</returns>
     public Task<IReadOnlyList<IInboxWorkStore>> GetAllStoresAsync() =>
         GetAllStoresAsync(CancellationToken.None);
@@ -241,7 +240,7 @@ internal sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, I
             lock (lockObject)
             {
                 // Track which identifiers we've seen in this refresh
-                var seenIdentifiers = new HashSet<string>();
+                var seenIdentifiers = new HashSet<string>(StringComparer.Ordinal);
 
                 // Update or add stores
                 foreach (var config in configList)
@@ -294,9 +293,9 @@ internal sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, I
                             schemasToDeploy.Add(config);
                         }
                     }
-                    else if (entry.Config.ConnectionString != config.ConnectionString ||
-                             entry.Config.SchemaName != config.SchemaName ||
-                             entry.Config.TableName != config.TableName)
+                    else if (!string.Equals(entry.Config.ConnectionString, config.ConnectionString, StringComparison.Ordinal) ||
+!string.Equals(entry.Config.SchemaName, config.SchemaName, StringComparison.Ordinal) ||
+!string.Equals(entry.Config.TableName, config.TableName, StringComparison.Ordinal))
                     {
                         // Configuration changed - recreate the store
                         logger.LogInformation(

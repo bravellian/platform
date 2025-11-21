@@ -170,6 +170,7 @@ public static class SchedulerServiceCollectionExtensions
     /// <param name="jobRunsTableName">The job runs table name (default: "JobRuns").</param>
     /// <param name="timersTableName">The timers table name (default: "Timers").</param>
     /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
+    [Obsolete]
     public static IServiceCollection AddSqlScheduler(this IServiceCollection services, string connectionString, string schemaName = "dbo", string jobsTableName = "Jobs", string jobRunsTableName = "JobRuns", string timersTableName = "Timers")
     {
         return services.AddSqlScheduler(new SqlSchedulerOptions

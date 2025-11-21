@@ -22,7 +22,7 @@ namespace Bravellian.Platform;
 /// </summary>
 internal sealed class ConfiguredLeaseFactoryProvider : ILeaseFactoryProvider
 {
-    private readonly Dictionary<string, FactoryEntry> factoriesByIdentifier = new();
+    private readonly Dictionary<string, FactoryEntry> factoriesByIdentifier = new(StringComparer.Ordinal);
     private readonly List<ISystemLeaseFactory> allFactories = new();
     private readonly IReadOnlyList<LeaseDatabaseConfig> configs;
     private readonly ILogger<ConfiguredLeaseFactoryProvider> logger;

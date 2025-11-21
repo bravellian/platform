@@ -12,13 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
 using Bravellian.Platform.Tests.TestUtilities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
-using System.Text.Json;
 
+namespace Bravellian.Platform.Tests;
 /// <summary>
 /// Integration tests demonstrating end-to-end usage of IOutboxRouter
 /// for multi-tenant outbox message creation.
@@ -31,12 +30,12 @@ public class OutboxRouterIntegrationTests
     public OutboxRouterIntegrationTests(ITestOutputHelper testOutputHelper)
     {
         this.testOutputHelper = testOutputHelper;
-        this.timeProvider = new FakeTimeProvider();
+        timeProvider = new FakeTimeProvider();
     }
 
     private ILoggerFactory CreateLoggerFactory()
     {
-        return new TestLoggerFactory(this.testOutputHelper);
+        return new TestLoggerFactory(testOutputHelper);
     }
 
     [Fact]
@@ -61,8 +60,8 @@ public class OutboxRouterIntegrationTests
             },
         };
 
-        var loggerFactory = this.CreateLoggerFactory();
-        var provider = new ConfiguredOutboxStoreProvider(tenantOptions, this.timeProvider, loggerFactory);
+        var loggerFactory = CreateLoggerFactory();
+        var provider = new ConfiguredOutboxStoreProvider(tenantOptions, timeProvider, loggerFactory);
         var router = new OutboxRouter(provider);
 
         // Act - Get outboxes for different tenants
@@ -76,8 +75,8 @@ public class OutboxRouterIntegrationTests
 
         // Verify both outboxes are functional (would require database in real scenario)
         // This demonstrates the API works correctly
-        this.testOutputHelper.WriteLine($"Successfully routed to Tenant1 outbox: {tenant1Outbox.GetType().Name}");
-        this.testOutputHelper.WriteLine($"Successfully routed to Tenant2 outbox: {tenant2Outbox.GetType().Name}");
+        testOutputHelper.WriteLine($"Successfully routed to Tenant1 outbox: {tenant1Outbox.GetType().Name}");
+        testOutputHelper.WriteLine($"Successfully routed to Tenant2 outbox: {tenant2Outbox.GetType().Name}");
     }
 
     [Fact]
@@ -98,11 +97,11 @@ public class OutboxRouterIntegrationTests
             },
         });
 
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
         var logger = loggerFactory.CreateLogger<DynamicOutboxStoreProvider>();
         var provider = new DynamicOutboxStoreProvider(
             discovery,
-            this.timeProvider,
+            timeProvider,
             loggerFactory,
             logger,
             refreshInterval: TimeSpan.FromMinutes(5));
@@ -121,7 +120,7 @@ public class OutboxRouterIntegrationTests
         customerXyzOutbox.ShouldNotBeNull();
         customerAbcOutbox.ShouldNotBe(customerXyzOutbox);
 
-        this.testOutputHelper.WriteLine("Successfully demonstrated dynamic discovery routing");
+        testOutputHelper.WriteLine("Successfully demonstrated dynamic discovery routing");
     }
 
     [Fact]
@@ -143,8 +142,8 @@ public class OutboxRouterIntegrationTests
             },
         };
 
-        var loggerFactory = this.CreateLoggerFactory();
-        var provider = new ConfiguredOutboxStoreProvider(tenantOptions, this.timeProvider, loggerFactory);
+        var loggerFactory = CreateLoggerFactory();
+        var provider = new ConfiguredOutboxStoreProvider(tenantOptions, timeProvider, loggerFactory);
         var router = new OutboxRouter(provider);
 
         var orderService = new OrderService(router, loggerFactory.CreateLogger<OrderService>());
@@ -158,7 +157,7 @@ public class OutboxRouterIntegrationTests
         tenantBOutbox.ShouldNotBeNull();
         tenantAOutbox.ShouldNotBe(tenantBOutbox);
 
-        this.testOutputHelper.WriteLine("Demonstrated typical application pattern");
+        testOutputHelper.WriteLine("Demonstrated typical application pattern");
     }
 
     // Example application service showing the pattern
@@ -175,13 +174,13 @@ public class OutboxRouterIntegrationTests
 
         public IOutbox GetOutboxForTenant(string tenantId)
         {
-            return this.outboxRouter.GetOutbox(tenantId);
+            return outboxRouter.GetOutbox(tenantId);
         }
 
         public async Task CreateOrderAsync(string tenantId, Order order)
         {
             // Get the outbox for this tenant's database
-            var outbox = this.outboxRouter.GetOutbox(tenantId);
+            var outbox = outboxRouter.GetOutbox(tenantId);
 
             // Create the message payload
             var payload = JsonSerializer.Serialize(order);
@@ -189,7 +188,7 @@ public class OutboxRouterIntegrationTests
             // Enqueue to the tenant's outbox
             await outbox.EnqueueAsync(topic: "order.created", payload: payload, correlationId: order.OrderId, cancellationToken: CancellationToken.None);
 
-            this.logger.LogInformation(
+            logger.LogInformation(
                 "Enqueued order {OrderId} to outbox for tenant {TenantId}",
                 order.OrderId,
                 tenantId);

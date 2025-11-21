@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
 using Bravellian.Platform.Tests.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
-using System.Linq;
+
+namespace Bravellian.Platform.Tests;
 
 [Collection(SqlServerCollection.Name)]
 [Trait("Category", "Integration")]
@@ -35,7 +35,7 @@ public class OutboxHandlerTests : SqlServerTestBase
     public override async ValueTask InitializeAsync()
     {
         await base.InitializeAsync().ConfigureAwait(false);
-        this.timeProvider = new FakeTimeProvider();
+        timeProvider = new FakeTimeProvider();
     }
 
     private MultiOutboxDispatcher CreateDispatcher(
@@ -49,7 +49,7 @@ public class OutboxHandlerTests : SqlServerTestBase
             provider,
             strategy,
             resolver,
-            logger ?? new TestLogger<MultiOutboxDispatcher>(this.TestOutputHelper));
+            logger ?? new TestLogger<MultiOutboxDispatcher>(TestOutputHelper));
     }
 
     [Fact]
@@ -97,8 +97,8 @@ public class OutboxHandlerTests : SqlServerTestBase
         var testHandler = new TestHandler("Test.Topic");
         var resolver = new OutboxHandlerResolver(new[] { testHandler });
         var store = new TestOutboxStore();
-        var logger = new TestLogger<MultiOutboxDispatcher>(this.TestOutputHelper);
-        var dispatcher = this.CreateDispatcher(store, resolver, logger);
+        var logger = new TestLogger<MultiOutboxDispatcher>(TestOutputHelper);
+        var dispatcher = CreateDispatcher(store, resolver, logger);
 
         var message = new OutboxMessage
         {
@@ -127,8 +127,8 @@ public class OutboxHandlerTests : SqlServerTestBase
         // Arrange
         var resolver = new OutboxHandlerResolver(Array.Empty<IOutboxHandler>());
         var store = new TestOutboxStore();
-        var logger = new TestLogger<MultiOutboxDispatcher>(this.TestOutputHelper);
-        var dispatcher = this.CreateDispatcher(store, resolver, logger);
+        var logger = new TestLogger<MultiOutboxDispatcher>(TestOutputHelper);
+        var dispatcher = CreateDispatcher(store, resolver, logger);
 
         var message = new OutboxMessage
         {
@@ -158,8 +158,8 @@ public class OutboxHandlerTests : SqlServerTestBase
         testHandler.ShouldThrow = true;
         var resolver = new OutboxHandlerResolver(new[] { testHandler });
         var store = new TestOutboxStore();
-        var logger = new TestLogger<MultiOutboxDispatcher>(this.TestOutputHelper);
-        var dispatcher = this.CreateDispatcher(store, resolver, logger);
+        var logger = new TestLogger<MultiOutboxDispatcher>(TestOutputHelper);
+        var dispatcher = CreateDispatcher(store, resolver, logger);
 
         var message = new OutboxMessage
         {
@@ -192,8 +192,8 @@ public class OutboxHandlerTests : SqlServerTestBase
         var testHandler = new TestHandler("Test.Topic");
         var resolver = new OutboxHandlerResolver(new[] { testHandler });
         var store = new TestOutboxStore();
-        var logger = new TestLogger<MultiOutboxDispatcher>(this.TestOutputHelper);
-        var dispatcher = this.CreateDispatcher(store, resolver, logger);
+        var logger = new TestLogger<MultiOutboxDispatcher>(TestOutputHelper);
+        var dispatcher = CreateDispatcher(store, resolver, logger);
 
         var message = new OutboxMessage
         {
@@ -226,8 +226,8 @@ public class OutboxHandlerTests : SqlServerTestBase
         testHandler.ShouldThrow = true;
         var resolver = new OutboxHandlerResolver(new[] { testHandler });
         var store = new TestOutboxStore();
-        var logger = new TestLogger<MultiOutboxDispatcher>(this.TestOutputHelper);
-        var dispatcher = this.CreateDispatcher(store, resolver, logger);
+        var logger = new TestLogger<MultiOutboxDispatcher>(TestOutputHelper);
+        var dispatcher = CreateDispatcher(store, resolver, logger);
 
         var message = new OutboxMessage
         {
@@ -260,7 +260,7 @@ public class OutboxHandlerTests : SqlServerTestBase
         var testHandler = new TestHandler("Test.Topic");
         var resolver = new OutboxHandlerResolver(new[] { testHandler });
         var store = new TestOutboxStore();
-        var dispatcher = this.CreateDispatcher(store, resolver, capturingLogger);
+        var dispatcher = CreateDispatcher(store, resolver, capturingLogger);
 
         var successMessage = new OutboxMessage
         {
@@ -312,7 +312,7 @@ public class OutboxHandlerTests : SqlServerTestBase
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
         {
             var message = formatter(state, exception);
-            this.LogEntries.Add((logLevel, message, exception));
+            LogEntries.Add((logLevel, message, exception));
         }
     }
 
@@ -347,7 +347,7 @@ public class OutboxHandlerTests : SqlServerTestBase
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddTimeAbstractions(this.timeProvider);
+        services.AddTimeAbstractions(timeProvider);
 
         // Act
         services.AddOutboxHandler<TestHandler>();
@@ -364,7 +364,7 @@ public class OutboxHandlerTests : SqlServerTestBase
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddTimeAbstractions(this.timeProvider);
+        services.AddTimeAbstractions(timeProvider);
 
         // Act
         services.AddOutboxHandler(sp => new TestHandler("Factory.Topic"));
@@ -386,11 +386,11 @@ public class OutboxHandlerTests : SqlServerTestBase
         }
 
         public Task<IReadOnlyList<IOutboxStore>> GetAllStoresAsync() =>
-            Task.FromResult<IReadOnlyList<IOutboxStore>>(new[] { this.store });
+            Task.FromResult<IReadOnlyList<IOutboxStore>>(new[] { store });
 
         public string GetStoreIdentifier(IOutboxStore store) => "default";
 
-        public IOutboxStore? GetStoreByKey(string key) => this.store;
+        public IOutboxStore? GetStoreByKey(string key) => store;
 
         public IOutbox? GetOutboxByKey(string key) => null;
     }
@@ -404,16 +404,16 @@ public class OutboxHandlerTests : SqlServerTestBase
 
         public TestHandler(string topic)
         {
-            this.Topic = topic;
+            Topic = topic;
         }
 
         public string Topic { get; }
 
         public Task HandleAsync(OutboxMessage message, CancellationToken cancellationToken)
         {
-            this.HandledMessages.Add(message);
+            HandledMessages.Add(message);
 
-            if (this.ShouldThrow)
+            if (ShouldThrow)
             {
                 throw new Exception("Test exception");
             }
@@ -435,30 +435,30 @@ public class OutboxHandlerTests : SqlServerTestBase
 
         public void AddMessage(OutboxMessage message)
         {
-            this.messages.Add(message);
+            messages.Add(message);
         }
 
         public Task<IReadOnlyList<OutboxMessage>> ClaimDueAsync(int limit, CancellationToken cancellationToken)
         {
-            var claimed = this.messages.Take(limit).ToList();
+            var claimed = messages.Take(limit).ToList();
             return Task.FromResult<IReadOnlyList<OutboxMessage>>(claimed);
         }
 
         public Task MarkDispatchedAsync(Guid id, CancellationToken cancellationToken)
         {
-            this.DispatchedMessages.Add(id);
+            DispatchedMessages.Add(id);
             return Task.CompletedTask;
         }
 
         public Task FailAsync(Guid id, string lastError, CancellationToken cancellationToken)
         {
-            this.FailedMessages.Add(new KeyValuePair<Guid, string>(id, lastError));
+            FailedMessages.Add(new KeyValuePair<Guid, string>(id, lastError));
             return Task.CompletedTask;
         }
 
         public Task RescheduleAsync(Guid id, TimeSpan delay, string lastError, CancellationToken cancellationToken)
         {
-            this.RescheduledMessages.Add(new KeyValuePair<Guid, (TimeSpan, string)>(id, (delay, lastError)));
+            RescheduledMessages.Add(new KeyValuePair<Guid, (TimeSpan, string)>(id, (delay, lastError)));
             return Task.CompletedTask;
         }
     }
