@@ -12,12 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// Provides a mechanism for discovering inbox database configurations dynamically.
 /// Implementations can query a registry, database, or configuration service to get
@@ -79,7 +78,7 @@ internal sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, I
     private readonly ILogger<DynamicInboxWorkStoreProvider> logger;
     private readonly object lockObject = new();
     private readonly SemaphoreSlim refreshSemaphore = new(1, 1);
-    private readonly Dictionary<string, StoreEntry> storesByIdentifier = new();
+    private readonly Dictionary<string, StoreEntry> storesByIdentifier = new(StringComparer.Ordinal);
     private readonly List<IInboxWorkStore> currentStores = new();
     private DateTimeOffset lastRefresh = DateTimeOffset.MinValue;
     private readonly TimeSpan refreshInterval;
@@ -110,54 +109,53 @@ internal sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, I
     /// Asynchronously gets all available inbox work stores that should be processed.
     /// This is the preferred method to avoid potential deadlocks.
     /// </summary>
-    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A read-only list of inbox work stores to poll.</returns>
     public Task<IReadOnlyList<IInboxWorkStore>> GetAllStoresAsync() =>
-        this.GetAllStoresAsync(CancellationToken.None);
+        GetAllStoresAsync(CancellationToken.None);
 
     public async Task<IReadOnlyList<IInboxWorkStore>> GetAllStoresAsync(CancellationToken cancellationToken = default)
     {
         // Use lock only for updating shared state, not for awaiting
-        var now = this.timeProvider.GetUtcNow();
+        var now = timeProvider.GetUtcNow();
         bool needsRefresh;
-        lock (this.lockObject)
+        lock (lockObject)
         {
-            needsRefresh = (now - this.lastRefresh >= this.refreshInterval);
+            needsRefresh = (now - lastRefresh >= refreshInterval);
         }
 
         if (needsRefresh)
         {
             // Use semaphore to ensure only one thread performs refresh
-            if (await this.refreshSemaphore.WaitAsync(0, cancellationToken).ConfigureAwait(false))
+            if (await refreshSemaphore.WaitAsync(0, cancellationToken).ConfigureAwait(false))
             {
                 try
                 {
-                    await this.RefreshStoresAsync(cancellationToken).ConfigureAwait(false);
-                    lock (this.lockObject)
+                    await RefreshStoresAsync(cancellationToken).ConfigureAwait(false);
+                    lock (lockObject)
                     {
-                        this.lastRefresh = now;
+                        lastRefresh = now;
                     }
                 }
                 finally
                 {
-                    this.refreshSemaphore.Release();
+                    refreshSemaphore.Release();
                 }
             }
         }
 
-        lock (this.lockObject)
+        lock (lockObject)
         {
             // Return defensive copy to prevent external mutation
-            return this.currentStores.ToList();
+            return currentStores.ToList();
         }
     }
 
     /// <inheritdoc/>
     public string GetStoreIdentifier(IInboxWorkStore store)
     {
-        lock (this.lockObject)
+        lock (lockObject)
         {
-            foreach (var entry in this.storesByIdentifier.Values)
+            foreach (var entry in storesByIdentifier.Values)
             {
                 if (ReferenceEquals(entry.Store, store))
                 {
@@ -172,9 +170,9 @@ internal sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, I
     /// <inheritdoc/>
     public IInboxWorkStore? GetStoreByKey(string key)
     {
-        lock (this.lockObject)
+        lock (lockObject)
         {
-            if (this.storesByIdentifier.TryGetValue(key, out var entry))
+            if (storesByIdentifier.TryGetValue(key, out var entry))
             {
                 return entry.Store;
             }
@@ -186,9 +184,9 @@ internal sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, I
     /// <inheritdoc/>
     public IInbox? GetInboxByKey(string key)
     {
-        lock (this.lockObject)
+        lock (lockObject)
         {
-            if (this.storesByIdentifier.TryGetValue(key, out var entry))
+            if (storesByIdentifier.TryGetValue(key, out var entry))
             {
                 return entry.Inbox;
             }
@@ -202,61 +200,61 @@ internal sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, I
     /// </summary>
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
-        await this.RefreshStoresAsync(cancellationToken).ConfigureAwait(false);
-        lock (this.lockObject)
+        await RefreshStoresAsync(cancellationToken).ConfigureAwait(false);
+        lock (lockObject)
         {
-            this.lastRefresh = this.timeProvider.GetUtcNow();
+            lastRefresh = timeProvider.GetUtcNow();
         }
     }
 
     /// <inheritdoc/>
     public void Dispose()
     {
-        lock (this.lockObject)
+        lock (lockObject)
         {
             // Dispose all stores and inboxes
-            foreach (var entry in this.storesByIdentifier.Values)
+            foreach (var entry in storesByIdentifier.Values)
             {
                 (entry.Store as IDisposable)?.Dispose();
                 (entry.Inbox as IDisposable)?.Dispose();
             }
-            
-            this.storesByIdentifier.Clear();
-            this.currentStores.Clear();
+
+            storesByIdentifier.Clear();
+            currentStores.Clear();
         }
-        
-        this.refreshSemaphore?.Dispose();
+
+        refreshSemaphore?.Dispose();
     }
 
     private async Task RefreshStoresAsync(CancellationToken cancellationToken)
     {
         try
         {
-            this.logger.LogDebug("Discovering inbox databases...");
-            var configs = await this.discovery.DiscoverDatabasesAsync(cancellationToken).ConfigureAwait(false);
+            logger.LogDebug("Discovering inbox databases...");
+            var configs = await discovery.DiscoverDatabasesAsync(cancellationToken).ConfigureAwait(false);
             var configList = configs.ToList();
 
             // Track configurations that need schema deployment
             var schemasToDeploy = new List<InboxDatabaseConfig>();
 
-            lock (this.lockObject)
+            lock (lockObject)
             {
                 // Track which identifiers we've seen in this refresh
-                var seenIdentifiers = new HashSet<string>();
+                var seenIdentifiers = new HashSet<string>(StringComparer.Ordinal);
 
                 // Update or add stores
                 foreach (var config in configList)
                 {
                     seenIdentifiers.Add(config.Identifier);
 
-                    if (!this.storesByIdentifier.TryGetValue(config.Identifier, out var entry))
+                    if (!storesByIdentifier.TryGetValue(config.Identifier, out var entry))
                     {
                         // New database discovered
-                        this.logger.LogInformation(
+                        logger.LogInformation(
                             "Discovered new inbox database: {Identifier}",
                             config.Identifier);
 
-                        var storeLogger = this.loggerFactory.CreateLogger<SqlInboxWorkStore>();
+                        var storeLogger = loggerFactory.CreateLogger<SqlInboxWorkStore>();
                         var store = new SqlInboxWorkStore(
                             Options.Create(new SqlInboxOptions
                             {
@@ -267,7 +265,7 @@ internal sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, I
                             }),
                             storeLogger);
 
-                        var inboxLogger = this.loggerFactory.CreateLogger<SqlInboxService>();
+                        var inboxLogger = loggerFactory.CreateLogger<SqlInboxService>();
                         var inbox = new SqlInboxService(
                             Options.Create(new SqlInboxOptions
                             {
@@ -286,8 +284,8 @@ internal sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, I
                             Config = config,
                         };
 
-                        this.storesByIdentifier[config.Identifier] = entry;
-                        this.currentStores.Add(store);
+                        storesByIdentifier[config.Identifier] = entry;
+                        currentStores.Add(store);
 
                         // Mark for schema deployment
                         if (config.EnableSchemaDeployment)
@@ -295,22 +293,22 @@ internal sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, I
                             schemasToDeploy.Add(config);
                         }
                     }
-                    else if (entry.Config.ConnectionString != config.ConnectionString ||
-                             entry.Config.SchemaName != config.SchemaName ||
-                             entry.Config.TableName != config.TableName)
+                    else if (!string.Equals(entry.Config.ConnectionString, config.ConnectionString, StringComparison.Ordinal) ||
+!string.Equals(entry.Config.SchemaName, config.SchemaName, StringComparison.Ordinal) ||
+!string.Equals(entry.Config.TableName, config.TableName, StringComparison.Ordinal))
                     {
                         // Configuration changed - recreate the store
-                        this.logger.LogInformation(
+                        logger.LogInformation(
                             "Inbox database configuration changed for {Identifier}, recreating store",
                             config.Identifier);
 
-                        this.currentStores.Remove(entry.Store);
+                        currentStores.Remove(entry.Store);
 
                         // Dispose old instances if they implement IDisposable
                         (entry.Store as IDisposable)?.Dispose();
                         (entry.Inbox as IDisposable)?.Dispose();
 
-                        var storeLogger = this.loggerFactory.CreateLogger<SqlInboxWorkStore>();
+                        var storeLogger = loggerFactory.CreateLogger<SqlInboxWorkStore>();
                         var store = new SqlInboxWorkStore(
                             Options.Create(new SqlInboxOptions
                             {
@@ -321,7 +319,7 @@ internal sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, I
                             }),
                             storeLogger);
 
-                        var inboxLogger = this.loggerFactory.CreateLogger<SqlInboxService>();
+                        var inboxLogger = loggerFactory.CreateLogger<SqlInboxService>();
                         var inbox = new SqlInboxService(
                             Options.Create(new SqlInboxOptions
                             {
@@ -336,7 +334,7 @@ internal sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, I
                         entry.Inbox = inbox;
                         entry.Config = config;
 
-                        this.currentStores.Add(store);
+                        currentStores.Add(store);
 
                         // Mark for schema deployment
                         if (config.EnableSchemaDeployment)
@@ -347,32 +345,32 @@ internal sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, I
                 }
 
                 // Remove stores that are no longer present
-                var removedIdentifiers = this.storesByIdentifier.Keys
+                var removedIdentifiers = storesByIdentifier.Keys
                     .Where(id => !seenIdentifiers.Contains(id))
                     .ToList();
 
                 foreach (var identifier in removedIdentifiers)
                 {
-                    this.logger.LogInformation(
+                    logger.LogInformation(
                         "Inbox database removed: {Identifier}",
                         identifier);
 
-                    var entry = this.storesByIdentifier[identifier];
+                    var entry = storesByIdentifier[identifier];
                     // Dispose of Store and Inbox if they implement IDisposable
                     (entry.Store as IDisposable)?.Dispose();
                     (entry.Inbox as IDisposable)?.Dispose();
-                    
+
                     // Dispose old instances if they implement IDisposable
                     (entry.Store as IDisposable)?.Dispose();
                     (entry.Inbox as IDisposable)?.Dispose();
-                    
-                    this.currentStores.Remove(entry.Store);
-                    this.storesByIdentifier.Remove(identifier);
+
+                    currentStores.Remove(entry.Store);
+                    storesByIdentifier.Remove(identifier);
                 }
 
-                this.logger.LogDebug(
+                logger.LogDebug(
                     "Discovery complete. Managing {Count} inbox databases",
-                    this.storesByIdentifier.Count);
+                    storesByIdentifier.Count);
             }
 
             // Deploy schemas outside the lock for databases that need it
@@ -382,7 +380,7 @@ internal sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, I
 
                 try
                 {
-                    this.logger.LogInformation(
+                    logger.LogInformation(
                         "Deploying inbox schema for database: {Identifier}",
                         config.Identifier);
 
@@ -395,13 +393,13 @@ internal sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, I
                         config.ConnectionString,
                         config.SchemaName).ConfigureAwait(false);
 
-                    this.logger.LogInformation(
+                    logger.LogInformation(
                         "Successfully deployed inbox schema for database: {Identifier}",
                         config.Identifier);
                 }
                 catch (Exception ex)
                 {
-                    this.logger.LogError(
+                    logger.LogError(
                         ex,
                         "Failed to deploy inbox schema for database: {Identifier}. Store will be available but may fail on first use.",
                         config.Identifier);
@@ -410,7 +408,7 @@ internal sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, I
         }
         catch (Exception ex)
         {
-            this.logger.LogError(
+            logger.LogError(
                 ex,
                 "Error discovering inbox databases. Continuing with existing configuration.");
         }

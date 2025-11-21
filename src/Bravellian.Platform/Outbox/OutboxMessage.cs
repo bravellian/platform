@@ -18,9 +18,9 @@ public sealed record OutboxMessage
 {
     public Guid Id { get; internal init; }
 
-    public string Payload { get; internal init; }
+    public required string Payload { get; init; }
 
-    public string Topic { get; internal init; }
+    public required string Topic { get; init; }
 
     public DateTimeOffset CreatedAt { get; internal init; }
 

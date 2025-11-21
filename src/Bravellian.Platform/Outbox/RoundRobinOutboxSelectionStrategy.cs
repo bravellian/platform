@@ -42,21 +42,21 @@ public sealed class RoundRobinOutboxSelectionStrategy : IOutboxSelectionStrategy
             if (lastIndex >= 0)
             {
                 // Use Interlocked to ensure thread-safe update
-                System.Threading.Interlocked.Exchange(ref this.currentIndex, (lastIndex + 1) % stores.Count);
+                System.Threading.Interlocked.Exchange(ref currentIndex, (lastIndex + 1) % stores.Count);
             }
         }
 
         // Atomically get the current index and increment it
-        var index = this.currentIndex;
+        var index = currentIndex;
         var selected = stores[index];
-        System.Threading.Interlocked.CompareExchange(ref this.currentIndex, (index + 1) % stores.Count, index);
+        System.Threading.Interlocked.CompareExchange(ref currentIndex, (index + 1) % stores.Count, index);
         return selected;
     }
 
     /// <inheritdoc/>
     public void Reset()
     {
-        System.Threading.Interlocked.Exchange(ref this.currentIndex, 0);
+        System.Threading.Interlocked.Exchange(ref currentIndex, 0);
     }
 
     private static int FindStoreIndex(IReadOnlyList<IOutboxStore> stores, IOutboxStore store)

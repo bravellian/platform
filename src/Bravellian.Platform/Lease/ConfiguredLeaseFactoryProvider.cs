@@ -12,18 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// Provides access to a pre-configured list of lease factories.
 /// Each lease factory represents a separate database/tenant.
 /// </summary>
 internal sealed class ConfiguredLeaseFactoryProvider : ILeaseFactoryProvider
 {
-    private readonly Dictionary<string, FactoryEntry> factoriesByIdentifier = new();
+    private readonly Dictionary<string, FactoryEntry> factoriesByIdentifier = new(StringComparer.Ordinal);
     private readonly List<ISystemLeaseFactory> allFactories = new();
     private readonly IReadOnlyList<LeaseDatabaseConfig> configs;
     private readonly ILogger<ConfiguredLeaseFactoryProvider> logger;
@@ -38,18 +37,20 @@ internal sealed class ConfiguredLeaseFactoryProvider : ILeaseFactoryProvider
         ILoggerFactory loggerFactory)
     {
         this.configs = configs.ToList();
-        this.logger = loggerFactory.CreateLogger<ConfiguredLeaseFactoryProvider>();
+        logger = loggerFactory.CreateLogger<ConfiguredLeaseFactoryProvider>();
 
         foreach (var config in this.configs)
         {
             var factoryLogger = loggerFactory.CreateLogger<SqlLeaseFactory>();
             var factory = new SqlLeaseFactory(
-                Options.Create(new SystemLeaseOptions
+                new LeaseFactoryConfig
                 {
                     ConnectionString = config.ConnectionString,
                     SchemaName = config.SchemaName,
-                    EnableSchemaDeployment = config.EnableSchemaDeployment,
-                }),
+                    RenewPercent = 0.6,
+                    GateTimeoutMs = 200,
+                    UseGate = false,
+                },
                 factoryLogger);
 
             var entry = new FactoryEntry
@@ -58,8 +59,8 @@ internal sealed class ConfiguredLeaseFactoryProvider : ILeaseFactoryProvider
                 Factory = factory,
             };
 
-            this.factoriesByIdentifier[config.Identifier] = entry;
-            this.allFactories.Add(factory);
+            factoriesByIdentifier[config.Identifier] = entry;
+            allFactories.Add(factory);
         }
     }
 
@@ -71,7 +72,7 @@ internal sealed class ConfiguredLeaseFactoryProvider : ILeaseFactoryProvider
     /// <returns>A task representing the asynchronous operation.</returns>
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
-        foreach (var config in this.configs)
+        foreach (var config in configs)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -79,7 +80,7 @@ internal sealed class ConfiguredLeaseFactoryProvider : ILeaseFactoryProvider
             {
                 try
                 {
-                    this.logger.LogInformation(
+                    logger.LogInformation(
                         "Deploying lease schema for database: {Identifier}",
                         config.Identifier);
 
@@ -87,13 +88,13 @@ internal sealed class ConfiguredLeaseFactoryProvider : ILeaseFactoryProvider
                         config.ConnectionString,
                         config.SchemaName).ConfigureAwait(false);
 
-                    this.logger.LogInformation(
+                    logger.LogInformation(
                         "Successfully deployed lease schema for database: {Identifier}",
                         config.Identifier);
                 }
                 catch (Exception ex)
                 {
-                    this.logger.LogError(
+                    logger.LogError(
                         ex,
                         "Failed to deploy lease schema for database: {Identifier}. Factory will be available but may fail on first use.",
                         config.Identifier);
@@ -103,12 +104,12 @@ internal sealed class ConfiguredLeaseFactoryProvider : ILeaseFactoryProvider
     }
 
     /// <inheritdoc/>
-    public Task<IReadOnlyList<ISystemLeaseFactory>> GetAllFactoriesAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<ISystemLeaseFactory>>(this.allFactories);
+    public Task<IReadOnlyList<ISystemLeaseFactory>> GetAllFactoriesAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<ISystemLeaseFactory>>(allFactories);
 
     /// <inheritdoc/>
     public string GetFactoryIdentifier(ISystemLeaseFactory factory)
     {
-        foreach (var entry in this.factoriesByIdentifier.Values)
+        foreach (var entry in factoriesByIdentifier.Values)
         {
             if (ReferenceEquals(entry.Factory, factory))
             {
@@ -122,7 +123,7 @@ internal sealed class ConfiguredLeaseFactoryProvider : ILeaseFactoryProvider
     /// <inheritdoc/>
     public Task<ISystemLeaseFactory?> GetFactoryByKeyAsync(string key, CancellationToken cancellationToken = default)
     {
-        if (this.factoriesByIdentifier.TryGetValue(key, out var entry))
+        if (factoriesByIdentifier.TryGetValue(key, out var entry))
         {
             return Task.FromResult<ISystemLeaseFactory?>(entry.Factory);
         }

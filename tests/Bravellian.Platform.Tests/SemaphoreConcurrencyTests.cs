@@ -12,14 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
 using Bravellian.Platform.Semaphore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
-using Shouldly;
-using Xunit;
 
+namespace Bravellian.Platform.Tests;
 /// <summary>
 /// Concurrency and stress tests for the distributed semaphore service.
 /// </summary>
@@ -40,12 +38,12 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
         await base.InitializeAsync().ConfigureAwait(false);
 
         // Ensure semaphore schema exists
-        await DatabaseSchemaManager.EnsureSemaphoreSchemaAsync(this.ConnectionString, "dbo").ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureSemaphoreSchemaAsync(ConnectionString, "dbo").ConfigureAwait(false);
 
         // Create service
         var options = Options.Create(new SemaphoreOptions
         {
-            ConnectionString = this.ConnectionString,
+            ConnectionString = ConnectionString,
             SchemaName = "dbo",
             MinTtlSeconds = 1,
             MaxTtlSeconds = 3600,
@@ -55,7 +53,7 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
             ReaperBatchSize = 1000,
         });
 
-        this.semaphoreService = new SqlSemaphoreService(
+        semaphoreService = new SqlSemaphoreService(
             options,
             NullLogger<SqlSemaphoreService>.Instance);
     }
@@ -68,7 +66,7 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
         var limit = 10;
         var workerCount = 50;
 
-        await this.semaphoreService!.EnsureExistsAsync(name, limit, TestContext.Current.CancellationToken);
+        await semaphoreService!.EnsureExistsAsync(name, limit, TestContext.Current.CancellationToken);
 
         // Track successful acquisitions
         var successfulTokens = new System.Collections.Concurrent.ConcurrentBag<Guid>();
@@ -80,7 +78,7 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
             var ownerId = $"owner{i}";
             tasks.Add(Task.Run(async () =>
             {
-                var result = await this.semaphoreService.TryAcquireAsync(
+                var result = await semaphoreService.TryAcquireAsync(
                     name,
                     ttlSeconds: 30,
                     ownerId: ownerId,
@@ -97,8 +95,8 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
 
         // Assert
         var acquired = successfulTokens.Count;
-        this.TestOutputHelper.WriteLine($"Acquired {acquired} out of {workerCount} attempts with limit {limit}");
-        
+        TestOutputHelper.WriteLine($"Acquired {acquired} out of {workerCount} attempts with limit {limit}");
+
         acquired.ShouldBeLessThanOrEqualTo(limit);
         acquired.ShouldBeGreaterThan(0); // At least some should succeed
     }
@@ -111,7 +109,7 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
         var limit = 5;
         var iterations = 20;
 
-        await this.semaphoreService!.EnsureExistsAsync(name, limit, TestContext.Current.CancellationToken);
+        await semaphoreService!.EnsureExistsAsync(name, limit, TestContext.Current.CancellationToken);
 
         var successfulAcquires = 0;
         var successfulReleases = 0;
@@ -123,7 +121,7 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
             var ownerId = $"owner{i}";
             tasks.Add(Task.Run(async () =>
             {
-                var result = await this.semaphoreService.TryAcquireAsync(
+                var result = await semaphoreService.TryAcquireAsync(
                     name,
                     ttlSeconds: 30,
                     ownerId: ownerId,
@@ -137,7 +135,7 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
                     await Task.Delay(TimeSpan.FromMilliseconds(50), TestContext.Current.CancellationToken);
 
                     // Release
-                    var releaseResult = await this.semaphoreService.ReleaseAsync(
+                    var releaseResult = await semaphoreService.ReleaseAsync(
                         name,
                         result.Token!.Value,
                         TestContext.Current.CancellationToken);
@@ -153,7 +151,7 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
         await Task.WhenAll(tasks);
 
         // Assert - All successful acquires should be released
-        this.TestOutputHelper.WriteLine($"Successful acquires: {successfulAcquires}, releases: {successfulReleases}");
+        TestOutputHelper.WriteLine($"Successful acquires: {successfulAcquires}, releases: {successfulReleases}");
         successfulReleases.ShouldBe(successfulAcquires);
     }
 
@@ -165,7 +163,7 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
         var limit = 2; // Two slots to allow more throughput
         var workerCount = 10;
 
-        await this.semaphoreService!.EnsureExistsAsync(name, limit, TestContext.Current.CancellationToken);
+        await semaphoreService!.EnsureExistsAsync(name, limit, TestContext.Current.CancellationToken);
 
         // Act - Try to acquire with retries
         var tasks = new List<Task<bool>>();
@@ -177,7 +175,7 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
                 // Retry up to 15 times with small delays
                 for (int attempt = 0; attempt < 15; attempt++)
                 {
-                    var result = await this.semaphoreService.TryAcquireAsync(
+                    var result = await semaphoreService.TryAcquireAsync(
                         name,
                         ttlSeconds: 1, // Short TTL so others can acquire
                         ownerId: ownerId,
@@ -199,7 +197,7 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
 
         // Assert - With 2 slots and retries, most workers should eventually succeed
         var successCount = results.Count(r => r);
-        this.TestOutputHelper.WriteLine($"{successCount} out of {workerCount} workers eventually acquired the semaphore");
+        TestOutputHelper.WriteLine($"{successCount} out of {workerCount} workers eventually acquired the semaphore");
         successCount.ShouldBeGreaterThan(workerCount / 2); // At least half should succeed
     }
 
@@ -208,7 +206,7 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
     {
         // Arrange
         var name = $"test-semaphore-{Guid.NewGuid():N}";
-        await this.semaphoreService!.EnsureExistsAsync(name, 5, TestContext.Current.CancellationToken);
+        await semaphoreService!.EnsureExistsAsync(name, 5, TestContext.Current.CancellationToken);
 
         // Act - Multiple concurrent limit updates
         var tasks = new List<Task>();
@@ -218,7 +216,7 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
         {
             tasks.Add(Task.Run(async () =>
             {
-                await this.semaphoreService.UpdateLimitAsync(
+                await semaphoreService.UpdateLimitAsync(
                     name,
                     newLimit,
                     ensureIfMissing: false,
@@ -229,7 +227,7 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
         await Task.WhenAll(tasks);
 
         // Assert - Should be able to acquire at least once (any limit > 0 should work)
-        var result = await this.semaphoreService.TryAcquireAsync(
+        var result = await semaphoreService.TryAcquireAsync(
             name,
             ttlSeconds: 30,
             ownerId: "owner1",
@@ -244,12 +242,12 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
         // Arrange
         var name = $"test-semaphore-{Guid.NewGuid():N}";
         var limit = 5;
-        await this.semaphoreService!.EnsureExistsAsync(name, limit, TestContext.Current.CancellationToken);
+        await semaphoreService!.EnsureExistsAsync(name, limit, TestContext.Current.CancellationToken);
 
         // Create some expired leases
         for (int i = 0; i < 3; i++)
         {
-            await this.semaphoreService.TryAcquireAsync(
+            await semaphoreService.TryAcquireAsync(
                 name,
                 ttlSeconds: 1,
                 ownerId: $"expired-owner{i}",
@@ -261,7 +259,7 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
         // Act - Concurrent reaping and acquiring
         var reapTask = Task.Run(async () =>
         {
-            return await this.semaphoreService.ReapExpiredAsync(
+            return await semaphoreService.ReapExpiredAsync(
                 name,
                 maxRows: 100,
                 cancellationToken: TestContext.Current.CancellationToken);
@@ -272,7 +270,7 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
         {
             acquireTasks.Add(Task.Run(async () =>
             {
-                return await this.semaphoreService.TryAcquireAsync(
+                return await semaphoreService.TryAcquireAsync(
                     name,
                     ttlSeconds: 30,
                     ownerId: $"new-owner{i}",
@@ -297,7 +295,7 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
         // Arrange
         var name = $"test-semaphore-{Guid.NewGuid():N}";
         var limit = 20;
-        await this.semaphoreService!.EnsureExistsAsync(name, limit, TestContext.Current.CancellationToken);
+        await semaphoreService!.EnsureExistsAsync(name, limit, TestContext.Current.CancellationToken);
 
         // Act - Concurrent acquires
         var tasks = new List<Task<long?>>();
@@ -305,7 +303,7 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
         {
             tasks.Add(Task.Run(async () =>
             {
-                var result = await this.semaphoreService.TryAcquireAsync(
+                var result = await semaphoreService.TryAcquireAsync(
                     name,
                     ttlSeconds: 30,
                     ownerId: $"owner{i}",
@@ -322,9 +320,9 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
             .ToList();
 
         // Assert - All fencing counters should be unique and increasing
-        this.TestOutputHelper.WriteLine($"Fencing counters: {string.Join(", ", fencingCounters)}");
+        TestOutputHelper.WriteLine($"Fencing counters: {string.Join(", ", fencingCounters)}");
         fencingCounters.Count.ShouldBe(fencingCounters.Distinct().Count()); // All unique
-        
+
         // Check strict ordering
         for (int i = 1; i < fencingCounters.Count; i++)
         {

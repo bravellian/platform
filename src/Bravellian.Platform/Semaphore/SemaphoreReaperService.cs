@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Semaphore;
 
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
+namespace Bravellian.Platform.Semaphore;
 /// <summary>
 /// Background service that periodically reaps expired semaphore leases.
 /// </summary>
@@ -39,27 +39,27 @@ internal sealed class SemaphoreReaperService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        this.logger.LogInformation(
+        logger.LogInformation(
             "Semaphore reaper service starting with cadence {CadenceSeconds}s and batch size {BatchSize}",
-            this.options.ReaperCadenceSeconds,
-            this.options.ReaperBatchSize);
+            options.ReaperCadenceSeconds,
+            options.ReaperBatchSize);
 
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
                 await Task.Delay(
-                    TimeSpan.FromSeconds(this.options.ReaperCadenceSeconds),
+                    TimeSpan.FromSeconds(options.ReaperCadenceSeconds),
                     stoppingToken).ConfigureAwait(false);
 
-                var deletedCount = await this.semaphoreService.ReapExpiredAsync(
+                var deletedCount = await semaphoreService.ReapExpiredAsync(
                     name: null,
-                    maxRows: this.options.ReaperBatchSize,
+                    maxRows: options.ReaperBatchSize,
                     cancellationToken: stoppingToken).ConfigureAwait(false);
 
                 if (deletedCount > 0)
                 {
-                    this.logger.LogInformation("Semaphore reaper deleted {DeletedCount} expired leases", deletedCount);
+                    logger.LogInformation("Semaphore reaper deleted {DeletedCount} expired leases", deletedCount);
                 }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -69,10 +69,10 @@ internal sealed class SemaphoreReaperService : BackgroundService
             }
             catch (Exception ex)
             {
-                this.logger.LogError(ex, "Semaphore reaper encountered an error");
+                logger.LogError(ex, "Semaphore reaper encountered an error");
             }
         }
 
-        this.logger.LogInformation("Semaphore reaper service stopped");
+        logger.LogInformation("Semaphore reaper service stopped");
     }
 }

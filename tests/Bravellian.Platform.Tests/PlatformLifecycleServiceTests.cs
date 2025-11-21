@@ -12,12 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
 using Microsoft.Extensions.Logging.Abstractions;
-using Shouldly;
-using Xunit;
 
+namespace Bravellian.Platform.Tests;
 /// <summary>
 /// Tests for PlatformLifecycleService validation behavior.
 /// </summary>
@@ -169,7 +167,7 @@ public class PlatformLifecycleServiceTests
 
         public Task<IReadOnlyCollection<PlatformDatabase>> DiscoverDatabasesAsync(CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(this.databases);
+            return Task.FromResult(databases);
         }
     }
 }

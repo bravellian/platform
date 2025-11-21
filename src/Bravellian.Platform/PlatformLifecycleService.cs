@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// Background service that validates platform configuration at startup.
 /// </summary>
@@ -39,88 +39,88 @@ internal sealed class PlatformLifecycleService : IHostedService
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        this.logger.LogInformation(
+        logger.LogInformation(
             "Platform starting with environment style: {EnvironmentStyle}, Discovery: {UsesDiscovery}",
-            this.configuration.EnvironmentStyle,
-            this.configuration.UsesDiscovery);
+            configuration.EnvironmentStyle,
+            configuration.UsesDiscovery);
 
         // Validate configuration based on environment style
-        switch (this.configuration.EnvironmentStyle)
+        switch (configuration.EnvironmentStyle)
         {
             case PlatformEnvironmentStyle.MultiDatabaseNoControl:
             case PlatformEnvironmentStyle.MultiDatabaseWithControl:
-                await this.ValidateMultiDatabaseAsync(cancellationToken);
+                await ValidateMultiDatabaseAsync(cancellationToken);
                 break;
         }
 
         // Validate control plane if configured
-        if (this.configuration.ControlPlaneConnectionString != null)
+        if (configuration.ControlPlaneConnectionString != null)
         {
-            await this.ValidateControlPlaneAsync(cancellationToken);
+            await ValidateControlPlaneAsync(cancellationToken);
         }
 
-        this.logger.LogInformation("Platform startup validation completed successfully.");
+        logger.LogInformation("Platform startup validation completed successfully.");
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        this.logger.LogInformation("Platform lifecycle service stopping.");
+        logger.LogInformation("Platform lifecycle service stopping.");
         return Task.CompletedTask;
     }
 
     private async Task ValidateMultiDatabaseAsync(CancellationToken cancellationToken)
     {
-        if (this.discovery == null)
+        if (discovery == null)
         {
             throw new InvalidOperationException("Discovery must be configured for multi-database environment.");
         }
 
-        var databases = await this.discovery.DiscoverDatabasesAsync(cancellationToken);
+        var databases = await discovery.DiscoverDatabasesAsync(cancellationToken);
 
         if (databases.Count == 0)
         {
             // For dynamic discovery scenarios, it's acceptable to start with zero databases
             // as they may be added later. For static list-based configurations, we should throw.
-            if (this.configuration.RequiresDatabaseAtStartup)
+            if (configuration.RequiresDatabaseAtStartup)
             {
                 throw new InvalidOperationException(
                     "Multi-database discovery returned no databases. At least one database is required.");
             }
 
-            this.logger.LogWarning(
+            logger.LogWarning(
                 "Multi-database discovery returned no databases. The platform will continue running " +
                 "and wait for databases to be discovered. Control Plane Configured={HasControlPlane}",
-                this.configuration.ControlPlaneConnectionString != null);
+                configuration.ControlPlaneConnectionString != null);
             return;
         }
 
-        this.logger.LogInformation(
+        logger.LogInformation(
             "Multi-database validated: Count={DatabaseCount}, Control Plane Configured={HasControlPlane}",
             databases.Count,
-            this.configuration.ControlPlaneConnectionString != null);
+            configuration.ControlPlaneConnectionString != null);
 
         // Log database names (redacted if necessary)
         foreach (var db in databases)
         {
-            this.logger.LogDebug("Discovered database: Name={DatabaseName}, Schema={SchemaName}", db.Name, db.SchemaName);
+            logger.LogDebug("Discovered database: Name={DatabaseName}, Schema={SchemaName}", db.Name, db.SchemaName);
         }
     }
 
     private async Task ValidateControlPlaneAsync(CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(this.configuration.ControlPlaneConnectionString))
+        if (string.IsNullOrWhiteSpace(configuration.ControlPlaneConnectionString))
         {
             throw new InvalidOperationException("Control plane connection string is null or empty.");
         }
 
-        this.logger.LogInformation("Validating control plane connectivity...");
+        logger.LogInformation("Validating control plane connectivity...");
 
         try
         {
-            await using var connection = new SqlConnection(this.configuration.ControlPlaneConnectionString);
+            await using var connection = new SqlConnection(configuration.ControlPlaneConnectionString);
             await connection.OpenAsync(cancellationToken);
 
-            this.logger.LogInformation("Control plane connectivity validated successfully.");
+            logger.LogInformation("Control plane connectivity validated successfully.");
         }
         catch (Exception ex)
         {
@@ -136,7 +136,7 @@ internal sealed class PlatformLifecycleService : IHostedService
             await using var connection = new SqlConnection(database.ConnectionString);
             await connection.OpenAsync(cancellationToken);
 
-            this.logger.LogDebug("Database connectivity test passed for: {DatabaseName}", database.Name);
+            logger.LogDebug("Database connectivity test passed for: {DatabaseName}", database.Name);
         }
         catch (Exception ex)
         {

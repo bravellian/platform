@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
 using Microsoft.Extensions.Logging;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// Default implementation of IFanoutRouter that uses IFanoutRepositoryProvider
 /// to route operations to the correct database.
@@ -43,11 +43,11 @@ internal sealed class FanoutRouter : IFanoutRouter
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
 
-        var repository = this.repositoryProvider.GetPolicyRepositoryByKey(key);
+        var repository = repositoryProvider.GetPolicyRepositoryByKey(key);
 
         if (repository == null)
         {
-            this.logger.LogError(
+            logger.LogError(
                 "No fanout policy repository found for routing key: {Key}",
                 key);
 
@@ -63,11 +63,11 @@ internal sealed class FanoutRouter : IFanoutRouter
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
 
-        var repository = this.repositoryProvider.GetCursorRepositoryByKey(key);
+        var repository = repositoryProvider.GetCursorRepositoryByKey(key);
 
         if (repository == null)
         {
-            this.logger.LogError(
+            logger.LogError(
                 "No fanout cursor repository found for routing key: {Key}",
                 key);
 

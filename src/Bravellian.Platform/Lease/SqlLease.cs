@@ -12,16 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
-using System;
 using System.Data;
-using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// SQL Server-based implementation of a distributed system lease.
 /// </summary>
@@ -71,23 +67,23 @@ internal sealed class SqlLease : ISystemLease
     {
         this.connectionString = connectionString;
         this.schemaName = schemaName;
-        this.ResourceName = resourceName;
-        this.OwnerToken = ownerToken;
-        this.FencingToken = fencingToken;
+        ResourceName = resourceName;
+        OwnerToken = ownerToken;
+        FencingToken = fencingToken;
         this.leaseDuration = leaseDuration;
-        this.renewAhead = TimeSpan.FromMilliseconds(leaseDuration.TotalMilliseconds * renewPercent);
+        renewAhead = TimeSpan.FromMilliseconds(leaseDuration.TotalMilliseconds * renewPercent);
         this.useGate = useGate;
         this.gateTimeoutMs = gateTimeoutMs;
         this.logger = logger;
 
-        this.linkedCts = CancellationTokenSource.CreateLinkedTokenSource(this.internalCts.Token, userCancellationToken);
+        linkedCts = CancellationTokenSource.CreateLinkedTokenSource(internalCts.Token, userCancellationToken);
 
         // Calculate renewal interval with small jitter
         var jitter = TimeSpan.FromMilliseconds(Random.Shared.Next(0, 1000));
-        var renewInterval = this.renewAhead + jitter;
+        var renewInterval = renewAhead + jitter;
 
         // Start the renewal timer
-        this.renewTimer = new Timer(this.RenewTimerCallback, null, renewInterval, renewInterval);
+        renewTimer = new Timer(RenewTimerCallback, null, renewInterval, renewInterval);
 
         this.logger.LogInformation(
             "Acquired lease for resource '{ResourceName}' with owner token '{OwnerToken}' and fencing token {FencingToken}",
@@ -104,7 +100,7 @@ internal sealed class SqlLease : ISystemLease
     public long FencingToken { get; private set; }
 
     /// <inheritdoc/>
-    public CancellationToken CancellationToken => this.linkedCts.Token;
+    public CancellationToken CancellationToken => linkedCts.Token;
 
     /// <summary>
     /// Attempts to acquire a lease for the specified resource.
@@ -186,83 +182,83 @@ internal sealed class SqlLease : ISystemLease
     /// <inheritdoc/>
     public void ThrowIfLost()
     {
-        if (this.isLost)
+        if (isLost)
         {
-            throw new LostLeaseException(this.ResourceName, this.OwnerToken);
+            throw new LostLeaseException(ResourceName, OwnerToken);
         }
     }
 
     /// <inheritdoc/>
     public async Task<bool> TryRenewNowAsync(CancellationToken cancellationToken = default)
     {
-        if (this.isLost || this.isDisposed)
+        if (isLost || isDisposed)
         {
             return false;
         }
 
-        return await this.RenewLeaseAsync(cancellationToken).ConfigureAwait(false);
+        return await RenewLeaseAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
     public async ValueTask DisposeAsync()
     {
-        if (this.isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        this.isDisposed = true;
+        isDisposed = true;
 
         // Stop the renewal timer
-        await this.renewTimer.DisposeAsync().ConfigureAwait(false);
+        await renewTimer.DisposeAsync().ConfigureAwait(false);
 
         // Cancel internal operations
-        this.internalCts.Cancel();
+        internalCts.Cancel();
 
         // Try to release the lease (best effort)
-        if (!this.isLost)
+        if (!isLost)
         {
             try
             {
-                await this.ReleaseLeaseAsync().ConfigureAwait(false);
+                await ReleaseLeaseAsync().ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                this.logger.LogWarning(ex, "Failed to release lease for resource '{ResourceName}' with owner token '{OwnerToken}'",
-                    this.ResourceName, this.OwnerToken);
+                logger.LogWarning(ex, "Failed to release lease for resource '{ResourceName}' with owner token '{OwnerToken}'",
+                    ResourceName, OwnerToken);
             }
         }
 
-        this.linkedCts.Dispose();
-        this.internalCts.Dispose();
+        linkedCts.Dispose();
+        internalCts.Dispose();
 
-        this.logger.LogInformation(
+        logger.LogInformation(
             "Disposed lease for resource '{ResourceName}' with owner token '{OwnerToken}'",
-            this.ResourceName, this.OwnerToken);
+            ResourceName, OwnerToken);
     }
 
     private async void RenewTimerCallback(object? state)
     {
-        if (this.isLost || this.isDisposed)
+        if (isLost || isDisposed)
         {
             return;
         }
 
         try
         {
-            var renewed = await this.RenewLeaseAsync(CancellationToken.None).ConfigureAwait(false);
+            var renewed = await RenewLeaseAsync(CancellationToken.None).ConfigureAwait(false);
             if (!renewed)
             {
-                this.MarkAsLost();
+                MarkAsLost();
             }
         }
         catch (Exception ex)
         {
-            this.logger.LogWarning(ex, "Error during lease renewal for resource '{ResourceName}' with owner token '{OwnerToken}'",
-                this.ResourceName, this.OwnerToken);
+            logger.LogWarning(ex, "Error during lease renewal for resource '{ResourceName}' with owner token '{OwnerToken}'",
+                ResourceName, OwnerToken);
 
             // Consider the lease lost on renewal errors
-            this.MarkAsLost();
+            MarkAsLost();
         }
     }
 
@@ -271,18 +267,18 @@ internal sealed class SqlLease : ISystemLease
         var stopwatch = Stopwatch.StartNew();
         try
         {
-            var leaseSeconds = (int)Math.Ceiling(this.leaseDuration.TotalSeconds);
+            var leaseSeconds = (int)Math.Ceiling(leaseDuration.TotalSeconds);
 
-            using var connection = new SqlConnection(this.connectionString);
+            using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-            using var command = new SqlCommand($"[{this.schemaName}].[Lock_Renew]", connection)
+            using var command = new SqlCommand($"[{schemaName}].[Lock_Renew]", connection)
             {
                 CommandType = CommandType.StoredProcedure,
             };
 
-            command.Parameters.AddWithValue("@ResourceName", this.ResourceName);
-            command.Parameters.AddWithValue("@OwnerToken", this.OwnerToken);
+            command.Parameters.AddWithValue("@ResourceName", ResourceName);
+            command.Parameters.AddWithValue("@OwnerToken", OwnerToken);
             command.Parameters.AddWithValue("@LeaseSeconds", leaseSeconds);
 
             var renewedParam = new SqlParameter("@Renewed", SqlDbType.Bit) { Direction = ParameterDirection.Output };
@@ -295,21 +291,21 @@ internal sealed class SqlLease : ISystemLease
             var renewed = (bool)renewedParam.Value;
             if (renewed)
             {
-                lock (this.lockObject)
+                lock (lockObject)
                 {
-                    this.FencingToken = (long)fencingTokenParam.Value;
+                    FencingToken = (long)fencingTokenParam.Value;
                 }
 
-                this.logger.LogDebug(
+                logger.LogDebug(
                     "Renewed lease for resource '{ResourceName}' with owner token '{OwnerToken}' and fencing token {FencingToken}",
-                    this.ResourceName, this.OwnerToken, this.FencingToken);
+                    ResourceName, OwnerToken, FencingToken);
                 return true;
             }
             else
             {
-                this.logger.LogWarning(
+                logger.LogWarning(
                     "Failed to renew lease for resource '{ResourceName}' with owner token '{OwnerToken}' - lease may have expired",
-                    this.ResourceName, this.OwnerToken);
+                    ResourceName, OwnerToken);
                 return false;
             }
         }
@@ -322,36 +318,36 @@ internal sealed class SqlLease : ISystemLease
 
     private async Task ReleaseLeaseAsync()
     {
-        using var connection = new SqlConnection(this.connectionString);
+        using var connection = new SqlConnection(connectionString);
         await connection.OpenAsync().ConfigureAwait(false);
 
-        using var command = new SqlCommand($"[{this.schemaName}].[Lock_Release]", connection)
+        using var command = new SqlCommand($"[{schemaName}].[Lock_Release]", connection)
         {
             CommandType = CommandType.StoredProcedure,
         };
 
-        command.Parameters.AddWithValue("@ResourceName", this.ResourceName);
-        command.Parameters.AddWithValue("@OwnerToken", this.OwnerToken);
+        command.Parameters.AddWithValue("@ResourceName", ResourceName);
+        command.Parameters.AddWithValue("@OwnerToken", OwnerToken);
 
         await command.ExecuteNonQueryAsync().ConfigureAwait(false);
 
-        this.logger.LogDebug(
+        logger.LogDebug(
             "Released lease for resource '{ResourceName}' with owner token '{OwnerToken}'",
-            this.ResourceName, this.OwnerToken);
+            ResourceName, OwnerToken);
     }
 
     private void MarkAsLost()
     {
-        if (this.isLost)
+        if (isLost)
         {
             return;
         }
 
-        this.isLost = true;
-        this.internalCts.Cancel();
+        isLost = true;
+        internalCts.Cancel();
 
-        this.logger.LogWarning(
+        logger.LogWarning(
             "Lease lost for resource '{ResourceName}' with owner token '{OwnerToken}'",
-            this.ResourceName, this.OwnerToken);
+            ResourceName, OwnerToken);
     }
 }

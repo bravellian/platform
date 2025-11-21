@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
 using Bravellian.Platform.Tests.TestUtilities;
 using Dapper;
 using Microsoft.Extensions.Options;
-using System.Threading.Tasks;
+
+namespace Bravellian.Platform.Tests;
 
 [Collection(SqlServerCollection.Name)]
 [Trait("Category", "Integration")]
@@ -33,7 +33,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
     public async Task AlreadyProcessedAsync_WithNewMessage_ReturnsFalseAndRecordsMessage()
     {
         // Arrange
-        var inbox = this.CreateInboxService();
+        var inbox = CreateInboxService();
         var messageId = "test-message-1";
         var source = "test-source";
 
@@ -44,7 +44,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
         Assert.False(alreadyProcessed);
 
         // Verify the message was recorded in the database
-        await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
+        await using var connection = new Microsoft.Data.SqlClient.SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var count = await connection.QuerySingleAsync<int>(
@@ -58,7 +58,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
     public async Task AlreadyProcessedAsync_WithProcessedMessage_ReturnsTrue()
     {
         // Arrange
-        var inbox = this.CreateInboxService();
+        var inbox = CreateInboxService();
         var messageId = "test-message-2";
         var source = "test-source";
 
@@ -77,7 +77,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
     public async Task MarkProcessedAsync_SetsProcessedUtcAndStatus()
     {
         // Arrange
-        var inbox = this.CreateInboxService();
+        var inbox = CreateInboxService();
         var messageId = "test-message-3";
         var source = "test-source";
 
@@ -88,7 +88,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
         await inbox.MarkProcessedAsync(messageId, TestContext.Current.CancellationToken);
 
         // Assert
-        await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
+        await using var connection = new Microsoft.Data.SqlClient.SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var result = await connection.QuerySingleAsync<(DateTime? ProcessedUtc, string Status)>(
@@ -103,7 +103,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
     public async Task MarkProcessingAsync_UpdatesStatus()
     {
         // Arrange
-        var inbox = this.CreateInboxService();
+        var inbox = CreateInboxService();
         var messageId = "test-message-4";
         var source = "test-source";
 
@@ -114,7 +114,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
         await inbox.MarkProcessingAsync(messageId, TestContext.Current.CancellationToken);
 
         // Assert
-        await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
+        await using var connection = new Microsoft.Data.SqlClient.SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var status = await connection.QuerySingleAsync<string>(
@@ -128,7 +128,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
     public async Task MarkDeadAsync_UpdatesStatus()
     {
         // Arrange
-        var inbox = this.CreateInboxService();
+        var inbox = CreateInboxService();
         var messageId = "test-message-5";
         var source = "test-source";
 
@@ -139,7 +139,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
         await inbox.MarkDeadAsync(messageId, TestContext.Current.CancellationToken);
 
         // Assert
-        await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
+        await using var connection = new Microsoft.Data.SqlClient.SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var status = await connection.QuerySingleAsync<string>(
@@ -153,7 +153,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
     public async Task ConcurrentAlreadyProcessedAsync_WithSameMessage_HandledCorrectly()
     {
         // Arrange
-        var inbox = this.CreateInboxService();
+        var inbox = CreateInboxService();
         var messageId = "concurrent-test-message";
         var source = "test-source";
 
@@ -170,7 +170,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
         Assert.All(results, result => Assert.False(result));
 
         // Verify only one record was created in the database
-        await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
+        await using var connection = new Microsoft.Data.SqlClient.SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var count = await connection.QuerySingleAsync<int>(
@@ -191,7 +191,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
     public async Task AlreadyProcessedAsync_WithHash_StoresHashCorrectly()
     {
         // Arrange
-        var inbox = this.CreateInboxService();
+        var inbox = CreateInboxService();
         var messageId = "test-message-with-hash";
         var source = "test-source";
         var hash = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32 };
@@ -200,7 +200,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
         await inbox.AlreadyProcessedAsync(messageId, source, hash, TestContext.Current.CancellationToken);
 
         // Assert
-        await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
+        await using var connection = new Microsoft.Data.SqlClient.SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var storedHash = await connection.QuerySingleAsync<byte[]>(
@@ -216,7 +216,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
     public async Task AlreadyProcessedAsync_WithInvalidMessageId_ThrowsArgumentException(string? invalidMessageId)
     {
         // Arrange
-        var inbox = this.CreateInboxService();
+        var inbox = CreateInboxService();
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(() =>
@@ -229,7 +229,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
     public async Task AlreadyProcessedAsync_WithInvalidSource_ThrowsArgumentException(string? invalidSource)
     {
         // Arrange
-        var inbox = this.CreateInboxService();
+        var inbox = CreateInboxService();
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(() =>
@@ -240,12 +240,12 @@ public class SqlInboxServiceTests : SqlServerTestBase
     {
         var options = Options.Create(new SqlInboxOptions
         {
-            ConnectionString = this.ConnectionString,
+            ConnectionString = ConnectionString,
             SchemaName = "dbo",
             TableName = "Inbox",
         });
 
-        var logger = new TestLogger<SqlInboxService>(this.TestOutputHelper);
+        var logger = new TestLogger<SqlInboxService>(TestOutputHelper);
         return new SqlInboxService(options, logger);
     }
 }

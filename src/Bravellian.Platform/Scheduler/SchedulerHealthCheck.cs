@@ -12,12 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using System.Threading;
-using System.Threading.Tasks;
+
+namespace Bravellian.Platform;
 
 internal class SchedulerHealthCheck : IHealthCheck
 {
@@ -43,17 +42,17 @@ internal class SchedulerHealthCheck : IHealthCheck
                                     (SELECT MIN(ScheduledTime) FROM dbo.JobRuns WITH(NOLOCK) WHERE Status = 'Pending') AS OldestJobRun;
                 """;
 
-            using (var connection = new SqlConnection(this.connectionString))
+            using (var connection = new SqlConnection(connectionString))
             {
                 var result = await connection.QuerySingleAsync(sql).ConfigureAwait(false);
-                DateTimeOffset? oldestItem = this.Min(result.OldestOutbox, result.OldestTimer, result.OldestJobRun);
+                DateTimeOffset? oldestItem = Min(result.OldestOutbox, result.OldestTimer, result.OldestJobRun);
 
                 if (oldestItem == null)
                 {
                     return HealthCheckResult.Healthy("No pending items.");
                 }
 
-                var age = this.timeProvider.GetUtcNow() - oldestItem.Value;
+                var age = timeProvider.GetUtcNow() - oldestItem.Value;
 
                 // Define thresholds for system health
                 if (age > TimeSpan.FromHours(1))

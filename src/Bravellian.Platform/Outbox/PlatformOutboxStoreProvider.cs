@@ -12,15 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
 using System.Collections.Concurrent;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// Outbox store provider that uses the unified platform database discovery.
 /// </summary>
@@ -33,9 +31,9 @@ internal sealed class PlatformOutboxStoreProvider : IOutboxStoreProvider
     private readonly string tableName;
     private readonly object lockObject = new();
     private IReadOnlyList<IOutboxStore>? cachedStores;
-    private readonly Dictionary<string, IOutboxStore> storesByKey = new();
-    private readonly Dictionary<string, IOutbox> outboxesByKey = new();
-    private readonly ConcurrentDictionary<string, byte> schemasDeployed = new();
+    private readonly Dictionary<string, IOutboxStore> storesByKey = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, IOutbox> outboxesByKey = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, byte> schemasDeployed = new(StringComparer.Ordinal);
     private readonly bool enableSchemaDeployment;
     private readonly PlatformConfiguration? platformConfiguration;
 
@@ -50,7 +48,7 @@ internal sealed class PlatformOutboxStoreProvider : IOutboxStoreProvider
         this.discovery = discovery;
         this.timeProvider = timeProvider;
         this.loggerFactory = loggerFactory;
-        this.logger = loggerFactory.CreateLogger<PlatformOutboxStoreProvider>();
+        logger = loggerFactory.CreateLogger<PlatformOutboxStoreProvider>();
         this.tableName = tableName;
         this.enableSchemaDeployment = enableSchemaDeployment;
         this.platformConfiguration = platformConfiguration;
@@ -58,26 +56,26 @@ internal sealed class PlatformOutboxStoreProvider : IOutboxStoreProvider
 
     public async Task<IReadOnlyList<IOutboxStore>> GetAllStoresAsync()
     {
-        if (this.cachedStores == null)
+        if (cachedStores == null)
         {
-            this.logger.LogDebug("Starting platform database discovery for outbox stores");
+            logger.LogDebug("Starting platform database discovery for outbox stores");
 
-            var databases = (await this.discovery.DiscoverDatabasesAsync().ConfigureAwait(false)).ToList();
-            this.logger.LogDebug(
+            var databases = (await discovery.DiscoverDatabasesAsync().ConfigureAwait(false)).ToList();
+            logger.LogDebug(
                 "Discovery returned {Count} database(s): {Databases}",
                 databases.Count,
                 string.Join(", ", databases.Select(FormatDatabase)));
 
             // If discovery ever returns the control plane DB, surface it loudly but do not remove it
             // (single-DB setups sometimes intentionally share a connection string).
-            if (this.platformConfiguration?.EnvironmentStyle == PlatformEnvironmentStyle.MultiDatabaseWithControl &&
-                !string.IsNullOrWhiteSpace(this.platformConfiguration.ControlPlaneConnectionString))
+            if (platformConfiguration?.EnvironmentStyle == PlatformEnvironmentStyle.MultiDatabaseWithControl &&
+                !string.IsNullOrWhiteSpace(platformConfiguration.ControlPlaneConnectionString))
             {
                 foreach (var db in databases)
                 {
-                    if (IsSameConnection(db.ConnectionString, this.platformConfiguration.ControlPlaneConnectionString))
+                    if (IsSameConnection(db.ConnectionString, platformConfiguration.ControlPlaneConnectionString))
                     {
-                        this.logger.LogWarning(
+                        logger.LogWarning(
                             "Discovered database {Database} matches the configured control plane connection. " +
                             "Outbox stores should typically exclude the control plane. Check your discovery source.",
                             FormatDatabase(db));
@@ -85,51 +83,51 @@ internal sealed class PlatformOutboxStoreProvider : IOutboxStoreProvider
                 }
             }
 
-            lock (this.lockObject)
+            lock (lockObject)
             {
-                if (this.cachedStores == null)
+                if (cachedStores == null)
                 {
                     var stores = new List<IOutboxStore>();
                     var newDatabases = new List<PlatformDatabase>();
-            
+
                     foreach (var db in databases)
                     {
                         var options = new SqlOutboxOptions
                         {
                             ConnectionString = db.ConnectionString,
                             SchemaName = db.SchemaName,
-                            TableName = this.tableName,
+                            TableName = tableName,
                         };
 
-                        this.logger.LogDebug(
+                        logger.LogDebug(
                             "Creating outbox store for database {Database} (Schema: {Schema}, Catalog: {Catalog})",
                             db.Name,
                             db.SchemaName,
                             TryGetCatalog(db.ConnectionString));
-                        
-                        var storeLogger = this.loggerFactory.CreateLogger<SqlOutboxStore>();
+
+                        var storeLogger = loggerFactory.CreateLogger<SqlOutboxStore>();
                         var store = new SqlOutboxStore(
                             Options.Create(options),
-                            this.timeProvider,
+                            timeProvider,
                             storeLogger);
-                        
-                        var outboxLogger = this.loggerFactory.CreateLogger<SqlOutboxService>();
+
+                        var outboxLogger = loggerFactory.CreateLogger<SqlOutboxService>();
                         var outbox = new SqlOutboxService(
                             Options.Create(options),
                             outboxLogger);
-                        
+
                         stores.Add(store);
-                        this.storesByKey[db.Name] = store;
-                        this.outboxesByKey[db.Name] = outbox;
+                        storesByKey[db.Name] = store;
+                        outboxesByKey[db.Name] = outbox;
 
                         // Track new databases for schema deployment
-                        if (this.enableSchemaDeployment && this.schemasDeployed.TryAdd(db.Name, 0))
+                        if (enableSchemaDeployment && schemasDeployed.TryAdd(db.Name, 0))
                         {
                             newDatabases.Add(db);
                         }
                     }
-            
-                    this.cachedStores = stores;
+
+                    cachedStores = stores;
 
                     // Deploy schemas for new databases outside the lock
                     if (newDatabases.Count > 0)
@@ -140,26 +138,26 @@ internal sealed class PlatformOutboxStoreProvider : IOutboxStoreProvider
                             {
                                 try
                                 {
-                                    this.logger.LogInformation(
+                                    logger.LogInformation(
                                         "Deploying outbox schema for newly discovered database: {DatabaseName}",
                                         db.Name);
 
                                     await DatabaseSchemaManager.EnsureOutboxSchemaAsync(
                                         db.ConnectionString,
                                         db.SchemaName,
-                                        this.tableName).ConfigureAwait(false);
+                                        tableName).ConfigureAwait(false);
 
                                     await DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(
                                         db.ConnectionString,
                                         db.SchemaName).ConfigureAwait(false);
 
-                                    this.logger.LogInformation(
+                                    logger.LogInformation(
                                         "Successfully deployed outbox schema for database: {DatabaseName}",
                                         db.Name);
                                 }
                                 catch (Exception ex)
                                 {
-                                    this.logger.LogError(
+                                    logger.LogError(
                                         ex,
                                         "Failed to deploy outbox schema for database: {DatabaseName}. Store may fail on first use.",
                                         db.Name);
@@ -170,44 +168,44 @@ internal sealed class PlatformOutboxStoreProvider : IOutboxStoreProvider
                 }
             }
         }
-        
-        return this.cachedStores;
+
+        return cachedStores;
     }
 
     public string GetStoreIdentifier(IOutboxStore store)
     {
         // Find the database name for this store
-        foreach (var kvp in this.storesByKey)
+        foreach (var kvp in storesByKey)
         {
             if (ReferenceEquals(kvp.Value, store))
             {
                 return kvp.Key;
             }
         }
-        
+
         return "unknown";
     }
 
     public IOutboxStore GetStoreByKey(string key)
     {
-        if (this.cachedStores == null)
+        if (cachedStores == null)
         {
-            this.GetAllStoresAsync().GetAwaiter().GetResult(); // Initialize stores
+            GetAllStoresAsync().GetAwaiter().GetResult(); // Initialize stores
         }
-        
-        return this.storesByKey.TryGetValue(key, out var store)
+
+        return storesByKey.TryGetValue(key, out var store)
             ? store
             : throw new KeyNotFoundException($"No outbox store found for key: {key}");
     }
 
     public IOutbox GetOutboxByKey(string key)
     {
-        if (this.cachedStores == null)
+        if (cachedStores == null)
         {
-            this.GetAllStoresAsync().GetAwaiter().GetResult(); // Initialize stores
+            GetAllStoresAsync().GetAwaiter().GetResult(); // Initialize stores
         }
-        
-        return this.outboxesByKey.TryGetValue(key, out var outbox)
+
+        return outboxesByKey.TryGetValue(key, out var outbox)
             ? outbox
             : throw new KeyNotFoundException($"No outbox found for key: {key}");
     }

@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// Outbox handler that processes fanout coordination jobs.
 /// This handler receives scheduled fanout jobs and triggers the fanout coordinator.
@@ -49,17 +49,17 @@ internal sealed class FanoutJobHandler : IOutboxHandler
             var payload = JsonSerializer.Deserialize<FanoutJobPayload>(message.Payload);
             if (payload == null)
             {
-                this.logger.LogError("Failed to deserialize fanout job payload for message {MessageId}", message.Id);
+                logger.LogError("Failed to deserialize fanout job payload for message {MessageId}", message.Id);
                 return;
             }
 
-            this.logger.LogDebug(
+            logger.LogDebug(
                 "Processing fanout job for topic {FanoutTopic}, workKey {WorkKey}",
                 payload.fanoutTopic,
                 payload.workKey);
 
             // Create a scope to resolve the coordinator
-            using var scope = this.serviceProvider.CreateScope();
+            using var scope = serviceProvider.CreateScope();
 
             // Get the coordinator for this topic/workKey combination
             var key = payload.workKey is null ? payload.fanoutTopic : $"{payload.fanoutTopic}:{payload.workKey}";
@@ -67,14 +67,14 @@ internal sealed class FanoutJobHandler : IOutboxHandler
 
             if (coordinator == null)
             {
-                this.logger.LogError("No fanout coordinator found for key {Key}", key);
+                logger.LogError("No fanout coordinator found for key {Key}", key);
                 return;
             }
 
             // Run the fanout coordination
             var processedCount = await coordinator.RunAsync(payload.fanoutTopic, payload.workKey, cancellationToken).ConfigureAwait(false);
 
-            this.logger.LogInformation(
+            logger.LogInformation(
                 "Fanout coordination completed for {FanoutTopic}:{WorkKey}, processed {Count} slices",
                 payload.fanoutTopic,
                 payload.workKey,
@@ -82,7 +82,7 @@ internal sealed class FanoutJobHandler : IOutboxHandler
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Error processing fanout job for message {MessageId}", message.Id);
+            logger.LogError(ex, "Error processing fanout job for message {MessageId}", message.Id);
             throw;
         }
     }

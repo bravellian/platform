@@ -12,15 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Observability;
 
-using System;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 
+namespace Bravellian.Platform.Observability;
 /// <summary>
 /// Health check that evaluates the overall health of the watchdog system.
 /// </summary>
@@ -44,9 +40,9 @@ internal sealed class WatchdogHealthCheck : IHealthCheck
     {
         try
         {
-            var snapshot = this.watchdog.GetSnapshot();
-            var now = this.timeProvider.GetUtcNow();
-            var opts = this.options.Value;
+            var snapshot = watchdog.GetSnapshot();
+            var now = timeProvider.GetUtcNow();
+            var opts = options.Value;
 
             // Check heartbeat staleness
             var heartbeatAge = now - snapshot.LastHeartbeatAt;

@@ -12,12 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
 using Bravellian.Platform.Metrics;
 using Microsoft.Extensions.Logging.Abstractions;
-using Shouldly;
-using Xunit;
+
+namespace Bravellian.Platform.Tests;
 
 public class MetricRegistrarTests
 {

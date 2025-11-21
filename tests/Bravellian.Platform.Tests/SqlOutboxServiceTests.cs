@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
+using System.Data;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
-using System.Data;
+
+namespace Bravellian.Platform.Tests;
 
 [Collection(SqlServerCollection.Name)]
 [Trait("Category", "Integration")]
@@ -36,15 +37,15 @@ public class SqlOutboxServiceTests : SqlServerTestBase
     public override async ValueTask InitializeAsync()
     {
         await base.InitializeAsync().ConfigureAwait(false);
-        this.defaultOptions.ConnectionString = this.ConnectionString;
-        this.outboxService = new SqlOutboxService(Options.Create(this.defaultOptions), NullLogger<SqlOutboxService>.Instance);
+        defaultOptions.ConnectionString = ConnectionString;
+        outboxService = new SqlOutboxService(Options.Create(defaultOptions), NullLogger<SqlOutboxService>.Instance);
     }
 
     [Fact]
     public void Constructor_CreatesInstance()
     {
         // Arrange & Act
-        var service = new SqlOutboxService(Options.Create(this.defaultOptions), NullLogger<SqlOutboxService>.Instance);
+        var service = new SqlOutboxService(Options.Create(defaultOptions), NullLogger<SqlOutboxService>.Instance);
 
         // Assert
         service.ShouldNotBeNull();
@@ -55,7 +56,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
     public async Task EnqueueAsync_WithValidParameters_InsertsMessageToDatabase()
     {
         // Arrange
-        await using var connection = new SqlConnection(this.ConnectionString);
+        await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
         await using var transaction = connection.BeginTransaction();
 
@@ -64,7 +65,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         string correlationId = "test-correlation-123";
 
         // Act
-        await this.outboxService!.EnqueueAsync(topic, payload, transaction, correlationId, CancellationToken.None);
+        await outboxService!.EnqueueAsync(topic, payload, transaction, correlationId, CancellationToken.None);
 
         // Verify the message was inserted
         var sql = "SELECT COUNT(*) FROM dbo.Outbox WHERE Topic = @Topic AND Payload = @Payload";
@@ -87,24 +88,24 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         // Arrange - Use custom schema and table name
         var customOptions = new SqlOutboxOptions
         {
-            ConnectionString = this.ConnectionString,
+            ConnectionString = ConnectionString,
             SchemaName = "custom",
             TableName = "CustomOutbox",
         };
 
         // Create the custom table for this test
-        await using var setupConnection = new SqlConnection(this.ConnectionString);
+        await using var setupConnection = new SqlConnection(ConnectionString);
         await setupConnection.OpenAsync(TestContext.Current.CancellationToken);
 
         // Create custom schema if it doesn't exist
         await setupConnection.ExecuteAsync("IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'custom') EXEC('CREATE SCHEMA custom')");
 
         // Create custom table using DatabaseSchemaManager
-        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(this.ConnectionString, "custom", "CustomOutbox");
+        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(ConnectionString, "custom", "CustomOutbox");
 
         var customOutboxService = new SqlOutboxService(Options.Create(customOptions), NullLogger<SqlOutboxService>.Instance);
 
-        await using var connection = new SqlConnection(this.ConnectionString);
+        await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
         await using var transaction = connection.BeginTransaction();
 
@@ -133,7 +134,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
     public async Task EnqueueAsync_WithNullCorrelationId_InsertsMessageSuccessfully()
     {
         // Arrange
-        await using var connection = new SqlConnection(this.ConnectionString);
+        await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
         await using var transaction = connection.BeginTransaction();
 
@@ -141,7 +142,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         string payload = "test payload with null correlation";
 
         // Act
-        await this.outboxService!.EnqueueAsync(topic, payload, transaction, correlationId: null, cancellationToken: CancellationToken.None);
+        await outboxService!.EnqueueAsync(topic, payload, transaction, correlationId: null, cancellationToken: CancellationToken.None);
 
         // Verify the message was inserted
         var sql = "SELECT COUNT(*) FROM dbo.Outbox WHERE Topic = @Topic AND Payload = @Payload";
@@ -162,7 +163,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
     public async Task EnqueueAsync_WithValidParameters_SetsDefaultValues()
     {
         // Arrange
-        await using var connection = new SqlConnection(this.ConnectionString);
+        await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
         await using var transaction = connection.BeginTransaction();
 
@@ -172,7 +173,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         try
         {
             // Act
-            await this.outboxService!.EnqueueAsync(topic, payload, transaction, CancellationToken.None);
+            await outboxService!.EnqueueAsync(topic, payload, transaction, CancellationToken.None);
 
             // Verify the message has correct default values
             var sql = @"SELECT IsProcessed, ProcessedAt, RetryCount, CreatedAt, MessageId 
@@ -203,14 +204,14 @@ public class SqlOutboxServiceTests : SqlServerTestBase
     public async Task EnqueueAsync_MultipleMessages_AllInsertedSuccessfully()
     {
         // Arrange
-        await using var connection = new SqlConnection(this.ConnectionString);
+        await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
         await using var transaction = connection.BeginTransaction();
 
         // Act - Insert multiple messages
-        await this.outboxService!.EnqueueAsync("topic-1", "payload-1", transaction, CancellationToken.None);
-        await this.outboxService.EnqueueAsync("topic-2", "payload-2", transaction, CancellationToken.None);
-        await this.outboxService.EnqueueAsync("topic-3", "payload-3", transaction, CancellationToken.None);
+        await outboxService!.EnqueueAsync("topic-1", "payload-1", transaction, CancellationToken.None);
+        await outboxService.EnqueueAsync("topic-2", "payload-2", transaction, CancellationToken.None);
+        await outboxService.EnqueueAsync("topic-3", "payload-3", transaction, CancellationToken.None);
 
         // Verify all messages were inserted
         var sql = "SELECT COUNT(*) FROM dbo.Outbox";
@@ -235,7 +236,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         // Act & Assert
         // The implementation tries to access transaction.Connection without checking null
         var exception = await Should.ThrowAsync<NullReferenceException>(
-            () => this.outboxService!.EnqueueAsync(validTopic, validPayload, nullTransaction, CancellationToken.None));
+            () => outboxService!.EnqueueAsync(validTopic, validPayload, nullTransaction, CancellationToken.None));
 
         exception.ShouldNotBeNull();
     }
@@ -249,10 +250,10 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         string correlationId = "test-correlation-standalone";
 
         // Act
-        await this.outboxService!.EnqueueAsync(topic, payload, correlationId, CancellationToken.None);
+        await outboxService!.EnqueueAsync(topic, payload, correlationId, CancellationToken.None);
 
         // Verify the message was inserted by querying the database directly
-        await using var connection = new SqlConnection(this.ConnectionString);
+        await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
         var sql = "SELECT COUNT(*) FROM dbo.Outbox WHERE Topic = @Topic AND Payload = @Payload AND CorrelationId = @CorrelationId";
         await using var command = new SqlCommand(sql, connection);
@@ -281,10 +282,10 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         string payload = "test payload standalone null";
 
         // Act
-        await this.outboxService!.EnqueueAsync(topic, payload, (string?)null, CancellationToken.None);
+        await outboxService!.EnqueueAsync(topic, payload, (string?)null, CancellationToken.None);
 
         // Verify the message was inserted
-        await using var connection = new SqlConnection(this.ConnectionString);
+        await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
         var sql = "SELECT COUNT(*) FROM dbo.Outbox WHERE Topic = @Topic AND Payload = @Payload";
         await using var command = new SqlCommand(sql, connection);
@@ -315,12 +316,12 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         try
         {
             // Act - Insert multiple messages using standalone method
-            await this.outboxService!.EnqueueAsync(topics[0], payloads[0], CancellationToken.None);
-            await this.outboxService.EnqueueAsync(topics[1], payloads[1], CancellationToken.None);
-            await this.outboxService.EnqueueAsync(topics[2], payloads[2], CancellationToken.None);
+            await outboxService!.EnqueueAsync(topics[0], payloads[0], CancellationToken.None);
+            await outboxService.EnqueueAsync(topics[1], payloads[1], CancellationToken.None);
+            await outboxService.EnqueueAsync(topics[2], payloads[2], CancellationToken.None);
 
             // Verify all messages were inserted
-            await using var connection = new SqlConnection(this.ConnectionString);
+            await using var connection = new SqlConnection(ConnectionString);
             await connection.OpenAsync(TestContext.Current.CancellationToken);
             var sql = "SELECT COUNT(*) FROM dbo.Outbox WHERE Topic LIKE @TopicPattern";
             await using var command = new SqlCommand(sql, connection);
@@ -333,7 +334,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         finally
         {
             // Clean up
-            await using var connection = new SqlConnection(this.ConnectionString);
+            await using var connection = new SqlConnection(ConnectionString);
             await connection.OpenAsync(TestContext.Current.CancellationToken);
             var deleteSql = "DELETE FROM dbo.Outbox WHERE Topic LIKE @TopicPattern";
             await using var deleteCommand = new SqlCommand(deleteSql, connection);
@@ -348,7 +349,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         // Arrange - Create a custom outbox service with a different table name
         var customOptions = new SqlOutboxOptions
         {
-            ConnectionString = this.ConnectionString,
+            ConnectionString = ConnectionString,
             SchemaName = "dbo",
             TableName = "TestOutbox_StandaloneEnsure",
         };
@@ -356,7 +357,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         var customOutboxService = new SqlOutboxService(Options.Create(customOptions), NullLogger<SqlOutboxService>.Instance);
 
         // First, ensure the custom table doesn't exist
-        await using var setupConnection = new SqlConnection(this.ConnectionString);
+        await using var setupConnection = new SqlConnection(ConnectionString);
         await setupConnection.OpenAsync(TestContext.Current.CancellationToken);
         await setupConnection.ExecuteAsync("IF OBJECT_ID('dbo.TestOutbox_StandaloneEnsure', 'U') IS NOT NULL DROP TABLE dbo.TestOutbox_StandaloneEnsure");
 

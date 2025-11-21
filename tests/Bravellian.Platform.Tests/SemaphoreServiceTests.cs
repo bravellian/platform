@@ -12,14 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
 using Bravellian.Platform.Semaphore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
-using Shouldly;
-using Xunit;
 
+namespace Bravellian.Platform.Tests;
 /// <summary>
 /// Tests for the distributed semaphore service.
 /// </summary>
@@ -40,12 +38,12 @@ public class SemaphoreServiceTests : SqlServerTestBase
         await base.InitializeAsync().ConfigureAwait(false);
 
         // Ensure semaphore schema exists
-        await DatabaseSchemaManager.EnsureSemaphoreSchemaAsync(this.ConnectionString, "dbo").ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureSemaphoreSchemaAsync(ConnectionString, "dbo").ConfigureAwait(false);
 
         // Create service
         var options = Options.Create(new SemaphoreOptions
         {
-            ConnectionString = this.ConnectionString,
+            ConnectionString = ConnectionString,
             SchemaName = "dbo",
             MinTtlSeconds = 1,
             MaxTtlSeconds = 3600,
@@ -55,7 +53,7 @@ public class SemaphoreServiceTests : SqlServerTestBase
             ReaperBatchSize = 1000,
         });
 
-        this.semaphoreService = new SqlSemaphoreService(
+        semaphoreService = new SqlSemaphoreService(
             options,
             NullLogger<SqlSemaphoreService>.Instance);
     }
@@ -69,7 +67,7 @@ public class SemaphoreServiceTests : SqlServerTestBase
         var name = $"test-semaphore-{Guid.NewGuid():N}";
 
         // Act
-        var result = await this.semaphoreService!.TryAcquireAsync(
+        var result = await semaphoreService!.TryAcquireAsync(
             name,
             ttlSeconds: 30,
             ownerId: "owner1",
@@ -85,13 +83,13 @@ public class SemaphoreServiceTests : SqlServerTestBase
         // Arrange
         var name = $"test-semaphore-{Guid.NewGuid():N}";
         var limit = 3;
-        await this.semaphoreService!.EnsureExistsAsync(name, limit, TestContext.Current.CancellationToken);
+        await semaphoreService!.EnsureExistsAsync(name, limit, TestContext.Current.CancellationToken);
 
         // Act - Try to acquire up to the limit
         var results = new List<SemaphoreAcquireResult>();
         for (int i = 0; i < limit; i++)
         {
-            var result = await this.semaphoreService.TryAcquireAsync(
+            var result = await semaphoreService.TryAcquireAsync(
                 name,
                 ttlSeconds: 30,
                 ownerId: $"owner{i}",
@@ -111,12 +109,12 @@ public class SemaphoreServiceTests : SqlServerTestBase
         // Arrange
         var name = $"test-semaphore-{Guid.NewGuid():N}";
         var limit = 2;
-        await this.semaphoreService!.EnsureExistsAsync(name, limit, TestContext.Current.CancellationToken);
+        await semaphoreService!.EnsureExistsAsync(name, limit, TestContext.Current.CancellationToken);
 
         // Acquire up to limit
         for (int i = 0; i < limit; i++)
         {
-            await this.semaphoreService.TryAcquireAsync(
+            await semaphoreService.TryAcquireAsync(
                 name,
                 ttlSeconds: 30,
                 ownerId: $"owner{i}",
@@ -124,7 +122,7 @@ public class SemaphoreServiceTests : SqlServerTestBase
         }
 
         // Act - Try to acquire one more
-        var result = await this.semaphoreService.TryAcquireAsync(
+        var result = await semaphoreService.TryAcquireAsync(
             name,
             ttlSeconds: 30,
             ownerId: "ownerExtra",
@@ -140,9 +138,9 @@ public class SemaphoreServiceTests : SqlServerTestBase
         // Arrange
         var name = $"test-semaphore-{Guid.NewGuid():N}";
         var limit = 1;
-        await this.semaphoreService!.EnsureExistsAsync(name, limit, TestContext.Current.CancellationToken);
+        await semaphoreService!.EnsureExistsAsync(name, limit, TestContext.Current.CancellationToken);
 
-        var firstAcquire = await this.semaphoreService.TryAcquireAsync(
+        var firstAcquire = await semaphoreService.TryAcquireAsync(
             name,
             ttlSeconds: 30,
             ownerId: "owner1",
@@ -150,12 +148,12 @@ public class SemaphoreServiceTests : SqlServerTestBase
         firstAcquire.Status.ShouldBe(SemaphoreAcquireStatus.Acquired);
 
         // Act - Release and try to acquire again
-        var releaseResult = await this.semaphoreService.ReleaseAsync(
+        var releaseResult = await semaphoreService.ReleaseAsync(
             name,
             firstAcquire.Token!.Value,
             TestContext.Current.CancellationToken);
 
-        var secondAcquire = await this.semaphoreService.TryAcquireAsync(
+        var secondAcquire = await semaphoreService.TryAcquireAsync(
             name,
             ttlSeconds: 30,
             ownerId: "owner2",
@@ -171,21 +169,21 @@ public class SemaphoreServiceTests : SqlServerTestBase
     {
         // Arrange
         var name = $"test-semaphore-{Guid.NewGuid():N}";
-        await this.semaphoreService!.EnsureExistsAsync(name, 1, TestContext.Current.CancellationToken);
+        await semaphoreService!.EnsureExistsAsync(name, 1, TestContext.Current.CancellationToken);
 
-        var acquire = await this.semaphoreService.TryAcquireAsync(
+        var acquire = await semaphoreService.TryAcquireAsync(
             name,
             ttlSeconds: 30,
             ownerId: "owner1",
             cancellationToken: TestContext.Current.CancellationToken);
 
         // Act - Release twice
-        var firstRelease = await this.semaphoreService.ReleaseAsync(
+        var firstRelease = await semaphoreService.ReleaseAsync(
             name,
             acquire.Token!.Value,
             TestContext.Current.CancellationToken);
 
-        var secondRelease = await this.semaphoreService.ReleaseAsync(
+        var secondRelease = await semaphoreService.ReleaseAsync(
             name,
             acquire.Token.Value,
             TestContext.Current.CancellationToken);
@@ -200,9 +198,9 @@ public class SemaphoreServiceTests : SqlServerTestBase
     {
         // Arrange
         var name = $"test-semaphore-{Guid.NewGuid():N}";
-        await this.semaphoreService!.EnsureExistsAsync(name, 1, TestContext.Current.CancellationToken);
+        await semaphoreService!.EnsureExistsAsync(name, 1, TestContext.Current.CancellationToken);
 
-        var acquire = await this.semaphoreService.TryAcquireAsync(
+        var acquire = await semaphoreService.TryAcquireAsync(
             name,
             ttlSeconds: 30,
             ownerId: "owner1",
@@ -213,7 +211,7 @@ public class SemaphoreServiceTests : SqlServerTestBase
         // Act - Wait a bit and renew
         await Task.Delay(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
-        var renewResult = await this.semaphoreService.RenewAsync(
+        var renewResult = await semaphoreService.RenewAsync(
             name,
             acquire.Token!.Value,
             ttlSeconds: 30,
@@ -229,21 +227,21 @@ public class SemaphoreServiceTests : SqlServerTestBase
     {
         // Arrange
         var name = $"test-semaphore-{Guid.NewGuid():N}";
-        await this.semaphoreService!.EnsureExistsAsync(name, 1, TestContext.Current.CancellationToken);
+        await semaphoreService!.EnsureExistsAsync(name, 1, TestContext.Current.CancellationToken);
 
-        var acquire = await this.semaphoreService.TryAcquireAsync(
+        var acquire = await semaphoreService.TryAcquireAsync(
             name,
             ttlSeconds: 30,
             ownerId: "owner1",
             cancellationToken: TestContext.Current.CancellationToken);
 
-        await this.semaphoreService.ReleaseAsync(
+        await semaphoreService.ReleaseAsync(
             name,
             acquire.Token!.Value,
             TestContext.Current.CancellationToken);
 
         // Act - Try to renew after release
-        var renewResult = await this.semaphoreService.RenewAsync(
+        var renewResult = await semaphoreService.RenewAsync(
             name,
             acquire.Token.Value,
             ttlSeconds: 30,
@@ -258,13 +256,13 @@ public class SemaphoreServiceTests : SqlServerTestBase
     {
         // Arrange
         var name = $"test-semaphore-{Guid.NewGuid():N}";
-        await this.semaphoreService!.EnsureExistsAsync(name, 5, TestContext.Current.CancellationToken);
+        await semaphoreService!.EnsureExistsAsync(name, 5, TestContext.Current.CancellationToken);
 
         // Act - Acquire multiple times
         var fencingCounters = new List<long>();
         for (int i = 0; i < 5; i++)
         {
-            var result = await this.semaphoreService.TryAcquireAsync(
+            var result = await semaphoreService.TryAcquireAsync(
                 name,
                 ttlSeconds: 30,
                 ownerId: $"owner{i}",
@@ -284,9 +282,9 @@ public class SemaphoreServiceTests : SqlServerTestBase
     {
         // Arrange
         var name = $"test-semaphore-{Guid.NewGuid():N}";
-        await this.semaphoreService!.EnsureExistsAsync(name, 1, TestContext.Current.CancellationToken);
+        await semaphoreService!.EnsureExistsAsync(name, 1, TestContext.Current.CancellationToken);
 
-        var acquire = await this.semaphoreService.TryAcquireAsync(
+        var acquire = await semaphoreService.TryAcquireAsync(
             name,
             ttlSeconds: 60,
             ownerId: "owner1",
@@ -295,7 +293,7 @@ public class SemaphoreServiceTests : SqlServerTestBase
         var originalExpiry = acquire.ExpiresAtUtc!.Value;
 
         // Act - Try to renew with shorter TTL
-        var renewResult = await this.semaphoreService.RenewAsync(
+        var renewResult = await semaphoreService.RenewAsync(
             name,
             acquire.Token!.Value,
             ttlSeconds: 10,
@@ -316,10 +314,10 @@ public class SemaphoreServiceTests : SqlServerTestBase
         // Arrange
         var name = $"test-semaphore-{Guid.NewGuid():N}";
         var limit = 1;
-        await this.semaphoreService!.EnsureExistsAsync(name, limit, TestContext.Current.CancellationToken);
+        await semaphoreService!.EnsureExistsAsync(name, limit, TestContext.Current.CancellationToken);
 
         // Acquire with very short TTL
-        var firstAcquire = await this.semaphoreService.TryAcquireAsync(
+        var firstAcquire = await semaphoreService.TryAcquireAsync(
             name,
             ttlSeconds: 1,
             ownerId: "owner1",
@@ -330,7 +328,7 @@ public class SemaphoreServiceTests : SqlServerTestBase
         await Task.Delay(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         // Act - Try to acquire again
-        var secondAcquire = await this.semaphoreService.TryAcquireAsync(
+        var secondAcquire = await semaphoreService.TryAcquireAsync(
             name,
             ttlSeconds: 30,
             ownerId: "owner2",
@@ -345,12 +343,12 @@ public class SemaphoreServiceTests : SqlServerTestBase
     {
         // Arrange
         var name = $"test-semaphore-{Guid.NewGuid():N}";
-        await this.semaphoreService!.EnsureExistsAsync(name, 5, TestContext.Current.CancellationToken);
+        await semaphoreService!.EnsureExistsAsync(name, 5, TestContext.Current.CancellationToken);
 
         // Acquire multiple with short TTL
         for (int i = 0; i < 3; i++)
         {
-            await this.semaphoreService.TryAcquireAsync(
+            await semaphoreService.TryAcquireAsync(
                 name,
                 ttlSeconds: 1,
                 ownerId: $"owner{i}",
@@ -361,7 +359,7 @@ public class SemaphoreServiceTests : SqlServerTestBase
         await Task.Delay(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         // Act - Reap expired leases
-        var deletedCount = await this.semaphoreService.ReapExpiredAsync(
+        var deletedCount = await semaphoreService.ReapExpiredAsync(
             name,
             maxRows: 1000,
             cancellationToken: TestContext.Current.CancellationToken);
@@ -375,12 +373,12 @@ public class SemaphoreServiceTests : SqlServerTestBase
     {
         // Arrange
         var name = $"test-semaphore-{Guid.NewGuid():N}";
-        await this.semaphoreService!.EnsureExistsAsync(name, 10, TestContext.Current.CancellationToken);
+        await semaphoreService!.EnsureExistsAsync(name, 10, TestContext.Current.CancellationToken);
 
         // Acquire multiple with short TTL
         for (int i = 0; i < 5; i++)
         {
-            await this.semaphoreService.TryAcquireAsync(
+            await semaphoreService.TryAcquireAsync(
                 name,
                 ttlSeconds: 1,
                 ownerId: $"owner{i}",
@@ -391,7 +389,7 @@ public class SemaphoreServiceTests : SqlServerTestBase
         await Task.Delay(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         // Act - Reap with batch size of 2
-        var deletedCount = await this.semaphoreService.ReapExpiredAsync(
+        var deletedCount = await semaphoreService.ReapExpiredAsync(
             name,
             maxRows: 2,
             cancellationToken: TestContext.Current.CancellationToken);
@@ -400,7 +398,7 @@ public class SemaphoreServiceTests : SqlServerTestBase
         deletedCount.ShouldBe(2);
 
         // Clean up remaining
-        var remaining = await this.semaphoreService.ReapExpiredAsync(
+        var remaining = await semaphoreService.ReapExpiredAsync(
             name,
             maxRows: 10,
             cancellationToken: TestContext.Current.CancellationToken);
@@ -416,10 +414,10 @@ public class SemaphoreServiceTests : SqlServerTestBase
     {
         // Arrange
         var name = $"test-semaphore-{Guid.NewGuid():N}";
-        await this.semaphoreService!.EnsureExistsAsync(name, 1, TestContext.Current.CancellationToken);
+        await semaphoreService!.EnsureExistsAsync(name, 1, TestContext.Current.CancellationToken);
 
         // Acquire to capacity
-        var first = await this.semaphoreService.TryAcquireAsync(
+        var first = await semaphoreService.TryAcquireAsync(
             name,
             ttlSeconds: 30,
             ownerId: "owner1",
@@ -427,13 +425,13 @@ public class SemaphoreServiceTests : SqlServerTestBase
         first.Status.ShouldBe(SemaphoreAcquireStatus.Acquired);
 
         // Act - Increase limit
-        await this.semaphoreService.UpdateLimitAsync(
+        await semaphoreService.UpdateLimitAsync(
             name,
             newLimit: 2,
             ensureIfMissing: false,
             cancellationToken: TestContext.Current.CancellationToken);
 
-        var second = await this.semaphoreService.TryAcquireAsync(
+        var second = await semaphoreService.TryAcquireAsync(
             name,
             ttlSeconds: 30,
             ownerId: "owner2",
@@ -448,13 +446,13 @@ public class SemaphoreServiceTests : SqlServerTestBase
     {
         // Arrange
         var name = $"test-semaphore-{Guid.NewGuid():N}";
-        await this.semaphoreService!.EnsureExistsAsync(name, 3, TestContext.Current.CancellationToken);
+        await semaphoreService!.EnsureExistsAsync(name, 3, TestContext.Current.CancellationToken);
 
         // Acquire 2 leases
         var tokens = new List<Guid>();
         for (int i = 0; i < 2; i++)
         {
-            var result = await this.semaphoreService.TryAcquireAsync(
+            var result = await semaphoreService.TryAcquireAsync(
                 name,
                 ttlSeconds: 30,
                 ownerId: $"owner{i}",
@@ -463,14 +461,14 @@ public class SemaphoreServiceTests : SqlServerTestBase
         }
 
         // Act - Decrease limit to 1 (currently have 2 active)
-        await this.semaphoreService.UpdateLimitAsync(
+        await semaphoreService.UpdateLimitAsync(
             name,
             newLimit: 1,
             ensureIfMissing: false,
             cancellationToken: TestContext.Current.CancellationToken);
 
         // Try to acquire new lease (should fail because current count >= new limit)
-        var blocked = await this.semaphoreService.TryAcquireAsync(
+        var blocked = await semaphoreService.TryAcquireAsync(
             name,
             ttlSeconds: 30,
             ownerId: "owner3",
@@ -480,9 +478,9 @@ public class SemaphoreServiceTests : SqlServerTestBase
         blocked.Status.ShouldBe(SemaphoreAcquireStatus.NotAcquired);
 
         // Release one (now have 1 active, still at the limit of 1, so new acquire should fail)
-        await this.semaphoreService.ReleaseAsync(name, tokens[0], TestContext.Current.CancellationToken);
+        await semaphoreService.ReleaseAsync(name, tokens[0], TestContext.Current.CancellationToken);
 
-        var afterFirstRelease = await this.semaphoreService.TryAcquireAsync(
+        var afterFirstRelease = await semaphoreService.TryAcquireAsync(
             name,
             ttlSeconds: 30,
             ownerId: "owner4",
@@ -491,9 +489,9 @@ public class SemaphoreServiceTests : SqlServerTestBase
         afterFirstRelease.Status.ShouldBe(SemaphoreAcquireStatus.NotAcquired); // Still at limit (1 active, limit 1)
 
         // Release the second one (now have 0 active, under the limit of 1, so new acquire should succeed)
-        await this.semaphoreService.ReleaseAsync(name, tokens[1], TestContext.Current.CancellationToken);
+        await semaphoreService.ReleaseAsync(name, tokens[1], TestContext.Current.CancellationToken);
 
-        var afterSecondRelease = await this.semaphoreService.TryAcquireAsync(
+        var afterSecondRelease = await semaphoreService.TryAcquireAsync(
             name,
             ttlSeconds: 30,
             ownerId: "owner5",
@@ -511,19 +509,19 @@ public class SemaphoreServiceTests : SqlServerTestBase
     {
         // Arrange
         var name = $"test-semaphore-{Guid.NewGuid():N}";
-        await this.semaphoreService!.EnsureExistsAsync(name, 1, TestContext.Current.CancellationToken);
+        await semaphoreService!.EnsureExistsAsync(name, 1, TestContext.Current.CancellationToken);
 
         var clientRequestId = Guid.NewGuid().ToString();
 
         // Act - Acquire twice with same client request ID
-        var first = await this.semaphoreService.TryAcquireAsync(
+        var first = await semaphoreService.TryAcquireAsync(
             name,
             ttlSeconds: 30,
             ownerId: "owner1",
             clientRequestId: clientRequestId,
             cancellationToken: TestContext.Current.CancellationToken);
 
-        var second = await this.semaphoreService.TryAcquireAsync(
+        var second = await semaphoreService.TryAcquireAsync(
             name,
             ttlSeconds: 30,
             ownerId: "owner1",
@@ -548,7 +546,7 @@ public class SemaphoreServiceTests : SqlServerTestBase
     {
         await Should.ThrowAsync<ArgumentException>(async () =>
         {
-            await this.semaphoreService!.TryAcquireAsync(
+            await semaphoreService!.TryAcquireAsync(
                 invalidName,
                 ttlSeconds: 30,
                 ownerId: "owner1",
@@ -563,7 +561,7 @@ public class SemaphoreServiceTests : SqlServerTestBase
 
         await Should.ThrowAsync<ArgumentException>(async () =>
         {
-            await this.semaphoreService!.TryAcquireAsync(
+            await semaphoreService!.TryAcquireAsync(
                 longName,
                 ttlSeconds: 30,
                 ownerId: "owner1",
@@ -581,10 +579,10 @@ public class SemaphoreServiceTests : SqlServerTestBase
     public async Task TryAcquire_ValidNameCharacters_Succeeds(string validName)
     {
         // Arrange
-        await this.semaphoreService!.EnsureExistsAsync(validName, 1, TestContext.Current.CancellationToken);
+        await semaphoreService!.EnsureExistsAsync(validName, 1, TestContext.Current.CancellationToken);
 
         // Act
-        var result = await this.semaphoreService.TryAcquireAsync(
+        var result = await semaphoreService.TryAcquireAsync(
             validName,
             ttlSeconds: 30,
             ownerId: "owner1",
@@ -602,7 +600,7 @@ public class SemaphoreServiceTests : SqlServerTestBase
     {
         await Should.ThrowAsync<ArgumentException>(async () =>
         {
-            await this.semaphoreService!.TryAcquireAsync(
+            await semaphoreService!.TryAcquireAsync(
                 invalidName,
                 ttlSeconds: 30,
                 ownerId: "owner1",
@@ -614,11 +612,11 @@ public class SemaphoreServiceTests : SqlServerTestBase
     public async Task TryAcquire_TtlBelowMinimum_ThrowsArgumentException()
     {
         var name = $"test-semaphore-{Guid.NewGuid():N}";
-        await this.semaphoreService!.EnsureExistsAsync(name, 1, TestContext.Current.CancellationToken);
+        await semaphoreService!.EnsureExistsAsync(name, 1, TestContext.Current.CancellationToken);
 
         await Should.ThrowAsync<ArgumentException>(async () =>
         {
-            await this.semaphoreService.TryAcquireAsync(
+            await semaphoreService.TryAcquireAsync(
                 name,
                 ttlSeconds: 0, // Below min of 1
                 ownerId: "owner1",
@@ -630,11 +628,11 @@ public class SemaphoreServiceTests : SqlServerTestBase
     public async Task TryAcquire_TtlAboveMaximum_ThrowsArgumentException()
     {
         var name = $"test-semaphore-{Guid.NewGuid():N}";
-        await this.semaphoreService!.EnsureExistsAsync(name, 1, TestContext.Current.CancellationToken);
+        await semaphoreService!.EnsureExistsAsync(name, 1, TestContext.Current.CancellationToken);
 
         await Should.ThrowAsync<ArgumentException>(async () =>
         {
-            await this.semaphoreService.TryAcquireAsync(
+            await semaphoreService.TryAcquireAsync(
                 name,
                 ttlSeconds: 3601, // Above max of 3600
                 ownerId: "owner1",
@@ -649,7 +647,7 @@ public class SemaphoreServiceTests : SqlServerTestBase
 
         await Should.ThrowAsync<ArgumentException>(async () =>
         {
-            await this.semaphoreService!.EnsureExistsAsync(
+            await semaphoreService!.EnsureExistsAsync(
                 name,
                 limit: 0, // Below min of 1
                 cancellationToken: TestContext.Current.CancellationToken);
@@ -663,7 +661,7 @@ public class SemaphoreServiceTests : SqlServerTestBase
 
         await Should.ThrowAsync<ArgumentException>(async () =>
         {
-            await this.semaphoreService!.EnsureExistsAsync(
+            await semaphoreService!.EnsureExistsAsync(
                 name,
                 limit: 10001, // Above max of 10000
                 cancellationToken: TestContext.Current.CancellationToken);
@@ -681,17 +679,17 @@ public class SemaphoreServiceTests : SqlServerTestBase
         var name1 = $"test-semaphore-{Guid.NewGuid():N}";
         var name2 = $"test-semaphore-{Guid.NewGuid():N}";
 
-        await this.semaphoreService!.EnsureExistsAsync(name1, 1, TestContext.Current.CancellationToken);
-        await this.semaphoreService.EnsureExistsAsync(name2, 1, TestContext.Current.CancellationToken);
+        await semaphoreService!.EnsureExistsAsync(name1, 1, TestContext.Current.CancellationToken);
+        await semaphoreService.EnsureExistsAsync(name2, 1, TestContext.Current.CancellationToken);
 
         // Act - Acquire both
-        var acquire1 = await this.semaphoreService.TryAcquireAsync(
+        var acquire1 = await semaphoreService.TryAcquireAsync(
             name1,
             ttlSeconds: 30,
             ownerId: "owner1",
             cancellationToken: TestContext.Current.CancellationToken);
 
-        var acquire2 = await this.semaphoreService.TryAcquireAsync(
+        var acquire2 = await semaphoreService.TryAcquireAsync(
             name2,
             ttlSeconds: 30,
             ownerId: "owner2",

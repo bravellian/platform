@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
 using Bravellian.Platform.Tests.TestUtilities;
-using Microsoft.Extensions.Logging;
+
+namespace Bravellian.Platform.Tests;
 
 public class InboxRouterTests
 {
@@ -46,7 +46,7 @@ public class InboxRouterTests
             },
         };
 
-        var loggerFactory = new TestLoggerFactory(this.testOutputHelper);
+        var loggerFactory = new TestLoggerFactory(testOutputHelper);
         var provider = new ConfiguredInboxWorkStoreProvider(inboxOptions, loggerFactory);
         var router = new InboxRouter(provider);
 
@@ -72,7 +72,7 @@ public class InboxRouterTests
             },
         };
 
-        var loggerFactory = new TestLoggerFactory(this.testOutputHelper);
+        var loggerFactory = new TestLoggerFactory(testOutputHelper);
         var provider = new ConfiguredInboxWorkStoreProvider(inboxOptions, loggerFactory);
         var router = new InboxRouter(provider);
 
@@ -97,7 +97,7 @@ public class InboxRouterTests
             },
         };
 
-        var loggerFactory = new TestLoggerFactory(this.testOutputHelper);
+        var loggerFactory = new TestLoggerFactory(testOutputHelper);
         var provider = new ConfiguredInboxWorkStoreProvider(inboxOptions, loggerFactory);
         var router = new InboxRouter(provider);
 
@@ -119,7 +119,7 @@ public class InboxRouterTests
             },
         };
 
-        var loggerFactory = new TestLoggerFactory(this.testOutputHelper);
+        var loggerFactory = new TestLoggerFactory(testOutputHelper);
         var provider = new ConfiguredInboxWorkStoreProvider(inboxOptions, loggerFactory);
         var router = new InboxRouter(provider);
 

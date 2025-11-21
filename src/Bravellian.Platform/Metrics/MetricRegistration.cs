@@ -13,10 +13,6 @@
 // limitations under the License.
 
 namespace Bravellian.Platform.Metrics;
-
-using System;
-using System.Linq;
-
 /// <summary>
 /// Represents a metric registration with allowed tags.
 /// </summary>

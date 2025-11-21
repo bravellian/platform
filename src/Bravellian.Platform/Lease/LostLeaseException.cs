@@ -13,9 +13,6 @@
 // limitations under the License.
 
 namespace Bravellian.Platform;
-
-using System;
-
 /// <summary>
 /// Exception thrown when a lease has been lost.
 /// </summary>
@@ -29,8 +26,8 @@ public class LostLeaseException : InvalidOperationException
     public LostLeaseException(string resourceName, Guid ownerToken)
         : base($"Lease for resource '{resourceName}' with owner token '{ownerToken}' has been lost.")
     {
-        this.ResourceName = resourceName;
-        this.OwnerToken = ownerToken;
+        ResourceName = resourceName;
+        OwnerToken = ownerToken;
     }
 
     /// <summary>
@@ -41,8 +38,8 @@ public class LostLeaseException : InvalidOperationException
     public LostLeaseException(string leaseName, string owner)
         : base($"Lease '{leaseName}' with owner '{owner}' has been lost.")
     {
-        this.ResourceName = leaseName;
-        this.Owner = owner;
+        ResourceName = leaseName;
+        Owner = owner;
     }
 
     public LostLeaseException()

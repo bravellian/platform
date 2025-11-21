@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
 using Bravellian.Platform.Tests.TestUtilities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
+
+namespace Bravellian.Platform.Tests;
 
 public class DynamicSchedulerStoreProviderTests
 {
@@ -26,12 +27,12 @@ public class DynamicSchedulerStoreProviderTests
     public DynamicSchedulerStoreProviderTests(ITestOutputHelper testOutputHelper)
     {
         this.testOutputHelper = testOutputHelper;
-        this.timeProvider = new FakeTimeProvider();
+        timeProvider = new FakeTimeProvider();
     }
 
     private ILoggerFactory CreateLoggerFactory()
     {
-        return new TestLoggerFactory(this.testOutputHelper);
+        return new TestLoggerFactory(testOutputHelper);
     }
 
     private class TestLoggerFactory : ILoggerFactory
@@ -49,7 +50,7 @@ public class DynamicSchedulerStoreProviderTests
 
         public ILogger CreateLogger(string categoryName)
         {
-            return new TestLogger<DynamicSchedulerStoreProvider>(this.testOutputHelper);
+            return new TestLogger<DynamicSchedulerStoreProvider>(testOutputHelper);
         }
 
         public void Dispose()
@@ -83,12 +84,12 @@ public class DynamicSchedulerStoreProviderTests
             },
         });
 
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
         var logger = loggerFactory.CreateLogger<DynamicSchedulerStoreProvider>();
 
         var provider = new DynamicSchedulerStoreProvider(
             discovery,
-            this.timeProvider,
+            timeProvider,
             loggerFactory,
             logger,
             refreshInterval: TimeSpan.FromMinutes(5));
@@ -115,12 +116,12 @@ public class DynamicSchedulerStoreProviderTests
             },
         });
 
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
         var logger = loggerFactory.CreateLogger<DynamicSchedulerStoreProvider>();
 
         var provider = new DynamicSchedulerStoreProvider(
             discovery,
-            this.timeProvider,
+            timeProvider,
             loggerFactory,
             logger,
             refreshInterval: TimeSpan.FromMinutes(5));
@@ -163,12 +164,12 @@ public class DynamicSchedulerStoreProviderTests
             },
         });
 
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
         var logger = loggerFactory.CreateLogger<DynamicSchedulerStoreProvider>();
 
         var provider = new DynamicSchedulerStoreProvider(
             discovery,
-            this.timeProvider,
+            timeProvider,
             loggerFactory,
             logger,
             refreshInterval: TimeSpan.FromMinutes(5));
@@ -201,12 +202,12 @@ public class DynamicSchedulerStoreProviderTests
             },
         });
 
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
         var logger = loggerFactory.CreateLogger<DynamicSchedulerStoreProvider>();
 
         var provider = new DynamicSchedulerStoreProvider(
             discovery,
-            this.timeProvider,
+            timeProvider,
             loggerFactory,
             logger);
 
@@ -233,12 +234,12 @@ public class DynamicSchedulerStoreProviderTests
             },
         });
 
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
         var logger = loggerFactory.CreateLogger<DynamicSchedulerStoreProvider>();
 
         var provider = new DynamicSchedulerStoreProvider(
             discovery,
-            this.timeProvider,
+            timeProvider,
             loggerFactory,
             logger);
 

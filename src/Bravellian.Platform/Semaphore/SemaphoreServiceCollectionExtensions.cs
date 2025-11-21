@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Semaphore;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
+namespace Bravellian.Platform.Semaphore;
 /// <summary>
 /// Extension methods for registering semaphore services.
 /// </summary>

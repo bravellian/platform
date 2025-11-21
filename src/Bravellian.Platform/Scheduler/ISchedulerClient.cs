@@ -13,10 +13,6 @@
 // limitations under the License.
 
 namespace Bravellian.Platform;
-
-using System;
-using System.Threading.Tasks;
-
 /// <summary>
 /// A client for scheduling and managing durable timers and recurring jobs,
 /// with support for claiming and processing scheduled work items.

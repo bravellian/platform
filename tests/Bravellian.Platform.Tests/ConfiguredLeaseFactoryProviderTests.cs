@@ -124,11 +124,14 @@ public class ConfiguredLeaseFactoryProviderTests
 
         // Create a factory that's not managed by this provider
         var externalFactory = new SqlLeaseFactory(
-            Microsoft.Extensions.Options.Options.Create(new SystemLeaseOptions
+            new LeaseFactoryConfig
             {
                 ConnectionString = "Server=localhost;Database=External;",
                 SchemaName = "dbo",
-            }),
+                RenewPercent = 0.6,
+                GateTimeoutMs = 200,
+                UseGate = false,
+            },
             loggerFactory.CreateLogger<SqlLeaseFactory>());
 
         // Act

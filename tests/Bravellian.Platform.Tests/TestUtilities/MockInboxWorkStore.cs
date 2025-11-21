@@ -68,5 +68,5 @@ public class MockInboxWorkStore : IInboxWorkStore
     }
 
     /// <inheritdoc/>
-    public override string ToString() => this.name;
+    public override string ToString() => name;
 }

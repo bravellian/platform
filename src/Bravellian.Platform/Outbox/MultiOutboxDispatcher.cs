@@ -12,11 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
-using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// Dispatches outbox messages across multiple databases/tenants using a pluggable
 /// selection strategy to determine which outbox to poll next.
@@ -44,7 +43,7 @@ internal sealed class MultiOutboxDispatcher
         this.selectionStrategy = selectionStrategy;
         this.resolver = resolver;
         this.logger = logger;
-        this.backoffPolicy = backoffPolicy ?? OutboxDispatcher.DefaultBackoff;
+        this.backoffPolicy = backoffPolicy ?? DefaultBackoff;
     }
 
     /// <summary>
@@ -56,28 +55,28 @@ internal sealed class MultiOutboxDispatcher
     /// <returns>Number of messages processed.</returns>
     public async Task<int> RunOnceAsync(int batchSize, CancellationToken cancellationToken)
     {
-        var stores = await this.storeProvider.GetAllStoresAsync().ConfigureAwait(false);
+        var stores = await storeProvider.GetAllStoresAsync().ConfigureAwait(false);
 
         if (stores.Count == 0)
         {
-            this.logger.LogDebug("No outbox stores available for processing");
+            logger.LogDebug("No outbox stores available for processing");
             return 0;
         }
 
         // Use the selection strategy to pick the next store
-        var selectedStore = this.selectionStrategy.SelectNext(
+        var selectedStore = selectionStrategy.SelectNext(
             stores,
-            this.lastProcessedStore,
-            this.lastProcessedCount);
+            lastProcessedStore,
+            lastProcessedCount);
 
         if (selectedStore == null)
         {
-            this.logger.LogDebug("Selection strategy returned no store to process");
+            logger.LogDebug("Selection strategy returned no store to process");
             return 0;
         }
 
-        var storeIdentifier = this.storeProvider.GetStoreIdentifier(selectedStore);
-        this.logger.LogDebug(
+        var storeIdentifier = storeProvider.GetStoreIdentifier(selectedStore);
+        logger.LogDebug(
             "Processing outbox messages from store '{StoreIdentifier}' with batch size {BatchSize}",
             storeIdentifier,
             batchSize);
@@ -86,13 +85,13 @@ internal sealed class MultiOutboxDispatcher
 
         if (messages.Count == 0)
         {
-            this.logger.LogDebug("No messages available in store '{StoreIdentifier}'", storeIdentifier);
-            this.lastProcessedStore = selectedStore;
-            this.lastProcessedCount = 0;
+            logger.LogDebug("No messages available in store '{StoreIdentifier}'", storeIdentifier);
+            lastProcessedStore = selectedStore;
+            lastProcessedCount = 0;
             return 0;
         }
 
-        this.logger.LogInformation(
+        logger.LogInformation(
             "Processing {MessageCount} outbox messages from store '{StoreIdentifier}'",
             messages.Count,
             storeIdentifier);
@@ -103,7 +102,7 @@ internal sealed class MultiOutboxDispatcher
         {
             try
             {
-                await this.ProcessSingleMessageAsync(
+                await ProcessSingleMessageAsync(
                     selectedStore,
                     storeIdentifier,
                     message,
@@ -112,7 +111,7 @@ internal sealed class MultiOutboxDispatcher
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                this.logger.LogDebug(
+                logger.LogDebug(
                     "Outbox processing cancelled after processing {ProcessedCount} of {TotalCount} messages from store '{StoreIdentifier}'",
                     processedCount,
                     messages.Count,
@@ -124,7 +123,7 @@ internal sealed class MultiOutboxDispatcher
             catch (Exception ex)
             {
                 // Log unexpected errors but continue processing other messages
-                this.logger.LogError(
+                logger.LogError(
                     ex,
                     "Unexpected error processing outbox message {MessageId} with topic '{Topic}' from store '{StoreIdentifier}'",
                     message.Id,
@@ -133,14 +132,14 @@ internal sealed class MultiOutboxDispatcher
             }
         }
 
-        this.logger.LogInformation(
+        logger.LogInformation(
             "Completed outbox batch processing from store '{StoreIdentifier}': {ProcessedCount}/{TotalCount} messages processed",
             storeIdentifier,
             processedCount,
             messages.Count);
 
-        this.lastProcessedStore = selectedStore;
-        this.lastProcessedCount = processedCount;
+        lastProcessedStore = selectedStore;
+        lastProcessedCount = processedCount;
 
         return processedCount;
     }
@@ -155,16 +154,16 @@ internal sealed class MultiOutboxDispatcher
 
         try
         {
-            this.logger.LogDebug(
+            logger.LogDebug(
                 "Processing outbox message {MessageId} with topic '{Topic}' from store '{StoreIdentifier}'",
                 message.Id,
                 message.Topic,
                 storeIdentifier);
 
             // Try to resolve handler for this topic
-            if (!this.resolver.TryGet(message.Topic, out var handler))
+            if (!resolver.TryGet(message.Topic, out var handler))
             {
-                this.logger.LogWarning(
+                logger.LogWarning(
                     "No handler registered for topic '{Topic}' - failing message {MessageId} from store '{StoreIdentifier}'",
                     message.Topic,
                     message.Id,
@@ -178,7 +177,7 @@ internal sealed class MultiOutboxDispatcher
             }
 
             // Execute the handler
-            this.logger.LogDebug(
+            logger.LogDebug(
                 "Executing handler for message {MessageId} with topic '{Topic}' from store '{StoreIdentifier}'",
                 message.Id,
                 message.Topic,
@@ -186,7 +185,7 @@ internal sealed class MultiOutboxDispatcher
             await handler.HandleAsync(message, cancellationToken).ConfigureAwait(false);
 
             // Mark as successfully dispatched
-            this.logger.LogDebug(
+            logger.LogDebug(
                 "Successfully processed message {MessageId} with topic '{Topic}' from store '{StoreIdentifier}'",
                 message.Id,
                 message.Topic,
@@ -198,9 +197,9 @@ internal sealed class MultiOutboxDispatcher
         {
             // Handler threw an exception - reschedule with backoff
             var nextAttempt = message.RetryCount + 1;
-            var delay = this.backoffPolicy(nextAttempt);
+            var delay = backoffPolicy(nextAttempt);
 
-            this.logger.LogWarning(
+            logger.LogWarning(
                 ex,
                 "Handler failed for message {MessageId} with topic '{Topic}' from store '{StoreIdentifier}' (attempt {AttemptCount}). Rescheduling with {DelayMs}ms delay",
                 message.Id,
@@ -217,5 +216,17 @@ internal sealed class MultiOutboxDispatcher
             stopwatch.Stop();
             SchedulerMetrics.OutboxSendDuration.Record(stopwatch.Elapsed.TotalMilliseconds);
         }
+    }
+
+    /// <summary>
+    /// Default exponential backoff policy with jitter used when no custom policy is supplied.
+    /// </summary>
+    /// <param name="attempt">1-based attempt number.</param>
+    /// <returns>Delay before next attempt.</returns>
+    internal static TimeSpan DefaultBackoff(int attempt)
+    {
+        var baseMs = Math.Min(60_000, (int)(Math.Pow(2, Math.Min(10, attempt)) * 250)); // 250ms, 500ms, 1s, ...
+        var jitter = Random.Shared.Next(0, 250);
+        return TimeSpan.FromMilliseconds(baseMs + jitter);
     }
 }

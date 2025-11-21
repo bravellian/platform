@@ -13,18 +13,15 @@
 // limitations under the License.
 
 namespace Bravellian.Platform;
-
-using System;
-
 /// <summary>
 /// Configuration options for system leases.
 /// </summary>
 public class SystemLeaseOptions
 {
     /// <summary>
-    /// Gets or sets the connection string for the SQL Server database.
+    /// Gets or sets the connection string for the distributed lock database.
     /// </summary>
-    public string ConnectionString { get; set; } = string.Empty;
+    public string? ConnectionString { get; set; }
 
     /// <summary>
     /// Gets or sets the schema name for the distributed lock table.

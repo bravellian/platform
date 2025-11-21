@@ -1,4 +1,0 @@
-﻿CREATE TYPE [infra].[GuidIdList] AS TABLE (
-    [Id] UNIQUEIDENTIFIER NOT NULL,
-    PRIMARY KEY CLUSTERED ([Id] ASC));
-

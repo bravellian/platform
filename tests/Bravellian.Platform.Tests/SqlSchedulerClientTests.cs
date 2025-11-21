@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Time.Testing;
+
+namespace Bravellian.Platform.Tests;
 
 [Collection(SqlServerCollection.Name)]
 [Trait("Category", "Integration")]
@@ -35,15 +35,15 @@ public class SqlSchedulerClientTests : SqlServerTestBase
     public override async ValueTask InitializeAsync()
     {
         await base.InitializeAsync().ConfigureAwait(false);
-        this.defaultOptions.ConnectionString = this.ConnectionString;
-        this.schedulerClient = new SqlSchedulerClient(Options.Create(this.defaultOptions), TimeProvider.System);
+        defaultOptions.ConnectionString = ConnectionString;
+        schedulerClient = new SqlSchedulerClient(Options.Create(defaultOptions), TimeProvider.System);
     }
 
     [Fact]
     public void Constructor_WithValidConnectionString_CreatesInstance()
     {
         // Arrange & Act
-        var client = new SqlSchedulerClient(Options.Create(this.defaultOptions), TimeProvider.System);
+        var client = new SqlSchedulerClient(Options.Create(defaultOptions), TimeProvider.System);
 
         // Assert
         client.ShouldNotBeNull();
@@ -60,14 +60,14 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         DateTimeOffset dueTime = DateTimeOffset.UtcNow.AddMinutes(5);
 
         // Act
-        var timerId = await this.schedulerClient!.ScheduleTimerAsync(topic, payload, dueTime, CancellationToken.None);
+        var timerId = await schedulerClient!.ScheduleTimerAsync(topic, payload, dueTime, CancellationToken.None);
 
         // Assert
         timerId.ShouldNotBeNull();
         Guid.TryParse(timerId, out var timerGuid).ShouldBeTrue();
 
         // Verify the timer was inserted
-        await using var connection = new SqlConnection(this.ConnectionString);
+        await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
         var sql = "SELECT COUNT(*) FROM dbo.Timers WHERE Id = @Id AND Topic = @Topic";
         await using var command = new SqlCommand(sql, connection);
@@ -84,7 +84,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         // Arrange - Use custom table names
         var customOptions = new SqlSchedulerOptions
         {
-            ConnectionString = this.ConnectionString,
+            ConnectionString = ConnectionString,
             SchemaName = "custom",
             TimersTableName = "CustomTimers",
             JobsTableName = "CustomJobs",
@@ -92,14 +92,14 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         };
 
         // Create the custom schema and tables for this test
-        await using var setupConnection = new SqlConnection(this.ConnectionString);
+        await using var setupConnection = new SqlConnection(ConnectionString);
         await setupConnection.OpenAsync(TestContext.Current.CancellationToken);
 
         // Create custom schema if it doesn't exist
         await setupConnection.ExecuteAsync("IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'custom') EXEC('CREATE SCHEMA custom')");
 
         // Create custom tables using DatabaseSchemaManager
-        await DatabaseSchemaManager.EnsureSchedulerSchemaAsync(this.ConnectionString, "custom", "CustomJobs", "CustomJobRuns", "CustomTimers");
+        await DatabaseSchemaManager.EnsureSchedulerSchemaAsync(ConnectionString, "custom", "CustomJobs", "CustomJobRuns", "CustomTimers");
 
         var customSchedulerClient = new SqlSchedulerClient(Options.Create(customOptions), TimeProvider.System);
 
@@ -115,7 +115,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         Guid.TryParse(timerId, out var timerGuid).ShouldBeTrue();
 
         // Verify the timer was inserted into the custom table
-        await using var connection = new SqlConnection(this.ConnectionString);
+        await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
         var sql = "SELECT COUNT(*) FROM custom.CustomTimers WHERE Id = @Id AND Topic = @Topic";
         await using var command = new SqlCommand(sql, connection);
@@ -135,10 +135,10 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         DateTimeOffset dueTime = DateTimeOffset.UtcNow.AddMinutes(10);
 
         // Act
-        var timerId = await this.schedulerClient!.ScheduleTimerAsync(topic, payload, dueTime, CancellationToken.None);
+        var timerId = await schedulerClient!.ScheduleTimerAsync(topic, payload, dueTime, CancellationToken.None);
 
         // Verify the timer has correct default values
-        await using var connection = new SqlConnection(this.ConnectionString);
+        await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
         var sql = @"SELECT Status, ClaimedBy, ClaimedAt, RetryCount, CreatedAt 
                    FROM dbo.Timers 
@@ -165,16 +165,16 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         string payload = "test timer cancel payload";
         DateTimeOffset dueTime = DateTimeOffset.UtcNow.AddMinutes(15);
 
-        var timerId = await this.schedulerClient!.ScheduleTimerAsync(topic, payload, dueTime, CancellationToken.None);
+        var timerId = await schedulerClient!.ScheduleTimerAsync(topic, payload, dueTime, CancellationToken.None);
 
         // Act
-        var result = await this.schedulerClient!.CancelTimerAsync(timerId, CancellationToken.None);
+        var result = await schedulerClient!.CancelTimerAsync(timerId, CancellationToken.None);
 
         // Assert
         result.ShouldBeTrue();
 
         // Verify the timer status was updated
-        await using var connection = new SqlConnection(this.ConnectionString);
+        await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
         var sql = "SELECT Status FROM dbo.Timers WHERE Id = @Id";
         await using var command = new SqlCommand(sql, connection);
@@ -191,7 +191,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         string nonexistentTimerId = Guid.NewGuid().ToString();
 
         // Act
-        var result = await this.schedulerClient!.CancelTimerAsync(nonexistentTimerId, CancellationToken.None);
+        var result = await schedulerClient!.CancelTimerAsync(nonexistentTimerId, CancellationToken.None);
 
         // Assert
         result.ShouldBeFalse();
@@ -208,10 +208,10 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         string payload = "test job payload";
 
         // Act
-        await this.schedulerClient!.CreateOrUpdateJobAsync(jobName, topic, cronSchedule, payload, CancellationToken.None);
+        await schedulerClient!.CreateOrUpdateJobAsync(jobName, topic, cronSchedule, payload, CancellationToken.None);
 
         // Verify the job was inserted
-        await using var connection = new SqlConnection(this.ConnectionString);
+        await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
         var sql = @"SELECT COUNT(*) FROM dbo.Jobs 
                    WHERE JobName = @JobName AND Topic = @Topic AND CronSchedule = @CronSchedule";
@@ -233,10 +233,10 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         string cronSchedule = "0 */5 * * * *"; // Every 5 minutes
 
         // Act
-        await this.schedulerClient!.CreateOrUpdateJobAsync(jobName, topic, cronSchedule, payload: null, CancellationToken.None);
+        await schedulerClient!.CreateOrUpdateJobAsync(jobName, topic, cronSchedule, payload: null, CancellationToken.None);
 
         // Verify the job was inserted with null payload
-        await using var connection = new SqlConnection(this.ConnectionString);
+        await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
         var sql = @"SELECT Payload FROM dbo.Jobs WHERE JobName = @JobName";
         await using var command = new SqlCommand(sql, connection);
@@ -256,13 +256,13 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         string cronSchedule = "0 0 * * * *";
 
         // Create initial job
-        await this.schedulerClient!.CreateOrUpdateJobAsync(jobName, originalTopic, cronSchedule, CancellationToken.None);
+        await schedulerClient!.CreateOrUpdateJobAsync(jobName, originalTopic, cronSchedule, CancellationToken.None);
 
         // Act - Update the job
-        await this.schedulerClient!.CreateOrUpdateJobAsync(jobName, updatedTopic, cronSchedule, CancellationToken.None);
+        await schedulerClient!.CreateOrUpdateJobAsync(jobName, updatedTopic, cronSchedule, CancellationToken.None);
 
         // Verify the job was updated, not duplicated
-        await using var connection = new SqlConnection(this.ConnectionString);
+        await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
         var countSql = "SELECT COUNT(*) FROM dbo.Jobs WHERE JobName = @JobName";
         await using var countCommand = new SqlCommand(countSql, connection);
@@ -288,13 +288,13 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         string topic = "test-job-delete-topic";
         string cronSchedule = "0 0 * * * *";
 
-        await this.schedulerClient!.CreateOrUpdateJobAsync(jobName, topic, cronSchedule, CancellationToken.None);
+        await schedulerClient!.CreateOrUpdateJobAsync(jobName, topic, cronSchedule, CancellationToken.None);
 
         // Act
-        await this.schedulerClient!.DeleteJobAsync(jobName, CancellationToken.None);
+        await schedulerClient!.DeleteJobAsync(jobName, CancellationToken.None);
 
         // Verify the job was deleted
-        await using var connection = new SqlConnection(this.ConnectionString);
+        await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
         var sql = "SELECT COUNT(*) FROM dbo.Jobs WHERE JobName = @JobName";
         await using var command = new SqlCommand(sql, connection);
@@ -312,13 +312,13 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         string topic = "test-job-trigger-topic";
         string cronSchedule = "0 0 * * * *";
 
-        await this.schedulerClient!.CreateOrUpdateJobAsync(jobName, topic, cronSchedule, CancellationToken.None);
+        await schedulerClient!.CreateOrUpdateJobAsync(jobName, topic, cronSchedule, CancellationToken.None);
 
         // Act
-        await this.schedulerClient!.TriggerJobAsync(jobName, CancellationToken.None);
+        await schedulerClient!.TriggerJobAsync(jobName, CancellationToken.None);
 
         // Verify a job run was created
-        await using var connection = new SqlConnection(this.ConnectionString);
+        await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
         var sql = @"SELECT COUNT(*) FROM dbo.JobRuns jr
                    INNER JOIN dbo.Jobs j ON jr.JobId = j.Id 

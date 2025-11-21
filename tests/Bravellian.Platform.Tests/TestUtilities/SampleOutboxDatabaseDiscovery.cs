@@ -32,7 +32,7 @@ public class SampleOutboxDatabaseDiscovery : IOutboxDatabaseDiscovery
     {
         if (initialDatabases != null)
         {
-            this.databases.AddRange(initialDatabases);
+            databases.AddRange(initialDatabases);
         }
     }
 
@@ -41,7 +41,7 @@ public class SampleOutboxDatabaseDiscovery : IOutboxDatabaseDiscovery
     /// </summary>
     public void AddDatabase(OutboxDatabaseConfig config)
     {
-        this.databases.Add(config);
+        databases.Add(config);
     }
 
     /// <summary>
@@ -49,7 +49,7 @@ public class SampleOutboxDatabaseDiscovery : IOutboxDatabaseDiscovery
     /// </summary>
     public void RemoveDatabase(string identifier)
     {
-        this.databases.RemoveAll(db => db.Identifier == identifier);
+        databases.RemoveAll(db => string.Equals(db.Identifier, identifier, StringComparison.Ordinal));
     }
 
     /// <inheritdoc/>
@@ -60,6 +60,6 @@ public class SampleOutboxDatabaseDiscovery : IOutboxDatabaseDiscovery
         // - Query a global database: SELECT CustomerId, ConnectionString FROM Customers WHERE IsActive = 1
         // - Query a configuration API
         // - Read from a configuration file or service
-        return Task.FromResult<IEnumerable<OutboxDatabaseConfig>>(this.databases.ToList());
+        return Task.FromResult<IEnumerable<OutboxDatabaseConfig>>(databases.ToList());
     }
 }

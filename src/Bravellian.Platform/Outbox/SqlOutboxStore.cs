@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// SQL Server implementation of IOutboxStore using optimized queries with proper locking hints.
 /// </summary>
@@ -35,24 +35,24 @@ internal class SqlOutboxStore : IOutboxStore
     public SqlOutboxStore(IOptions<SqlOutboxOptions> options, TimeProvider timeProvider, ILogger<SqlOutboxStore> logger)
     {
         var opts = options.Value;
-        this.connectionString = opts.ConnectionString;
-        this.schemaName = opts.SchemaName;
-        this.tableName = opts.TableName;
+        connectionString = opts.ConnectionString;
+        schemaName = opts.SchemaName;
+        tableName = opts.TableName;
         this.timeProvider = timeProvider;
         this.logger = logger;
 
-        (this.serverName, this.databaseName) = ParseConnectionInfo(this.connectionString);
+        (serverName, databaseName) = ParseConnectionInfo(connectionString);
     }
 
     public async Task<IReadOnlyList<OutboxMessage>> ClaimDueAsync(int limit, CancellationToken cancellationToken)
     {
-        this.logger.LogDebug("Claiming up to {Limit} outbox messages for processing", limit);
+        logger.LogDebug("Claiming up to {Limit} outbox messages for processing", limit);
 
         // Use READPAST to skip locked rows, UPDLOCK to prevent other readers from claiming same rows
         var sql = $"""
 
                         SELECT TOP ({limit}) * 
-                        FROM [{this.schemaName}].[{this.tableName}] WITH (READPAST, UPDLOCK, ROWLOCK)
+                        FROM [{schemaName}].[{tableName}] WITH (READPAST, UPDLOCK, ROWLOCK)
                         WHERE IsProcessed = 0 
                           AND NextAttemptAt <= SYSDATETIMEOFFSET()
                           AND (DueTimeUtc IS NULL OR CAST(DueTimeUtc AS DATETIMEOFFSET) <= SYSDATETIMEOFFSET())
@@ -61,35 +61,35 @@ internal class SqlOutboxStore : IOutboxStore
 
         try
         {
-            using var connection = new SqlConnection(this.connectionString);
+            using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             var messages = await connection.QueryAsync<OutboxMessage>(sql).ConfigureAwait(false);
             var messageList = messages.ToList();
 
-            this.logger.LogDebug("Successfully claimed {ClaimedCount} outbox messages for processing", messageList.Count);
+            logger.LogDebug("Successfully claimed {ClaimedCount} outbox messages for processing", messageList.Count);
             return messageList;
         }
         catch (Exception ex)
         {
-            this.logger.LogError(
+            logger.LogError(
                 ex,
                 "Failed to claim outbox messages from store {Schema}.{Table} on {Server}/{Database}",
-                this.schemaName,
-                this.tableName,
-                this.serverName,
-                this.databaseName);
+                schemaName,
+                tableName,
+                serverName,
+                databaseName);
             throw;
         }
     }
 
     public async Task MarkDispatchedAsync(Guid id, CancellationToken cancellationToken)
     {
-        this.logger.LogDebug("Marking outbox message {MessageId} as dispatched", id);
+        logger.LogDebug("Marking outbox message {MessageId} as dispatched", id);
 
         var sql = $"""
 
-                        UPDATE [{this.schemaName}].[{this.tableName}]
+                        UPDATE [{schemaName}].[{tableName}]
                         SET IsProcessed = 1, 
                             ProcessedAt = SYSDATETIMEOFFSET(),
                             ProcessedBy = @ProcessedBy
@@ -98,7 +98,7 @@ internal class SqlOutboxStore : IOutboxStore
 
         try
         {
-            using var connection = new SqlConnection(this.connectionString);
+            using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             await connection.ExecuteAsync(sql, new
@@ -107,33 +107,33 @@ internal class SqlOutboxStore : IOutboxStore
                 ProcessedBy = Environment.MachineName,
             }).ConfigureAwait(false);
 
-            this.logger.LogDebug("Successfully marked outbox message {MessageId} as dispatched", id);
+            logger.LogDebug("Successfully marked outbox message {MessageId} as dispatched", id);
         }
         catch (Exception ex)
         {
-            this.logger.LogError(
+            logger.LogError(
                 ex,
                 "Failed to mark outbox message {MessageId} as dispatched in {Schema}.{Table} on {Server}/{Database}",
                 id,
-                this.schemaName,
-                this.tableName,
-                this.serverName,
-                this.databaseName);
+                schemaName,
+                tableName,
+                serverName,
+                databaseName);
             throw;
         }
     }
 
     public async Task RescheduleAsync(Guid id, TimeSpan delay, string lastError, CancellationToken cancellationToken)
     {
-        var nextAttempt = this.timeProvider.GetUtcNow().Add(delay);
+        var nextAttempt = timeProvider.GetUtcNow().Add(delay);
 
-        this.logger.LogDebug(
+        logger.LogDebug(
             "Rescheduling outbox message {MessageId} for next attempt at {NextAttempt} due to error: {Error}",
             id, nextAttempt, lastError);
 
         var sql = $"""
 
-                        UPDATE [{this.schemaName}].[{this.tableName}]
+                        UPDATE [{schemaName}].[{tableName}]
                         SET RetryCount = RetryCount + 1,
                             LastError = @LastError,
                             NextAttemptAt = @NextAttemptAt
@@ -142,7 +142,7 @@ internal class SqlOutboxStore : IOutboxStore
 
         try
         {
-            using var connection = new SqlConnection(this.connectionString);
+            using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             await connection.ExecuteAsync(sql, new
@@ -152,29 +152,29 @@ internal class SqlOutboxStore : IOutboxStore
                 NextAttemptAt = nextAttempt,
             }).ConfigureAwait(false);
 
-            this.logger.LogDebug("Successfully rescheduled outbox message {MessageId} for {NextAttempt}", id, nextAttempt);
+            logger.LogDebug("Successfully rescheduled outbox message {MessageId} for {NextAttempt}", id, nextAttempt);
         }
         catch (Exception ex)
         {
-            this.logger.LogError(
+            logger.LogError(
                 ex,
                 "Failed to reschedule outbox message {MessageId} in {Schema}.{Table} on {Server}/{Database}",
                 id,
-                this.schemaName,
-                this.tableName,
-                this.serverName,
-                this.databaseName);
+                schemaName,
+                tableName,
+                serverName,
+                databaseName);
             throw;
         }
     }
 
     public async Task FailAsync(Guid id, string lastError, CancellationToken cancellationToken)
     {
-        this.logger.LogWarning("Permanently failing outbox message {MessageId} due to error: {Error}", id, lastError);
+        logger.LogWarning("Permanently failing outbox message {MessageId} due to error: {Error}", id, lastError);
 
         var sql = $"""
 
-                        UPDATE [{this.schemaName}].[{this.tableName}]
+                        UPDATE [{schemaName}].[{tableName}]
                         SET IsProcessed = 1,
                             ProcessedAt = SYSDATETIMEOFFSET(),
                             ProcessedBy = @ProcessedBy,
@@ -184,7 +184,7 @@ internal class SqlOutboxStore : IOutboxStore
 
         try
         {
-            using var connection = new SqlConnection(this.connectionString);
+            using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             await connection.ExecuteAsync(sql, new
@@ -194,18 +194,18 @@ internal class SqlOutboxStore : IOutboxStore
                 LastError = lastError,
             }).ConfigureAwait(false);
 
-            this.logger.LogWarning("Successfully marked outbox message {MessageId} as permanently failed", id);
+            logger.LogWarning("Successfully marked outbox message {MessageId} as permanently failed", id);
         }
         catch (Exception ex)
         {
-            this.logger.LogError(
+            logger.LogError(
                 ex,
                 "Failed to mark outbox message {MessageId} as failed in {Schema}.{Table} on {Server}/{Database}",
                 id,
-                this.schemaName,
-                this.tableName,
-                this.serverName,
-                this.databaseName);
+                schemaName,
+                tableName,
+                serverName,
+                databaseName);
             throw;
         }
     }

@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Runtime.InteropServices;
+
 namespace Bravellian.Platform.Semaphore;
 
 /// <summary>
@@ -38,6 +40,7 @@ public enum SemaphoreAcquireStatus
 /// <summary>
 /// Result of a TryAcquire operation.
 /// </summary>
+[StructLayout(LayoutKind.Auto)]
 public readonly struct SemaphoreAcquireResult
 {
     /// <summary>

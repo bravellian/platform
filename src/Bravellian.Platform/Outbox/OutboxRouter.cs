@@ -39,7 +39,7 @@ internal sealed class OutboxRouter : IOutboxRouter
             throw new ArgumentException("Routing key cannot be null, empty, or whitespace.", nameof(routingKey));
         }
 
-        var outbox = this.storeProvider.GetOutboxByKey(routingKey);
+        var outbox = storeProvider.GetOutboxByKey(routingKey);
         if (outbox == null)
         {
             throw new InvalidOperationException($"No outbox found for routing key: {routingKey}");
@@ -51,6 +51,6 @@ internal sealed class OutboxRouter : IOutboxRouter
     /// <inheritdoc/>
     public IOutbox GetOutbox(Guid routingKey)
     {
-        return this.GetOutbox(routingKey.ToString());
+        return GetOutbox(routingKey.ToString());
     }
 }

@@ -40,7 +40,7 @@ internal sealed class FanoutDispatcher : IFanoutDispatcher
             var topic = $"fanout:{slice.fanoutTopic}:{slice.workKey}";
             var payload = JsonSerializer.Serialize(slice);
 
-            await this.outbox.EnqueueAsync(topic, payload, slice.correlationId, ct).ConfigureAwait(false);
+            await outbox.EnqueueAsync(topic, payload, slice.correlationId, ct).ConfigureAwait(false);
             count++;
         }
 

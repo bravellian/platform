@@ -12,15 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
 using Bravellian.Platform.Tests.TestUtilities;
-
+using Dapper;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
-using Microsoft.Data.SqlClient;
-using Dapper;
-using System.Linq;
+
+namespace Bravellian.Platform.Tests;
 
 [Collection(SqlServerCollection.Name)]
 [Trait("Category", "Integration")]
@@ -39,17 +38,17 @@ public class SqlOutboxStoreTests : SqlServerTestBase
     public override async ValueTask InitializeAsync()
     {
         await base.InitializeAsync().ConfigureAwait(false);
-        this.timeProvider = new FakeTimeProvider();
-        this.defaultOptions.ConnectionString = this.ConnectionString;
-        var logger = new TestLogger<SqlOutboxStore>(this.TestOutputHelper);
-        this.outboxStore = new SqlOutboxStore(Options.Create(this.defaultOptions), this.timeProvider, logger);
+        timeProvider = new FakeTimeProvider();
+        defaultOptions.ConnectionString = ConnectionString;
+        var logger = new TestLogger<SqlOutboxStore>(TestOutputHelper);
+        outboxStore = new SqlOutboxStore(Options.Create(defaultOptions), timeProvider, logger);
     }
 
     [Fact]
     public async Task ClaimDueAsync_WithNoMessages_ReturnsEmptyList()
     {
         // Act
-        var messages = await this.outboxStore!.ClaimDueAsync(10, CancellationToken.None);
+        var messages = await outboxStore!.ClaimDueAsync(10, CancellationToken.None);
 
         // Assert
         messages.Count.ShouldBe(0);
@@ -60,12 +59,12 @@ public class SqlOutboxStoreTests : SqlServerTestBase
     {
         // Arrange - Add a message to the outbox
         var messageId = Guid.NewGuid();
-        await using var connection = new SqlConnection(this.ConnectionString);
+        await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         await connection.ExecuteAsync(
             $@"
-            INSERT INTO [{this.defaultOptions.SchemaName}].[{this.defaultOptions.TableName}] 
+            INSERT INTO [{defaultOptions.SchemaName}].[{defaultOptions.TableName}] 
             (Id, Topic, Payload, IsProcessed, NextAttemptAt, CreatedAt, RetryCount)
             VALUES (@Id, @Topic, @Payload, 0, @NextAttemptAt, @CreatedAt, 0)",
             new
@@ -78,7 +77,7 @@ public class SqlOutboxStoreTests : SqlServerTestBase
             });
 
         // Act
-        var messages = await this.outboxStore!.ClaimDueAsync(10, CancellationToken.None);
+        var messages = await outboxStore!.ClaimDueAsync(10, CancellationToken.None);
 
         // Assert
         messages.Count.ShouldBe(1);
@@ -92,12 +91,12 @@ public class SqlOutboxStoreTests : SqlServerTestBase
     {
         // Arrange - Add a message scheduled for the future
         var messageId = Guid.NewGuid();
-        await using var connection = new SqlConnection(this.ConnectionString);
+        await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         await connection.ExecuteAsync(
             $@"
-            INSERT INTO [{this.defaultOptions.SchemaName}].[{this.defaultOptions.TableName}] 
+            INSERT INTO [{defaultOptions.SchemaName}].[{defaultOptions.TableName}] 
             (Id, Topic, Payload, IsProcessed, NextAttemptAt, CreatedAt, RetryCount)
             VALUES (@Id, @Topic, @Payload, 0, @NextAttemptAt, @CreatedAt, 0)",
             new
@@ -110,7 +109,7 @@ public class SqlOutboxStoreTests : SqlServerTestBase
             });
 
         // Act
-        var messages = await this.outboxStore!.ClaimDueAsync(10, CancellationToken.None);
+        var messages = await outboxStore!.ClaimDueAsync(10, CancellationToken.None);
 
         // Assert
         messages.Count.ShouldBe(0);
@@ -121,12 +120,12 @@ public class SqlOutboxStoreTests : SqlServerTestBase
     {
         // Arrange - Add a message to the outbox
         var messageId = Guid.NewGuid();
-        await using var connection = new SqlConnection(this.ConnectionString);
+        await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         await connection.ExecuteAsync(
             $@"
-            INSERT INTO [{this.defaultOptions.SchemaName}].[{this.defaultOptions.TableName}] 
+            INSERT INTO [{defaultOptions.SchemaName}].[{defaultOptions.TableName}] 
             (Id, Topic, Payload, IsProcessed, NextAttemptAt, CreatedAt, RetryCount)
             VALUES (@Id, @Topic, @Payload, 0, @NextAttemptAt, @CreatedAt, 0)",
             new
@@ -139,12 +138,12 @@ public class SqlOutboxStoreTests : SqlServerTestBase
             });
 
         // Act
-        await this.outboxStore!.MarkDispatchedAsync(messageId, CancellationToken.None);
+        await outboxStore!.MarkDispatchedAsync(messageId, CancellationToken.None);
 
         // Assert - Check the message is marked as processed
         var processed = await connection.QueryFirstAsync<bool>(
             $@"
-            SELECT IsProcessed FROM [{this.defaultOptions.SchemaName}].[{this.defaultOptions.TableName}] 
+            SELECT IsProcessed FROM [{defaultOptions.SchemaName}].[{defaultOptions.TableName}] 
             WHERE Id = @Id", new { Id = messageId });
 
         processed.ShouldBeTrue();
@@ -155,12 +154,12 @@ public class SqlOutboxStoreTests : SqlServerTestBase
     {
         // Arrange - Add a message to the outbox
         var messageId = Guid.NewGuid();
-        await using var connection = new SqlConnection(this.ConnectionString);
+        await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         await connection.ExecuteAsync(
             $@"
-            INSERT INTO [{this.defaultOptions.SchemaName}].[{this.defaultOptions.TableName}] 
+            INSERT INTO [{defaultOptions.SchemaName}].[{defaultOptions.TableName}] 
             (Id, Topic, Payload, IsProcessed, NextAttemptAt, CreatedAt, RetryCount)
             VALUES (@Id, @Topic, @Payload, 0, @NextAttemptAt, @CreatedAt, 2)",
             new
@@ -176,20 +175,20 @@ public class SqlOutboxStoreTests : SqlServerTestBase
         var errorMessage = "Test error";
 
         // Act
-        await this.outboxStore!.RescheduleAsync(messageId, delay, errorMessage, CancellationToken.None);
+        await outboxStore!.RescheduleAsync(messageId, delay, errorMessage, CancellationToken.None);
 
         // Assert - Check the message is updated
         var result = await connection.QueryFirstAsync(
             $@"
-            SELECT RetryCount, LastError, NextAttemptAt FROM [{this.defaultOptions.SchemaName}].[{this.defaultOptions.TableName}] 
+            SELECT RetryCount, LastError, NextAttemptAt FROM [{defaultOptions.SchemaName}].[{defaultOptions.TableName}] 
             WHERE Id = @Id", new { Id = messageId });
 
         ((int)result.RetryCount).ShouldBe(3); // Should be incremented from 2 to 3
         ((string)result.LastError).ShouldBe(errorMessage);
 
         var nextAttempt = (DateTimeOffset)result.NextAttemptAt;
-        nextAttempt.ShouldBeGreaterThan(this.timeProvider.GetUtcNow().Add(delay).AddMinutes(-1));
-        nextAttempt.ShouldBeLessThan(this.timeProvider.GetUtcNow().Add(delay).AddMinutes(1));
+        nextAttempt.ShouldBeGreaterThan(timeProvider.GetUtcNow().Add(delay).AddMinutes(-1));
+        nextAttempt.ShouldBeLessThan(timeProvider.GetUtcNow().Add(delay).AddMinutes(1));
     }
 
     [Fact]
@@ -197,12 +196,12 @@ public class SqlOutboxStoreTests : SqlServerTestBase
     {
         // Arrange - Add a message to the outbox
         var messageId = Guid.NewGuid();
-        await using var connection = new SqlConnection(this.ConnectionString);
+        await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         await connection.ExecuteAsync(
             $@"
-            INSERT INTO [{this.defaultOptions.SchemaName}].[{this.defaultOptions.TableName}] 
+            INSERT INTO [{defaultOptions.SchemaName}].[{defaultOptions.TableName}] 
             (Id, Topic, Payload, IsProcessed, NextAttemptAt, CreatedAt, RetryCount)
             VALUES (@Id, @Topic, @Payload, 0, @NextAttemptAt, @CreatedAt, 0)",
             new
@@ -217,12 +216,12 @@ public class SqlOutboxStoreTests : SqlServerTestBase
         var errorMessage = "Permanent failure";
 
         // Act
-        await this.outboxStore!.FailAsync(messageId, errorMessage, CancellationToken.None);
+        await outboxStore!.FailAsync(messageId, errorMessage, CancellationToken.None);
 
         // Assert - Check the message is marked as processed with error
         var result = await connection.QueryFirstAsync(
             $@"
-            SELECT IsProcessed, LastError, ProcessedBy FROM [{this.defaultOptions.SchemaName}].[{this.defaultOptions.TableName}] 
+            SELECT IsProcessed, LastError, ProcessedBy FROM [{defaultOptions.SchemaName}].[{defaultOptions.TableName}] 
             WHERE Id = @Id", new { Id = messageId });
 
         ((bool)result.IsProcessed).ShouldBeTrue();

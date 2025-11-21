@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
 using Bravellian.Platform.Tests.TestUtilities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
+
+namespace Bravellian.Platform.Tests;
 
 public class DynamicOutboxStoreProviderTests
 {
@@ -26,12 +27,12 @@ public class DynamicOutboxStoreProviderTests
     public DynamicOutboxStoreProviderTests(ITestOutputHelper testOutputHelper)
     {
         this.testOutputHelper = testOutputHelper;
-        this.timeProvider = new FakeTimeProvider();
+        timeProvider = new FakeTimeProvider();
     }
 
     private ILoggerFactory CreateLoggerFactory()
     {
-        return new TestLoggerFactory(this.testOutputHelper);
+        return new TestLoggerFactory(testOutputHelper);
     }
 
     private class TestLoggerFactory : ILoggerFactory
@@ -49,7 +50,7 @@ public class DynamicOutboxStoreProviderTests
 
         public ILogger CreateLogger(string categoryName)
         {
-            return new TestLogger<DynamicOutboxStoreProvider>(this.testOutputHelper);
+            return new TestLogger<DynamicOutboxStoreProvider>(testOutputHelper);
         }
 
         public void Dispose()
@@ -79,12 +80,12 @@ public class DynamicOutboxStoreProviderTests
             },
         });
 
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
         var logger = loggerFactory.CreateLogger<DynamicOutboxStoreProvider>();
 
         var provider = new DynamicOutboxStoreProvider(
             discovery,
-            this.timeProvider,
+            timeProvider,
             loggerFactory,
             logger,
             refreshInterval: TimeSpan.FromMinutes(5));
@@ -111,13 +112,13 @@ public class DynamicOutboxStoreProviderTests
             },
         });
 
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
 
         var logger = loggerFactory.CreateLogger<DynamicOutboxStoreProvider>();
 
         var provider = new DynamicOutboxStoreProvider(
             discovery,
-            this.timeProvider,
+            timeProvider,
             loggerFactory,
             logger,
             refreshInterval: TimeSpan.FromMinutes(5));
@@ -160,13 +161,13 @@ public class DynamicOutboxStoreProviderTests
             },
         });
 
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
 
         var logger = loggerFactory.CreateLogger<DynamicOutboxStoreProvider>();
 
         var provider = new DynamicOutboxStoreProvider(
             discovery,
-            this.timeProvider,
+            timeProvider,
             loggerFactory,
             logger,
             refreshInterval: TimeSpan.FromMinutes(5));
@@ -199,13 +200,13 @@ public class DynamicOutboxStoreProviderTests
             },
         });
 
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
 
         var logger = loggerFactory.CreateLogger<DynamicOutboxStoreProvider>();
 
         var provider = new DynamicOutboxStoreProvider(
             discovery,
-            this.timeProvider,
+            timeProvider,
             loggerFactory,
             logger,
             refreshInterval: TimeSpan.FromMinutes(5));
@@ -221,7 +222,7 @@ public class DynamicOutboxStoreProviderTests
         });
 
         // Act - Advance time past refresh interval
-        this.timeProvider.Advance(TimeSpan.FromMinutes(6));
+        timeProvider.Advance(TimeSpan.FromMinutes(6));
         var updatedStores = await provider.GetAllStoresAsync(TestContext.Current.CancellationToken);
 
         // Assert - Should automatically refresh

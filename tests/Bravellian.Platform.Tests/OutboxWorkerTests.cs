@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
 using Bravellian.Platform.Tests.TestUtilities;
 using Dapper;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.Data.SqlClient;
-using Shouldly;
+
+namespace Bravellian.Platform.Tests;
 
 [Collection(SqlServerCollection.Name)]
 [Trait("Category", "Integration")]
@@ -40,19 +40,19 @@ public class OutboxWorkerTests : SqlServerTestBase
         await base.InitializeAsync().ConfigureAwait(false);
 
         // Test connection with retry logic for CI stability
-        await this.WaitForDatabaseReadyAsync(this.ConnectionString).ConfigureAwait(false);
+        await WaitForDatabaseReadyAsync(ConnectionString).ConfigureAwait(false);
 
         // Ensure work queue schema is set up
-        await DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(this.ConnectionString).ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(ConnectionString).ConfigureAwait(false);
 
         var options = Options.Create(new SqlOutboxOptions
         {
-            ConnectionString = this.ConnectionString,
+            ConnectionString = ConnectionString,
             SchemaName = "dbo",
             TableName = "Outbox",
         });
-        this.outboxService = new SqlOutboxService(options, new TestLogger<SqlOutboxService>(this.TestOutputHelper));
-        this.worker = new TestOutboxWorker(this.outboxService, new TestLogger<TestOutboxWorker>(this.TestOutputHelper));
+        outboxService = new SqlOutboxService(options, new TestLogger<SqlOutboxService>(TestOutputHelper));
+        worker = new TestOutboxWorker(outboxService, new TestLogger<TestOutboxWorker>(TestOutputHelper));
     }
 
     private async Task WaitForDatabaseReadyAsync(string connectionString)
@@ -75,7 +75,7 @@ public class OutboxWorkerTests : SqlServerTestBase
             }
             catch (Exception ex)
             {
-                this.TestOutputHelper.WriteLine($"Database connection attempt {i + 1} failed: {ex.Message}");
+                TestOutputHelper.WriteLine($"Database connection attempt {i + 1} failed: {ex.Message}");
                 if (i == maxRetries - 1)
                 {
                     throw new InvalidOperationException($"Database not ready after {maxRetries} attempts", ex);
@@ -90,100 +90,100 @@ public class OutboxWorkerTests : SqlServerTestBase
     public async Task Worker_ProcessesClaimedItems_AndAcknowledgesThem()
     {
         // Arrange
-        var testIds = await this.CreateTestOutboxItemsAsync(3);
+        var testIds = await CreateTestOutboxItemsAsync(3);
 
         // Act
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        await this.worker!.StartAsync(cts.Token);
+        await worker!.StartAsync(cts.Token);
 
         // Give the worker time to process items
         await Task.Delay(1000, cts.Token);
-        await this.worker.StopAsync(cts.Token);
+        await worker.StopAsync(cts.Token);
 
         // Assert
-        this.worker.ProcessedItems.Count.ShouldBe(3);
-        this.worker.ProcessedItems.ShouldBeSubsetOf(testIds);
+        worker.ProcessedItems.Count.ShouldBe(3);
+        worker.ProcessedItems.ShouldBeSubsetOf(testIds);
 
         // Verify items are marked as processed in database
-        await this.VerifyOutboxStatusAsync(testIds, 2); // Status = Done
+        await VerifyOutboxStatusAsync(testIds, 2); // Status = Done
     }
 
     [Fact]
     public async Task Worker_WithProcessingFailure_AbandonsItems()
     {
         // Arrange
-        var testIds = await this.CreateTestOutboxItemsAsync(2);
-        this.worker!.ShouldFailProcessing = true;
-        this.worker.ProcessingDelay = TimeSpan.FromMilliseconds(50); // Shorter delay for testing
-        this.worker.RunOnce = true;
+        var testIds = await CreateTestOutboxItemsAsync(2);
+        worker!.ShouldFailProcessing = true;
+        worker.ProcessingDelay = TimeSpan.FromMilliseconds(50); // Shorter delay for testing
+        worker.RunOnce = true;
 
         // Act
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-        await this.worker.StartAsync(cts.Token);
+        await worker.StartAsync(cts.Token);
 
         // Give the worker time to claim and attempt processing
         await Task.Delay(3000, cts.Token);
-        await this.worker.StopAsync(cts.Token);
+        await worker.StopAsync(cts.Token);
 
         // Assert
         // Items should be abandoned and back to ready state
-        await this.VerifyOutboxStatusAsync(testIds, 0); // Status = Ready
+        await VerifyOutboxStatusAsync(testIds, 0); // Status = Ready
     }
 
     [Fact]
     public async Task Worker_ClaimsItemsCorrectly()
     {
         // Arrange
-        var testIds = await this.CreateTestOutboxItemsAsync(2);
+        var testIds = await CreateTestOutboxItemsAsync(2);
 
         // Act - claim items manually to test the claim operation
-        var claimedIds = await this.outboxService!.ClaimAsync(Guid.NewGuid(), 30, 10, TestContext.Current.CancellationToken);
+        var claimedIds = await outboxService!.ClaimAsync(Guid.NewGuid(), 30, 10, TestContext.Current.CancellationToken);
 
         // Assert
         claimedIds.Count.ShouldBe(2);
         claimedIds.ShouldBeSubsetOf(testIds);
 
         // Verify items are now in InProgress state
-        await this.VerifyOutboxStatusAsync(claimedIds, 1); // Status = InProgress
+        await VerifyOutboxStatusAsync(claimedIds, 1); // Status = InProgress
     }
 
     [Fact]
     public async Task Manual_AbandonOperation_Works()
     {
         // Arrange
-        var testIds = await this.CreateTestOutboxItemsAsync(2);
+        var testIds = await CreateTestOutboxItemsAsync(2);
         var ownerToken = Guid.NewGuid();
 
         // Act
-        var claimedIds = await this.outboxService!.ClaimAsync(ownerToken, 30, 10, TestContext.Current.CancellationToken);
-        await this.VerifyOutboxStatusAsync(claimedIds, 1); // Status = InProgress
+        var claimedIds = await outboxService!.ClaimAsync(ownerToken, 30, 10, TestContext.Current.CancellationToken);
+        await VerifyOutboxStatusAsync(claimedIds, 1); // Status = InProgress
 
-        await this.outboxService.AbandonAsync(ownerToken, claimedIds, TestContext.Current.CancellationToken);
+        await outboxService.AbandonAsync(ownerToken, claimedIds, TestContext.Current.CancellationToken);
 
         // Assert
-        await this.VerifyOutboxStatusAsync(claimedIds, 0); // Status = Ready
+        await VerifyOutboxStatusAsync(claimedIds, 0); // Status = Ready
     }
 
     [Fact]
     public async Task WorkQueue_LeaseExpiration_AllowsReclaim()
     {
         // Arrange
-        var testIds = await this.CreateTestOutboxItemsAsync(1);
+        var testIds = await CreateTestOutboxItemsAsync(1);
         var owner1 = Guid.NewGuid();
         var owner2 = Guid.NewGuid();
 
         // Act - first owner claims with short lease
-        var claimed1 = await this.outboxService!.ClaimAsync(owner1, 1, 10, TestContext.Current.CancellationToken); // 1 second lease
+        var claimed1 = await outboxService!.ClaimAsync(owner1, 1, 10, TestContext.Current.CancellationToken); // 1 second lease
         claimed1.Count.ShouldBe(1);
 
         // Wait for lease to expire
         await Task.Delay(1500, TestContext.Current.CancellationToken);
 
         // Reap expired items
-        await this.outboxService.ReapExpiredAsync(TestContext.Current.CancellationToken);
+        await outboxService.ReapExpiredAsync(TestContext.Current.CancellationToken);
 
         // Second owner should be able to claim the same item
-        var claimed2 = await this.outboxService.ClaimAsync(owner2, 30, 10, TestContext.Current.CancellationToken);
+        var claimed2 = await outboxService.ClaimAsync(owner2, 30, 10, TestContext.Current.CancellationToken);
 
         // Assert
         claimed2.Count.ShouldBe(1);
@@ -194,33 +194,33 @@ public class OutboxWorkerTests : SqlServerTestBase
     public async Task WorkQueue_IdempotentOperations_NoErrors()
     {
         // Arrange
-        var testIds = await this.CreateTestOutboxItemsAsync(1);
+        var testIds = await CreateTestOutboxItemsAsync(1);
         var ownerToken = Guid.NewGuid();
-        var claimedIds = await this.outboxService!.ClaimAsync(ownerToken, 30, 10, TestContext.Current.CancellationToken);
+        var claimedIds = await outboxService!.ClaimAsync(ownerToken, 30, 10, TestContext.Current.CancellationToken);
 
         // Act - multiple acks should be harmless
-        await this.outboxService.AckAsync(ownerToken, claimedIds, TestContext.Current.CancellationToken);
-        await this.outboxService.AckAsync(ownerToken, claimedIds, TestContext.Current.CancellationToken); // Second ack
-        await this.outboxService.AckAsync(ownerToken, claimedIds, TestContext.Current.CancellationToken); // Third ack
+        await outboxService.AckAsync(ownerToken, claimedIds, TestContext.Current.CancellationToken);
+        await outboxService.AckAsync(ownerToken, claimedIds, TestContext.Current.CancellationToken); // Second ack
+        await outboxService.AckAsync(ownerToken, claimedIds, TestContext.Current.CancellationToken); // Third ack
 
         // Assert - should remain acknowledged
-        await this.VerifyOutboxStatusAsync(claimedIds, 2); // Status = Done
+        await VerifyOutboxStatusAsync(claimedIds, 2); // Status = Done
     }
 
     [Fact]
     public async Task WorkQueue_UnauthorizedOwner_CannotModify()
     {
         // Arrange
-        var testIds = await this.CreateTestOutboxItemsAsync(1);
+        var testIds = await CreateTestOutboxItemsAsync(1);
         var owner1 = Guid.NewGuid();
         var owner2 = Guid.NewGuid();
-        var claimedIds = await this.outboxService!.ClaimAsync(owner1, 30, 10, TestContext.Current.CancellationToken);
+        var claimedIds = await outboxService!.ClaimAsync(owner1, 30, 10, TestContext.Current.CancellationToken);
 
         // Act - different owner tries to ack
-        await this.outboxService.AckAsync(owner2, claimedIds, TestContext.Current.CancellationToken);
+        await outboxService.AckAsync(owner2, claimedIds, TestContext.Current.CancellationToken);
 
         // Assert - item should still be claimed by original owner
-        await this.VerifyOutboxStatusAsync(claimedIds, 1); // Status = InProgress
+        await VerifyOutboxStatusAsync(claimedIds, 1); // Status = InProgress
     }
 
     [Fact]
@@ -231,23 +231,23 @@ public class OutboxWorkerTests : SqlServerTestBase
         var emptyIds = new List<Guid>();
 
         // Act & Assert - should not throw
-        await this.outboxService!.AckAsync(ownerToken, emptyIds, TestContext.Current.CancellationToken);
-        await this.outboxService.AbandonAsync(ownerToken, emptyIds, TestContext.Current.CancellationToken);
-        await this.outboxService.FailAsync(ownerToken, emptyIds, TestContext.Current.CancellationToken);
+        await outboxService!.AckAsync(ownerToken, emptyIds, TestContext.Current.CancellationToken);
+        await outboxService.AbandonAsync(ownerToken, emptyIds, TestContext.Current.CancellationToken);
+        await outboxService.FailAsync(ownerToken, emptyIds, TestContext.Current.CancellationToken);
     }
 
     [Fact]
     public async Task WorkQueue_ConcurrentClaims_NoOverlap()
     {
         // Arrange
-        var testIds = await this.CreateTestOutboxItemsAsync(10);
+        var testIds = await CreateTestOutboxItemsAsync(10);
         var tasks = new List<Task<IReadOnlyList<Guid>>>();
 
         // Act - multiple workers claim simultaneously
         for (int i = 0; i < 5; i++)
         {
             var ownerToken = Guid.NewGuid();
-            tasks.Add(this.outboxService!.ClaimAsync(ownerToken, 30, 3, TestContext.Current.CancellationToken));
+            tasks.Add(outboxService!.ClaimAsync(ownerToken, 30, 3, TestContext.Current.CancellationToken));
         }
 
         var results = await Task.WhenAll(tasks);
@@ -264,15 +264,15 @@ public class OutboxWorkerTests : SqlServerTestBase
     public async Task Worker_RespectsCancellationToken()
     {
         // Arrange
-        var testIds = await this.CreateTestOutboxItemsAsync(5);
-        this.worker!.ProcessingDelay = TimeSpan.FromSeconds(10); // Long delay
+        var testIds = await CreateTestOutboxItemsAsync(5);
+        worker!.ProcessingDelay = TimeSpan.FromSeconds(10); // Long delay
 
         // Act
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
-        await this.worker.StartAsync(cts.Token);
+        await worker.StartAsync(cts.Token);
 
         var stopwatch = Stopwatch.StartNew();
-        await this.worker.StopAsync(cts.Token);
+        await worker.StopAsync(cts.Token);
         stopwatch.Stop();
 
         // Assert
@@ -284,7 +284,7 @@ public class OutboxWorkerTests : SqlServerTestBase
     {
         var ids = new List<Guid>();
 
-        var connection = new SqlConnection(this.ConnectionString);
+        var connection = new SqlConnection(ConnectionString);
         await using (connection.ConfigureAwait(false))
         {
             await connection.OpenAsync(TestContext.Current.CancellationToken);
@@ -307,7 +307,7 @@ public class OutboxWorkerTests : SqlServerTestBase
 
     private async Task VerifyOutboxStatusAsync(IEnumerable<Guid> ids, int expectedStatus)
     {
-        var connection = new SqlConnection(this.ConnectionString);
+        var connection = new SqlConnection(ConnectionString);
         await using (connection.ConfigureAwait(false))
         {
             await connection.OpenAsync(TestContext.Current.CancellationToken);
@@ -347,12 +347,12 @@ public class OutboxWorkerTests : SqlServerTestBase
             {
                 try
                 {
-                    var claimedIds = await this.outbox.ClaimAsync(this.ownerToken, 30, 10, stoppingToken).ConfigureAwait(false);
-                    this.logger.LogInformation("Worker claimed {Count} items", claimedIds.Count);
+                    var claimedIds = await outbox.ClaimAsync(ownerToken, 30, 10, stoppingToken).ConfigureAwait(false);
+                    logger.LogInformation("Worker claimed {Count} items", claimedIds.Count);
 
                     if (claimedIds.Count == 0)
                     {
-                        if (this.RunOnce)
+                        if (RunOnce)
                         {
                             break;
                         }
@@ -368,50 +368,50 @@ public class OutboxWorkerTests : SqlServerTestBase
                     {
                         try
                         {
-                            await Task.Delay(this.ProcessingDelay, stoppingToken).ConfigureAwait(false);
+                            await Task.Delay(ProcessingDelay, stoppingToken).ConfigureAwait(false);
 
-                            if (this.ShouldFailProcessing)
+                            if (ShouldFailProcessing)
                             {
-                                this.logger.LogInformation("Simulating failure for item {Id}", id);
+                                logger.LogInformation("Simulating failure for item {Id}", id);
                                 throw new InvalidOperationException("Simulated processing failure");
                             }
 
-                            this.ProcessedItems.Add(id);
+                            ProcessedItems.Add(id);
                             succeededIds.Add(id);
-                            this.logger.LogInformation("Successfully processed item {Id}", id);
+                            logger.LogInformation("Successfully processed item {Id}", id);
                         }
                         catch (Exception ex)
                         {
-                            this.logger.LogWarning(ex, "Failed to process outbox item {Id}", id);
+                            logger.LogWarning(ex, "Failed to process outbox item {Id}", id);
                             failedIds.Add(id);
                         }
                     }
 
                     if (succeededIds.Count > 0)
                     {
-                        this.logger.LogInformation("Acknowledging {Count} successful items", succeededIds.Count);
-                        await this.outbox.AckAsync(this.ownerToken, succeededIds, stoppingToken).ConfigureAwait(false);
+                        logger.LogInformation("Acknowledging {Count} successful items", succeededIds.Count);
+                        await outbox.AckAsync(ownerToken, succeededIds, stoppingToken).ConfigureAwait(false);
                     }
 
                     if (failedIds.Count > 0)
                     {
-                        this.logger.LogInformation("Abandoning {Count} failed items", failedIds.Count);
-                        await this.outbox.AbandonAsync(this.ownerToken, failedIds, stoppingToken).ConfigureAwait(false);
+                        logger.LogInformation("Abandoning {Count} failed items", failedIds.Count);
+                        await outbox.AbandonAsync(ownerToken, failedIds, stoppingToken).ConfigureAwait(false);
                     }
 
-                    if (this.RunOnce)
+                    if (RunOnce)
                     {
                         break;
                     }
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
                 {
-                    this.logger.LogInformation("Worker cancelled due to stopping token");
+                    logger.LogInformation("Worker cancelled due to stopping token");
                     break;
                 }
                 catch (Exception ex)
                 {
-                    this.logger.LogError(ex, "Error in outbox processing loop");
+                    logger.LogError(ex, "Error in outbox processing loop");
                     await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken).ConfigureAwait(false);
                 }
             }

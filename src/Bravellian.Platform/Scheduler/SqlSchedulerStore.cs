@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
 using Cronos;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Options;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// SQL Server implementation of ISchedulerStore.
 /// Provides scheduler operations for a specific database instance.
@@ -39,11 +39,11 @@ internal sealed class SqlSchedulerStore : ISchedulerStore
     public SqlSchedulerStore(IOptions<SqlSchedulerOptions> options, TimeProvider timeProvider)
     {
         this.options = options.Value;
-        this.connectionString = this.options.ConnectionString;
+        connectionString = this.options.ConnectionString;
         this.timeProvider = timeProvider;
 
         // Build SQL queries using configured schema and table names
-        this.claimTimersSql = $"""
+        claimTimersSql = $"""
 
                         UPDATE [{this.options.SchemaName}].[{this.options.TimersTableName}]
                         SET Status = 'Claimed', ClaimedBy = @InstanceId, ClaimedAt = SYSDATETIMEOFFSET()
@@ -56,7 +56,7 @@ internal sealed class SqlSchedulerStore : ISchedulerStore
                         );
             """;
 
-        this.claimJobsSql = $"""
+        claimJobsSql = $"""
 
                         UPDATE [{this.options.SchemaName}].[{this.options.JobRunsTableName}]
                         SET Status = 'Claimed', ClaimedBy = @InstanceId, ClaimedAt = SYSDATETIMEOFFSET()
@@ -71,7 +71,7 @@ internal sealed class SqlSchedulerStore : ISchedulerStore
                         );
             """;
 
-        this.getNextEventTimeSql = $"""
+        getNextEventTimeSql = $"""
 
                         SELECT MIN(NextDue)
                         FROM (
@@ -84,7 +84,7 @@ internal sealed class SqlSchedulerStore : ISchedulerStore
             """;
 
         // SQL to update the fencing token state for scheduler operations
-        this.schedulerStateUpdateSql = $"""
+        schedulerStateUpdateSql = $"""
 
                         MERGE [{this.options.SchemaName}].[SchedulerState] AS target
                         USING (VALUES (1, @FencingToken, @LastRunAt)) AS source (Id, FencingToken, LastRunAt)
@@ -98,13 +98,13 @@ internal sealed class SqlSchedulerStore : ISchedulerStore
 
     public async Task<DateTimeOffset?> GetNextEventTimeAsync(CancellationToken cancellationToken = default)
     {
-        using var connection = new SqlConnection(this.connectionString);
-        return await connection.ExecuteScalarAsync<DateTimeOffset?>(this.getNextEventTimeSql).ConfigureAwait(false);
+        using var connection = new SqlConnection(connectionString);
+        return await connection.ExecuteScalarAsync<DateTimeOffset?>(getNextEventTimeSql).ConfigureAwait(false);
     }
 
     public async Task<int> CreateJobRunsFromDueJobsAsync(ISystemLease lease, CancellationToken cancellationToken = default)
     {
-        using var connection = new SqlConnection(this.connectionString);
+        using var connection = new SqlConnection(connectionString);
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
         using var transaction = connection.BeginTransaction();
 
@@ -114,12 +114,12 @@ internal sealed class SqlSchedulerStore : ISchedulerStore
 
             var findDueJobsSql = $"""
 
-                        SELECT Id, CronSchedule FROM [{this.options.SchemaName}].[{this.options.JobsTableName}]
+                        SELECT Id, CronSchedule FROM [{options.SchemaName}].[{options.JobsTableName}]
                         WHERE NextDueTime <= @Now;
             """;
 
             var dueJobs = (await transaction.Connection.QueryAsync<(Guid Id, string CronSchedule)>(
-                findDueJobsSql, new { Now = this.timeProvider.GetUtcNow() }, transaction).ConfigureAwait(false)).AsList();
+                findDueJobsSql, new { Now = timeProvider.GetUtcNow() }, transaction).ConfigureAwait(false)).AsList();
 
             if (!dueJobs.Any())
             {
@@ -131,7 +131,7 @@ internal sealed class SqlSchedulerStore : ISchedulerStore
 
             var runsToInsert = new List<object>();
             var jobsToUpdate = new List<object>();
-            var now = this.timeProvider.GetUtcNow();
+            var now = timeProvider.GetUtcNow();
 
             foreach (var job in dueJobs)
             {
@@ -160,7 +160,7 @@ internal sealed class SqlSchedulerStore : ISchedulerStore
 
             var insertRunSql = $"""
 
-                        INSERT INTO [{this.options.SchemaName}].[{this.options.JobRunsTableName}] (Id, JobId, ScheduledTime, Status)
+                        INSERT INTO [{options.SchemaName}].[{options.JobRunsTableName}] (Id, JobId, ScheduledTime, Status)
                         VALUES (@RunId, @JobId, @ScheduledTime, 'Pending');
             """;
 
@@ -168,7 +168,7 @@ internal sealed class SqlSchedulerStore : ISchedulerStore
 
             var updateJobSql = $"""
 
-                        UPDATE [{this.options.SchemaName}].[{this.options.JobsTableName}]
+                        UPDATE [{options.SchemaName}].[{options.JobsTableName}]
                         SET NextDueTime = @NextDueTime
                         WHERE Id = @JobId;
             """;
@@ -195,12 +195,12 @@ internal sealed class SqlSchedulerStore : ISchedulerStore
         int batchSize,
         CancellationToken cancellationToken = default)
     {
-        using var connection = new SqlConnection(this.connectionString);
+        using var connection = new SqlConnection(connectionString);
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
         var dueTimers = await connection.QueryAsync<(Guid Id, string Topic, string Payload)>(
-            this.claimTimersSql,
-            new { InstanceId = this.instanceId, FencingToken = lease.FencingToken, BatchSize = batchSize })
+            claimTimersSql,
+            new { InstanceId = instanceId, FencingToken = lease.FencingToken, BatchSize = batchSize })
             .ConfigureAwait(false);
 
         return dueTimers.ToList();
@@ -211,12 +211,12 @@ internal sealed class SqlSchedulerStore : ISchedulerStore
         int batchSize,
         CancellationToken cancellationToken = default)
     {
-        using var connection = new SqlConnection(this.connectionString);
+        using var connection = new SqlConnection(connectionString);
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
         var dueJobs = await connection.QueryAsync<(Guid Id, Guid JobId, string Topic, string Payload)>(
-            this.claimJobsSql,
-            new { InstanceId = this.instanceId, FencingToken = lease.FencingToken, BatchSize = batchSize })
+            claimJobsSql,
+            new { InstanceId = instanceId, FencingToken = lease.FencingToken, BatchSize = batchSize })
             .ConfigureAwait(false);
 
         return dueJobs.ToList();
@@ -224,13 +224,13 @@ internal sealed class SqlSchedulerStore : ISchedulerStore
 
     public async Task UpdateSchedulerStateAsync(ISystemLease lease, CancellationToken cancellationToken = default)
     {
-        using var connection = new SqlConnection(this.connectionString);
+        using var connection = new SqlConnection(connectionString);
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-        await connection.ExecuteAsync(this.schedulerStateUpdateSql, new
+        await connection.ExecuteAsync(schedulerStateUpdateSql, new
         {
             FencingToken = lease.FencingToken,
-            LastRunAt = this.timeProvider.GetUtcNow(),
+            LastRunAt = timeProvider.GetUtcNow(),
         }).ConfigureAwait(false);
     }
 }

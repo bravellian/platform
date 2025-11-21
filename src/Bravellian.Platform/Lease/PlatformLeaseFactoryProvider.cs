@@ -12,13 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
-using System.Linq;
-using System.Threading.Tasks;
+using System.Collections.Concurrent;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// Lease factory provider that uses the unified platform database discovery.
 /// </summary>
@@ -28,79 +27,162 @@ internal sealed class PlatformLeaseFactoryProvider : ILeaseFactoryProvider
     private readonly ILoggerFactory loggerFactory;
     private readonly ILogger<PlatformLeaseFactoryProvider> logger;
     private readonly PlatformConfiguration? platformConfiguration;
+    private readonly bool enableSchemaDeployment;
     private readonly object lockObject = new();
+    private readonly Dictionary<string, ISystemLeaseFactory> factoriesByKey = new(StringComparer.Ordinal);
+    private readonly Dictionary<ISystemLeaseFactory, string> identifiersByFactory = new();
+    private readonly ConcurrentDictionary<string, byte> schemasDeployed = new(StringComparer.Ordinal);
     private IReadOnlyList<ISystemLeaseFactory>? cachedFactories;
-    private readonly Dictionary<string, ISystemLeaseFactory> factoriesByKey = new();
 
     public PlatformLeaseFactoryProvider(
         IPlatformDatabaseDiscovery discovery,
         ILoggerFactory loggerFactory,
-        PlatformConfiguration? platformConfiguration = null)
+        PlatformConfiguration? platformConfiguration = null,
+        bool enableSchemaDeployment = false)
     {
         this.discovery = discovery;
         this.loggerFactory = loggerFactory;
         this.platformConfiguration = platformConfiguration;
-        this.logger = loggerFactory.CreateLogger<PlatformLeaseFactoryProvider>();
+        this.enableSchemaDeployment = enableSchemaDeployment;
+        logger = loggerFactory.CreateLogger<PlatformLeaseFactoryProvider>();
     }
 
     public async Task<IReadOnlyList<ISystemLeaseFactory>> GetAllFactoriesAsync(CancellationToken cancellationToken = default)
     {
-        if (this.cachedFactories == null)
+        if (cachedFactories == null)
         {
-            var databases = await discovery.DiscoverDatabasesAsync(cancellationToken).ConfigureAwait(false);
+            var databases = (await discovery.DiscoverDatabasesAsync(cancellationToken).ConfigureAwait(false)).ToList();
 
-            lock (this.lockObject)
+            logger.LogDebug(
+                "Discovered {Count} platform databases for lease factories: {Names}",
+                databases.Count,
+                string.Join(", ", databases.Select(d => $"{d.Name} (Schema: {d.SchemaName})")));
+
+            if (platformConfiguration?.EnvironmentStyle == PlatformEnvironmentStyle.MultiDatabaseWithControl &&
+                !string.IsNullOrWhiteSpace(platformConfiguration.ControlPlaneConnectionString))
             {
-                if (this.cachedFactories == null)
+                foreach (var db in databases)
+                {
+                    if (IsSameConnection(db.ConnectionString, platformConfiguration.ControlPlaneConnectionString))
+                    {
+                        logger.LogWarning(
+                            "Database {DatabaseName} matches the configured control plane connection. Leases should run in tenant databases. Verify discovery excludes the control plane.",
+                            db.Name);
+                    }
+                }
+            }
+
+            lock (lockObject)
+            {
+                if (cachedFactories == null)
                 {
                     var factories = new List<ISystemLeaseFactory>();
-            
+                    var newDatabasesNeedingSchema = new List<PlatformDatabase>();
+
                     foreach (var db in databases)
                     {
-                        var factoryLogger = this.loggerFactory.CreateLogger<SqlLeaseFactory>();
+                        var factoryLogger = loggerFactory.CreateLogger<SqlLeaseFactory>();
                         var factory = new SqlLeaseFactory(
-                            Options.Create(new SystemLeaseOptions
+                            new LeaseFactoryConfig
                             {
                                 ConnectionString = db.ConnectionString,
                                 SchemaName = db.SchemaName,
-                            }),
+                                RenewPercent = 0.6,
+                                GateTimeoutMs = 200,
+                                UseGate = false,
+                            },
                             factoryLogger);
-                        
+
                         factories.Add(factory);
-                        this.factoriesByKey[db.Name] = factory;
+                        factoriesByKey[db.Name] = factory;
+                        identifiersByFactory[factory] = db.Name;
+
+                        if (enableSchemaDeployment && schemasDeployed.TryAdd(db.Name, 0))
+                        {
+                            newDatabasesNeedingSchema.Add(db);
+                        }
                     }
-            
-                    this.cachedFactories = factories;
+
+                    cachedFactories = factories;
+
+                    if (newDatabasesNeedingSchema.Count > 0)
+                    {
+                        _ = Task.Run(async () =>
+                        {
+                            foreach (var db in newDatabasesNeedingSchema)
+                            {
+                                try
+                                {
+                                    logger.LogInformation(
+                                        "Deploying lease schema for newly discovered database: {DatabaseName}",
+                                        db.Name);
+
+                                    await DatabaseSchemaManager.EnsureLeaseSchemaAsync(
+                                        db.ConnectionString,
+                                        db.SchemaName,
+                                        "Lease").ConfigureAwait(false);
+
+                                    logger.LogInformation(
+                                        "Successfully deployed lease schema for database: {DatabaseName}",
+                                        db.Name);
+                                }
+                                catch (Exception ex)
+                                {
+                                    logger.LogError(
+                                        ex,
+                                        "Failed to deploy lease schema for database: {DatabaseName}. Leases may fail on first use.",
+                                        db.Name);
+                                }
+                            }
+                        });
+                    }
                 }
             }
         }
-        
-        return this.cachedFactories;
+
+        return cachedFactories;
     }
 
     public string GetFactoryIdentifier(ISystemLeaseFactory factory)
     {
-        // Find the database name for this factory
-        foreach (var kvp in this.factoriesByKey)
+        if (identifiersByFactory.TryGetValue(factory, out var id))
         {
-            if (ReferenceEquals(kvp.Value, factory))
-            {
-                return kvp.Key;
-            }
+            return id;
         }
-        
+
         return "unknown";
     }
 
     public async Task<ISystemLeaseFactory?> GetFactoryByKeyAsync(string key, CancellationToken cancellationToken = default)
     {
-        if (this.cachedFactories == null)
+        if (string.IsNullOrWhiteSpace(key))
         {
-            await GetAllFactoriesAsync(cancellationToken).ConfigureAwait(false); // Initialize factories
+            return null;
         }
-        
-        return this.factoriesByKey.TryGetValue(key, out var factory)
+
+        if (cachedFactories == null)
+        {
+            await GetAllFactoriesAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        return factoriesByKey.TryGetValue(key, out var factory)
             ? factory
             : null;
+    }
+
+    private static bool IsSameConnection(string a, string b)
+    {
+        try
+        {
+            var builderA = new SqlConnectionStringBuilder(a);
+            var builderB = new SqlConnectionStringBuilder(b);
+
+            return string.Equals(builderA.DataSource, builderB.DataSource, StringComparison.OrdinalIgnoreCase)
+                   && string.Equals(builderA.InitialCatalog, builderB.InitialCatalog, StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+        }
     }
 }

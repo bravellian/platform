@@ -12,14 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
 using Cronos;
 using Dapper;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
-using System.Threading;
-using System.Threading.Tasks;
+
+namespace Bravellian.Platform;
 
 internal class SqlSchedulerService : BackgroundService
 {
@@ -41,17 +39,23 @@ internal class SqlSchedulerService : BackgroundService
     private readonly string schedulerStateUpdateSql;
     private readonly string createJobRunsSql;
 
-    public SqlSchedulerService(ISystemLeaseFactory leaseFactory, IOutbox outbox, IOptions<SqlSchedulerOptions> options, TimeProvider timeProvider, IDatabaseSchemaCompletion? schemaCompletion = null)
+    public SqlSchedulerService(
+        ISystemLeaseFactory leaseFactory,
+        IOutboxRouter outboxRouter,
+        IOutboxStoreProvider outboxStoreProvider,
+        SqlSchedulerOptions options,
+        TimeProvider timeProvider,
+        IDatabaseSchemaCompletion? schemaCompletion = null)
     {
         this.leaseFactory = leaseFactory;
-        this.outbox = outbox;
+        outbox = ResolveOutbox(outboxRouter, outboxStoreProvider);
         this.schemaCompletion = schemaCompletion;
-        this.options = options.Value;
-        this.connectionString = this.options.ConnectionString;
+        this.options = options;
+        connectionString = options.ConnectionString;
         this.timeProvider = timeProvider;
 
         // Build SQL queries using configured schema and table names
-        this.claimTimersSql = $"""
+        claimTimersSql = $"""
 
                         UPDATE [{this.options.SchemaName}].[{this.options.TimersTableName}]
                         SET Status = 'Claimed', ClaimedBy = @InstanceId, ClaimedAt = SYSDATETIMEOFFSET()
@@ -64,7 +68,7 @@ internal class SqlSchedulerService : BackgroundService
                         );
             """;
 
-        this.claimJobsSql = $"""
+        claimJobsSql = $"""
 
                         UPDATE [{this.options.SchemaName}].[{this.options.JobRunsTableName}]
                         SET Status = 'Claimed', ClaimedBy = @InstanceId, ClaimedAt = SYSDATETIMEOFFSET()
@@ -79,7 +83,7 @@ internal class SqlSchedulerService : BackgroundService
                         );
             """;
 
-        this.getNextEventTimeSql = $"""
+        getNextEventTimeSql = $"""
 
                         SELECT MIN(NextDue)
                         FROM (
@@ -92,7 +96,7 @@ internal class SqlSchedulerService : BackgroundService
             """;
 
         // SQL to update the fencing token state for scheduler operations
-        this.schedulerStateUpdateSql = $"""
+        schedulerStateUpdateSql = $"""
 
                         MERGE [{this.options.SchemaName}].[SchedulerState] AS target
                         USING (VALUES (1, @FencingToken, @LastRunAt)) AS source (Id, FencingToken, LastRunAt)
@@ -103,7 +107,7 @@ internal class SqlSchedulerService : BackgroundService
                             INSERT (Id, CurrentFencingToken, LastRunAt) VALUES (1, @FencingToken, @LastRunAt);
             """;
 
-        this.createJobRunsSql = $"""
+        createJobRunsSql = $"""
 
                         WITH DueJobs AS (
                             SELECT Id, CronSchedule
@@ -127,11 +131,11 @@ internal class SqlSchedulerService : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         // Wait for schema deployment to complete if available
-        if (this.schemaCompletion != null)
+        if (schemaCompletion != null)
         {
             try
             {
-                await this.schemaCompletion.SchemaDeploymentCompleted.ConfigureAwait(false);
+                await schemaCompletion.SchemaDeploymentCompleted.ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -142,7 +146,7 @@ internal class SqlSchedulerService : BackgroundService
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            await this.SchedulerLoopAsync(stoppingToken).ConfigureAwait(false);
+            await SchedulerLoopAsync(stoppingToken).ConfigureAwait(false);
             await Task.Delay(30_000, stoppingToken).ConfigureAwait(false); // Poll every 30 seconds
         }
     }
@@ -152,7 +156,7 @@ internal class SqlSchedulerService : BackgroundService
         TimeSpan sleepDuration;
 
         // Try to acquire a lease for scheduler processing
-        var lease = await this.leaseFactory.AcquireAsync(
+        var lease = await leaseFactory.AcquireAsync(
             "scheduler:run",
             TimeSpan.FromSeconds(30),
             cancellationToken: cancellationToken).ConfigureAwait(false);
@@ -161,7 +165,7 @@ internal class SqlSchedulerService : BackgroundService
         {
             // Could not get the lease. Another instance is running.
             // We'll wait a bit before trying again to avoid hammering the DB for the lock.
-            await Task.Delay(this.maxWaitTime, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(maxWaitTime, cancellationToken).ConfigureAwait(false);
             return;
         }
 
@@ -172,30 +176,30 @@ internal class SqlSchedulerService : BackgroundService
                 // LEASE ACQUIRED: We are the active scheduler instance.
 
                 // Update the fencing state to indicate we're the current scheduler
-                using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.connectionString);
+                using var connection = new Microsoft.Data.SqlClient.SqlConnection(connectionString);
                 await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-                await connection.ExecuteAsync(this.schedulerStateUpdateSql, new
+                await connection.ExecuteAsync(schedulerStateUpdateSql, new
                 {
                     FencingToken = lease.FencingToken,
-                    LastRunAt = this.timeProvider.GetUtcNow(),
+                    LastRunAt = timeProvider.GetUtcNow(),
                 }).ConfigureAwait(false);
 
                 // 1. Process any work that is currently due.
-                await this.DispatchDueWorkAsync(lease).ConfigureAwait(false);
+                await DispatchDueWorkAsync(lease).ConfigureAwait(false);
 
                 // 2. Find the time of the next scheduled event.
-                var nextEventTime = await this.GetNextEventTimeAsync().ConfigureAwait(false);
+                var nextEventTime = await GetNextEventTimeAsync().ConfigureAwait(false);
 
                 // 3. Calculate the hybrid sleep duration.
                 if (nextEventTime == null)
                 {
                     // No work is scheduled at all. Sleep for the max wait time.
-                    sleepDuration = this.maxWaitTime;
+                    sleepDuration = maxWaitTime;
                 }
                 else
                 {
-                    var timeUntilNextEvent = nextEventTime.Value - this.timeProvider.GetUtcNow();
+                    var timeUntilNextEvent = nextEventTime.Value - timeProvider.GetUtcNow();
                     if (timeUntilNextEvent <= TimeSpan.Zero)
                     {
                         // Work is already due or overdue. Don't sleep.
@@ -204,7 +208,7 @@ internal class SqlSchedulerService : BackgroundService
                     else
                     {
                         // Sleep until the next event OR max wait time, whichever is shorter.
-                        sleepDuration = timeUntilNextEvent < this.maxWaitTime ? timeUntilNextEvent : this.maxWaitTime;
+                        sleepDuration = timeUntilNextEvent < maxWaitTime ? timeUntilNextEvent : maxWaitTime;
                     }
                 }
             }
@@ -224,7 +228,7 @@ internal class SqlSchedulerService : BackgroundService
 
     private async Task DispatchDueWorkAsync(ISystemLease lease)
     {
-        using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.connectionString);
+        using var connection = new Microsoft.Data.SqlClient.SqlConnection(connectionString);
         await connection.OpenAsync().ConfigureAwait(false);
 
         // 1. Start a single transaction for the entire dispatch operation.
@@ -235,13 +239,13 @@ internal class SqlSchedulerService : BackgroundService
             lease.ThrowIfLost();
 
             // 1. Create job runs from any due job definitions.
-            await this.CreateJobRunsFromDueJobsAsync(transaction, lease).ConfigureAwait(false);
+            await CreateJobRunsFromDueJobsAsync(transaction, lease).ConfigureAwait(false);
 
             // 2. Process due timers.
-            await this.DispatchTimersAsync(transaction, lease).ConfigureAwait(false);
+            await DispatchTimersAsync(transaction, lease).ConfigureAwait(false);
 
             // 3. Process due job runs.
-            await this.DispatchJobRunsAsync(transaction, lease).ConfigureAwait(false);
+            await DispatchJobRunsAsync(transaction, lease).ConfigureAwait(false);
 
             // 4. If all operations succeed, commit the transaction.
             transaction.Commit();
@@ -263,12 +267,12 @@ internal class SqlSchedulerService : BackgroundService
     {
         var findDueJobsSql = $"""
 
-                        SELECT Id, CronSchedule FROM [{this.options.SchemaName}].[{this.options.JobsTableName}]
+                        SELECT Id, CronSchedule FROM [{options.SchemaName}].[{options.JobsTableName}]
                         WHERE NextDueTime <= @Now;
             """;
 
         var dueJobs = (await transaction.Connection.QueryAsync<(Guid Id, string CronSchedule)>(
-            findDueJobsSql, new { Now = this.timeProvider.GetUtcNow() }, transaction).ConfigureAwait(false)).AsList();
+            findDueJobsSql, new { Now = timeProvider.GetUtcNow() }, transaction).ConfigureAwait(false)).AsList();
 
         if (!dueJobs.Any())
         {
@@ -279,7 +283,7 @@ internal class SqlSchedulerService : BackgroundService
 
         var runsToInsert = new List<object>();
         var jobsToUpdate = new List<object>();
-        var now = this.timeProvider.GetUtcNow();
+        var now = timeProvider.GetUtcNow();
 
         foreach (var job in dueJobs)
         {
@@ -308,7 +312,7 @@ internal class SqlSchedulerService : BackgroundService
 
         var insertRunSql = $"""
 
-                        INSERT INTO [{this.options.SchemaName}].[{this.options.JobRunsTableName}] (Id, JobId, ScheduledTime, Status)
+                        INSERT INTO [{options.SchemaName}].[{options.JobRunsTableName}] (Id, JobId, ScheduledTime, Status)
                         VALUES (@RunId, @JobId, @ScheduledTime, 'Pending');
             """;
 
@@ -316,7 +320,7 @@ internal class SqlSchedulerService : BackgroundService
 
         var updateJobSql = $"""
 
-                        UPDATE [{this.options.SchemaName}].[{this.options.JobsTableName}]
+                        UPDATE [{options.SchemaName}].[{options.JobsTableName}]
                         SET NextDueTime = @NextDueTime
                         WHERE Id = @JobId;
             """;
@@ -330,7 +334,7 @@ internal class SqlSchedulerService : BackgroundService
         // updates their status to 'Claimed', and immediately returns the data
         // of the rows that it successfully updated. This prevents any race conditions.
         var dueTimers = await transaction.Connection.QueryAsync<(Guid Id, string Topic, string Payload)>(
-            this.claimTimersSql, new { InstanceId = this.instanceId, FencingToken = lease.FencingToken }, transaction).ConfigureAwait(false);
+            claimTimersSql, new { InstanceId = instanceId, FencingToken = lease.FencingToken }, transaction).ConfigureAwait(false);
 
         SchedulerMetrics.TimersDispatched.Add(dueTimers.Count());
 
@@ -340,7 +344,7 @@ internal class SqlSchedulerService : BackgroundService
             lease.ThrowIfLost();
 
             // For each claimed timer, enqueue it into the outbox for a worker to process.
-            await this.outbox.EnqueueAsync(
+            await outbox.EnqueueAsync(
                 topic: timer.Topic,
                 payload: timer.Payload,
                 transaction: transaction,
@@ -354,7 +358,7 @@ internal class SqlSchedulerService : BackgroundService
     {
         // The logic is identical to timers, just operating on the JobRuns table.
         var dueJobs = await transaction.Connection.QueryAsync<(Guid Id, Guid JobId, string Topic, string Payload)>(
-            this.claimJobsSql, new { InstanceId = this.instanceId, FencingToken = lease.FencingToken }, transaction).ConfigureAwait(false);
+            claimJobsSql, new { InstanceId = instanceId, FencingToken = lease.FencingToken }, transaction).ConfigureAwait(false);
 
         SchedulerMetrics.JobsDispatched.Add(dueJobs.Count());
 
@@ -363,7 +367,7 @@ internal class SqlSchedulerService : BackgroundService
             // Check that we still hold the lease before processing each job
             lease.ThrowIfLost();
 
-            await this.outbox.EnqueueAsync(
+            await outbox.EnqueueAsync(
                 topic: job.Topic,
                 payload: job.Payload ?? string.Empty, // The payload from the Job definition is passed on.
                 transaction: transaction,
@@ -375,7 +379,25 @@ internal class SqlSchedulerService : BackgroundService
 
     private async Task<DateTimeOffset?> GetNextEventTimeAsync()
     {
-        using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.connectionString);
-        return await connection.ExecuteScalarAsync<DateTimeOffset?>(this.getNextEventTimeSql).ConfigureAwait(false);
+        using var connection = new Microsoft.Data.SqlClient.SqlConnection(connectionString);
+        return await connection.ExecuteScalarAsync<DateTimeOffset?>(getNextEventTimeSql).ConfigureAwait(false);
+    }
+
+    private static IOutbox ResolveOutbox(IOutboxRouter router, IOutboxStoreProvider storeProvider)
+    {
+        var stores = storeProvider.GetAllStoresAsync().GetAwaiter().GetResult();
+
+        if (stores.Count == 0)
+        {
+            throw new InvalidOperationException("No outbox stores are configured for the scheduler. Configure at least one store or use the multi-scheduler pipeline.");
+        }
+
+        if (stores.Count > 1)
+        {
+            throw new InvalidOperationException("Multiple outbox stores detected. SqlSchedulerService supports a single database; use MultiSchedulerDispatcher for multi-database setups.");
+        }
+
+        var key = storeProvider.GetStoreIdentifier(stores[0]);
+        return router.GetOutbox(key);
     }
 }

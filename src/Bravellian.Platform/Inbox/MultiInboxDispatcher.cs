@@ -12,11 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
-using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// Dispatches inbox messages across multiple databases/tenants using a pluggable
 /// selection strategy to determine which inbox to poll next.
@@ -49,7 +48,7 @@ internal sealed class MultiInboxDispatcher
         this.selectionStrategy = selectionStrategy;
         this.resolver = resolver;
         this.logger = logger;
-        this.backoffPolicy = backoffPolicy ?? InboxDispatcher.DefaultBackoff;
+        this.backoffPolicy = backoffPolicy ?? DefaultBackoff;
         this.maxAttempts = maxAttempts;
         this.leaseSeconds = leaseSeconds;
     }
@@ -65,34 +64,34 @@ internal sealed class MultiInboxDispatcher
     /// <returns>Number of messages processed.</returns>
     public async Task<int> RunOnceAsync(int batchSize, CancellationToken cancellationToken)
     {
-        var stores = await this.storeProvider.GetAllStoresAsync().ConfigureAwait(false);
+        var stores = await storeProvider.GetAllStoresAsync().ConfigureAwait(false);
 
         if (stores.Count == 0)
         {
-            this.logger.LogDebug("No inbox work stores available for processing");
+            logger.LogDebug("No inbox work stores available for processing");
             return 0;
         }
 
         // Use the selection strategy to pick the next store
         IInboxWorkStore? selectedStore;
-        lock (this.stateLock)
+        lock (stateLock)
         {
-            selectedStore = this.selectionStrategy.SelectNext(
+            selectedStore = selectionStrategy.SelectNext(
                 stores,
-                this.lastProcessedStore,
-                this.lastProcessedCount);
+                lastProcessedStore,
+                lastProcessedCount);
         }
 
         if (selectedStore == null)
         {
-            this.logger.LogDebug("Selection strategy returned no store to process");
+            logger.LogDebug("Selection strategy returned no store to process");
             return 0;
         }
 
-        var storeIdentifier = this.storeProvider.GetStoreIdentifier(selectedStore);
+        var storeIdentifier = storeProvider.GetStoreIdentifier(selectedStore);
         var ownerToken = Guid.NewGuid();
 
-        this.logger.LogDebug(
+        logger.LogDebug(
             "Processing inbox messages from store '{StoreIdentifier}' with batch size {BatchSize} and owner {OwnerToken}",
             storeIdentifier,
             batchSize,
@@ -101,17 +100,17 @@ internal sealed class MultiInboxDispatcher
         try
         {
             // Claim messages with a lease
-            var claimedIds = await selectedStore.ClaimAsync(ownerToken, this.leaseSeconds, batchSize, cancellationToken).ConfigureAwait(false);
+            var claimedIds = await selectedStore.ClaimAsync(ownerToken, leaseSeconds, batchSize, cancellationToken).ConfigureAwait(false);
 
             if (claimedIds.Count == 0)
             {
-                this.logger.LogDebug("No messages claimed from store '{StoreIdentifier}'", storeIdentifier);
-                this.lastProcessedStore = selectedStore;
-                this.lastProcessedCount = 0;
+                logger.LogDebug("No messages claimed from store '{StoreIdentifier}'", storeIdentifier);
+                lastProcessedStore = selectedStore;
+                lastProcessedCount = 0;
                 return 0;
             }
 
-            this.logger.LogInformation(
+            logger.LogInformation(
                 "Processing {MessageCount} inbox messages from store '{StoreIdentifier}'",
                 claimedIds.Count,
                 storeIdentifier);
@@ -122,7 +121,7 @@ internal sealed class MultiInboxDispatcher
             // Process each claimed message
             foreach (var messageId in claimedIds)
             {
-                var wasHandled = await this.ProcessSingleMessageAsync(
+                var wasHandled = await ProcessSingleMessageAsync(
                     selectedStore,
                     storeIdentifier,
                     ownerToken,
@@ -143,7 +142,7 @@ internal sealed class MultiInboxDispatcher
             if (succeeded.Count > 0)
             {
                 await selectedStore.AckAsync(ownerToken, succeeded, cancellationToken).ConfigureAwait(false);
-                this.logger.LogDebug(
+                logger.LogDebug(
                     "Acknowledged {SucceededCount} successfully processed inbox messages from store '{StoreIdentifier}'",
                     succeeded.Count,
                     storeIdentifier);
@@ -152,7 +151,7 @@ internal sealed class MultiInboxDispatcher
             // Handle failed messages
             if (failed.Count > 0)
             {
-                await this.HandleFailedMessagesAsync(
+                await HandleFailedMessagesAsync(
                     selectedStore,
                     storeIdentifier,
                     ownerToken,
@@ -160,24 +159,24 @@ internal sealed class MultiInboxDispatcher
                     cancellationToken).ConfigureAwait(false);
             }
 
-            this.logger.LogInformation(
+            logger.LogInformation(
                 "Completed inbox batch processing from store '{StoreIdentifier}': {TotalProcessed} messages, {Succeeded} succeeded, {Failed} failed",
                 storeIdentifier,
                 claimedIds.Count,
                 succeeded.Count,
                 failed.Count);
 
-            lock (this.stateLock)
+            lock (stateLock)
             {
-                this.lastProcessedStore = selectedStore;
-                this.lastProcessedCount = claimedIds.Count;
+                lastProcessedStore = selectedStore;
+                lastProcessedCount = claimedIds.Count;
             }
 
             return claimedIds.Count;
         }
         catch (Exception ex)
         {
-            this.logger.LogError(
+            logger.LogError(
                 ex,
                 "Failed to process inbox batch from store '{StoreIdentifier}' with owner {OwnerToken}",
                 storeIdentifier,
@@ -200,7 +199,7 @@ internal sealed class MultiInboxDispatcher
             // Get the full message details
             var message = await store.GetAsync(messageId, cancellationToken).ConfigureAwait(false);
 
-            this.logger.LogDebug(
+            logger.LogDebug(
                 "Processing inbox message {MessageId} with topic '{Topic}' from store '{StoreIdentifier}' (attempt {Attempt})",
                 message.MessageId,
                 message.Topic,
@@ -211,11 +210,11 @@ internal sealed class MultiInboxDispatcher
             IInboxHandler handler;
             try
             {
-                handler = this.resolver.GetHandler(message.Topic);
+                handler = resolver.GetHandler(message.Topic);
             }
             catch (InvalidOperationException)
             {
-                this.logger.LogWarning(
+                logger.LogWarning(
                     "No handler registered for topic '{Topic}' - marking message {MessageId} from store '{StoreIdentifier}' as dead",
                     message.Topic,
                     message.MessageId,
@@ -227,7 +226,7 @@ internal sealed class MultiInboxDispatcher
             // Execute the handler
             await handler.HandleAsync(message, cancellationToken).ConfigureAwait(false);
 
-            this.logger.LogDebug(
+            logger.LogDebug(
                 "Successfully processed inbox message {MessageId} with topic '{Topic}' from store '{StoreIdentifier}' in {ElapsedMs}ms",
                 message.MessageId,
                 message.Topic,
@@ -238,7 +237,7 @@ internal sealed class MultiInboxDispatcher
         }
         catch (Exception ex)
         {
-            this.logger.LogWarning(
+            logger.LogWarning(
                 ex,
                 "Handler failed for inbox message {MessageId} from store '{StoreIdentifier}': {ErrorMessage}",
                 messageId,
@@ -269,19 +268,19 @@ internal sealed class MultiInboxDispatcher
             {
                 var message = await store.GetAsync(messageId, cancellationToken).ConfigureAwait(false);
 
-                if (message.Attempt >= this.maxAttempts)
+                if (message.Attempt >= maxAttempts)
                 {
-                    this.logger.LogWarning(
+                    logger.LogWarning(
                         "Inbox message {MessageId} from store '{StoreIdentifier}' has reached max attempts ({MaxAttempts}), marking as dead",
                         messageId,
                         storeIdentifier,
-                        this.maxAttempts);
+                        maxAttempts);
                     toFail.Add(messageId);
                 }
                 else
                 {
-                    var delay = this.backoffPolicy(message.Attempt + 1);
-                    this.logger.LogDebug(
+                    var delay = backoffPolicy(message.Attempt + 1);
+                    logger.LogDebug(
                         "Inbox message {MessageId} from store '{StoreIdentifier}' will be retried after {DelayMs}ms delay (attempt {NextAttempt})",
                         messageId,
                         storeIdentifier,
@@ -292,7 +291,7 @@ internal sealed class MultiInboxDispatcher
             }
             catch (Exception ex)
             {
-                this.logger.LogError(
+                logger.LogError(
                     ex,
                     "Failed to determine retry policy for message {MessageId} from store '{StoreIdentifier}', abandoning for retry",
                     messageId,
@@ -312,5 +311,18 @@ internal sealed class MultiInboxDispatcher
         {
             await store.FailAsync(ownerToken, toFail, "Maximum retry attempts exceeded", cancellationToken).ConfigureAwait(false);
         }
+    }
+
+    /// <summary>
+    /// Default exponential backoff policy with jitter used when no custom policy is supplied.
+    /// Mirrors the previous single-database implementation.
+    /// </summary>
+    /// <param name="attempt">1-based attempt number.</param>
+    /// <returns>Delay before next attempt.</returns>
+    internal static TimeSpan DefaultBackoff(int attempt)
+    {
+        var baseMs = Math.Min(60_000, (int)(Math.Pow(2, Math.Min(10, attempt)) * 250)); // 250ms, 500ms, 1s, ...
+        var jitter = Random.Shared.Next(0, 250);
+        return TimeSpan.FromMilliseconds(baseMs + jitter);
     }
 }

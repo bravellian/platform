@@ -12,15 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
+using System.Data;
 using Cronos;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Options;
-using System;
-using System.Data;
-using System.Threading.Tasks;
+
+namespace Bravellian.Platform;
 
 internal class SqlSchedulerClient : ISchedulerClient
 {
@@ -39,15 +38,15 @@ internal class SqlSchedulerClient : ISchedulerClient
     public SqlSchedulerClient(IOptions<SqlSchedulerOptions> options, TimeProvider timeProvider)
     {
         this.options = options.Value;
-        this.connectionString = this.options.ConnectionString;
+        connectionString = this.options.ConnectionString;
         this.timeProvider = timeProvider;
 
         // Build SQL queries using configured schema and table names
-        this.insertTimerSql = $"INSERT INTO [{this.options.SchemaName}].[{this.options.TimersTableName}] (Id, Topic, Payload, DueTime) VALUES (@Id, @Topic, @Payload, @DueTime);";
+        insertTimerSql = $"INSERT INTO [{this.options.SchemaName}].[{this.options.TimersTableName}] (Id, Topic, Payload, DueTime) VALUES (@Id, @Topic, @Payload, @DueTime);";
 
-        this.cancelTimerSql = $"UPDATE [{this.options.SchemaName}].[{this.options.TimersTableName}] SET Status = 'Cancelled' WHERE Id = @TimerId AND Status = 'Pending';";
+        cancelTimerSql = $"UPDATE [{this.options.SchemaName}].[{this.options.TimersTableName}] SET Status = 'Cancelled' WHERE Id = @TimerId AND Status = 'Pending';";
 
-        this.mergeJobSql = $"""
+        mergeJobSql = $"""
 
                         MERGE [{this.options.SchemaName}].[{this.options.JobsTableName}] AS target
                         USING (SELECT @JobName AS JobName) AS source
@@ -59,11 +58,11 @@ internal class SqlSchedulerClient : ISchedulerClient
                             VALUES (NEWID(), @JobName, @Topic, @CronSchedule, @Payload, @NextDueTime);
             """;
 
-        this.deleteJobRunsSql = $"DELETE FROM [{this.options.SchemaName}].[{this.options.JobRunsTableName}] WHERE JobId = (SELECT Id FROM [{this.options.SchemaName}].[{this.options.JobsTableName}] WHERE JobName = @JobName);";
+        deleteJobRunsSql = $"DELETE FROM [{this.options.SchemaName}].[{this.options.JobRunsTableName}] WHERE JobId = (SELECT Id FROM [{this.options.SchemaName}].[{this.options.JobsTableName}] WHERE JobName = @JobName);";
 
-        this.deleteJobSql = $"DELETE FROM [{this.options.SchemaName}].[{this.options.JobsTableName}] WHERE JobName = @JobName;";
+        deleteJobSql = $"DELETE FROM [{this.options.SchemaName}].[{this.options.JobsTableName}] WHERE JobName = @JobName;";
 
-        this.triggerJobSql = $"""
+        triggerJobSql = $"""
 
                         INSERT INTO [{this.options.SchemaName}].[{this.options.JobRunsTableName}] (Id, JobId, ScheduledTime)
                         SELECT NEWID(), Id, SYSDATETIMEOFFSET() FROM [{this.options.SchemaName}].[{this.options.JobsTableName}] WHERE JobName = @JobName;
@@ -73,10 +72,10 @@ internal class SqlSchedulerClient : ISchedulerClient
     public async Task<string> ScheduleTimerAsync(string topic, string payload, DateTimeOffset dueTime, CancellationToken cancellationToken)
     {
         var timerId = Guid.NewGuid();
-        using (var connection = new SqlConnection(this.connectionString))
+        using (var connection = new SqlConnection(connectionString))
         {
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-            var command = new CommandDefinition(this.insertTimerSql, new { Id = timerId, Topic = topic, Payload = payload, DueTime = dueTime }, cancellationToken: cancellationToken);
+            var command = new CommandDefinition(insertTimerSql, new { Id = timerId, Topic = topic, Payload = payload, DueTime = dueTime }, cancellationToken: cancellationToken);
             await connection.ExecuteAsync(command).ConfigureAwait(false);
         }
 
@@ -85,10 +84,10 @@ internal class SqlSchedulerClient : ISchedulerClient
 
     public async Task<bool> CancelTimerAsync(string timerId, CancellationToken cancellationToken)
     {
-        using (var connection = new SqlConnection(this.connectionString))
+        using (var connection = new SqlConnection(connectionString))
         {
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-            var command = new CommandDefinition(this.cancelTimerSql, new { TimerId = timerId }, cancellationToken: cancellationToken);
+            var command = new CommandDefinition(cancelTimerSql, new { TimerId = timerId }, cancellationToken: cancellationToken);
             var rowsAffected = await connection.ExecuteAsync(command).ConfigureAwait(false);
             return rowsAffected > 0;
         }
@@ -96,7 +95,7 @@ internal class SqlSchedulerClient : ISchedulerClient
 
     public async Task CreateOrUpdateJobAsync(string jobName, string topic, string cronSchedule, CancellationToken cancellationToken)
     {
-        await this.CreateOrUpdateJobAsync(jobName, topic, cronSchedule, null, cancellationToken).ConfigureAwait(false);
+        await CreateOrUpdateJobAsync(jobName, topic, cronSchedule, null, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task CreateOrUpdateJobAsync(string jobName, string topic, string cronSchedule, string? payload, CancellationToken cancellationToken)
@@ -107,29 +106,29 @@ internal class SqlSchedulerClient : ISchedulerClient
             : CronFormat.Standard;
 
         var cronExpression = CronExpression.Parse(cronSchedule, format);
-        var nextDueTime = cronExpression.GetNextOccurrence(this.timeProvider.GetUtcNow().UtcDateTime);
+        var nextDueTime = cronExpression.GetNextOccurrence(timeProvider.GetUtcNow().UtcDateTime);
 
         // MERGE is a great way to handle "UPSERT" logic atomically in SQL Server.
-        using (var connection = new SqlConnection(this.connectionString))
+        using (var connection = new SqlConnection(connectionString))
         {
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-            var command = new CommandDefinition(this.mergeJobSql, new { JobName = jobName, Topic = topic, CronSchedule = cronSchedule, Payload = payload, NextDueTime = nextDueTime }, cancellationToken: cancellationToken);
+            var command = new CommandDefinition(mergeJobSql, new { JobName = jobName, Topic = topic, CronSchedule = cronSchedule, Payload = payload, NextDueTime = nextDueTime }, cancellationToken: cancellationToken);
             await connection.ExecuteAsync(command).ConfigureAwait(false);
         }
     }
 
     public async Task DeleteJobAsync(string jobName, CancellationToken cancellationToken)
     {
-        using (var connection = new SqlConnection(this.connectionString))
+        using (var connection = new SqlConnection(connectionString))
         {
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
             using (var transaction = connection.BeginTransaction())
             {
                 // Must delete runs before the job definition due to foreign key
-                var deleteRunsCommand = new CommandDefinition(this.deleteJobRunsSql, new { JobName = jobName }, transaction, cancellationToken: cancellationToken);
+                var deleteRunsCommand = new CommandDefinition(deleteJobRunsSql, new { JobName = jobName }, transaction, cancellationToken: cancellationToken);
                 await connection.ExecuteAsync(deleteRunsCommand).ConfigureAwait(false);
 
-                var deleteJobCommand = new CommandDefinition(this.deleteJobSql, new { JobName = jobName }, transaction, cancellationToken: cancellationToken);
+                var deleteJobCommand = new CommandDefinition(deleteJobSql, new { JobName = jobName }, transaction, cancellationToken: cancellationToken);
                 await connection.ExecuteAsync(deleteJobCommand).ConfigureAwait(false);
 
                 await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
@@ -140,10 +139,10 @@ internal class SqlSchedulerClient : ISchedulerClient
     public async Task TriggerJobAsync(string jobName, CancellationToken cancellationToken)
     {
         // Creates a new run that is due immediately.
-        using (var connection = new SqlConnection(this.connectionString))
+        using (var connection = new SqlConnection(connectionString))
         {
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-            var command = new CommandDefinition(this.triggerJobSql, new { JobName = jobName }, cancellationToken: cancellationToken);
+            var command = new CommandDefinition(triggerJobSql, new { JobName = jobName }, cancellationToken: cancellationToken);
             await connection.ExecuteAsync(command).ConfigureAwait(false);
         }
     }
@@ -156,7 +155,7 @@ internal class SqlSchedulerClient : ISchedulerClient
     {
         var result = new List<Guid>(batchSize);
 
-        var connection = new SqlConnection(this.connectionString);
+        var connection = new SqlConnection(connectionString);
         await using (connection.ConfigureAwait(false))
         {
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
@@ -188,7 +187,7 @@ internal class SqlSchedulerClient : ISchedulerClient
     {
         var result = new List<Guid>(batchSize);
 
-        var connection = new SqlConnection(this.connectionString);
+        var connection = new SqlConnection(connectionString);
         await using (connection.ConfigureAwait(false))
         {
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
@@ -217,7 +216,7 @@ internal class SqlSchedulerClient : ISchedulerClient
         IEnumerable<Guid> ids,
         CancellationToken cancellationToken)
     {
-        await this.ExecuteWithIdsAsync("dbo.Timers_Ack", ownerToken, ids, cancellationToken).ConfigureAwait(false);
+        await ExecuteWithIdsAsync("dbo.Timers_Ack", ownerToken, ids, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task AckJobRunsAsync(
@@ -225,7 +224,7 @@ internal class SqlSchedulerClient : ISchedulerClient
         IEnumerable<Guid> ids,
         CancellationToken cancellationToken)
     {
-        await this.ExecuteWithIdsAsync("dbo.JobRuns_Ack", ownerToken, ids, cancellationToken).ConfigureAwait(false);
+        await ExecuteWithIdsAsync("dbo.JobRuns_Ack", ownerToken, ids, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task AbandonTimersAsync(
@@ -233,7 +232,7 @@ internal class SqlSchedulerClient : ISchedulerClient
         IEnumerable<Guid> ids,
         CancellationToken cancellationToken)
     {
-        await this.ExecuteWithIdsAsync("dbo.Timers_Abandon", ownerToken, ids, cancellationToken).ConfigureAwait(false);
+        await ExecuteWithIdsAsync("dbo.Timers_Abandon", ownerToken, ids, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task AbandonJobRunsAsync(
@@ -241,12 +240,12 @@ internal class SqlSchedulerClient : ISchedulerClient
         IEnumerable<Guid> ids,
         CancellationToken cancellationToken)
     {
-        await this.ExecuteWithIdsAsync("dbo.JobRuns_Abandon", ownerToken, ids, cancellationToken).ConfigureAwait(false);
+        await ExecuteWithIdsAsync("dbo.JobRuns_Abandon", ownerToken, ids, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task ReapExpiredTimersAsync(CancellationToken cancellationToken)
     {
-        var connection = new SqlConnection(this.connectionString);
+        var connection = new SqlConnection(connectionString);
         await using (connection.ConfigureAwait(false))
         {
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
@@ -262,7 +261,7 @@ internal class SqlSchedulerClient : ISchedulerClient
 
     public async Task ReapExpiredJobRunsAsync(CancellationToken cancellationToken)
     {
-        var connection = new SqlConnection(this.connectionString);
+        var connection = new SqlConnection(connectionString);
         await using (connection.ConfigureAwait(false))
         {
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
@@ -295,7 +294,7 @@ internal class SqlSchedulerClient : ISchedulerClient
             tvp.Rows.Add(id);
         }
 
-        var connection = new SqlConnection(this.connectionString);
+        var connection = new SqlConnection(connectionString);
         await using (connection.ConfigureAwait(false))
         {
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
@@ -308,7 +307,7 @@ internal class SqlSchedulerClient : ISchedulerClient
             command.Parameters.AddWithValue("@OwnerToken", ownerToken);
             var parameter = command.Parameters.AddWithValue("@Ids", tvp);
             parameter.SqlDbType = SqlDbType.Structured;
-            parameter.TypeName = $"[{this.options.SchemaName}].[GuidIdList]";
+            parameter.TypeName = $"[{options.SchemaName}].[GuidIdList]";
 
             await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }

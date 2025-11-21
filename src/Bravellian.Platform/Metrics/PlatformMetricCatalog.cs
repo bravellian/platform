@@ -13,9 +13,6 @@
 // limitations under the License.
 
 namespace Bravellian.Platform.Metrics;
-
-using System.Collections.Generic;
-
 /// <summary>
 /// Catalog of predefined platform metrics.
 /// </summary>

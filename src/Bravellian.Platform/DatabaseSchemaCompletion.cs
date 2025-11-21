@@ -13,10 +13,6 @@
 // limitations under the License.
 
 namespace Bravellian.Platform;
-
-using System.Threading;
-using System.Threading.Tasks;
-
 /// <summary>
 /// Singleton service that provides coordination for database schema deployment completion.
 /// This class is separate from the background service to ensure proper dependency injection lifecycle management.
@@ -28,14 +24,14 @@ internal sealed class DatabaseSchemaCompletion : IDatabaseSchemaCompletion
     /// <summary>
     /// Gets a task that completes when database schema deployment is finished.
     /// </summary>
-    public Task SchemaDeploymentCompleted => this.completionSource.Task;
+    public Task SchemaDeploymentCompleted => completionSource.Task;
 
     /// <summary>
     /// Marks the schema deployment as completed successfully.
     /// </summary>
     public void SetCompleted()
     {
-        this.completionSource.SetResult(true);
+        completionSource.SetResult(true);
     }
 
     /// <summary>
@@ -44,7 +40,7 @@ internal sealed class DatabaseSchemaCompletion : IDatabaseSchemaCompletion
     /// <param name="cancellationToken">The cancellation token that was triggered.</param>
     public void SetCancelled(CancellationToken cancellationToken)
     {
-        this.completionSource.SetCanceled(cancellationToken);
+        completionSource.SetCanceled(cancellationToken);
     }
 
     /// <summary>
@@ -53,6 +49,6 @@ internal sealed class DatabaseSchemaCompletion : IDatabaseSchemaCompletion
     /// <param name="exception">The exception that caused the failure.</param>
     public void SetException(System.Exception exception)
     {
-        this.completionSource.SetException(exception);
+        completionSource.SetException(exception);
     }
 }

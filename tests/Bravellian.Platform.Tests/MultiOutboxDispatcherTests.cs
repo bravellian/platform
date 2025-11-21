@@ -257,7 +257,7 @@ public class MultiOutboxDispatcherTests : SqlServerTestBase
             // Simple implementation for testing
             for (int i = 0; i < stores.Count; i++)
             {
-                if ($"Store{i + 1}" == key)
+                if (string.Equals($"Store{i + 1}", key, StringComparison.Ordinal))
                 {
                     return stores[i];
                 }

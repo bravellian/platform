@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
 using Bravellian.Platform.Tests.TestUtilities;
 using Dapper;
 using Microsoft.Extensions.Options;
 
+namespace Bravellian.Platform.Tests;
 /// <summary>
 /// Integration test to demonstrate the complete Inbox functionality working end-to-end.
 /// </summary>
@@ -37,12 +37,12 @@ public class InboxIntegrationTests : SqlServerTestBase
         // Arrange - Create service directly with options
         var options = Options.Create(new SqlInboxOptions
         {
-            ConnectionString = this.ConnectionString,
+            ConnectionString = ConnectionString,
             SchemaName = "dbo",
             TableName = "Inbox",
         });
 
-        var logger = new TestLogger<SqlInboxService>(this.TestOutputHelper);
+        var logger = new TestLogger<SqlInboxService>(TestOutputHelper);
         var inbox = new SqlInboxService(options, logger);
 
         var messageId = "integration-test-message";
@@ -64,7 +64,7 @@ public class InboxIntegrationTests : SqlServerTestBase
         Assert.True(alreadyProcessed2, "Subsequent check should return true");
 
         // Verify the message state in database
-        await this.VerifyMessageState(messageId, "Done", processedUtc: true);
+        await VerifyMessageState(messageId, "Done", processedUtc: true);
     }
 
     [Fact]
@@ -73,12 +73,12 @@ public class InboxIntegrationTests : SqlServerTestBase
         // Arrange
         var options = Options.Create(new SqlInboxOptions
         {
-            ConnectionString = this.ConnectionString,
+            ConnectionString = ConnectionString,
             SchemaName = "dbo",
             TableName = "Inbox",
         });
 
-        var logger = new TestLogger<SqlInboxService>(this.TestOutputHelper);
+        var logger = new TestLogger<SqlInboxService>(TestOutputHelper);
         var inbox = new SqlInboxService(options, logger);
 
         var messageId = "poison-test-message";
@@ -94,7 +94,7 @@ public class InboxIntegrationTests : SqlServerTestBase
         await inbox.MarkDeadAsync(messageId, TestContext.Current.CancellationToken);
 
         // Assert - Verify state
-        await this.VerifyMessageState(messageId, "Dead", processedUtc: false);
+        await VerifyMessageState(messageId, "Dead", processedUtc: false);
     }
 
     [Fact]
@@ -113,12 +113,12 @@ public class InboxIntegrationTests : SqlServerTestBase
             {
                 var options = Options.Create(new SqlInboxOptions
                 {
-                    ConnectionString = this.ConnectionString,
+                    ConnectionString = ConnectionString,
                     SchemaName = "dbo",
                     TableName = "Inbox",
                 });
 
-                var logger = new TestLogger<SqlInboxService>(this.TestOutputHelper);
+                var logger = new TestLogger<SqlInboxService>(TestOutputHelper);
                 var inboxInstance = new SqlInboxService(options, logger);
                 return await inboxInstance.AlreadyProcessedAsync(messageId, source, cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(false);
             }));
@@ -130,7 +130,7 @@ public class InboxIntegrationTests : SqlServerTestBase
         Assert.All(results, result => Assert.False(result));
 
         // Verify only one record exists and attempts were tracked
-        await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
+        await using var connection = new Microsoft.Data.SqlClient.SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var (count, attempts) = await connection.QuerySingleAsync<(int Count, int Attempts)>(
@@ -143,7 +143,7 @@ public class InboxIntegrationTests : SqlServerTestBase
 
     private async Task VerifyMessageState(string messageId, string expectedStatus, bool processedUtc)
     {
-        var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
+        var connection = new Microsoft.Data.SqlClient.SqlConnection(ConnectionString);
         await using (connection.ConfigureAwait(false))
         {
             await connection.OpenAsync(TestContext.Current.CancellationToken);

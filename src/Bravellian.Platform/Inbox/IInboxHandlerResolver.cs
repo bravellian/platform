@@ -36,11 +36,11 @@ internal sealed class InboxHandlerResolver : IInboxHandlerResolver
     private readonly IReadOnlyDictionary<string, IInboxHandler> byTopic;
 
     public InboxHandlerResolver(IEnumerable<IInboxHandler> handlers)
-        => this.byTopic = handlers.ToDictionary(h => h.Topic, StringComparer.OrdinalIgnoreCase);
+        => byTopic = handlers.ToDictionary(h => h.Topic, StringComparer.OrdinalIgnoreCase);
 
     public IInboxHandler GetHandler(string topic)
     {
-        if (!this.byTopic.TryGetValue(topic, out var handler))
+        if (!byTopic.TryGetValue(topic, out var handler))
         {
             throw new InvalidOperationException($"No handler registered for topic '{topic}'");
         }

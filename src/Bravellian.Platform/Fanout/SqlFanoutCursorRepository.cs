@@ -34,7 +34,7 @@ internal sealed class SqlFanoutCursorRepository : IFanoutCursorRepository
     public SqlFanoutCursorRepository(IOptions<SqlFanoutOptions> options)
     {
         this.options = options.Value;
-        this.connectionString = this.options.ConnectionString;
+        connectionString = this.options.ConnectionString;
     }
 
     /// <inheritdoc/>
@@ -42,12 +42,12 @@ internal sealed class SqlFanoutCursorRepository : IFanoutCursorRepository
     {
         // Ensure fanout schema exists before querying
         await DatabaseSchemaManager.EnsureFanoutSchemaAsync(
-            this.connectionString,
-            this.options.SchemaName,
-            this.options.PolicyTableName,
-            this.options.CursorTableName).ConfigureAwait(false);
+            connectionString,
+            options.SchemaName,
+            options.PolicyTableName,
+            options.CursorTableName).ConfigureAwait(false);
 
-        var connection = new SqlConnection(this.connectionString);
+        var connection = new SqlConnection(connectionString);
         await using (connection.ConfigureAwait(false))
         {
             await connection.OpenAsync(ct).ConfigureAwait(false);
@@ -55,7 +55,7 @@ internal sealed class SqlFanoutCursorRepository : IFanoutCursorRepository
             var sql = $"""
 
                         SELECT LastCompletedAt 
-                        FROM [{this.options.SchemaName}].[{this.options.CursorTableName}]
+                        FROM [{options.SchemaName}].[{options.CursorTableName}]
                         WHERE FanoutTopic = @FanoutTopic AND WorkKey = @WorkKey AND ShardKey = @ShardKey
             """;
 
@@ -70,14 +70,14 @@ internal sealed class SqlFanoutCursorRepository : IFanoutCursorRepository
     /// <inheritdoc/>
     public async Task MarkCompletedAsync(string fanoutTopic, string workKey, string shardKey, DateTimeOffset completedAt, CancellationToken ct)
     {
-        var connection = new SqlConnection(this.connectionString);
+        var connection = new SqlConnection(connectionString);
         await using (connection.ConfigureAwait(false))
         {
             await connection.OpenAsync(ct).ConfigureAwait(false);
 
             var sql = $"""
 
-                        MERGE [{this.options.SchemaName}].[{this.options.CursorTableName}] AS target
+                        MERGE [{options.SchemaName}].[{options.CursorTableName}] AS target
                         USING (VALUES (@FanoutTopic, @WorkKey, @ShardKey, @LastCompletedAt)) AS source (FanoutTopic, WorkKey, ShardKey, LastCompletedAt)
                         ON target.FanoutTopic = source.FanoutTopic AND target.WorkKey = source.WorkKey AND target.ShardKey = source.ShardKey
                         WHEN MATCHED THEN

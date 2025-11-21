@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Semaphore;
 
 using System.Text.RegularExpressions;
 
+namespace Bravellian.Platform.Semaphore;
 /// <summary>
 /// Validator for semaphore parameters.
 /// </summary>

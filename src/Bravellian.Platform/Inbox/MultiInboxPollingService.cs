@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// Background service that periodically polls and processes inbox messages from multiple databases.
 /// Uses monotonic clock for consistent polling intervals regardless of system time changes.
@@ -49,57 +49,57 @@ internal sealed class MultiInboxPollingService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        this.logger.LogInformation(
+        logger.LogInformation(
             "Starting multi-inbox polling service with {IntervalMs}ms interval and batch size {BatchSize}",
-            this.intervalSeconds * 1000, this.batchSize);
+            intervalSeconds * 1000, batchSize);
 
         // Wait for schema deployment to complete if available
-        if (this.schemaCompletion != null)
+        if (schemaCompletion != null)
         {
-            this.logger.LogDebug("Waiting for database schema deployment to complete");
+            logger.LogDebug("Waiting for database schema deployment to complete");
             try
             {
-                await this.schemaCompletion.SchemaDeploymentCompleted.ConfigureAwait(false);
-                this.logger.LogInformation("Database schema deployment completed successfully");
+                await schemaCompletion.SchemaDeploymentCompleted.ConfigureAwait(false);
+                logger.LogInformation("Database schema deployment completed successfully");
             }
             catch (Exception ex)
             {
                 // Log and continue - schema deployment errors should not prevent inbox processing
-                this.logger.LogWarning(ex, "Schema deployment failed, but continuing with inbox processing");
+                logger.LogWarning(ex, "Schema deployment failed, but continuing with inbox processing");
             }
         }
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            var next = this.mono.Seconds + this.intervalSeconds;
+            var next = mono.Seconds + intervalSeconds;
 
             try
             {
-                var processedCount = await this.dispatcher.RunOnceAsync(this.batchSize, stoppingToken).ConfigureAwait(false);
+                var processedCount = await dispatcher.RunOnceAsync(batchSize, stoppingToken).ConfigureAwait(false);
                 if (processedCount > 0)
                 {
-                    this.logger.LogDebug("Multi-inbox polling iteration completed: {ProcessedCount} messages processed", processedCount);
+                    logger.LogDebug("Multi-inbox polling iteration completed: {ProcessedCount} messages processed", processedCount);
                 }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
-                this.logger.LogDebug("Multi-inbox polling service stopped due to cancellation");
+                logger.LogDebug("Multi-inbox polling service stopped due to cancellation");
                 break;
             }
             catch (Exception ex)
             {
                 // Log and continue - don't let processing errors stop the service
-                this.logger.LogError(ex, "Error in multi-inbox polling iteration - continuing with next iteration");
+                logger.LogError(ex, "Error in multi-inbox polling iteration - continuing with next iteration");
             }
 
             // Sleep until next interval, using monotonic clock to avoid time jumps
-            var sleep = Math.Max(0, next - this.mono.Seconds);
+            var sleep = Math.Max(0, next - mono.Seconds);
             if (sleep > 0)
             {
                 await Task.Delay(TimeSpan.FromSeconds(sleep), stoppingToken).ConfigureAwait(false);
             }
         }
 
-        this.logger.LogInformation("Multi-inbox polling service stopped");
+        logger.LogInformation("Multi-inbox polling service stopped");
     }
 }

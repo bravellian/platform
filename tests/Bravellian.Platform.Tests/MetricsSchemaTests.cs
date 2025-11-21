@@ -12,14 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
-using Bravellian.Platform;
-using Bravellian.Platform.Metrics;
 using Dapper;
 using Microsoft.Data.SqlClient;
-using Xunit;
 
+namespace Bravellian.Platform.Tests;
 /// <summary>
 /// Integration tests for metrics database schema.
 /// </summary>
@@ -36,13 +33,13 @@ public sealed class MetricsSchemaTests : SqlServerTestBase
         await base.InitializeAsync().ConfigureAwait(false);
 
         // Setup metrics schema
-        await DatabaseSchemaManager.EnsureMetricsSchemaAsync(this.ConnectionString).ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureMetricsSchemaAsync(ConnectionString).ConfigureAwait(false);
     }
 
     [Fact]
     public async Task MetricDef_Table_Should_Exist()
     {
-        using var connection = new SqlConnection(this.ConnectionString);
+        using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync().ConfigureAwait(false);
 
         var exists = await connection.QuerySingleAsync<int>(
@@ -54,7 +51,7 @@ public sealed class MetricsSchemaTests : SqlServerTestBase
     [Fact]
     public async Task MetricSeries_Table_Should_Exist()
     {
-        using var connection = new SqlConnection(this.ConnectionString);
+        using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync().ConfigureAwait(false);
 
         var exists = await connection.QuerySingleAsync<int>(
@@ -66,7 +63,7 @@ public sealed class MetricsSchemaTests : SqlServerTestBase
     [Fact]
     public async Task MetricPointMinute_Table_Should_Exist()
     {
-        using var connection = new SqlConnection(this.ConnectionString);
+        using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync().ConfigureAwait(false);
 
         var exists = await connection.QuerySingleAsync<int>(
@@ -78,7 +75,7 @@ public sealed class MetricsSchemaTests : SqlServerTestBase
     [Fact]
     public async Task SpUpsertSeries_Should_Create_Series()
     {
-        using var connection = new SqlConnection(this.ConnectionString);
+        using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync().ConfigureAwait(false);
 
         var parameters = new DynamicParameters();
@@ -101,7 +98,7 @@ public sealed class MetricsSchemaTests : SqlServerTestBase
     [Fact(Skip = "TODO: Debug SP_GETAPPLOCK behavior in test environment")]
     public async Task SpUpsertMetricPointMinute_Should_Insert_And_Update()
     {
-        using var connection = new SqlConnection(this.ConnectionString);
+        using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync().ConfigureAwait(false);
 
         // First, create a series

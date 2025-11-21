@@ -13,9 +13,6 @@
 // limitations under the License.
 
 namespace Bravellian.Platform.Metrics;
-
-using System;
-
 /// <summary>
 /// Configuration options for the metrics exporter.
 /// </summary>

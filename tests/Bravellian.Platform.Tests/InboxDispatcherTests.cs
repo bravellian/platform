@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
 using Bravellian.Platform.Tests.TestUtilities;
 using Dapper;
 using Microsoft.Extensions.Options;
+
+namespace Bravellian.Platform.Tests;
 
 [Collection(SqlServerCollection.Name)]
 [Trait("Category", "Integration")]
@@ -33,16 +34,16 @@ public class InboxDispatcherTests : SqlServerTestBase
         await base.InitializeAsync().ConfigureAwait(false);
 
         // Ensure inbox work queue schema is set up (stored procedures and types)
-        await DatabaseSchemaManager.EnsureInboxWorkQueueSchemaAsync(this.ConnectionString).ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureInboxWorkQueueSchemaAsync(ConnectionString).ConfigureAwait(false);
     }
 
     [Fact]
     public async Task RunOnceAsync_WithNoMessages_ReturnsZero()
     {
         // Arrange
-        var store = this.CreateInboxWorkStore();
-        var resolver = this.CreateHandlerResolver();
-        var dispatcher = this.CreateDispatcher(store, resolver);
+        var store = CreateInboxWorkStore();
+        var resolver = CreateHandlerResolver();
+        var dispatcher = CreateDispatcher(store, resolver);
 
         // Act
         var processedCount = await dispatcher.RunOnceAsync(batchSize: 10, CancellationToken.None);
@@ -55,10 +56,10 @@ public class InboxDispatcherTests : SqlServerTestBase
     public async Task RunOnceAsync_WithValidMessage_ProcessesSuccessfully()
     {
         // Arrange
-        var inbox = this.CreateInboxService();
-        var store = this.CreateInboxWorkStore();
-        var resolver = this.CreateHandlerResolver(new TestInboxHandler("test-topic"));
-        var dispatcher = this.CreateDispatcher(store, resolver);
+        var inbox = CreateInboxService();
+        var store = CreateInboxWorkStore();
+        var resolver = CreateHandlerResolver(new TestInboxHandler("test-topic"));
+        var dispatcher = CreateDispatcher(store, resolver);
 
         // Enqueue a test message
         await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload", cancellationToken: TestContext.Current.CancellationToken);
@@ -70,7 +71,7 @@ public class InboxDispatcherTests : SqlServerTestBase
         Assert.Equal(1, processedCount);
 
         // Verify message was marked as Done
-        await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
+        await using var connection = new Microsoft.Data.SqlClient.SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var status = await connection.QuerySingleAsync<string>(
@@ -84,10 +85,10 @@ public class InboxDispatcherTests : SqlServerTestBase
     public async Task RunOnceAsync_WithNoHandlerForTopic_MarksMessageAsDead()
     {
         // Arrange
-        var inbox = this.CreateInboxService();
-        var store = this.CreateInboxWorkStore();
-        var resolver = this.CreateHandlerResolver(); // No handlers registered
-        var dispatcher = this.CreateDispatcher(store, resolver);
+        var inbox = CreateInboxService();
+        var store = CreateInboxWorkStore();
+        var resolver = CreateHandlerResolver(); // No handlers registered
+        var dispatcher = CreateDispatcher(store, resolver);
 
         // Enqueue a test message with unknown topic
         await inbox.EnqueueAsync("unknown-topic", "test-source", "msg-2", "test payload", cancellationToken: TestContext.Current.CancellationToken);
@@ -99,7 +100,7 @@ public class InboxDispatcherTests : SqlServerTestBase
         Assert.Equal(1, processedCount);
 
         // Verify message was marked as Dead due to no handler
-        await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
+        await using var connection = new Microsoft.Data.SqlClient.SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var status = await connection.QuerySingleAsync<string>(
@@ -113,11 +114,11 @@ public class InboxDispatcherTests : SqlServerTestBase
     public async Task RunOnceAsync_WithFailingHandler_RetriesWithBackoff()
     {
         // Arrange
-        var inbox = this.CreateInboxService();
-        var store = this.CreateInboxWorkStore();
+        var inbox = CreateInboxService();
+        var store = CreateInboxWorkStore();
         var failingHandler = new FailingInboxHandler("failing-topic", shouldFail: true);
-        var resolver = this.CreateHandlerResolver(failingHandler);
-        var dispatcher = this.CreateDispatcher(store, resolver);
+        var resolver = CreateHandlerResolver(failingHandler);
+        var dispatcher = CreateDispatcher(store, resolver);
 
         // Enqueue a test message
         await inbox.EnqueueAsync("failing-topic", "test-source", "msg-3", "test payload", cancellationToken: TestContext.Current.CancellationToken);
@@ -129,7 +130,7 @@ public class InboxDispatcherTests : SqlServerTestBase
         Assert.Equal(1, processedCount);
 
         // Verify message was abandoned (back to Seen status)
-        await using var connection = new Microsoft.Data.SqlClient.SqlConnection(this.ConnectionString);
+        await using var connection = new Microsoft.Data.SqlClient.SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var status = await connection.QuerySingleAsync<string>(
@@ -143,12 +144,12 @@ public class InboxDispatcherTests : SqlServerTestBase
     {
         var options = Options.Create(new SqlInboxOptions
         {
-            ConnectionString = this.ConnectionString,
+            ConnectionString = ConnectionString,
             SchemaName = "dbo",
             TableName = "Inbox",
         });
 
-        var logger = new TestLogger<SqlInboxService>(this.TestOutputHelper);
+        var logger = new TestLogger<SqlInboxService>(TestOutputHelper);
         return new SqlInboxService(options, logger);
     }
 
@@ -156,12 +157,12 @@ public class InboxDispatcherTests : SqlServerTestBase
     {
         var options = Options.Create(new SqlInboxOptions
         {
-            ConnectionString = this.ConnectionString,
+            ConnectionString = ConnectionString,
             SchemaName = "dbo",
             TableName = "Inbox",
         });
 
-        var logger = new TestLogger<SqlInboxWorkStore>(this.TestOutputHelper);
+        var logger = new TestLogger<SqlInboxWorkStore>(TestOutputHelper);
         return new SqlInboxWorkStore(options, logger);
     }
 
@@ -170,10 +171,31 @@ public class InboxDispatcherTests : SqlServerTestBase
         return new InboxHandlerResolver(handlers);
     }
 
-    private InboxDispatcher CreateDispatcher(IInboxWorkStore store, IInboxHandlerResolver resolver)
+    private MultiInboxDispatcher CreateDispatcher(IInboxWorkStore store, IInboxHandlerResolver resolver)
     {
-        var logger = new TestLogger<InboxDispatcher>(this.TestOutputHelper);
-        return new InboxDispatcher(store, resolver, logger);
+        var provider = new SingleInboxWorkStoreProvider(store);
+        var logger = new TestLogger<MultiInboxDispatcher>(TestOutputHelper);
+        var strategy = new RoundRobinInboxSelectionStrategy();
+        return new MultiInboxDispatcher(provider, strategy, resolver, logger);
+    }
+
+    private sealed class SingleInboxWorkStoreProvider : IInboxWorkStoreProvider
+    {
+        private readonly IInboxWorkStore store;
+
+        public SingleInboxWorkStoreProvider(IInboxWorkStore store)
+        {
+            this.store = store;
+        }
+
+        public Task<IReadOnlyList<IInboxWorkStore>> GetAllStoresAsync() =>
+            Task.FromResult<IReadOnlyList<IInboxWorkStore>>(new[] { store });
+
+        public string GetStoreIdentifier(IInboxWorkStore store) => "default";
+
+        public IInboxWorkStore? GetStoreByKey(string key) => store;
+
+        public IInbox? GetInboxByKey(string key) => null;
     }
 
     /// <summary>
@@ -183,7 +205,7 @@ public class InboxDispatcherTests : SqlServerTestBase
     {
         public TestInboxHandler(string topic)
         {
-            this.Topic = topic;
+            Topic = topic;
         }
 
         public string Topic { get; }
@@ -204,7 +226,7 @@ public class InboxDispatcherTests : SqlServerTestBase
 
         public FailingInboxHandler(string topic, bool shouldFail)
         {
-            this.Topic = topic;
+            Topic = topic;
             this.shouldFail = shouldFail;
         }
 
@@ -212,7 +234,7 @@ public class InboxDispatcherTests : SqlServerTestBase
 
         public Task HandleAsync(InboxMessage message, CancellationToken cancellationToken)
         {
-            if (this.shouldFail)
+            if (shouldFail)
             {
                 throw new InvalidOperationException("Simulated handler failure");
             }

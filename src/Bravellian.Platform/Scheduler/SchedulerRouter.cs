@@ -39,7 +39,7 @@ public sealed class SchedulerRouter : ISchedulerRouter
             throw new ArgumentException("Routing key cannot be null, empty, or whitespace.", nameof(routingKey));
         }
 
-        var client = this.storeProvider.GetSchedulerClientByKey(routingKey);
+        var client = storeProvider.GetSchedulerClientByKey(routingKey);
         if (client == null)
         {
             throw new InvalidOperationException($"No scheduler client found for routing key: {routingKey}");
@@ -51,6 +51,6 @@ public sealed class SchedulerRouter : ISchedulerRouter
     /// <inheritdoc/>
     public ISchedulerClient GetSchedulerClient(Guid routingKey)
     {
-        return this.GetSchedulerClient(routingKey.ToString());
+        return GetSchedulerClient(routingKey.ToString());
     }
 }

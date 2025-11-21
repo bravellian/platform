@@ -12,11 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
-using System;
 using System.Runtime.InteropServices;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// Result of a lease renew operation.
 /// </summary>

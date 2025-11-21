@@ -12,13 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// Scheduler store provider that uses the unified platform database discovery.
 /// </summary>
@@ -30,7 +28,7 @@ internal sealed class PlatformSchedulerStoreProvider : ISchedulerStoreProvider
     private readonly ILogger<PlatformSchedulerStoreProvider> logger;
     private readonly object lockObject = new();
     private IReadOnlyList<ISchedulerStore>? cachedStores;
-    private readonly Dictionary<string, StoreEntry> storesByIdentifier = new();
+    private readonly Dictionary<string, StoreEntry> storesByIdentifier = new(StringComparer.Ordinal);
     private readonly PlatformConfiguration? platformConfiguration;
 
     private class StoreEntry
@@ -50,104 +48,104 @@ internal sealed class PlatformSchedulerStoreProvider : ISchedulerStoreProvider
         this.discovery = discovery;
         this.timeProvider = timeProvider;
         this.loggerFactory = loggerFactory;
-        this.logger = loggerFactory.CreateLogger<PlatformSchedulerStoreProvider>();
+        logger = loggerFactory.CreateLogger<PlatformSchedulerStoreProvider>();
         this.platformConfiguration = platformConfiguration;
     }
 
     public async Task<IReadOnlyList<ISchedulerStore>> GetAllStoresAsync()
     {
-        if (this.cachedStores == null)
+        if (cachedStores == null)
         {
-            var databases = (await this.discovery.DiscoverDatabasesAsync().ConfigureAwait(false)).ToList();
+            var databases = (await discovery.DiscoverDatabasesAsync().ConfigureAwait(false)).ToList();
 
-            lock (this.lockObject)
+            lock (lockObject)
             {
-                if (this.cachedStores == null)
+                if (cachedStores == null)
                 {
                     var stores = new List<ISchedulerStore>();
-            
+
                     foreach (var db in databases)
                     {
-                var store = new SqlSchedulerStore(
-                    Options.Create(new SqlSchedulerOptions
-                    {
-                        ConnectionString = db.ConnectionString,
-                        SchemaName = db.SchemaName,
-                    }),
-                    this.timeProvider);
+                        var store = new SqlSchedulerStore(
+                            Options.Create(new SqlSchedulerOptions
+                            {
+                                ConnectionString = db.ConnectionString,
+                                SchemaName = db.SchemaName,
+                            }),
+                            timeProvider);
 
-                var client = new SqlSchedulerClient(
-                    Options.Create(new SqlSchedulerOptions
-                    {
-                        ConnectionString = db.ConnectionString,
-                        SchemaName = db.SchemaName,
-                    }),
-                    this.timeProvider);
+                        var client = new SqlSchedulerClient(
+                            Options.Create(new SqlSchedulerOptions
+                            {
+                                ConnectionString = db.ConnectionString,
+                                SchemaName = db.SchemaName,
+                            }),
+                            timeProvider);
 
-                var outboxLogger = this.loggerFactory.CreateLogger<SqlOutboxService>();
-                var outbox = new SqlOutboxService(
-                    Options.Create(new SqlOutboxOptions
-                    {
-                        ConnectionString = db.ConnectionString,
-                        SchemaName = db.SchemaName,
-                        TableName = "Outbox",
-                    }),
-                    outboxLogger);
+                        var outboxLogger = loggerFactory.CreateLogger<SqlOutboxService>();
+                        var outbox = new SqlOutboxService(
+                            Options.Create(new SqlOutboxOptions
+                            {
+                                ConnectionString = db.ConnectionString,
+                                SchemaName = db.SchemaName,
+                                TableName = "Outbox",
+                            }),
+                            outboxLogger);
 
-                var entry = new StoreEntry
-                {
-                    Identifier = db.Name,
-                    Store = store,
-                    Client = client,
-                    Outbox = outbox,
-                };
+                        var entry = new StoreEntry
+                        {
+                            Identifier = db.Name,
+                            Store = store,
+                            Client = client,
+                            Outbox = outbox,
+                        };
 
-                    this.storesByIdentifier[db.Name] = entry;
-                    stores.Add(store);
-                }
-            
-                this.cachedStores = stores;
+                        storesByIdentifier[db.Name] = entry;
+                        stores.Add(store);
+                    }
+
+                    cachedStores = stores;
                 }
             }
         }
-        
-        return this.cachedStores;
+
+        return cachedStores;
     }
 
     public string GetStoreIdentifier(ISchedulerStore store)
     {
         // Find the database name for this store
-        foreach (var kvp in this.storesByIdentifier)
+        foreach (var kvp in storesByIdentifier)
         {
             if (ReferenceEquals(kvp.Value.Store, store))
             {
                 return kvp.Key;
             }
         }
-        
+
         return "unknown";
     }
 
     public ISchedulerStore GetStoreByKey(string key)
     {
-        if (this.cachedStores == null)
+        if (cachedStores == null)
         {
-            this.GetAllStoresAsync().GetAwaiter().GetResult(); // Initialize stores
+            GetAllStoresAsync().GetAwaiter().GetResult(); // Initialize stores
         }
-        
-        return this.storesByIdentifier.TryGetValue(key, out var entry)
+
+        return storesByIdentifier.TryGetValue(key, out var entry)
             ? entry.Store
             : throw new KeyNotFoundException($"No scheduler store found for key: {key}");
     }
 
     public ISchedulerClient GetSchedulerByKey(string key)
     {
-        if (this.cachedStores == null)
+        if (cachedStores == null)
         {
-            this.GetAllStoresAsync().GetAwaiter().GetResult(); // Initialize stores
+            GetAllStoresAsync().GetAwaiter().GetResult(); // Initialize stores
         }
-        
-        return this.storesByIdentifier.TryGetValue(key, out var entry)
+
+        return storesByIdentifier.TryGetValue(key, out var entry)
             ? entry.Client
             : throw new KeyNotFoundException($"No scheduler client found for key: {key}");
     }
@@ -160,12 +158,12 @@ internal sealed class PlatformSchedulerStoreProvider : ISchedulerStoreProvider
 
     public IOutbox GetOutboxByKey(string key)
     {
-        if (this.cachedStores == null)
+        if (cachedStores == null)
         {
-            this.GetAllStoresAsync().GetAwaiter().GetResult(); // Initialize stores
+            GetAllStoresAsync().GetAwaiter().GetResult(); // Initialize stores
         }
-        
-        return this.storesByIdentifier.TryGetValue(key, out var entry)
+
+        return storesByIdentifier.TryGetValue(key, out var entry)
             ? entry.Outbox
             : throw new KeyNotFoundException($"No outbox found for key: {key}");
     }

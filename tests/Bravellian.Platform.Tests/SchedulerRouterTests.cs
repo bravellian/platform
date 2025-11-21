@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
 using Bravellian.Platform.Tests.TestUtilities;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Time.Testing;
+
+namespace Bravellian.Platform.Tests;
 
 public class SchedulerRouterTests
 {
@@ -29,7 +29,7 @@ public class SchedulerRouterTests
 
     private ILoggerFactory CreateLoggerFactory()
     {
-        return new TestLoggerFactory(this.testOutputHelper);
+        return new TestLoggerFactory(testOutputHelper);
     }
 
     [Fact]
@@ -53,7 +53,7 @@ public class SchedulerRouterTests
         var provider = new ConfiguredSchedulerStoreProvider(
             configs,
             TimeProvider.System,
-            this.CreateLoggerFactory());
+            CreateLoggerFactory());
 
         var router = new SchedulerRouter(provider);
 
@@ -81,7 +81,7 @@ public class SchedulerRouterTests
         var provider = new ConfiguredSchedulerStoreProvider(
             configs,
             TimeProvider.System,
-            this.CreateLoggerFactory());
+            CreateLoggerFactory());
 
         var router = new SchedulerRouter(provider);
 
@@ -105,7 +105,7 @@ public class SchedulerRouterTests
         var provider = new ConfiguredSchedulerStoreProvider(
             configs,
             TimeProvider.System,
-            this.CreateLoggerFactory());
+            CreateLoggerFactory());
 
         var router = new SchedulerRouter(provider);
 
@@ -130,7 +130,7 @@ public class SchedulerRouterTests
         var provider = new ConfiguredSchedulerStoreProvider(
             configs,
             TimeProvider.System,
-            this.CreateLoggerFactory());
+            CreateLoggerFactory());
 
         var router = new SchedulerRouter(provider);
 
@@ -157,7 +157,7 @@ public class SchedulerRouterTests
 
         public ILogger CreateLogger(string categoryName)
         {
-            return new TestLogger<SchedulerRouter>(this.testOutputHelper);
+            return new TestLogger<SchedulerRouter>(testOutputHelper);
         }
 
         public void Dispose()

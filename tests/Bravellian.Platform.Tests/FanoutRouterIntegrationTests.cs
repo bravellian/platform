@@ -12,12 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
 using Bravellian.Platform.Tests.TestUtilities;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
+namespace Bravellian.Platform.Tests;
 /// <summary>
 /// Tests for multi-database fanout configuration and routing.
 /// </summary>
@@ -32,7 +31,7 @@ public class FanoutRouterIntegrationTests
 
     private ILoggerFactory CreateLoggerFactory()
     {
-        return new TestLoggerFactory(this.testOutputHelper);
+        return new TestLoggerFactory(testOutputHelper);
     }
 
     [Fact]
@@ -59,7 +58,7 @@ public class FanoutRouterIntegrationTests
             },
         };
 
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
 
         // Act - Create the provider using the same logic as the extension method
         var repositoryProvider = new ConfiguredFanoutRepositoryProvider(fanoutOptions, loggerFactory);
@@ -89,7 +88,7 @@ public class FanoutRouterIntegrationTests
         tenant2Cursor.ShouldNotBeNull();
         tenant1Cursor.ShouldNotBe(tenant2Cursor);
 
-        this.testOutputHelper.WriteLine("AddMultiSqlFanout pattern successfully creates functional components");
+        testOutputHelper.WriteLine("AddMultiSqlFanout pattern successfully creates functional components");
     }
 
     [Fact]
@@ -112,7 +111,7 @@ public class FanoutRouterIntegrationTests
             },
         };
 
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
 
         // Act
         var repositoryProvider = new ConfiguredFanoutRepositoryProvider(fanoutOptions, loggerFactory);
@@ -130,7 +129,7 @@ public class FanoutRouterIntegrationTests
         identifier2.ShouldNotBeNullOrWhiteSpace();
         identifier1.ShouldNotBe(identifier2);
 
-        this.testOutputHelper.WriteLine($"Repository identifiers: {identifier1}, {identifier2}");
+        testOutputHelper.WriteLine($"Repository identifiers: {identifier1}, {identifier2}");
     }
 
     [Fact]
@@ -147,7 +146,7 @@ public class FanoutRouterIntegrationTests
             },
         };
 
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
         var repositoryProvider = new ConfiguredFanoutRepositoryProvider(fanoutOptions, loggerFactory);
 
         // Act
@@ -174,7 +173,7 @@ public class FanoutRouterIntegrationTests
             },
         };
 
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
         var repositoryProvider = new ConfiguredFanoutRepositoryProvider(fanoutOptions, loggerFactory);
 
         // Act
@@ -194,7 +193,7 @@ public class FanoutRouterIntegrationTests
         // Arrange
         var mockDiscovery = new MockFanoutDatabaseDiscovery();
         var timeProvider = TimeProvider.System;
-        var loggerFactory = this.CreateLoggerFactory();
+        var loggerFactory = CreateLoggerFactory();
 
         // Act - Create the provider using the same logic as the extension method
         var repositoryProvider = new DynamicFanoutRepositoryProvider(
@@ -215,7 +214,7 @@ public class FanoutRouterIntegrationTests
         cursorRepos.ShouldNotBeNull();
         cursorRepos.Count.ShouldBe(2);
 
-        this.testOutputHelper.WriteLine("AddDynamicMultiSqlFanout pattern successfully creates functional components");
+        testOutputHelper.WriteLine("AddDynamicMultiSqlFanout pattern successfully creates functional components");
     }
 
     private class MockFanoutDatabaseDiscovery : IFanoutDatabaseDiscovery

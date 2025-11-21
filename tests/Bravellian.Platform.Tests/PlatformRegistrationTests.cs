@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Tests;
 
+using System.Data;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Xunit;
+
+namespace Bravellian.Platform.Tests;
 
 public class PlatformRegistrationTests
 {
@@ -68,7 +68,7 @@ public class PlatformRegistrationTests
                 new PlatformDatabase { Name = "db2", ConnectionString = "Server=localhost;Database=Db2;" },
             }));
 
-        Assert.Contains("already been called", ex.Message);
+        Assert.Contains("already been called", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -106,7 +106,7 @@ public class PlatformRegistrationTests
         var ex = Assert.Throws<ArgumentException>(
             () => services.AddPlatformMultiDatabaseWithList(databases));
 
-        Assert.Contains("must not be empty", ex.Message);
+        Assert.Contains("must not be empty", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -145,6 +145,7 @@ public class PlatformRegistrationTests
     }
 
     [Fact]
+    [Obsolete]
     public void AddPlatformMultiDatabaseWithControlPlaneAndList_RegistersControlPlane()
     {
         // Arrange
@@ -183,8 +184,8 @@ public class PlatformRegistrationTests
 
         // Assert
         Assert.Equal(2, result.Count);
-        Assert.Contains(result, db => db.Name == "db1" && db.ConnectionString == "conn1");
-        Assert.Contains(result, db => db.Name == "db2" && db.ConnectionString == "conn2");
+        Assert.Contains(result, db => string.Equals(db.Name, "db1", StringComparison.Ordinal) && string.Equals(db.ConnectionString, "conn1", StringComparison.Ordinal));
+        Assert.Contains(result, db => string.Equals(db.Name, "db2", StringComparison.Ordinal) && string.Equals(db.ConnectionString, "conn2", StringComparison.Ordinal));
     }
 
     private static T GetRequiredService<T>(IServiceCollection services)
@@ -207,5 +208,116 @@ public class PlatformRegistrationTests
 
             return Task.FromResult<IReadOnlyCollection<PlatformDatabase>>(databases);
         }
+    }
+
+    [Fact]
+    public void AddPlatformMultiDatabaseWithControlPlaneAndDiscovery_ThrowsWhenDirectOutboxStoreRegistered()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<IPlatformDatabaseDiscovery>(new TestDatabaseDiscovery());
+        services.AddSingleton<IOutboxStore>(new DummyOutboxStore());
+
+        var options = new PlatformControlPlaneOptions
+        {
+            ConnectionString = "Server=localhost;Database=ControlPlane;",
+            SchemaName = "dbo",
+            EnableSchemaDeployment = false,
+        };
+
+        var ex = Assert.Throws<InvalidOperationException>(
+            () => services.AddPlatformMultiDatabaseWithControlPlaneAndDiscovery(options));
+
+        Assert.Contains("Direct IOutboxStore registrations are not supported", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AddPlatformMultiDatabaseWithControlPlaneAndDiscovery_ThrowsWhenDirectInboxStoreRegistered()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<IPlatformDatabaseDiscovery>(new TestDatabaseDiscovery());
+        services.AddSingleton<IInboxWorkStore>(new DummyInboxWorkStore());
+
+        var options = new PlatformControlPlaneOptions
+        {
+            ConnectionString = "Server=localhost;Database=ControlPlane;",
+            SchemaName = "dbo",
+            EnableSchemaDeployment = false,
+        };
+
+        var ex = Assert.Throws<InvalidOperationException>(
+            () => services.AddPlatformMultiDatabaseWithControlPlaneAndDiscovery(options));
+
+        Assert.Contains("Direct IInboxWorkStore registrations are not supported", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AddPlatformMultiDatabaseWithControlPlaneAndDiscovery_ThrowsWhenDirectOutboxRegistered()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<IPlatformDatabaseDiscovery>(new TestDatabaseDiscovery());
+        services.AddSingleton<IOutbox>(new DummyOutbox());
+
+        var options = new PlatformControlPlaneOptions
+        {
+            ConnectionString = "Server=localhost;Database=ControlPlane;",
+            SchemaName = "dbo",
+            EnableSchemaDeployment = false,
+        };
+
+        var ex = Assert.Throws<InvalidOperationException>(
+            () => services.AddPlatformMultiDatabaseWithControlPlaneAndDiscovery(options));
+
+        Assert.Contains("Direct IOutbox registrations are not supported", ex.Message, StringComparison.Ordinal);
+    }
+
+    private sealed class DummyOutboxStore : IOutboxStore
+    {
+        public Task<IReadOnlyList<OutboxMessage>> ClaimDueAsync(int limit, CancellationToken cancellationToken) =>
+            throw new NotImplementedException();
+
+        public Task MarkDispatchedAsync(Guid id, CancellationToken cancellationToken) =>
+            throw new NotImplementedException();
+
+        public Task RescheduleAsync(Guid id, TimeSpan delay, string lastError, CancellationToken cancellationToken) =>
+            throw new NotImplementedException();
+
+        public Task FailAsync(Guid id, string lastError, CancellationToken cancellationToken) =>
+            throw new NotImplementedException();
+    }
+
+    private sealed class DummyInboxWorkStore : IInboxWorkStore
+    {
+        public Task<IReadOnlyList<string>> ClaimAsync(Guid ownerToken, int leaseSeconds, int batchSize, CancellationToken cancellationToken) =>
+            throw new NotImplementedException();
+
+        public Task AckAsync(Guid ownerToken, IEnumerable<string> messageIds, CancellationToken cancellationToken) =>
+            throw new NotImplementedException();
+
+        public Task AbandonAsync(Guid ownerToken, IEnumerable<string> messageIds, CancellationToken cancellationToken) =>
+            throw new NotImplementedException();
+
+        public Task FailAsync(Guid ownerToken, IEnumerable<string> messageIds, string error, CancellationToken cancellationToken) =>
+            throw new NotImplementedException();
+
+        public Task ReapExpiredAsync(CancellationToken cancellationToken) =>
+            throw new NotImplementedException();
+
+        public Task<InboxMessage> GetAsync(string messageId, CancellationToken cancellationToken) =>
+            throw new NotImplementedException();
+    }
+
+    private sealed class DummyOutbox : IOutbox
+    {
+        public Task EnqueueAsync(string topic, string payload, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task EnqueueAsync(string topic, string payload, string? correlationId, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task EnqueueAsync(string topic, string payload, string? correlationId, DateTimeOffset? dueTimeUtc, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task EnqueueAsync(string topic, string payload, IDbTransaction transaction, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task EnqueueAsync(string topic, string payload, IDbTransaction transaction, string? correlationId, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task EnqueueAsync(string topic, string payload, IDbTransaction transaction, string? correlationId, DateTimeOffset? dueTimeUtc, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<IReadOnlyList<Guid>> ClaimAsync(Guid ownerToken, int leaseSeconds, int batchSize, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task AckAsync(Guid ownerToken, IEnumerable<Guid> ids, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task AbandonAsync(Guid ownerToken, IEnumerable<Guid> ids, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task FailAsync(Guid ownerToken, IEnumerable<Guid> ids, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task ReapExpiredAsync(CancellationToken cancellationToken) => throw new NotImplementedException();
     }
 }

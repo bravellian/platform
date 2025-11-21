@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
 
 using Microsoft.Data.SqlClient;
 
+namespace Bravellian.Platform;
 /// <summary>
 /// Provides utility methods for comparing SQL Server connection strings.
 /// </summary>
