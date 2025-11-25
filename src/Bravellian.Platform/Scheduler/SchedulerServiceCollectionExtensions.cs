@@ -599,7 +599,9 @@ public static class SchedulerServiceCollectionExtensions
         // Register the scheduler router for write operations
         services.AddSingleton<ISchedulerRouter, SchedulerRouter>();
 
-        // Back-compat convenience: expose the sole scheduler client instance when exactly one store is configured.
+        // Register ISchedulerClient for single-database convenience: when exactly one store is configured,
+        // callers can inject ISchedulerClient directly instead of using ISchedulerRouter.
+        // For multi-database setups, resolution will throw, guiding users to ISchedulerRouter.
         services.TryAddSingleton<ISchedulerClient>(provider => ResolveDefaultSchedulerClient(provider));
 
         return services;
@@ -646,7 +648,9 @@ public static class SchedulerServiceCollectionExtensions
         // Register the scheduler router for write operations
         services.AddSingleton<ISchedulerRouter, SchedulerRouter>();
 
-        // Back-compat convenience: expose the sole scheduler client instance when exactly one store is configured.
+        // Register ISchedulerClient for single-database convenience: when exactly one store is configured,
+        // callers can inject ISchedulerClient directly instead of using ISchedulerRouter.
+        // For multi-database setups, resolution will throw, guiding users to ISchedulerRouter.
         services.TryAddSingleton<ISchedulerClient>(provider => ResolveDefaultSchedulerClient(provider));
 
         return services;
@@ -696,7 +700,9 @@ public static class SchedulerServiceCollectionExtensions
         // Register the scheduler router for write operations
         services.AddSingleton<ISchedulerRouter, SchedulerRouter>();
 
-        // Back-compat convenience: expose the sole scheduler client instance when exactly one store is configured.
+        // Register ISchedulerClient for single-database convenience: when exactly one store is configured,
+        // callers can inject ISchedulerClient directly instead of using ISchedulerRouter.
+        // For multi-database setups, resolution will throw, guiding users to ISchedulerRouter.
         services.TryAddSingleton<ISchedulerClient>(provider => ResolveDefaultSchedulerClient(provider));
 
         return services;
