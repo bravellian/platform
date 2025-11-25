@@ -320,4 +320,60 @@ public class PlatformRegistrationTests
         public Task FailAsync(Guid ownerToken, IEnumerable<Guid> ids, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task ReapExpiredAsync(CancellationToken cancellationToken) => throw new NotImplementedException();
     }
+
+    [Fact]
+    public void AddPlatformMultiDatabaseWithList_SingleDatabase_RegistersSchedulerClient()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging(); // Add logging infrastructure needed by scheduler
+
+        // Act - Single database scenario should register ISchedulerClient for convenience
+        services.AddPlatformMultiDatabaseWithList(new[]
+        {
+            new PlatformDatabase { Name = "default", ConnectionString = "Server=localhost;Database=Test;", SchemaName = "dbo" },
+        });
+
+        // Assert - ISchedulerClient should be resolvable for single-database scenarios
+        var schedulerClient = GetRequiredService<ISchedulerClient>(services);
+        Assert.NotNull(schedulerClient);
+    }
+
+    [Fact]
+    public void AddPlatformMultiDatabaseWithList_MultipleDatabase_ThrowsWhenResolvingSchedulerClient()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging(); // Add logging infrastructure needed by scheduler
+
+        // Act - Multiple database scenario should throw when trying to resolve ISchedulerClient
+        services.AddPlatformMultiDatabaseWithList(new[]
+        {
+            new PlatformDatabase { Name = "db1", ConnectionString = "Server=localhost;Database=Db1;", SchemaName = "dbo" },
+            new PlatformDatabase { Name = "db2", ConnectionString = "Server=localhost;Database=Db2;", SchemaName = "dbo" },
+        });
+
+        // Assert - ISchedulerClient should throw for multi-database scenarios, forcing use of ISchedulerRouter
+        var ex = Assert.Throws<InvalidOperationException>(() => GetRequiredService<ISchedulerClient>(services));
+        Assert.Contains("Multiple scheduler stores are configured", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("ISchedulerRouter", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AddPlatformMultiDatabaseWithList_SingleDatabase_RegistersSchedulerRouter()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging(); // Add logging infrastructure needed by scheduler
+
+        // Act
+        services.AddPlatformMultiDatabaseWithList(new[]
+        {
+            new PlatformDatabase { Name = "default", ConnectionString = "Server=localhost;Database=Test;", SchemaName = "dbo" },
+        });
+
+        // Assert - ISchedulerRouter should always be registered
+        var schedulerRouter = GetRequiredService<ISchedulerRouter>(services);
+        Assert.NotNull(schedulerRouter);
+    }
 }

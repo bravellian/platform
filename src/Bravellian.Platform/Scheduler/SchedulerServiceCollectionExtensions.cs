@@ -599,6 +599,9 @@ public static class SchedulerServiceCollectionExtensions
         // Register the scheduler router for write operations
         services.AddSingleton<ISchedulerRouter, SchedulerRouter>();
 
+        // Back-compat convenience: expose the sole scheduler client instance when exactly one store is configured.
+        services.TryAddSingleton<ISchedulerClient>(provider => ResolveDefaultSchedulerClient(provider));
+
         return services;
     }
 
@@ -642,6 +645,9 @@ public static class SchedulerServiceCollectionExtensions
 
         // Register the scheduler router for write operations
         services.AddSingleton<ISchedulerRouter, SchedulerRouter>();
+
+        // Back-compat convenience: expose the sole scheduler client instance when exactly one store is configured.
+        services.TryAddSingleton<ISchedulerClient>(provider => ResolveDefaultSchedulerClient(provider));
 
         return services;
     }
@@ -689,6 +695,9 @@ public static class SchedulerServiceCollectionExtensions
 
         // Register the scheduler router for write operations
         services.AddSingleton<ISchedulerRouter, SchedulerRouter>();
+
+        // Back-compat convenience: expose the sole scheduler client instance when exactly one store is configured.
+        services.TryAddSingleton<ISchedulerClient>(provider => ResolveDefaultSchedulerClient(provider));
 
         return services;
     }
@@ -859,5 +868,31 @@ public static class SchedulerServiceCollectionExtensions
         var router = provider.GetRequiredService<IInboxRouter>();
         var key = storeProvider.GetStoreIdentifier(stores[0]);
         return router.GetInbox(key);
+    }
+
+    /// <summary>
+    /// Resolves the single configured scheduler client, throwing if multiple stores exist to force callers to use routing.
+    /// </summary>
+    /// <param name="provider">The service provider.</param>
+    /// <returns>The default scheduler client.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when zero or multiple stores are registered.</exception>
+    private static ISchedulerClient ResolveDefaultSchedulerClient(IServiceProvider provider)
+    {
+        var storeProvider = provider.GetRequiredService<ISchedulerStoreProvider>();
+        var stores = storeProvider.GetAllStoresAsync().GetAwaiter().GetResult();
+
+        if (stores.Count == 0)
+        {
+            throw new InvalidOperationException("No scheduler stores are configured. Configure at least one store or use ISchedulerRouter.");
+        }
+
+        if (stores.Count > 1)
+        {
+            throw new InvalidOperationException("Multiple scheduler stores are configured. Resolve ISchedulerRouter instead of ISchedulerClient for multi-database setups.");
+        }
+
+        var router = provider.GetRequiredService<ISchedulerRouter>();
+        var key = storeProvider.GetStoreIdentifier(stores[0]);
+        return router.GetSchedulerClient(key);
     }
 }
