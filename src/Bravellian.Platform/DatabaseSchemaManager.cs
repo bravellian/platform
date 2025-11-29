@@ -37,6 +37,9 @@ internal static class DatabaseSchemaManager
         // Ensure schema exists
         await EnsureSchemaExistsAsync(connection, schemaName).ConfigureAwait(false);
 
+        // Ensure GuidIdList type exists
+        await EnsureGuidIdListTypeAsync(connection, schemaName).ConfigureAwait(false);
+
         // Check if table exists
         var tableExists = await TableExistsAsync(connection, schemaName, tableName).ConfigureAwait(false);
         if (!tableExists)
@@ -125,6 +128,9 @@ internal static class DatabaseSchemaManager
 
         // Ensure schema exists
         await EnsureSchemaExistsAsync(connection, schemaName).ConfigureAwait(false);
+
+        // Ensure StringIdList type exists
+        await EnsureStringIdListTypeAsync(connection, schemaName).ConfigureAwait(false);
 
         // Check if table exists
         var tableExists = await TableExistsAsync(connection, schemaName, tableName).ConfigureAwait(false);
@@ -241,6 +247,46 @@ internal static class DatabaseSchemaManager
     }
 
     /// <summary>
+    /// Ensures the GuidIdList table type exists in the database.
+    /// </summary>
+    /// <param name="connection">The database connection.</param>
+    /// <param name="schemaName">The schema name.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    private static async Task EnsureGuidIdListTypeAsync(SqlConnection connection, string schemaName)
+    {
+        var sql = $"""
+            IF TYPE_ID('[{schemaName}].[GuidIdList]') IS NULL
+            BEGIN
+                CREATE TYPE [{schemaName}].[GuidIdList] AS TABLE (
+                    Id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY
+                );
+            END
+            """;
+
+        await connection.ExecuteAsync(sql).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Ensures the StringIdList table type exists in the database.
+    /// </summary>
+    /// <param name="connection">The database connection.</param>
+    /// <param name="schemaName">The schema name.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    private static async Task EnsureStringIdListTypeAsync(SqlConnection connection, string schemaName)
+    {
+        var sql = $"""
+            IF TYPE_ID('[{schemaName}].[StringIdList]') IS NULL
+            BEGIN
+                CREATE TYPE [{schemaName}].[StringIdList] AS TABLE (
+                    Id VARCHAR(64) NOT NULL PRIMARY KEY
+                );
+            END
+            """;
+
+        await connection.ExecuteAsync(sql).ConfigureAwait(false);
+    }
+
+    /// <summary>
     /// Checks if a table exists in the specified schema.
     /// </summary>
     /// <param name="connection">The database connection.</param>
@@ -306,20 +352,24 @@ internal static class DatabaseSchemaManager
                 -- For Robustness & Error Handling
                 RetryCount INT NOT NULL DEFAULT 0,
                 LastError NVARCHAR(MAX) NULL,
-                NextAttemptAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(), -- For backoff strategies
 
                 -- For Idempotency & Tracing
                 MessageId UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(), -- A stable ID for the message consumer
                 CorrelationId NVARCHAR(255) NULL, -- To trace a message through multiple systems
 
                 -- For Delayed Processing
-                DueTimeUtc DATETIME2(3) NULL -- Optional timestamp indicating when the message should become eligible for processing
+                DueTimeUtc DATETIME2(3) NULL, -- Optional timestamp indicating when the message should become eligible for processing
+
+                -- Work Queue Pattern Columns
+                Status TINYINT NOT NULL DEFAULT 0, -- 0=Ready, 1=InProgress, 2=Done, 3=Failed
+                LockedUntil DATETIME2(3) NULL,
+                OwnerToken UNIQUEIDENTIFIER NULL
             );
 
-            -- An index to efficiently query for unprocessed messages, now including the next attempt time.
-            CREATE INDEX IX_{tableName}_GetNext ON [{schemaName}].[{tableName}](IsProcessed, NextAttemptAt)
-                INCLUDE(Id, Payload, Topic, RetryCount) -- Include columns needed for processing
-                WHERE IsProcessed = 0;
+            -- An index to efficiently query for work queue claiming
+            CREATE INDEX IX_{tableName}_WorkQueue ON [{schemaName}].[{tableName}](Status, CreatedAt)
+                INCLUDE(Id, LockedUntil, DueTimeUtc)
+                WHERE Status = 0;
             """;
     }
 
@@ -513,6 +563,10 @@ internal static class DatabaseSchemaManager
     /// <returns>A task representing the asynchronous operation.</returns>
     private static async Task EnsureOutboxStoredProceduresAsync(SqlConnection connection, string schemaName, string tableName)
     {
+        // Create work queue stored procedures
+        await CreateOutboxWorkQueueProceduresAsync(connection, schemaName, tableName).ConfigureAwait(false);
+        
+        // Create cleanup stored procedure
         var cleanupProc = GetOutboxCleanupStoredProcedure(schemaName, tableName);
         await ExecuteScriptAsync(connection, cleanupProc).ConfigureAwait(false);
     }
@@ -526,6 +580,10 @@ internal static class DatabaseSchemaManager
     /// <returns>A task representing the asynchronous operation.</returns>
     private static async Task EnsureInboxStoredProceduresAsync(SqlConnection connection, string schemaName, string tableName)
     {
+        // Create work queue stored procedures
+        await CreateInboxWorkQueueProceduresAsync(connection, schemaName, tableName).ConfigureAwait(false);
+        
+        // Create cleanup stored procedure
         var cleanupProc = GetInboxCleanupStoredProcedure(schemaName, tableName);
         await ExecuteScriptAsync(connection, cleanupProc).ConfigureAwait(false);
     }
@@ -891,7 +949,13 @@ internal static class DatabaseSchemaManager
                 -- Processing status
                 Attempts INT NOT NULL DEFAULT 0,
                 Status VARCHAR(16) NOT NULL DEFAULT 'Seen'
-                    CONSTRAINT CK_{tableName}_Status CHECK (Status IN ('Seen', 'Processing', 'Done', 'Dead'))
+                    CONSTRAINT CK_{tableName}_Status CHECK (Status IN ('Seen', 'Processing', 'Done', 'Dead')),
+
+                -- Work Queue Pattern Columns
+                LockedUntil DATETIME2(3) NULL,
+                OwnerToken UNIQUEIDENTIFIER NULL,
+                Topic VARCHAR(128) NULL,
+                Payload NVARCHAR(MAX) NULL
             );
 
             -- Index for querying processed messages efficiently
@@ -904,6 +968,11 @@ internal static class DatabaseSchemaManager
             -- Index for efficient cleanup of old processed messages
             CREATE INDEX IX_{tableName}_Status_ProcessedUtc ON [{schemaName}].[{tableName}](Status, ProcessedUtc)
                 WHERE Status = 'Done' AND ProcessedUtc IS NOT NULL;
+
+            -- Work queue index for claiming messages
+            CREATE INDEX IX_{tableName}_WorkQueue ON [{schemaName}].[{tableName}](Status, LastSeenUtc)
+                INCLUDE(MessageId, OwnerToken)
+                WHERE Status IN ('Seen', 'Processing');
             """;
     }
 
@@ -950,36 +1019,16 @@ internal static class DatabaseSchemaManager
     }
 
     /// <summary>
-    /// Ensures that the work queue pattern columns and stored procedures exist for all platform tables.
+    /// Ensures that the work queue pattern columns and stored procedures exist for the outbox table.
+    /// This method is now a wrapper around EnsureOutboxSchemaAsync for backward compatibility.
     /// </summary>
     /// <param name="connectionString">The database connection string.</param>
     /// <param name="schemaName">The schema name (default: "dbo").</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     public static async Task EnsureWorkQueueSchemaAsync(string connectionString, string schemaName = "dbo")
     {
-        try
-        {
-            using var connection = new SqlConnection(connectionString);
-            await connection.OpenAsync().ConfigureAwait(false);
-
-            // Ensure schema exists
-            await EnsureSchemaExistsAsync(connection, schemaName).ConfigureAwait(false);
-
-            // Apply work queue migration (columns and types)
-            var migrationScript = GetWorkQueueMigrationInlineScript(schemaName);
-            await ExecuteScriptAsync(connection, migrationScript).ConfigureAwait(false);
-
-            // Create each stored procedure individually to avoid batch issues
-            await CreateOutboxProceduresAsync(connection, schemaName).ConfigureAwait(false);
-        }
-        catch (SqlException sqlEx)
-        {
-            throw new InvalidOperationException($"Failed to ensure work queue schema. SQL Error: {sqlEx.Message} (Error Number: {sqlEx.Number}, Severity: {sqlEx.Class}, State: {sqlEx.State})", sqlEx);
-        }
-        catch (Exception ex)
-        {
-            throw new InvalidOperationException($"Failed to ensure work queue schema: {ex.Message}", ex);
-        }
+        // The work queue pattern is now built into the standard Outbox schema
+        await EnsureOutboxSchemaAsync(connectionString, schemaName, "Outbox").ConfigureAwait(false);
     }
 
     /// <summary>
@@ -987,8 +1036,9 @@ internal static class DatabaseSchemaManager
     /// </summary>
     /// <param name="connection">The SQL connection.</param>
     /// <param name="schemaName">The schema name.</param>
+    /// <param name="tableName">The table name.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    private static async Task CreateOutboxProceduresAsync(SqlConnection connection, string schemaName)
+    private static async Task CreateOutboxWorkQueueProceduresAsync(SqlConnection connection, string schemaName, string tableName)
     {
         // Create procedures one by one to avoid batch execution issues
         var procedures = new[]
@@ -1080,8 +1130,9 @@ internal static class DatabaseSchemaManager
     /// </summary>
     /// <param name="connection">The SQL connection.</param>
     /// <param name="schemaName">The schema name.</param>
+    /// <param name="tableName">The table name.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    private static async Task CreateInboxProceduresAsync(SqlConnection connection, string schemaName)
+    private static async Task CreateInboxWorkQueueProceduresAsync(SqlConnection connection, string schemaName, string tableName)
     {
         // Create procedures one by one to avoid batch execution issues
         var procedures = new[]
@@ -1171,109 +1222,15 @@ internal static class DatabaseSchemaManager
 
     /// <summary>
     /// Ensures that the required database schema exists for the inbox work queue functionality.
+    /// This method is now a wrapper around EnsureInboxSchemaAsync for backward compatibility.
     /// </summary>
     /// <param name="connectionString">The database connection string.</param>
     /// <param name="schemaName">The schema name (default: "dbo").</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     public static async Task EnsureInboxWorkQueueSchemaAsync(string connectionString, string schemaName = "dbo")
     {
-        try
-        {
-            using var connection = new SqlConnection(connectionString);
-            await connection.OpenAsync().ConfigureAwait(false);
-
-            // Ensure schema exists
-            await EnsureSchemaExistsAsync(connection, schemaName).ConfigureAwait(false);
-
-            // Apply inbox work queue migration (columns and types)
-            var migrationScript = GetInboxWorkQueueMigrationInlineScript(schemaName);
-            await ExecuteScriptAsync(connection, migrationScript).ConfigureAwait(false);
-
-            // Create each stored procedure individually to avoid batch issues
-            await CreateInboxProceduresAsync(connection, schemaName).ConfigureAwait(false);
-        }
-        catch (SqlException sqlEx)
-        {
-            throw new InvalidOperationException($"Failed to ensure inbox work queue schema. SQL Error: {sqlEx.Message} (Error Number: {sqlEx.Number}, Severity: {sqlEx.Class}, State: {sqlEx.State})", sqlEx);
-        }
-        catch (Exception ex)
-        {
-            throw new InvalidOperationException($"Failed to ensure inbox work queue schema: {ex.Message}", ex);
-        }
-    }
-
-    /// <summary>
-    /// Gets the work queue migration script.
-    /// </summary>
-    /// <param name="schemaName">The schema name.</param>
-    /// <returns>The SQL migration script.</returns>
-    private static string GetWorkQueueMigrationScript(string schemaName)
-    {
-        return GetWorkQueueMigrationInlineScript(schemaName);
-    }
-
-    private static string GetWorkQueueMigrationInlineScript(string schemaName)
-    {
-        return $"""
-
-            -- Create table-valued parameter types if they don't exist
-            IF TYPE_ID('[{schemaName}].[GuidIdList]') IS NULL
-            BEGIN
-                CREATE TYPE [{schemaName}].[GuidIdList] AS TABLE (
-                    Id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY
-                );
-            END
-
-            -- Add work queue columns to Outbox if they don't exist
-            IF COL_LENGTH('[{schemaName}].[Outbox]', 'Status') IS NULL
-                ALTER TABLE [{schemaName}].[Outbox] ADD Status TINYINT NOT NULL CONSTRAINT DF_Outbox_Status DEFAULT(0);
-
-            IF COL_LENGTH('[{schemaName}].[Outbox]', 'LockedUntil') IS NULL
-                ALTER TABLE [{schemaName}].[Outbox] ADD LockedUntil DATETIME2(3) NULL;
-
-            IF COL_LENGTH('[{schemaName}].[Outbox]', 'OwnerToken') IS NULL
-                ALTER TABLE [{schemaName}].[Outbox] ADD OwnerToken UNIQUEIDENTIFIER NULL;
-
-            IF COL_LENGTH('[{schemaName}].[Outbox]', 'DueTimeUtc') IS NULL
-                ALTER TABLE [{schemaName}].[Outbox] ADD DueTimeUtc DATETIME2(3) NULL;
-            """;
-    }
-
-    private static string GetInboxWorkQueueMigrationInlineScript(string schemaName)
-    {
-        return $"""
-            -- Create table-valued parameter types if they don't exist
-            IF TYPE_ID('[{schemaName}].[StringIdList]') IS NULL
-            BEGIN
-                CREATE TYPE [{schemaName}].[StringIdList] AS TABLE (
-                    Id VARCHAR(64) NOT NULL PRIMARY KEY
-                );
-            END
-
-            -- Add work queue columns to Inbox if they don't exist
-            IF COL_LENGTH('[{schemaName}].[Inbox]', 'LockedUntil') IS NULL
-                ALTER TABLE [{schemaName}].[Inbox] ADD LockedUntil DATETIME2(3) NULL;
-
-            IF COL_LENGTH('[{schemaName}].[Inbox]', 'OwnerToken') IS NULL
-                ALTER TABLE [{schemaName}].[Inbox] ADD OwnerToken UNIQUEIDENTIFIER NULL;
-
-            IF COL_LENGTH('[{schemaName}].[Inbox]', 'Topic') IS NULL
-                ALTER TABLE [{schemaName}].[Inbox] ADD Topic VARCHAR(128) NULL;
-
-            IF COL_LENGTH('[{schemaName}].[Inbox]', 'Payload') IS NULL
-                ALTER TABLE [{schemaName}].[Inbox] ADD Payload NVARCHAR(MAX) NULL;
-
-            IF COL_LENGTH('[{schemaName}].[Inbox]', 'DueTimeUtc') IS NULL
-                ALTER TABLE [{schemaName}].[Inbox] ADD DueTimeUtc DATETIME2(3) NULL;
-
-            -- Create work queue index for Inbox if it doesn't exist
-            IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name='IX_Inbox_WorkQueue' AND object_id=OBJECT_ID('[{schemaName}].[Inbox]'))
-            BEGIN
-                CREATE INDEX IX_Inbox_WorkQueue ON [{schemaName}].[Inbox](Status, LastSeenUtc)
-                    INCLUDE(MessageId, OwnerToken)
-                    WHERE Status IN ('Seen', 'Processing');
-            END
-            """;
+        // The work queue pattern is now built into the standard Inbox schema
+        await EnsureInboxSchemaAsync(connectionString, schemaName, "Inbox").ConfigureAwait(false);
     }
 
     /// <summary>
