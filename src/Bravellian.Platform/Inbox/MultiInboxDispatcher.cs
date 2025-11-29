@@ -308,7 +308,7 @@ internal sealed class MultiInboxDispatcher
             {
                 var delay = group.Key;
                 var messageIds = group.Select(x => x.MessageId).ToList();
-                var lastError = group.FirstOrDefault().Error; // Use first error as representative
+                var lastError = group.First().Error; // Use first error as representative (group is guaranteed non-empty)
                 
                 await store.AbandonAsync(
                     ownerToken, 
