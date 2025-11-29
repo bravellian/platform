@@ -34,8 +34,6 @@ public sealed record OutboxMessage
 
     public string? LastError { get; internal init; }
 
-    public DateTimeOffset NextAttemptAt { get; internal init; }
-
     public Guid MessageId { get; internal init; }
 
     public string? CorrelationId { get; internal init; }

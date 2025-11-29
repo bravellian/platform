@@ -31,6 +31,8 @@ internal class SqlOutboxStore : IOutboxStore
     private readonly ILogger<SqlOutboxStore> logger;
     private readonly string serverName;
     private readonly string databaseName;
+    private readonly Guid ownerToken;
+    private readonly int leaseSeconds;
 
     public SqlOutboxStore(IOptions<SqlOutboxOptions> options, TimeProvider timeProvider, ILogger<SqlOutboxStore> logger)
     {
@@ -40,31 +42,51 @@ internal class SqlOutboxStore : IOutboxStore
         tableName = opts.TableName;
         this.timeProvider = timeProvider;
         this.logger = logger;
+        ownerToken = Guid.NewGuid();
+        leaseSeconds = (int)opts.LeaseDuration.TotalSeconds;
 
         (serverName, databaseName) = ParseConnectionInfo(connectionString);
     }
 
     public async Task<IReadOnlyList<OutboxMessage>> ClaimDueAsync(int limit, CancellationToken cancellationToken)
     {
-        logger.LogDebug("Claiming up to {Limit} outbox messages for processing", limit);
-
-        // Use READPAST to skip locked rows, UPDLOCK to prevent other readers from claiming same rows
-        var sql = $"""
-
-                        SELECT TOP ({limit}) * 
-                        FROM [{schemaName}].[{tableName}] WITH (READPAST, UPDLOCK, ROWLOCK)
-                        WHERE IsProcessed = 0 
-                          AND NextAttemptAt <= SYSDATETIMEOFFSET()
-                          AND (DueTimeUtc IS NULL OR CAST(DueTimeUtc AS DATETIMEOFFSET) <= SYSDATETIMEOFFSET())
-                        ORDER BY CreatedAt
-            """;
+        logger.LogDebug(
+            "Claiming up to {Limit} outbox messages for processing with owner token {OwnerToken}",
+            limit,
+            ownerToken);
 
         try
         {
             using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-            var messages = await connection.QueryAsync<OutboxMessage>(sql).ConfigureAwait(false);
+            // Call the work queue Claim stored procedure
+            var claimedIds = await connection.QueryAsync<Guid>(
+                $"[{schemaName}].[{tableName}_Claim]",
+                new
+                {
+                    OwnerToken = ownerToken,
+                    LeaseSeconds = leaseSeconds,
+                    BatchSize = limit,
+                },
+                commandType: System.Data.CommandType.StoredProcedure).ConfigureAwait(false);
+
+            var idList = claimedIds.ToList();
+            
+            if (idList.Count == 0)
+            {
+                logger.LogDebug("No outbox messages claimed");
+                return Array.Empty<OutboxMessage>();
+            }
+
+            // Fetch the full message details for claimed IDs
+            var sql = $"""
+                SELECT * 
+                FROM [{schemaName}].[{tableName}]
+                WHERE Id IN @Ids
+                """;
+
+            var messages = await connection.QueryAsync<OutboxMessage>(sql, new { Ids = idList }).ConfigureAwait(false);
             var messageList = messages.ToList();
 
             logger.LogDebug("Successfully claimed {ClaimedCount} outbox messages for processing", messageList.Count);
@@ -87,25 +109,23 @@ internal class SqlOutboxStore : IOutboxStore
     {
         logger.LogDebug("Marking outbox message {MessageId} as dispatched", id);
 
-        var sql = $"""
-
-                        UPDATE [{schemaName}].[{tableName}]
-                        SET IsProcessed = 1, 
-                            ProcessedAt = SYSDATETIMEOFFSET(),
-                            ProcessedBy = @ProcessedBy
-                        WHERE Id = @Id
-            """;
-
         try
         {
             using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-            await connection.ExecuteAsync(sql, new
+            // Create a table-valued parameter with the single ID
+            var idsTable = CreateGuidIdTable(new[] { id });
+            using var command = new SqlCommand($"[{schemaName}].[{tableName}_Ack]", connection)
             {
-                Id = id,
-                ProcessedBy = Environment.MachineName,
-            }).ConfigureAwait(false);
+                CommandType = System.Data.CommandType.StoredProcedure,
+            };
+            command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+            var parameter = command.Parameters.AddWithValue("@Ids", idsTable);
+            parameter.SqlDbType = System.Data.SqlDbType.Structured;
+            parameter.TypeName = $"[{schemaName}].[GuidIdList]";
+
+            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
 
             logger.LogDebug("Successfully marked outbox message {MessageId} as dispatched", id);
         }
@@ -131,26 +151,25 @@ internal class SqlOutboxStore : IOutboxStore
             "Rescheduling outbox message {MessageId} for next attempt at {NextAttempt} due to error: {Error}",
             id, nextAttempt, lastError);
 
-        var sql = $"""
-
-                        UPDATE [{schemaName}].[{tableName}]
-                        SET RetryCount = RetryCount + 1,
-                            LastError = @LastError,
-                            NextAttemptAt = @NextAttemptAt
-                        WHERE Id = @Id
-            """;
-
         try
         {
             using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-            await connection.ExecuteAsync(sql, new
+            // Use Abandon to release the lock and update retry count, error, and due time atomically
+            var idsTable = CreateGuidIdTable(new[] { id });
+            using var abandonCommand = new SqlCommand($"[{schemaName}].[{tableName}_Abandon]", connection)
             {
-                Id = id,
-                LastError = lastError,
-                NextAttemptAt = nextAttempt,
-            }).ConfigureAwait(false);
+                CommandType = System.Data.CommandType.StoredProcedure,
+            };
+            abandonCommand.Parameters.AddWithValue("@OwnerToken", ownerToken);
+            abandonCommand.Parameters.AddWithValue("@LastError", lastError ?? (object)DBNull.Value);
+            abandonCommand.Parameters.AddWithValue("@DueTimeUtc", nextAttempt.UtcDateTime);
+            var parameter = abandonCommand.Parameters.AddWithValue("@Ids", idsTable);
+            parameter.SqlDbType = System.Data.SqlDbType.Structured;
+            parameter.TypeName = $"[{schemaName}].[GuidIdList]";
+
+            await abandonCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
 
             logger.LogDebug("Successfully rescheduled outbox message {MessageId} for {NextAttempt}", id, nextAttempt);
         }
@@ -172,27 +191,25 @@ internal class SqlOutboxStore : IOutboxStore
     {
         logger.LogWarning("Permanently failing outbox message {MessageId} due to error: {Error}", id, lastError);
 
-        var sql = $"""
-
-                        UPDATE [{schemaName}].[{tableName}]
-                        SET IsProcessed = 1,
-                            ProcessedAt = SYSDATETIMEOFFSET(),
-                            ProcessedBy = @ProcessedBy,
-                            LastError = @LastError
-                        WHERE Id = @Id
-            """;
-
         try
         {
             using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-            await connection.ExecuteAsync(sql, new
+            // Use Fail stored procedure to mark as permanently failed with error and machine info
+            var idsTable = CreateGuidIdTable(new[] { id });
+            using var command = new SqlCommand($"[{schemaName}].[{tableName}_Fail]", connection)
             {
-                Id = id,
-                ProcessedBy = $"{Environment.MachineName}:FAILED",
-                LastError = lastError,
-            }).ConfigureAwait(false);
+                CommandType = System.Data.CommandType.StoredProcedure,
+            };
+            command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+            command.Parameters.AddWithValue("@LastError", lastError ?? (object)DBNull.Value);
+            command.Parameters.AddWithValue("@ProcessedBy", $"{Environment.MachineName}:FAILED");
+            var parameter = command.Parameters.AddWithValue("@Ids", idsTable);
+            parameter.SqlDbType = System.Data.SqlDbType.Structured;
+            parameter.TypeName = $"[{schemaName}].[GuidIdList]";
+
+            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
 
             logger.LogWarning("Successfully marked outbox message {MessageId} as permanently failed", id);
         }
@@ -221,5 +238,18 @@ internal class SqlOutboxStore : IOutboxStore
         {
             return ("unknown-server", "unknown-database");
         }
+    }
+
+    private static System.Data.DataTable CreateGuidIdTable(IEnumerable<Guid> ids)
+    {
+        var table = new System.Data.DataTable();
+        table.Columns.Add("Id", typeof(Guid));
+
+        foreach (var id in ids)
+        {
+            table.Rows.Add(id);
+        }
+
+        return table;
     }
 }
