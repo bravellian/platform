@@ -151,7 +151,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
         Assert.Single(claimedIds);
 
         // Act
-        await store.AbandonAsync(ownerToken, claimedIds, CancellationToken.None);
+        await store.AbandonAsync(ownerToken, claimedIds, cancellationToken: CancellationToken.None);
 
         // Assert
         await using var connection = new Microsoft.Data.SqlClient.SqlConnection(ConnectionString);

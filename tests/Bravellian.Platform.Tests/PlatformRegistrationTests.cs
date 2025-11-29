@@ -293,7 +293,7 @@ public class PlatformRegistrationTests
         public Task AckAsync(Guid ownerToken, IEnumerable<string> messageIds, CancellationToken cancellationToken) =>
             throw new NotImplementedException();
 
-        public Task AbandonAsync(Guid ownerToken, IEnumerable<string> messageIds, CancellationToken cancellationToken) =>
+        public Task AbandonAsync(Guid ownerToken, IEnumerable<string> messageIds, string? lastError = null, TimeSpan? delay = null, CancellationToken cancellationToken = default) =>
             throw new NotImplementedException();
 
         public Task FailAsync(Guid ownerToken, IEnumerable<string> messageIds, string error, CancellationToken cancellationToken) =>

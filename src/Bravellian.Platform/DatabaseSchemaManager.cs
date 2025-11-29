@@ -950,6 +950,7 @@ internal static class DatabaseSchemaManager
                 Attempts INT NOT NULL DEFAULT 0,
                 Status VARCHAR(16) NOT NULL DEFAULT 'Seen'
                     CONSTRAINT CK_{tableName}_Status CHECK (Status IN ('Seen', 'Processing', 'Done', 'Dead')),
+                LastError NVARCHAR(MAX) NULL,
 
                 -- Work Queue Pattern Columns
                 LockedUntil DATETIME2(3) NULL,
@@ -1193,11 +1194,20 @@ internal static class DatabaseSchemaManager
             $"""
             CREATE OR ALTER PROCEDURE [{schemaName}].[{tableName}_Abandon]
                             @OwnerToken UNIQUEIDENTIFIER,
-                            @Ids [{schemaName}].[StringIdList] READONLY
+                            @Ids [{schemaName}].[StringIdList] READONLY,
+                            @LastError NVARCHAR(MAX) = NULL,
+                            @DueTimeUtc DATETIME2(3) = NULL
                           AS
                           BEGIN
                             SET NOCOUNT ON;
-                            UPDATE i SET Status = 'Seen', OwnerToken = NULL, LockedUntil = NULL, LastSeenUtc = SYSUTCDATETIME()
+                            UPDATE i SET 
+                                Status = 'Seen', 
+                                OwnerToken = NULL, 
+                                LockedUntil = NULL, 
+                                LastSeenUtc = SYSUTCDATETIME(),
+                                Attempts = Attempts + 1,
+                                LastError = ISNULL(@LastError, i.LastError),
+                                DueTimeUtc = ISNULL(@DueTimeUtc, i.DueTimeUtc)
                             FROM [{schemaName}].[{tableName}] i JOIN @Ids ids ON ids.Id = i.MessageId
                             WHERE i.OwnerToken = @OwnerToken AND i.Status = 'Processing';
                           END
@@ -1211,7 +1221,12 @@ internal static class DatabaseSchemaManager
                           AS
                           BEGIN
                             SET NOCOUNT ON;
-                            UPDATE i SET Status = 'Dead', OwnerToken = NULL, LockedUntil = NULL, LastSeenUtc = SYSUTCDATETIME()
+                            UPDATE i SET 
+                                Status = 'Dead', 
+                                OwnerToken = NULL, 
+                                LockedUntil = NULL, 
+                                LastSeenUtc = SYSUTCDATETIME(),
+                                LastError = ISNULL(@Reason, i.LastError)
                             FROM [{schemaName}].[{tableName}] i JOIN @Ids ids ON ids.Id = i.MessageId
                             WHERE i.OwnerToken = @OwnerToken AND i.Status = 'Processing';
                           END

@@ -258,7 +258,7 @@ internal sealed class MultiInboxDispatcher
         IList<string> failedMessageIds,
         CancellationToken cancellationToken)
     {
-        var toAbandon = new List<string>();
+        var toAbandon = new List<(string MessageId, TimeSpan Delay, string? Error)>();
         var toFail = new List<string>();
 
         // Determine which messages should be retried vs. marked as dead
@@ -286,24 +286,37 @@ internal sealed class MultiInboxDispatcher
                         storeIdentifier,
                         delay.TotalMilliseconds,
                         message.Attempt + 1);
-                    toAbandon.Add(messageId);
+                    toAbandon.Add((messageId, delay, message.LastError));
                 }
             }
             catch (Exception ex)
             {
                 logger.LogError(
                     ex,
-                    "Failed to determine retry policy for message {MessageId} from store '{StoreIdentifier}', abandoning for retry",
+                    "Failed to determine retry policy for message {MessageId} from store '{StoreIdentifier}', abandoning for immediate retry",
                     messageId,
                     storeIdentifier);
-                toAbandon.Add(messageId);
+                toAbandon.Add((messageId, TimeSpan.Zero, ex.Message));
             }
         }
 
-        // Abandon messages that should be retried
+        // Abandon messages that should be retried - group by delay to batch efficiently
         if (toAbandon.Count > 0)
         {
-            await store.AbandonAsync(ownerToken, toAbandon, cancellationToken).ConfigureAwait(false);
+            var groupedByDelay = toAbandon.GroupBy(x => x.Delay);
+            foreach (var group in groupedByDelay)
+            {
+                var delay = group.Key;
+                var messageIds = group.Select(x => x.MessageId).ToList();
+                var lastError = group.FirstOrDefault().Error; // Use first error as representative
+                
+                await store.AbandonAsync(
+                    ownerToken, 
+                    messageIds, 
+                    lastError, 
+                    delay, 
+                    cancellationToken).ConfigureAwait(false);
+            }
         }
 
         // Fail messages that have exceeded max attempts
