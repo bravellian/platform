@@ -65,14 +65,13 @@ public class SqlOutboxStoreTests : SqlServerTestBase
         await connection.ExecuteAsync(
             $@"
             INSERT INTO [{defaultOptions.SchemaName}].[{defaultOptions.TableName}] 
-            (Id, Topic, Payload, IsProcessed, NextAttemptAt, CreatedAt, RetryCount)
-            VALUES (@Id, @Topic, @Payload, 0, @NextAttemptAt, @CreatedAt, 0)",
+            (Id, Topic, Payload, Status, CreatedAt, RetryCount)
+            VALUES (@Id, @Topic, @Payload, 0, @CreatedAt, 0)",
             new
             {
                 Id = messageId,
                 Topic = "Test.Topic",
                 Payload = "test payload",
-                NextAttemptAt = DateTimeOffset.UtcNow.AddMinutes(-1), // Due in the past
                 CreatedAt = DateTimeOffset.UtcNow.AddMinutes(-5),
             });
 
@@ -97,14 +96,14 @@ public class SqlOutboxStoreTests : SqlServerTestBase
         await connection.ExecuteAsync(
             $@"
             INSERT INTO [{defaultOptions.SchemaName}].[{defaultOptions.TableName}] 
-            (Id, Topic, Payload, IsProcessed, NextAttemptAt, CreatedAt, RetryCount)
-            VALUES (@Id, @Topic, @Payload, 0, @NextAttemptAt, @CreatedAt, 0)",
+            (Id, Topic, Payload, Status, CreatedAt, RetryCount, DueTimeUtc)
+            VALUES (@Id, @Topic, @Payload, 0, @CreatedAt, 0, @DueTimeUtc)",
             new
             {
                 Id = messageId,
                 Topic = "Test.Topic",
                 Payload = "test payload",
-                NextAttemptAt = DateTimeOffset.UtcNow.AddMinutes(10), // Due in the future
+                DueTimeUtc = DateTime.UtcNow.AddMinutes(10), // Due in the future
                 CreatedAt = DateTimeOffset.UtcNow,
             });
 
@@ -118,7 +117,7 @@ public class SqlOutboxStoreTests : SqlServerTestBase
     [Fact]
     public async Task MarkDispatchedAsync_UpdatesMessage()
     {
-        // Arrange - Add a message to the outbox
+        // Arrange - Add a message to the outbox and claim it first
         var messageId = Guid.NewGuid();
         await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
@@ -126,33 +125,36 @@ public class SqlOutboxStoreTests : SqlServerTestBase
         await connection.ExecuteAsync(
             $@"
             INSERT INTO [{defaultOptions.SchemaName}].[{defaultOptions.TableName}] 
-            (Id, Topic, Payload, IsProcessed, NextAttemptAt, CreatedAt, RetryCount)
-            VALUES (@Id, @Topic, @Payload, 0, @NextAttemptAt, @CreatedAt, 0)",
+            (Id, Topic, Payload, Status, CreatedAt, RetryCount)
+            VALUES (@Id, @Topic, @Payload, 0, @CreatedAt, 0)",
             new
             {
                 Id = messageId,
                 Topic = "Test.Topic",
                 Payload = "test payload",
-                NextAttemptAt = DateTimeOffset.UtcNow,
                 CreatedAt = DateTimeOffset.UtcNow,
             });
+
+        // Claim the message first
+        await outboxStore!.ClaimDueAsync(10, CancellationToken.None);
 
         // Act
         await outboxStore!.MarkDispatchedAsync(messageId, CancellationToken.None);
 
-        // Assert - Check the message is marked as processed
-        var processed = await connection.QueryFirstAsync<bool>(
+        // Assert - Check the message is marked as processed (Status = 2, IsProcessed = 1)
+        var result = await connection.QueryFirstAsync(
             $@"
-            SELECT IsProcessed FROM [{defaultOptions.SchemaName}].[{defaultOptions.TableName}] 
+            SELECT Status, IsProcessed FROM [{defaultOptions.SchemaName}].[{defaultOptions.TableName}] 
             WHERE Id = @Id", new { Id = messageId });
 
-        processed.ShouldBeTrue();
+        ((byte)result.Status).ShouldBe((byte)2); // Status 2 = Done
+        ((bool)result.IsProcessed).ShouldBeTrue();
     }
 
     [Fact]
     public async Task RescheduleAsync_UpdatesRetryCountAndNextAttempt()
     {
-        // Arrange - Add a message to the outbox
+        // Arrange - Add a message to the outbox and claim it
         var messageId = Guid.NewGuid();
         await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
@@ -160,16 +162,18 @@ public class SqlOutboxStoreTests : SqlServerTestBase
         await connection.ExecuteAsync(
             $@"
             INSERT INTO [{defaultOptions.SchemaName}].[{defaultOptions.TableName}] 
-            (Id, Topic, Payload, IsProcessed, NextAttemptAt, CreatedAt, RetryCount)
-            VALUES (@Id, @Topic, @Payload, 0, @NextAttemptAt, @CreatedAt, 2)",
+            (Id, Topic, Payload, Status, CreatedAt, RetryCount)
+            VALUES (@Id, @Topic, @Payload, 0, @CreatedAt, 2)",
             new
             {
                 Id = messageId,
                 Topic = "Test.Topic",
                 Payload = "test payload",
-                NextAttemptAt = DateTimeOffset.UtcNow,
                 CreatedAt = DateTimeOffset.UtcNow,
             });
+
+        // Claim the message first
+        await outboxStore!.ClaimDueAsync(10, CancellationToken.None);
 
         var delay = TimeSpan.FromMinutes(5);
         var errorMessage = "Test error";
@@ -180,21 +184,18 @@ public class SqlOutboxStoreTests : SqlServerTestBase
         // Assert - Check the message is updated
         var result = await connection.QueryFirstAsync(
             $@"
-            SELECT RetryCount, LastError, NextAttemptAt FROM [{defaultOptions.SchemaName}].[{defaultOptions.TableName}] 
+            SELECT RetryCount, LastError, Status FROM [{defaultOptions.SchemaName}].[{defaultOptions.TableName}] 
             WHERE Id = @Id", new { Id = messageId });
 
         ((int)result.RetryCount).ShouldBe(3); // Should be incremented from 2 to 3
         ((string)result.LastError).ShouldBe(errorMessage);
-
-        var nextAttempt = (DateTimeOffset)result.NextAttemptAt;
-        nextAttempt.ShouldBeGreaterThan(timeProvider.GetUtcNow().Add(delay).AddMinutes(-1));
-        nextAttempt.ShouldBeLessThan(timeProvider.GetUtcNow().Add(delay).AddMinutes(1));
+        ((byte)result.Status).ShouldBe((byte)0); // Should be abandoned (Status 0 = Ready)
     }
 
     [Fact]
     public async Task FailAsync_MarksMessageAsFailed()
     {
-        // Arrange - Add a message to the outbox
+        // Arrange - Add a message to the outbox and claim it
         var messageId = Guid.NewGuid();
         await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
@@ -202,29 +203,31 @@ public class SqlOutboxStoreTests : SqlServerTestBase
         await connection.ExecuteAsync(
             $@"
             INSERT INTO [{defaultOptions.SchemaName}].[{defaultOptions.TableName}] 
-            (Id, Topic, Payload, IsProcessed, NextAttemptAt, CreatedAt, RetryCount)
-            VALUES (@Id, @Topic, @Payload, 0, @NextAttemptAt, @CreatedAt, 0)",
+            (Id, Topic, Payload, Status, CreatedAt, RetryCount)
+            VALUES (@Id, @Topic, @Payload, 0, @CreatedAt, 0)",
             new
             {
                 Id = messageId,
                 Topic = "Test.Topic",
                 Payload = "test payload",
-                NextAttemptAt = DateTimeOffset.UtcNow,
                 CreatedAt = DateTimeOffset.UtcNow,
             });
+
+        // Claim the message first
+        await outboxStore!.ClaimDueAsync(10, CancellationToken.None);
 
         var errorMessage = "Permanent failure";
 
         // Act
         await outboxStore!.FailAsync(messageId, errorMessage, CancellationToken.None);
 
-        // Assert - Check the message is marked as processed with error
+        // Assert - Check the message is marked as failed (Status 3 = Failed)
         var result = await connection.QueryFirstAsync(
             $@"
-            SELECT IsProcessed, LastError, ProcessedBy FROM [{defaultOptions.SchemaName}].[{defaultOptions.TableName}] 
+            SELECT Status, LastError, ProcessedBy FROM [{defaultOptions.SchemaName}].[{defaultOptions.TableName}] 
             WHERE Id = @Id", new { Id = messageId });
 
-        ((bool)result.IsProcessed).ShouldBeTrue();
+        ((byte)result.Status).ShouldBe((byte)3); // Status 3 = Failed
         ((string)result.LastError).ShouldBe(errorMessage);
         ((string)result.ProcessedBy).ShouldContain("FAILED");
     }

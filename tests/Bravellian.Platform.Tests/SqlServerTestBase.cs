@@ -97,6 +97,9 @@ public abstract class SqlServerTestBase : IAsyncLifetime
         {
             await connection.OpenAsync(TestContext.Current.CancellationToken);
 
+            // Create table types for work queue stored procedures
+            await ExecuteSqlScript(connection, GetTableTypesScript());
+
             // Create the database schema in the correct order (due to foreign key dependencies)
             await ExecuteSqlScript(connection, GetOutboxTableScript());
             await ExecuteSqlScript(connection, GetOutboxStateTableScript());
@@ -109,6 +112,8 @@ public abstract class SqlServerTestBase : IAsyncLifetime
             // Create stored procedures
             await ExecuteSqlScript(connection, GetOutboxCleanupProcedure());
             await ExecuteSqlScript(connection, GetInboxCleanupProcedure());
+            await ExecuteSqlScript(connection, GetOutboxWorkQueueProcedures());
+            await ExecuteSqlScript(connection, GetInboxWorkQueueProcedures());
 
             TestOutputHelper.WriteLine($"Database schema created successfully on {connection.DataSource}");
         }
@@ -145,9 +150,6 @@ CREATE TABLE dbo.Outbox (
     Topic NVARCHAR(255) NOT NULL,
     CreatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(),
 
-    -- Work Queue Status
-    Status TINYINT NOT NULL DEFAULT 0,
-
     -- Processing Status & Auditing
     IsProcessed BIT NOT NULL DEFAULT 0,
     ProcessedAt DATETIMEOFFSET NULL,
@@ -156,21 +158,25 @@ CREATE TABLE dbo.Outbox (
     -- For Robustness & Error Handling
     RetryCount INT NOT NULL DEFAULT 0,
     LastError NVARCHAR(MAX) NULL,
-    NextAttemptAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(), -- For backoff strategies
 
     -- For Idempotency & Tracing
     MessageId UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(), -- A stable ID for the message consumer
     CorrelationId NVARCHAR(255) NULL, -- To trace a message through multiple systems
 
     -- For Delayed Processing
-    DueTimeUtc DATETIME2(3) NULL -- Optional timestamp indicating when the message should become eligible for processing
+    DueTimeUtc DATETIME2(3) NULL, -- Optional timestamp indicating when the message should become eligible for processing
+
+    -- Work Queue Pattern Columns
+    Status TINYINT NOT NULL DEFAULT 0, -- 0=Ready, 1=InProgress, 2=Done, 3=Failed
+    LockedUntil DATETIME2(3) NULL,
+    OwnerToken UNIQUEIDENTIFIER NULL
 );
 GO
 
--- An index to efficiently query for unprocessed messages, now including the next attempt time.
-CREATE INDEX IX_Outbox_GetNext ON dbo.Outbox(IsProcessed, NextAttemptAt)
-    INCLUDE(Id, Payload, Topic, RetryCount) -- Include columns needed for processing
-    WHERE IsProcessed = 0;
+-- An index to efficiently query for work queue claiming
+CREATE INDEX IX_Outbox_WorkQueue ON dbo.Outbox(Status, CreatedAt)
+    INCLUDE(Id, LockedUntil, DueTimeUtc)
+    WHERE Status = 0;
 GO";
     }
 
@@ -249,12 +255,22 @@ CREATE TABLE dbo.Inbox (
     Payload NVARCHAR(MAX) NULL,
     
     -- For Delayed Processing
-    DueTimeUtc DATETIME2(3) NULL -- Optional timestamp indicating when the message should become eligible for processing
+    DueTimeUtc DATETIME2(3) NULL, -- Optional timestamp indicating when the message should become eligible for processing
+
+    -- Work Queue Pattern Columns
+    LockedUntil DATETIME2(3) NULL,
+    OwnerToken UNIQUEIDENTIFIER NULL
 );
 GO
 
 -- Index for efficiently finding messages to process
 CREATE INDEX IX_Inbox_Processing ON dbo.Inbox(Status, LastSeenUtc)
+    WHERE Status IN ('Seen', 'Processing');
+GO
+
+-- Work queue index for claiming messages
+CREATE INDEX IX_Inbox_WorkQueue ON dbo.Inbox(Status, LastSeenUtc)
+    INCLUDE(MessageId, OwnerToken)
     WHERE Status IN ('Seen', 'Processing');
 GO";
     }
@@ -355,6 +371,177 @@ BEGIN
        AND ProcessedUtc < @cutoffTime;
        
     SELECT @@ROWCOUNT AS DeletedCount;
+END
+GO";
+    }
+
+    private string GetTableTypesScript()
+    {
+        return @"
+-- Create GuidIdList type for Outbox stored procedures
+IF TYPE_ID('dbo.GuidIdList') IS NULL
+BEGIN
+    CREATE TYPE dbo.GuidIdList AS TABLE (
+        Id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY
+    );
+END
+GO
+
+-- Create StringIdList type for Inbox stored procedures
+IF TYPE_ID('dbo.StringIdList') IS NULL
+BEGIN
+    CREATE TYPE dbo.StringIdList AS TABLE (
+        Id VARCHAR(64) NOT NULL PRIMARY KEY
+    );
+END
+GO";
+    }
+
+    private string GetOutboxWorkQueueProcedures()
+    {
+        return @"
+CREATE OR ALTER PROCEDURE dbo.Outbox_Claim
+    @OwnerToken UNIQUEIDENTIFIER,
+    @LeaseSeconds INT,
+    @BatchSize INT = 50
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @now DATETIME2(3) = SYSUTCDATETIME();
+    DECLARE @until DATETIME2(3) = DATEADD(SECOND, @LeaseSeconds, @now);
+
+    WITH cte AS (
+        SELECT TOP (@BatchSize) Id
+        FROM dbo.Outbox WITH (READPAST, UPDLOCK, ROWLOCK)
+        WHERE Status = 0 
+            AND (LockedUntil IS NULL OR LockedUntil <= @now)
+            AND (DueTimeUtc IS NULL OR DueTimeUtc <= @now)
+        ORDER BY CreatedAt
+    )
+    UPDATE o SET Status = 1, OwnerToken = @OwnerToken, LockedUntil = @until
+    OUTPUT inserted.Id
+    FROM dbo.Outbox o JOIN cte ON cte.Id = o.Id;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.Outbox_Ack
+    @OwnerToken UNIQUEIDENTIFIER,
+    @Ids dbo.GuidIdList READONLY
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE o SET Status = 2, OwnerToken = NULL, LockedUntil = NULL, IsProcessed = 1, ProcessedAt = SYSUTCDATETIME()
+    FROM dbo.Outbox o JOIN @Ids i ON i.Id = o.Id
+    WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.Outbox_Abandon
+    @OwnerToken UNIQUEIDENTIFIER,
+    @Ids dbo.GuidIdList READONLY
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE o SET Status = 0, OwnerToken = NULL, LockedUntil = NULL
+    FROM dbo.Outbox o JOIN @Ids i ON i.Id = o.Id
+    WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.Outbox_Fail
+    @OwnerToken UNIQUEIDENTIFIER,
+    @Ids dbo.GuidIdList READONLY
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE o SET Status = 3, OwnerToken = NULL, LockedUntil = NULL
+    FROM dbo.Outbox o JOIN @Ids i ON i.Id = o.Id
+    WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.Outbox_ReapExpired
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE dbo.Outbox SET Status = 0, OwnerToken = NULL, LockedUntil = NULL
+    WHERE Status = 1 AND LockedUntil IS NOT NULL AND LockedUntil <= SYSUTCDATETIME();
+    SELECT @@ROWCOUNT AS ReapedCount;
+END
+GO";
+    }
+
+    private string GetInboxWorkQueueProcedures()
+    {
+        return @"
+CREATE OR ALTER PROCEDURE dbo.Inbox_Claim
+    @OwnerToken UNIQUEIDENTIFIER,
+    @LeaseSeconds INT,
+    @BatchSize INT = 50
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @now DATETIME2(3) = SYSUTCDATETIME();
+    DECLARE @until DATETIME2(3) = DATEADD(SECOND, @LeaseSeconds, @now);
+
+    WITH cte AS (
+        SELECT TOP (@BatchSize) MessageId
+        FROM dbo.Inbox WITH (READPAST, UPDLOCK, ROWLOCK)
+        WHERE Status IN ('Seen', 'Processing') 
+            AND (LockedUntil IS NULL OR LockedUntil <= @now)
+            AND (DueTimeUtc IS NULL OR DueTimeUtc <= @now)
+        ORDER BY LastSeenUtc
+    )
+    UPDATE i SET Status = 'Processing', OwnerToken = @OwnerToken, LockedUntil = @until, LastSeenUtc = @now
+    OUTPUT inserted.MessageId
+    FROM dbo.Inbox i JOIN cte ON cte.MessageId = i.MessageId;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.Inbox_Ack
+    @OwnerToken UNIQUEIDENTIFIER,
+    @Ids dbo.StringIdList READONLY
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE i SET Status = 'Done', OwnerToken = NULL, LockedUntil = NULL, ProcessedUtc = SYSUTCDATETIME(), LastSeenUtc = SYSUTCDATETIME()
+    FROM dbo.Inbox i JOIN @Ids ids ON ids.Id = i.MessageId
+    WHERE i.OwnerToken = @OwnerToken AND i.Status = 'Processing';
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.Inbox_Abandon
+    @OwnerToken UNIQUEIDENTIFIER,
+    @Ids dbo.StringIdList READONLY
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE i SET Status = 'Seen', OwnerToken = NULL, LockedUntil = NULL, LastSeenUtc = SYSUTCDATETIME()
+    FROM dbo.Inbox i JOIN @Ids ids ON ids.Id = i.MessageId
+    WHERE i.OwnerToken = @OwnerToken AND i.Status = 'Processing';
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.Inbox_Fail
+    @OwnerToken UNIQUEIDENTIFIER,
+    @Ids dbo.StringIdList READONLY,
+    @Reason NVARCHAR(MAX) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE i SET Status = 'Dead', OwnerToken = NULL, LockedUntil = NULL, LastSeenUtc = SYSUTCDATETIME()
+    FROM dbo.Inbox i JOIN @Ids ids ON ids.Id = i.MessageId
+    WHERE i.OwnerToken = @OwnerToken AND i.Status = 'Processing';
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.Inbox_ReapExpired
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE dbo.Inbox SET Status = 'Seen', OwnerToken = NULL, LockedUntil = NULL, LastSeenUtc = SYSUTCDATETIME()
+    WHERE Status = 'Processing' AND LockedUntil IS NOT NULL AND LockedUntil <= SYSUTCDATETIME();
+    SELECT @@ROWCOUNT AS ReapedCount;
 END
 GO";
     }
