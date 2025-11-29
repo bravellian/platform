@@ -434,7 +434,8 @@ GO
 CREATE OR ALTER PROCEDURE dbo.Outbox_Abandon
     @OwnerToken UNIQUEIDENTIFIER,
     @Ids dbo.GuidIdList READONLY,
-    @LastError NVARCHAR(MAX) = NULL
+    @LastError NVARCHAR(MAX) = NULL,
+    @DueTimeUtc DATETIME2(3) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -443,7 +444,8 @@ BEGIN
         OwnerToken = NULL, 
         LockedUntil = NULL,
         RetryCount = RetryCount + 1,
-        LastError = ISNULL(@LastError, o.LastError)
+        LastError = ISNULL(@LastError, o.LastError),
+        DueTimeUtc = ISNULL(@DueTimeUtc, o.DueTimeUtc)
     FROM dbo.Outbox o JOIN @Ids i ON i.Id = o.Id
     WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
 END

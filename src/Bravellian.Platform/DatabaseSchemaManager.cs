@@ -1085,7 +1085,8 @@ internal static class DatabaseSchemaManager
             CREATE OR ALTER PROCEDURE [{schemaName}].[{tableName}_Abandon]
                             @OwnerToken UNIQUEIDENTIFIER,
                             @Ids [{schemaName}].[GuidIdList] READONLY,
-                            @LastError NVARCHAR(MAX) = NULL
+                            @LastError NVARCHAR(MAX) = NULL,
+                            @DueTimeUtc DATETIME2(3) = NULL
                           AS
                           BEGIN
                             SET NOCOUNT ON;
@@ -1094,7 +1095,8 @@ internal static class DatabaseSchemaManager
                                 OwnerToken = NULL, 
                                 LockedUntil = NULL,
                                 RetryCount = RetryCount + 1,
-                                LastError = ISNULL(@LastError, o.LastError)
+                                LastError = ISNULL(@LastError, o.LastError),
+                                DueTimeUtc = ISNULL(@DueTimeUtc, o.DueTimeUtc)
                             FROM [{schemaName}].[{tableName}] o JOIN @Ids i ON i.Id = o.Id
                             WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
                           END

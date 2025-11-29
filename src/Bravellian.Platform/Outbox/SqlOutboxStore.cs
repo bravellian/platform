@@ -156,7 +156,7 @@ internal class SqlOutboxStore : IOutboxStore
             using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-            // Use Abandon to release the lock and update retry count and error atomically
+            // Use Abandon to release the lock and update retry count, error, and due time atomically
             var idsTable = CreateGuidIdTable(new[] { id });
             using var abandonCommand = new SqlCommand($"[{schemaName}].[{tableName}_Abandon]", connection)
             {
@@ -164,6 +164,7 @@ internal class SqlOutboxStore : IOutboxStore
             };
             abandonCommand.Parameters.AddWithValue("@OwnerToken", ownerToken);
             abandonCommand.Parameters.AddWithValue("@LastError", lastError ?? (object)DBNull.Value);
+            abandonCommand.Parameters.AddWithValue("@DueTimeUtc", nextAttempt.UtcDateTime);
             var parameter = abandonCommand.Parameters.AddWithValue("@Ids", idsTable);
             parameter.SqlDbType = System.Data.SqlDbType.Structured;
             parameter.TypeName = $"[{schemaName}].[GuidIdList]";
