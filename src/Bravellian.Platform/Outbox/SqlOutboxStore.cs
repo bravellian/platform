@@ -156,32 +156,19 @@ internal class SqlOutboxStore : IOutboxStore
             using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-            // Use Abandon to release the lock, then update retry count and error
+            // Use Abandon to release the lock and update retry count and error atomically
             var idsTable = CreateGuidIdTable(new[] { id });
             using var abandonCommand = new SqlCommand($"[{schemaName}].[{tableName}_Abandon]", connection)
             {
                 CommandType = System.Data.CommandType.StoredProcedure,
             };
             abandonCommand.Parameters.AddWithValue("@OwnerToken", ownerToken);
+            abandonCommand.Parameters.AddWithValue("@LastError", lastError ?? (object)DBNull.Value);
             var parameter = abandonCommand.Parameters.AddWithValue("@Ids", idsTable);
             parameter.SqlDbType = System.Data.SqlDbType.Structured;
             parameter.TypeName = $"[{schemaName}].[GuidIdList]";
 
             await abandonCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-
-            // Now update retry count and error information
-            var updateSql = $"""
-                UPDATE [{schemaName}].[{tableName}]
-                SET RetryCount = RetryCount + 1,
-                    LastError = @LastError
-                WHERE Id = @Id
-                """;
-
-            await connection.ExecuteAsync(updateSql, new
-            {
-                Id = id,
-                LastError = lastError,
-            }).ConfigureAwait(false);
 
             logger.LogDebug("Successfully rescheduled outbox message {MessageId} for {NextAttempt}", id, nextAttempt);
         }
@@ -208,33 +195,20 @@ internal class SqlOutboxStore : IOutboxStore
             using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-            // Use Fail stored procedure to mark as permanently failed
+            // Use Fail stored procedure to mark as permanently failed with error and machine info
             var idsTable = CreateGuidIdTable(new[] { id });
             using var command = new SqlCommand($"[{schemaName}].[{tableName}_Fail]", connection)
             {
                 CommandType = System.Data.CommandType.StoredProcedure,
             };
             command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+            command.Parameters.AddWithValue("@LastError", lastError ?? (object)DBNull.Value);
+            command.Parameters.AddWithValue("@ProcessedBy", $"{Environment.MachineName}:FAILED");
             var parameter = command.Parameters.AddWithValue("@Ids", idsTable);
             parameter.SqlDbType = System.Data.SqlDbType.Structured;
             parameter.TypeName = $"[{schemaName}].[GuidIdList]";
 
             await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-
-            // Update the error message
-            var updateSql = $"""
-                UPDATE [{schemaName}].[{tableName}]
-                SET LastError = @LastError,
-                    ProcessedBy = @ProcessedBy
-                WHERE Id = @Id
-                """;
-
-            await connection.ExecuteAsync(updateSql, new
-            {
-                Id = id,
-                LastError = lastError,
-                ProcessedBy = $"{Environment.MachineName}:FAILED",
-            }).ConfigureAwait(false);
 
             logger.LogWarning("Successfully marked outbox message {MessageId} as permanently failed", id);
         }

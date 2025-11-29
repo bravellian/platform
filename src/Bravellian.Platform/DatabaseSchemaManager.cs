@@ -1084,11 +1084,17 @@ internal static class DatabaseSchemaManager
             $"""
             CREATE OR ALTER PROCEDURE [{schemaName}].[Outbox_Abandon]
                             @OwnerToken UNIQUEIDENTIFIER,
-                            @Ids [{schemaName}].[GuidIdList] READONLY
+                            @Ids [{schemaName}].[GuidIdList] READONLY,
+                            @LastError NVARCHAR(MAX) = NULL
                           AS
                           BEGIN
                             SET NOCOUNT ON;
-                            UPDATE o SET Status = 0, OwnerToken = NULL, LockedUntil = NULL
+                            UPDATE o SET 
+                                Status = 0, 
+                                OwnerToken = NULL, 
+                                LockedUntil = NULL,
+                                RetryCount = RetryCount + 1,
+                                LastError = ISNULL(@LastError, o.LastError)
                             FROM [{schemaName}].[Outbox] o JOIN @Ids i ON i.Id = o.Id
                             WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
                           END
@@ -1097,11 +1103,18 @@ internal static class DatabaseSchemaManager
             $"""
             CREATE OR ALTER PROCEDURE [{schemaName}].[Outbox_Fail]
                             @OwnerToken UNIQUEIDENTIFIER,
-                            @Ids [{schemaName}].[GuidIdList] READONLY
+                            @Ids [{schemaName}].[GuidIdList] READONLY,
+                            @LastError NVARCHAR(MAX) = NULL,
+                            @ProcessedBy NVARCHAR(100) = NULL
                           AS
                           BEGIN
                             SET NOCOUNT ON;
-                            UPDATE o SET Status = 3, OwnerToken = NULL, LockedUntil = NULL
+                            UPDATE o SET 
+                                Status = 3, 
+                                OwnerToken = NULL, 
+                                LockedUntil = NULL,
+                                LastError = ISNULL(@LastError, o.LastError),
+                                ProcessedBy = ISNULL(@ProcessedBy, o.ProcessedBy)
                             FROM [{schemaName}].[Outbox] o JOIN @Ids i ON i.Id = o.Id
                             WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
                           END

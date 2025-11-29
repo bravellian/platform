@@ -263,11 +263,6 @@ CREATE TABLE dbo.Inbox (
 );
 GO
 
--- Index for efficiently finding messages to process
-CREATE INDEX IX_Inbox_Processing ON dbo.Inbox(Status, LastSeenUtc)
-    WHERE Status IN ('Seen', 'Processing');
-GO
-
 -- Work queue index for claiming messages
 CREATE INDEX IX_Inbox_WorkQueue ON dbo.Inbox(Status, LastSeenUtc)
     INCLUDE(MessageId, OwnerToken)
@@ -438,11 +433,17 @@ GO
 
 CREATE OR ALTER PROCEDURE dbo.Outbox_Abandon
     @OwnerToken UNIQUEIDENTIFIER,
-    @Ids dbo.GuidIdList READONLY
+    @Ids dbo.GuidIdList READONLY,
+    @LastError NVARCHAR(MAX) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
-    UPDATE o SET Status = 0, OwnerToken = NULL, LockedUntil = NULL
+    UPDATE o SET 
+        Status = 0, 
+        OwnerToken = NULL, 
+        LockedUntil = NULL,
+        RetryCount = RetryCount + 1,
+        LastError = ISNULL(@LastError, o.LastError)
     FROM dbo.Outbox o JOIN @Ids i ON i.Id = o.Id
     WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
 END
@@ -450,11 +451,18 @@ GO
 
 CREATE OR ALTER PROCEDURE dbo.Outbox_Fail
     @OwnerToken UNIQUEIDENTIFIER,
-    @Ids dbo.GuidIdList READONLY
+    @Ids dbo.GuidIdList READONLY,
+    @LastError NVARCHAR(MAX) = NULL,
+    @ProcessedBy NVARCHAR(100) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
-    UPDATE o SET Status = 3, OwnerToken = NULL, LockedUntil = NULL
+    UPDATE o SET 
+        Status = 3, 
+        OwnerToken = NULL, 
+        LockedUntil = NULL,
+        LastError = ISNULL(@LastError, o.LastError),
+        ProcessedBy = ISNULL(@ProcessedBy, o.ProcessedBy)
     FROM dbo.Outbox o JOIN @Ids i ON i.Id = o.Id
     WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
 END
