@@ -85,11 +85,11 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
             ["ProcessedBy"] = "nvarchar",
             ["RetryCount"] = "int",
             ["LastError"] = "nvarchar",
-            ["NextAttemptAt"] = "datetimeoffset",
             ["MessageId"] = "uniqueidentifier",
             ["CorrelationId"] = "nvarchar",
+            ["DueTimeUtc"] = "datetime2",
 
-            // Work queue columns added by migration
+            // Work queue columns
             ["Status"] = "tinyint",
             ["LockedUntil"] = "datetime2",
             ["OwnerToken"] = "uniqueidentifier",
@@ -226,8 +226,8 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         // Check critical indexes exist
-        var indexExists = await IndexExistsAsync(connection, "dbo", "Outbox", "IX_Outbox_GetNext");
-        indexExists.ShouldBeTrue("Outbox should have IX_Outbox_GetNext index");
+        var indexExists = await IndexExistsAsync(connection, "dbo", "Outbox", "IX_Outbox_WorkQueue");
+        indexExists.ShouldBeTrue("Outbox should have IX_Outbox_WorkQueue index");
 
         indexExists = await IndexExistsAsync(connection, "dbo", "Jobs", "UQ_Jobs_JobName");
         indexExists.ShouldBeTrue("Jobs should have UQ_Jobs_JobName index");

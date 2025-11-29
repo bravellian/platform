@@ -60,27 +60,25 @@ public class MultiOutboxDispatcherTests : SqlServerTestBase
 
         await connection.ExecuteAsync(
             $@"INSERT INTO [{schema1}].[Outbox] 
-               (Id, Topic, Payload, IsProcessed, NextAttemptAt, CreatedAt, RetryCount)
-               VALUES (@Id, @Topic, @Payload, 0, @NextAttemptAt, @CreatedAt, 0)",
+               (Id, Topic, Payload, Status, CreatedAt, RetryCount)
+               VALUES (@Id, @Topic, @Payload, 0, @CreatedAt, 0)",
             new
             {
                 Id = message1Id,
                 Topic = "Test.Topic",
                 Payload = "message from schema1",
-                NextAttemptAt = DateTimeOffset.UtcNow.AddMinutes(-1),
                 CreatedAt = DateTimeOffset.UtcNow.AddMinutes(-5),
             });
 
         await connection.ExecuteAsync(
             $@"INSERT INTO [{schema2}].[Outbox] 
-               (Id, Topic, Payload, IsProcessed, NextAttemptAt, CreatedAt, RetryCount)
-               VALUES (@Id, @Topic, @Payload, 0, @NextAttemptAt, @CreatedAt, 0)",
+               (Id, Topic, Payload, Status, CreatedAt, RetryCount)
+               VALUES (@Id, @Topic, @Payload, 0, @CreatedAt, 0)",
             new
             {
                 Id = message2Id,
                 Topic = "Test.Topic",
                 Payload = "message from schema2",
-                NextAttemptAt = DateTimeOffset.UtcNow.AddMinutes(-1),
                 CreatedAt = DateTimeOffset.UtcNow.AddMinutes(-5),
             });
 
@@ -161,14 +159,13 @@ public class MultiOutboxDispatcherTests : SqlServerTestBase
         {
             await connection.ExecuteAsync(
                 $@"INSERT INTO [{schema1}].[Outbox] 
-                   (Id, Topic, Payload, IsProcessed, NextAttemptAt, CreatedAt, RetryCount)
-                   VALUES (@Id, @Topic, @Payload, 0, @NextAttemptAt, @CreatedAt, 0)",
+                   (Id, Topic, Payload, Status, CreatedAt, RetryCount)
+                   VALUES (@Id, @Topic, @Payload, 0, @CreatedAt, 0)",
                 new
                 {
                     Id = Guid.NewGuid(),
                     Topic = "Test.Topic",
                     Payload = $"message {i} from schema1",
-                    NextAttemptAt = DateTimeOffset.UtcNow.AddMinutes(-1),
                     CreatedAt = DateTimeOffset.UtcNow.AddMinutes(-5),
                 });
         }
