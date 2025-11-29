@@ -139,6 +139,11 @@ internal static class DatabaseSchemaManager
             var createScript = GetInboxCreateScript(schemaName, tableName);
             await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
         }
+        else
+        {
+            // Migrate existing tables to add LastError column if it doesn't exist
+            await MigrateInboxLastErrorColumnAsync(connection, schemaName, tableName).ConfigureAwait(false);
+        }
 
         // Ensure stored procedures exist
         await EnsureInboxStoredProceduresAsync(connection, schemaName, tableName).ConfigureAwait(false);
@@ -2074,5 +2079,25 @@ internal static class DatabaseSchemaManager
               EXEC sp_releaseapplock @Resource = @ResourceName, @DbPrincipal='public';
             END
             """;
+    }
+
+    /// <summary>
+    /// Migrates existing Inbox tables to add the LastError column if it doesn't exist.
+    /// This supports upgrading from the old schema to the new work queue pattern.
+    /// </summary>
+    /// <param name="connection">The database connection.</param>
+    /// <param name="schemaName">The schema name.</param>
+    /// <param name="tableName">The table name.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    private static async Task MigrateInboxLastErrorColumnAsync(SqlConnection connection, string schemaName, string tableName)
+    {
+        var sql = $"""
+            IF COL_LENGTH('[{schemaName}].[{tableName}]', 'LastError') IS NULL
+            BEGIN
+                ALTER TABLE [{schemaName}].[{tableName}] ADD LastError NVARCHAR(MAX) NULL;
+            END
+            """;
+
+        await connection.ExecuteAsync(sql).ConfigureAwait(false);
     }
 }
