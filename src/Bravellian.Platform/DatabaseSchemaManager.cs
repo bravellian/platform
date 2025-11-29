@@ -1044,7 +1044,7 @@ internal static class DatabaseSchemaManager
         var procedures = new[]
         {
             $"""
-            CREATE OR ALTER PROCEDURE [{schemaName}].[Outbox_Claim]
+            CREATE OR ALTER PROCEDURE [{schemaName}].[{tableName}_Claim]
                             @OwnerToken UNIQUEIDENTIFIER,
                             @LeaseSeconds INT,
                             @BatchSize INT = 50
@@ -1056,7 +1056,7 @@ internal static class DatabaseSchemaManager
 
                             WITH cte AS (
                                 SELECT TOP (@BatchSize) Id
-                                FROM [{schemaName}].[Outbox] WITH (READPAST, UPDLOCK, ROWLOCK)
+                                FROM [{schemaName}].[{tableName}] WITH (READPAST, UPDLOCK, ROWLOCK)
                                 WHERE Status = 0 
                                     AND (LockedUntil IS NULL OR LockedUntil <= @now)
                                     AND (DueTimeUtc IS NULL OR DueTimeUtc <= @now)
@@ -1064,25 +1064,25 @@ internal static class DatabaseSchemaManager
                             )
                             UPDATE o SET Status = 1, OwnerToken = @OwnerToken, LockedUntil = @until
                             OUTPUT inserted.Id
-                            FROM [{schemaName}].[Outbox] o JOIN cte ON cte.Id = o.Id;
+                            FROM [{schemaName}].[{tableName}] o JOIN cte ON cte.Id = o.Id;
                           END
             """,
 
             $"""
-            CREATE OR ALTER PROCEDURE [{schemaName}].[Outbox_Ack]
+            CREATE OR ALTER PROCEDURE [{schemaName}].[{tableName}_Ack]
                             @OwnerToken UNIQUEIDENTIFIER,
                             @Ids [{schemaName}].[GuidIdList] READONLY
                           AS
                           BEGIN
                             SET NOCOUNT ON;
                             UPDATE o SET Status = 2, OwnerToken = NULL, LockedUntil = NULL, IsProcessed = 1, ProcessedAt = SYSUTCDATETIME()
-                            FROM [{schemaName}].[Outbox] o JOIN @Ids i ON i.Id = o.Id
+                            FROM [{schemaName}].[{tableName}] o JOIN @Ids i ON i.Id = o.Id
                             WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
                           END
             """,
 
             $"""
-            CREATE OR ALTER PROCEDURE [{schemaName}].[Outbox_Abandon]
+            CREATE OR ALTER PROCEDURE [{schemaName}].[{tableName}_Abandon]
                             @OwnerToken UNIQUEIDENTIFIER,
                             @Ids [{schemaName}].[GuidIdList] READONLY,
                             @LastError NVARCHAR(MAX) = NULL
@@ -1095,13 +1095,13 @@ internal static class DatabaseSchemaManager
                                 LockedUntil = NULL,
                                 RetryCount = RetryCount + 1,
                                 LastError = ISNULL(@LastError, o.LastError)
-                            FROM [{schemaName}].[Outbox] o JOIN @Ids i ON i.Id = o.Id
+                            FROM [{schemaName}].[{tableName}] o JOIN @Ids i ON i.Id = o.Id
                             WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
                           END
             """,
 
             $"""
-            CREATE OR ALTER PROCEDURE [{schemaName}].[Outbox_Fail]
+            CREATE OR ALTER PROCEDURE [{schemaName}].[{tableName}_Fail]
                             @OwnerToken UNIQUEIDENTIFIER,
                             @Ids [{schemaName}].[GuidIdList] READONLY,
                             @LastError NVARCHAR(MAX) = NULL,
@@ -1115,17 +1115,17 @@ internal static class DatabaseSchemaManager
                                 LockedUntil = NULL,
                                 LastError = ISNULL(@LastError, o.LastError),
                                 ProcessedBy = ISNULL(@ProcessedBy, o.ProcessedBy)
-                            FROM [{schemaName}].[Outbox] o JOIN @Ids i ON i.Id = o.Id
+                            FROM [{schemaName}].[{tableName}] o JOIN @Ids i ON i.Id = o.Id
                             WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
                           END
             """,
 
             $"""
-            CREATE OR ALTER PROCEDURE [{schemaName}].[Outbox_ReapExpired]
+            CREATE OR ALTER PROCEDURE [{schemaName}].[{tableName}_ReapExpired]
                           AS
                           BEGIN
                             SET NOCOUNT ON;
-                            UPDATE [{schemaName}].[Outbox] SET Status = 0, OwnerToken = NULL, LockedUntil = NULL
+                            UPDATE [{schemaName}].[{tableName}] SET Status = 0, OwnerToken = NULL, LockedUntil = NULL
                             WHERE Status = 1 AND LockedUntil IS NOT NULL AND LockedUntil <= SYSUTCDATETIME();
                             SELECT @@ROWCOUNT AS ReapedCount;
                           END
@@ -1151,7 +1151,7 @@ internal static class DatabaseSchemaManager
         var procedures = new[]
         {
             $"""
-            CREATE OR ALTER PROCEDURE [{schemaName}].[Inbox_Claim]
+            CREATE OR ALTER PROCEDURE [{schemaName}].[{tableName}_Claim]
                             @OwnerToken UNIQUEIDENTIFIER,
                             @LeaseSeconds INT,
                             @BatchSize INT = 50
@@ -1163,7 +1163,7 @@ internal static class DatabaseSchemaManager
 
                             WITH cte AS (
                                 SELECT TOP (@BatchSize) MessageId
-                                FROM [{schemaName}].[Inbox] WITH (READPAST, UPDLOCK, ROWLOCK)
+                                FROM [{schemaName}].[{tableName}] WITH (READPAST, UPDLOCK, ROWLOCK)
                                 WHERE Status IN ('Seen', 'Processing') 
                                     AND (LockedUntil IS NULL OR LockedUntil <= @now)
                                     AND (DueTimeUtc IS NULL OR DueTimeUtc <= @now)
@@ -1171,38 +1171,38 @@ internal static class DatabaseSchemaManager
                             )
                             UPDATE i SET Status = 'Processing', OwnerToken = @OwnerToken, LockedUntil = @until, LastSeenUtc = @now
                             OUTPUT inserted.MessageId
-                            FROM [{schemaName}].[Inbox] i JOIN cte ON cte.MessageId = i.MessageId;
+                            FROM [{schemaName}].[{tableName}] i JOIN cte ON cte.MessageId = i.MessageId;
                           END
             """,
 
             $"""
-            CREATE OR ALTER PROCEDURE [{schemaName}].[Inbox_Ack]
+            CREATE OR ALTER PROCEDURE [{schemaName}].[{tableName}_Ack]
                             @OwnerToken UNIQUEIDENTIFIER,
                             @Ids [{schemaName}].[StringIdList] READONLY
                           AS
                           BEGIN
                             SET NOCOUNT ON;
                             UPDATE i SET Status = 'Done', OwnerToken = NULL, LockedUntil = NULL, ProcessedUtc = SYSUTCDATETIME(), LastSeenUtc = SYSUTCDATETIME()
-                            FROM [{schemaName}].[Inbox] i JOIN @Ids ids ON ids.Id = i.MessageId
+                            FROM [{schemaName}].[{tableName}] i JOIN @Ids ids ON ids.Id = i.MessageId
                             WHERE i.OwnerToken = @OwnerToken AND i.Status = 'Processing';
                           END
             """,
 
             $"""
-            CREATE OR ALTER PROCEDURE [{schemaName}].[Inbox_Abandon]
+            CREATE OR ALTER PROCEDURE [{schemaName}].[{tableName}_Abandon]
                             @OwnerToken UNIQUEIDENTIFIER,
                             @Ids [{schemaName}].[StringIdList] READONLY
                           AS
                           BEGIN
                             SET NOCOUNT ON;
                             UPDATE i SET Status = 'Seen', OwnerToken = NULL, LockedUntil = NULL, LastSeenUtc = SYSUTCDATETIME()
-                            FROM [{schemaName}].[Inbox] i JOIN @Ids ids ON ids.Id = i.MessageId
+                            FROM [{schemaName}].[{tableName}] i JOIN @Ids ids ON ids.Id = i.MessageId
                             WHERE i.OwnerToken = @OwnerToken AND i.Status = 'Processing';
                           END
             """,
 
             $"""
-            CREATE OR ALTER PROCEDURE [{schemaName}].[Inbox_Fail]
+            CREATE OR ALTER PROCEDURE [{schemaName}].[{tableName}_Fail]
                             @OwnerToken UNIQUEIDENTIFIER,
                             @Ids [{schemaName}].[StringIdList] READONLY,
                             @Reason NVARCHAR(MAX) = NULL
@@ -1210,17 +1210,17 @@ internal static class DatabaseSchemaManager
                           BEGIN
                             SET NOCOUNT ON;
                             UPDATE i SET Status = 'Dead', OwnerToken = NULL, LockedUntil = NULL, LastSeenUtc = SYSUTCDATETIME()
-                            FROM [{schemaName}].[Inbox] i JOIN @Ids ids ON ids.Id = i.MessageId
+                            FROM [{schemaName}].[{tableName}] i JOIN @Ids ids ON ids.Id = i.MessageId
                             WHERE i.OwnerToken = @OwnerToken AND i.Status = 'Processing';
                           END
             """,
 
             $"""
-            CREATE OR ALTER PROCEDURE [{schemaName}].[Inbox_ReapExpired]
+            CREATE OR ALTER PROCEDURE [{schemaName}].[{tableName}_ReapExpired]
                           AS
                           BEGIN
                             SET NOCOUNT ON;
-                            UPDATE [{schemaName}].[Inbox] SET Status = 'Seen', OwnerToken = NULL, LockedUntil = NULL, LastSeenUtc = SYSUTCDATETIME()
+                            UPDATE [{schemaName}].[{tableName}] SET Status = 'Seen', OwnerToken = NULL, LockedUntil = NULL, LastSeenUtc = SYSUTCDATETIME()
                             WHERE Status = 'Processing' AND LockedUntil IS NOT NULL AND LockedUntil <= SYSUTCDATETIME();
                             SELECT @@ROWCOUNT AS ReapedCount;
                           END
