@@ -56,4 +56,10 @@ public class SqlOutboxOptions
     /// Defaults to 1 hour.
     /// </summary>
     public TimeSpan CleanupInterval { get; set; } = TimeSpan.FromHours(1);
+
+    /// <summary>
+    /// Gets or sets the duration for which claimed messages are locked before they can be claimed again.
+    /// Defaults to 5 minutes (300 seconds).
+    /// </summary>
+    public TimeSpan LeaseDuration { get; set; } = TimeSpan.FromMinutes(5);
 }

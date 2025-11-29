@@ -66,12 +66,13 @@ public class SqlOutboxStoreTests : SqlServerTestBase
             $@"
             INSERT INTO [{defaultOptions.SchemaName}].[{defaultOptions.TableName}] 
             (Id, Topic, Payload, Status, CreatedAt, RetryCount)
-            VALUES (@Id, @Topic, @Payload, 0, @CreatedAt, 0)",
+            VALUES (@Id, @Topic, @Payload, @Status, @CreatedAt, 0)",
             new
             {
                 Id = messageId,
                 Topic = "Test.Topic",
                 Payload = "test payload",
+                Status = OutboxStatus.Ready,
                 CreatedAt = DateTimeOffset.UtcNow.AddMinutes(-5),
             });
 
@@ -97,12 +98,13 @@ public class SqlOutboxStoreTests : SqlServerTestBase
             $@"
             INSERT INTO [{defaultOptions.SchemaName}].[{defaultOptions.TableName}] 
             (Id, Topic, Payload, Status, CreatedAt, RetryCount, DueTimeUtc)
-            VALUES (@Id, @Topic, @Payload, 0, @CreatedAt, 0, @DueTimeUtc)",
+            VALUES (@Id, @Topic, @Payload, @Status, @CreatedAt, 0, @DueTimeUtc)",
             new
             {
                 Id = messageId,
                 Topic = "Test.Topic",
                 Payload = "test payload",
+                Status = OutboxStatus.Ready,
                 DueTimeUtc = DateTime.UtcNow.AddMinutes(10), // Due in the future
                 CreatedAt = DateTimeOffset.UtcNow,
             });
@@ -126,12 +128,13 @@ public class SqlOutboxStoreTests : SqlServerTestBase
             $@"
             INSERT INTO [{defaultOptions.SchemaName}].[{defaultOptions.TableName}] 
             (Id, Topic, Payload, Status, CreatedAt, RetryCount)
-            VALUES (@Id, @Topic, @Payload, 0, @CreatedAt, 0)",
+            VALUES (@Id, @Topic, @Payload, @Status, @CreatedAt, 0)",
             new
             {
                 Id = messageId,
                 Topic = "Test.Topic",
                 Payload = "test payload",
+                Status = OutboxStatus.Ready,
                 CreatedAt = DateTimeOffset.UtcNow,
             });
 
@@ -141,13 +144,13 @@ public class SqlOutboxStoreTests : SqlServerTestBase
         // Act
         await outboxStore!.MarkDispatchedAsync(messageId, CancellationToken.None);
 
-        // Assert - Check the message is marked as processed (Status = 2, IsProcessed = 1)
+        // Assert - Check the message is marked as processed (Status = Done, IsProcessed = 1)
         var result = await connection.QueryFirstAsync(
             $@"
             SELECT Status, IsProcessed FROM [{defaultOptions.SchemaName}].[{defaultOptions.TableName}] 
             WHERE Id = @Id", new { Id = messageId });
 
-        ((byte)result.Status).ShouldBe((byte)2); // Status 2 = Done
+        ((byte)result.Status).ShouldBe(OutboxStatus.Done);
         ((bool)result.IsProcessed).ShouldBeTrue();
     }
 
@@ -163,12 +166,13 @@ public class SqlOutboxStoreTests : SqlServerTestBase
             $@"
             INSERT INTO [{defaultOptions.SchemaName}].[{defaultOptions.TableName}] 
             (Id, Topic, Payload, Status, CreatedAt, RetryCount)
-            VALUES (@Id, @Topic, @Payload, 0, @CreatedAt, 2)",
+            VALUES (@Id, @Topic, @Payload, @Status, @CreatedAt, 2)",
             new
             {
                 Id = messageId,
                 Topic = "Test.Topic",
                 Payload = "test payload",
+                Status = OutboxStatus.Ready,
                 CreatedAt = DateTimeOffset.UtcNow,
             });
 
@@ -189,7 +193,7 @@ public class SqlOutboxStoreTests : SqlServerTestBase
 
         ((int)result.RetryCount).ShouldBe(3); // Should be incremented from 2 to 3
         ((string)result.LastError).ShouldBe(errorMessage);
-        ((byte)result.Status).ShouldBe((byte)0); // Should be abandoned (Status 0 = Ready)
+        ((byte)result.Status).ShouldBe(OutboxStatus.Ready); // Should be abandoned (Status Ready)
     }
 
     [Fact]
@@ -204,12 +208,13 @@ public class SqlOutboxStoreTests : SqlServerTestBase
             $@"
             INSERT INTO [{defaultOptions.SchemaName}].[{defaultOptions.TableName}] 
             (Id, Topic, Payload, Status, CreatedAt, RetryCount)
-            VALUES (@Id, @Topic, @Payload, 0, @CreatedAt, 0)",
+            VALUES (@Id, @Topic, @Payload, @Status, @CreatedAt, 0)",
             new
             {
                 Id = messageId,
                 Topic = "Test.Topic",
                 Payload = "test payload",
+                Status = OutboxStatus.Ready,
                 CreatedAt = DateTimeOffset.UtcNow,
             });
 
@@ -221,13 +226,13 @@ public class SqlOutboxStoreTests : SqlServerTestBase
         // Act
         await outboxStore!.FailAsync(messageId, errorMessage, CancellationToken.None);
 
-        // Assert - Check the message is marked as failed (Status 3 = Failed)
+        // Assert - Check the message is marked as failed
         var result = await connection.QueryFirstAsync(
             $@"
             SELECT Status, LastError, ProcessedBy FROM [{defaultOptions.SchemaName}].[{defaultOptions.TableName}] 
             WHERE Id = @Id", new { Id = messageId });
 
-        ((byte)result.Status).ShouldBe((byte)3); // Status 3 = Failed
+        ((byte)result.Status).ShouldBe(OutboxStatus.Failed);
         ((string)result.LastError).ShouldBe(errorMessage);
         ((string)result.ProcessedBy).ShouldContain("FAILED");
     }

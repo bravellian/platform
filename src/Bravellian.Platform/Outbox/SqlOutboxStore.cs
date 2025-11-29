@@ -32,6 +32,7 @@ internal class SqlOutboxStore : IOutboxStore
     private readonly string serverName;
     private readonly string databaseName;
     private readonly Guid ownerToken;
+    private readonly int leaseSeconds;
 
     public SqlOutboxStore(IOptions<SqlOutboxOptions> options, TimeProvider timeProvider, ILogger<SqlOutboxStore> logger)
     {
@@ -42,14 +43,13 @@ internal class SqlOutboxStore : IOutboxStore
         this.timeProvider = timeProvider;
         this.logger = logger;
         ownerToken = Guid.NewGuid();
+        leaseSeconds = (int)opts.LeaseDuration.TotalSeconds;
 
         (serverName, databaseName) = ParseConnectionInfo(connectionString);
     }
 
     public async Task<IReadOnlyList<OutboxMessage>> ClaimDueAsync(int limit, CancellationToken cancellationToken)
     {
-        var leaseSeconds = 300; // 5 minutes default lease
-
         logger.LogDebug(
             "Claiming up to {Limit} outbox messages for processing with owner token {OwnerToken}",
             limit,
