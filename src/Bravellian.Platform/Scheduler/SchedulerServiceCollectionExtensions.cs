@@ -438,8 +438,9 @@ public static class SchedulerServiceCollectionExtensions
         // Register the store provider with the list of inbox options
         services.AddSingleton<IInboxWorkStoreProvider>(provider =>
         {
+            var timeProvider = provider.GetRequiredService<TimeProvider>();
             var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
-            return new ConfiguredInboxWorkStoreProvider(inboxOptions, loggerFactory);
+            return new ConfiguredInboxWorkStoreProvider(inboxOptions, timeProvider, loggerFactory);
         });
 
         // Register the selection strategy

@@ -27,16 +27,18 @@ internal class SqlInboxWorkStore : IInboxWorkStore
     private readonly string connectionString;
     private readonly string schemaName;
     private readonly string tableName;
+    private readonly TimeProvider timeProvider;
     private readonly ILogger<SqlInboxWorkStore> logger;
     private readonly string serverName;
     private readonly string databaseName;
 
-    public SqlInboxWorkStore(IOptions<SqlInboxOptions> options, ILogger<SqlInboxWorkStore> logger)
+    public SqlInboxWorkStore(IOptions<SqlInboxOptions> options, TimeProvider timeProvider, ILogger<SqlInboxWorkStore> logger)
     {
         var opts = options.Value;
         connectionString = opts.ConnectionString;
         schemaName = opts.SchemaName;
         tableName = opts.TableName;
+        this.timeProvider = timeProvider;
         this.logger = logger;
         (serverName, databaseName) = ParseConnectionInfo(connectionString);
     }
@@ -145,7 +147,9 @@ internal class SqlInboxWorkStore : IInboxWorkStore
     public async Task AbandonAsync(
         Guid ownerToken,
         IEnumerable<string> messageIds,
-        CancellationToken cancellationToken)
+        string? lastError = null,
+        TimeSpan? delay = null,
+        CancellationToken cancellationToken = default)
     {
         var messageIdList = messageIds.ToList();
         if (messageIdList.Count == 0)
@@ -154,9 +158,10 @@ internal class SqlInboxWorkStore : IInboxWorkStore
         }
 
         logger.LogDebug(
-            "Abandoning {MessageCount} inbox messages for owner {OwnerToken}",
+            "Abandoning {MessageCount} inbox messages for owner {OwnerToken} with delay {DelayMs}ms",
             messageIdList.Count,
-            ownerToken);
+            ownerToken,
+            delay?.TotalMilliseconds ?? 0);
 
         try
         {
@@ -172,6 +177,18 @@ internal class SqlInboxWorkStore : IInboxWorkStore
             var parameter = command.Parameters.AddWithValue("@Ids", idsTable);
             parameter.SqlDbType = System.Data.SqlDbType.Structured;
             parameter.TypeName = $"[{schemaName}].[StringIdList]";
+            command.Parameters.AddWithValue("@LastError", lastError ?? (object)DBNull.Value);
+            
+            // Calculate due time if delay is specified
+            if (delay.HasValue)
+            {
+                var dueTime = timeProvider.GetUtcNow().Add(delay.Value);
+                command.Parameters.AddWithValue("@DueTimeUtc", dueTime.UtcDateTime);
+            }
+            else
+            {
+                command.Parameters.AddWithValue("@DueTimeUtc", DBNull.Value);
+            }
 
             await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
 
@@ -303,7 +320,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
 
             var sql = $"""
 
-                                SELECT MessageId, Source, Topic, Payload, Hash, Attempts, FirstSeenUtc, LastSeenUtc, DueTimeUtc
+                                SELECT MessageId, Source, Topic, Payload, Hash, Attempts, FirstSeenUtc, LastSeenUtc, DueTimeUtc, LastError
                                 FROM [{schemaName}].[{tableName}]
                                 WHERE MessageId = @MessageId
                 """;
@@ -326,6 +343,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
                 FirstSeenUtc = row.FirstSeenUtc,
                 LastSeenUtc = row.LastSeenUtc,
                 DueTimeUtc = row.DueTimeUtc,
+                LastError = row.LastError,
             };
         }
         catch (Exception ex)

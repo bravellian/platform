@@ -32,6 +32,7 @@ internal sealed class ConfiguredInboxWorkStoreProvider : IInboxWorkStoreProvider
 
     public ConfiguredInboxWorkStoreProvider(
         IEnumerable<SqlInboxOptions> inboxOptions,
+        TimeProvider timeProvider,
         ILoggerFactory loggerFactory)
     {
         var storesList = new List<IInboxWorkStore>();
@@ -45,6 +46,7 @@ internal sealed class ConfiguredInboxWorkStoreProvider : IInboxWorkStoreProvider
             var storeLogger = loggerFactory.CreateLogger<SqlInboxWorkStore>();
             var store = new SqlInboxWorkStore(
                 Options.Create(options),
+                timeProvider,
                 storeLogger);
 
             var inboxLogger = loggerFactory.CreateLogger<SqlInboxService>();

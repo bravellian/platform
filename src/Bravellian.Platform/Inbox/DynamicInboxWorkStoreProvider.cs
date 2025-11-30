@@ -263,6 +263,7 @@ internal sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, I
                                 TableName = config.TableName,
                                 EnableSchemaDeployment = config.EnableSchemaDeployment,
                             }),
+                            timeProvider,
                             storeLogger);
 
                         var inboxLogger = loggerFactory.CreateLogger<SqlInboxService>();
@@ -317,6 +318,7 @@ internal sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, I
                                 TableName = config.TableName,
                                 EnableSchemaDeployment = config.EnableSchemaDeployment,
                             }),
+                            timeProvider,
                             storeLogger);
 
                         var inboxLogger = loggerFactory.CreateLogger<SqlInboxService>();

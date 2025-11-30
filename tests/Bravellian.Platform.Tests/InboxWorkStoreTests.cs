@@ -151,7 +151,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
         Assert.Single(claimedIds);
 
         // Act
-        await store.AbandonAsync(ownerToken, claimedIds, CancellationToken.None);
+        await store.AbandonAsync(ownerToken, claimedIds, cancellationToken: CancellationToken.None);
 
         // Assert
         await using var connection = new Microsoft.Data.SqlClient.SqlConnection(ConnectionString);
@@ -278,6 +278,6 @@ public class InboxWorkStoreTests : SqlServerTestBase
         });
 
         var logger = new TestLogger<SqlInboxWorkStore>(TestOutputHelper);
-        return new SqlInboxWorkStore(options, logger);
+        return new SqlInboxWorkStore(options, TimeProvider.System, logger);
     }
 }

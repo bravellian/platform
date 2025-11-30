@@ -40,7 +40,7 @@ public class MockInboxWorkStore : IInboxWorkStore
         => Task.CompletedTask;
 
     /// <inheritdoc/>
-    public Task AbandonAsync(Guid ownerToken, IEnumerable<string> messageIds, CancellationToken cancellationToken)
+    public Task AbandonAsync(Guid ownerToken, IEnumerable<string> messageIds, string? lastError = null, TimeSpan? delay = null, CancellationToken cancellationToken = default)
         => Task.CompletedTask;
 
     /// <inheritdoc/>

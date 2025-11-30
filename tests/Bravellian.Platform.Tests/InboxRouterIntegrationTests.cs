@@ -63,7 +63,7 @@ public class InboxRouterIntegrationTests
         var loggerFactory = CreateLoggerFactory();
 
         // Act - Create the provider using the same logic as the extension method
-        var storeProvider = new ConfiguredInboxWorkStoreProvider(inboxOptions, loggerFactory);
+        var storeProvider = new ConfiguredInboxWorkStoreProvider(inboxOptions, TimeProvider.System, loggerFactory);
         var router = new InboxRouter(storeProvider);
 
         // Assert - Verify the provider was created correctly
@@ -99,7 +99,7 @@ public class InboxRouterIntegrationTests
 
         // Act - Verify the pattern supports custom strategies
         var loggerFactory = CreateLoggerFactory();
-        var storeProvider = new ConfiguredInboxWorkStoreProvider(inboxOptions, loggerFactory);
+        var storeProvider = new ConfiguredInboxWorkStoreProvider(inboxOptions, TimeProvider.System, loggerFactory);
 
         // Dispatcher uses the selection strategy
         var handlerResolver = new InboxHandlerResolver(Array.Empty<IInboxHandler>());
@@ -131,7 +131,7 @@ public class InboxRouterIntegrationTests
         var loggerFactory = CreateLoggerFactory();
 
         // Act - Create store provider using factory pattern
-        var storeProvider = new ConfiguredInboxWorkStoreProvider(inboxOptions, loggerFactory);
+        var storeProvider = new ConfiguredInboxWorkStoreProvider(inboxOptions, TimeProvider.System, loggerFactory);
 
         // Assert
         storeProvider.ShouldNotBeNull();
@@ -216,7 +216,7 @@ public class InboxRouterIntegrationTests
         };
 
         var loggerFactory = CreateLoggerFactory();
-        var provider = new ConfiguredInboxWorkStoreProvider(tenantOptions, loggerFactory);
+        var provider = new ConfiguredInboxWorkStoreProvider(tenantOptions, TimeProvider.System, loggerFactory);
         var router = new InboxRouter(provider);
 
         // Act - Get inboxes for different tenants
