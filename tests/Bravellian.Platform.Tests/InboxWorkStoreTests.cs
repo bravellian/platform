@@ -278,6 +278,6 @@ public class InboxWorkStoreTests : SqlServerTestBase
         });
 
         var logger = new TestLogger<SqlInboxWorkStore>(TestOutputHelper);
-        return new SqlInboxWorkStore(options, logger);
+        return new SqlInboxWorkStore(options, TimeProvider.System, logger);
     }
 }

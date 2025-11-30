@@ -116,12 +116,12 @@ internal sealed class MultiInboxDispatcher
                 storeIdentifier);
 
             var succeeded = new List<string>();
-            var failed = new List<string>();
+            var failed = new Dictionary<string, string>(); // messageId -> error message
 
             // Process each claimed message
             foreach (var messageId in claimedIds)
             {
-                var wasHandled = await ProcessSingleMessageAsync(
+                var (wasHandled, errorMessage) = await ProcessSingleMessageAsync(
                     selectedStore,
                     storeIdentifier,
                     ownerToken,
@@ -134,7 +134,7 @@ internal sealed class MultiInboxDispatcher
                 }
                 else
                 {
-                    failed.Add(messageId);
+                    failed[messageId] = errorMessage;
                 }
             }
 
@@ -185,7 +185,7 @@ internal sealed class MultiInboxDispatcher
         }
     }
 
-    private async Task<bool> ProcessSingleMessageAsync(
+    private async Task<(bool Success, string ErrorMessage)> ProcessSingleMessageAsync(
         IInboxWorkStore store,
         string storeIdentifier,
         Guid ownerToken,
@@ -220,7 +220,7 @@ internal sealed class MultiInboxDispatcher
                     message.MessageId,
                     storeIdentifier);
                 await store.FailAsync(ownerToken, new[] { messageId }, $"No handler registered for topic '{message.Topic}'", cancellationToken).ConfigureAwait(false);
-                return true; // Message was handled (failed immediately)
+                return (true, string.Empty); // Message was handled (failed immediately)
             }
 
             // Execute the handler
@@ -233,7 +233,7 @@ internal sealed class MultiInboxDispatcher
                 storeIdentifier,
                 stopwatch.ElapsedMilliseconds);
 
-            return true; // Message was handled successfully
+            return (true, string.Empty); // Message was handled successfully
         }
         catch (Exception ex)
         {
@@ -243,7 +243,7 @@ internal sealed class MultiInboxDispatcher
                 messageId,
                 storeIdentifier,
                 ex.Message);
-            return false; // Message failed and needs retry logic
+            return (false, ex.Message); // Return the current error message
         }
         finally
         {
@@ -255,14 +255,14 @@ internal sealed class MultiInboxDispatcher
         IInboxWorkStore store,
         string storeIdentifier,
         Guid ownerToken,
-        IList<string> failedMessageIds,
+        IDictionary<string, string> failedMessages,
         CancellationToken cancellationToken)
     {
-        var toAbandon = new List<(string MessageId, TimeSpan Delay, string? Error)>();
+        var toAbandon = new List<(string MessageId, TimeSpan Delay, string Error)>();
         var toFail = new List<string>();
 
         // Determine which messages should be retried vs. marked as dead
-        foreach (var messageId in failedMessageIds)
+        foreach (var (messageId, errorMessage) in failedMessages)
         {
             try
             {
@@ -286,7 +286,7 @@ internal sealed class MultiInboxDispatcher
                         storeIdentifier,
                         delay.TotalMilliseconds,
                         message.Attempt + 1);
-                    toAbandon.Add((messageId, delay, message.LastError));
+                    toAbandon.Add((messageId, delay, errorMessage));
                 }
             }
             catch (Exception ex)
@@ -300,23 +300,15 @@ internal sealed class MultiInboxDispatcher
             }
         }
 
-        // Abandon messages that should be retried - group by delay to batch efficiently
-        if (toAbandon.Count > 0)
+        // Abandon each message individually to preserve its specific error
+        foreach (var (messageId, delay, error) in toAbandon)
         {
-            var groupedByDelay = toAbandon.GroupBy(x => x.Delay);
-            foreach (var group in groupedByDelay)
-            {
-                var delay = group.Key;
-                var messageIds = group.Select(x => x.MessageId).ToList();
-                var lastError = group.First().Error; // Use first error as representative (group is guaranteed non-empty)
-                
-                await store.AbandonAsync(
-                    ownerToken, 
-                    messageIds, 
-                    lastError, 
-                    delay, 
-                    cancellationToken).ConfigureAwait(false);
-            }
+            await store.AbandonAsync(
+                ownerToken,
+                new[] { messageId },
+                error,
+                delay,
+                cancellationToken).ConfigureAwait(false);
         }
 
         // Fail messages that have exceeded max attempts

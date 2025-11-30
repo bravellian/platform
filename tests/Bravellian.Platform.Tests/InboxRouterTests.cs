@@ -47,7 +47,7 @@ public class InboxRouterTests
         };
 
         var loggerFactory = new TestLoggerFactory(testOutputHelper);
-        var provider = new ConfiguredInboxWorkStoreProvider(inboxOptions, loggerFactory);
+        var provider = new ConfiguredInboxWorkStoreProvider(inboxOptions, TimeProvider.System, loggerFactory);
         var router = new InboxRouter(provider);
 
         // Act
@@ -73,7 +73,7 @@ public class InboxRouterTests
         };
 
         var loggerFactory = new TestLoggerFactory(testOutputHelper);
-        var provider = new ConfiguredInboxWorkStoreProvider(inboxOptions, loggerFactory);
+        var provider = new ConfiguredInboxWorkStoreProvider(inboxOptions, TimeProvider.System, loggerFactory);
         var router = new InboxRouter(provider);
 
         // Act
@@ -98,7 +98,7 @@ public class InboxRouterTests
         };
 
         var loggerFactory = new TestLoggerFactory(testOutputHelper);
-        var provider = new ConfiguredInboxWorkStoreProvider(inboxOptions, loggerFactory);
+        var provider = new ConfiguredInboxWorkStoreProvider(inboxOptions, TimeProvider.System, loggerFactory);
         var router = new InboxRouter(provider);
 
         // Act & Assert
@@ -120,7 +120,7 @@ public class InboxRouterTests
         };
 
         var loggerFactory = new TestLoggerFactory(testOutputHelper);
-        var provider = new ConfiguredInboxWorkStoreProvider(inboxOptions, loggerFactory);
+        var provider = new ConfiguredInboxWorkStoreProvider(inboxOptions, TimeProvider.System, loggerFactory);
         var router = new InboxRouter(provider);
 
         // Act & Assert

@@ -163,7 +163,7 @@ public class InboxDispatcherTests : SqlServerTestBase
         });
 
         var logger = new TestLogger<SqlInboxWorkStore>(TestOutputHelper);
-        return new SqlInboxWorkStore(options, logger);
+        return new SqlInboxWorkStore(options, TimeProvider.System, logger);
     }
 
     private InboxHandlerResolver CreateHandlerResolver(params IInboxHandler[] handlers)

@@ -27,16 +27,18 @@ internal class SqlInboxWorkStore : IInboxWorkStore
     private readonly string connectionString;
     private readonly string schemaName;
     private readonly string tableName;
+    private readonly TimeProvider timeProvider;
     private readonly ILogger<SqlInboxWorkStore> logger;
     private readonly string serverName;
     private readonly string databaseName;
 
-    public SqlInboxWorkStore(IOptions<SqlInboxOptions> options, ILogger<SqlInboxWorkStore> logger)
+    public SqlInboxWorkStore(IOptions<SqlInboxOptions> options, TimeProvider timeProvider, ILogger<SqlInboxWorkStore> logger)
     {
         var opts = options.Value;
         connectionString = opts.ConnectionString;
         schemaName = opts.SchemaName;
         tableName = opts.TableName;
+        this.timeProvider = timeProvider;
         this.logger = logger;
         (serverName, databaseName) = ParseConnectionInfo(connectionString);
     }
@@ -180,8 +182,8 @@ internal class SqlInboxWorkStore : IInboxWorkStore
             // Calculate due time if delay is specified
             if (delay.HasValue)
             {
-                var dueTime = DateTime.UtcNow.Add(delay.Value);
-                command.Parameters.AddWithValue("@DueTimeUtc", dueTime);
+                var dueTime = timeProvider.GetUtcNow().Add(delay.Value);
+                command.Parameters.AddWithValue("@DueTimeUtc", dueTime.UtcDateTime);
             }
             else
             {
