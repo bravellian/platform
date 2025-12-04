@@ -107,7 +107,6 @@ The generators now provide detailed error messages with context:
 - **BG001**: General generator error with exception details
 - **BG002**: File skipped with reason
 - **BG003**: Duplicate generated file name detected
-- **BG004**: Parsing error with file path and details
 - **BG005**: Validation error with item name and context
 - **BG006**: Missing required property with property name
 

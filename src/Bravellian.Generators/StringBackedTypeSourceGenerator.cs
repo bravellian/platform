@@ -150,15 +150,20 @@ public sealed class StringBackedTypeSourceGenerator : IIncrementalGenerator
                     var propName = prop.TryGetProperty("name", out var n) ? n.GetString() : null;
                     var propType = prop.TryGetProperty("type", out var t) ? t.GetString() : null;
                     
-                    if (!string.IsNullOrWhiteSpace(propName) && !string.IsNullOrWhiteSpace(propType))
+                    // Both must be present and non-empty, or both must be absent/empty
+                    var hasName = !string.IsNullOrWhiteSpace(propName);
+                    var hasType = !string.IsNullOrWhiteSpace(propType);
+                    
+                    if (hasName && hasType)
                     {
                         additionalProperties.Add((propType!, propName!));
                     }
-                    else if (!string.IsNullOrWhiteSpace(propName) || !string.IsNullOrWhiteSpace(propType))
+                    else if (hasName != hasType)
                     {
-                        // One is set but not the other - this is likely a mistake
+                        // Exactly one is set - this is an error
                         throw new InvalidDataException($"Property definition incomplete. Both 'name' and 'type' must be specified for additional properties. Got name: '{propName ?? "null"}', type: '{propType ?? "null"}'");
                     }
+                    // else: both are empty/null, which is valid - just skip this entry
                 }
             }
 
@@ -175,7 +180,8 @@ public sealed class StringBackedTypeSourceGenerator : IIncrementalGenerator
             var generatedCode = StringBackedTypeGenerator.Generate(genParams, null);
             if (string.IsNullOrEmpty(generatedCode))
             {
-                throw new InvalidOperationException($"Generator produced no output for type '{name}' in namespace '{namespaceName}'. This may indicate an internal error.");
+                // This shouldn't happen with valid parameters, but handle gracefully
+                return null;
             }
 
             var fileName = $"{namespaceName!}.{name!}.{Path.GetFileName(filePath)}.g.cs";

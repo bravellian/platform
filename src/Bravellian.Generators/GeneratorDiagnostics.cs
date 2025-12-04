@@ -36,15 +36,6 @@ internal static class GeneratorDiagnostics
         isEnabledByDefault: true,
         helpLinkUri: HelpLinkUri);
 
-    private static readonly DiagnosticDescriptor ParsingErrorDescriptor = new(
-        id: "BG004",
-        title: "Parsing error",
-        messageFormat: "Failed to parse file '{0}': {1}",
-        category: Category,
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true,
-        helpLinkUri: HelpLinkUri);
-
     private static readonly DiagnosticDescriptor ValidationErrorDescriptor = new(
         id: "BG005",
         title: "Validation error",
@@ -107,15 +98,6 @@ internal static class GeneratorDiagnostics
     public static void ReportDuplicateHintName(SourceProductionContext context, string hintName)
     {
         context.ReportDiagnostic(Diagnostic.Create(DuplicateHintNameDescriptor, Location.None, hintName));
-    }
-
-    public static void ReportParsingError(SourceProductionContext context, string filePath, string errorMessage, Exception? exception = null)
-    {
-        var details = exception != null
-            ? $"{errorMessage} ({exception.GetType().Name}: {exception.Message})"
-            : errorMessage;
-
-        context.ReportDiagnostic(Diagnostic.Create(ParsingErrorDescriptor, Location.None, filePath, details));
     }
 
     public static void ReportValidationError(SourceProductionContext context, string itemName, string errorMessage, string? filePath = null)

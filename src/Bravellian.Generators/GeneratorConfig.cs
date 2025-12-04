@@ -73,6 +73,7 @@ public static class GeneratorConfig
 
     /// <summary>
     /// Formats a license header to ensure each line starts with //.
+    /// Preserves empty lines for formatting purposes.
     /// </summary>
     private static string FormatLicenseHeader(string header)
     {
@@ -81,13 +82,19 @@ public static class GeneratorConfig
             return string.Empty;
         }
 
-        var lines = header.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+        var lines = header.Split(new[] { '\n', '\r' }, StringSplitOptions.None);
         var formattedLines = new string[lines.Length];
 
         for (int i = 0; i < lines.Length; i++)
         {
             var line = lines[i].TrimStart();
-            if (!line.StartsWith("//"))
+            
+            // Preserve empty lines
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                formattedLines[i] = "//";
+            }
+            else if (!line.StartsWith("//"))
             {
                 formattedLines[i] = "// " + line;
             }
@@ -98,31 +105,6 @@ public static class GeneratorConfig
         }
 
         return string.Join("\n", formattedLines);
-    }
-
-    /// <summary>
-    /// Gets the list of interfaces to include in generated types based on configuration.
-    /// </summary>
-    /// <param name="typeName">The name of the generated type</param>
-    /// <param name="additionalInterfaces">Additional standard interfaces to include (e.g., "IComparable&lt;T&gt;")</param>
-    /// <returns>A formatted string of interfaces to implement</returns>
-    internal static string GetInterfaceList(string typeName, params string[] additionalInterfaces)
-    {
-        var interfaces = new System.Collections.Generic.List<string>();
-
-        // Always include standard .NET interfaces
-        foreach (var iface in additionalInterfaces)
-        {
-            interfaces.Add(iface);
-        }
-
-        // Conditionally add Bravellian-specific interfaces
-        if (_includeBravellianInterfaces)
-        {
-            interfaces.Add("Bravellian.IHasValueConverter");
-        }
-
-        return string.Join(",\n          ", interfaces);
     }
 
     /// <summary>
