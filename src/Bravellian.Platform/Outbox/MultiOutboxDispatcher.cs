@@ -26,8 +26,10 @@ internal sealed class MultiOutboxDispatcher
     private readonly IOutboxStoreProvider storeProvider;
     private readonly IOutboxSelectionStrategy selectionStrategy;
     private readonly IOutboxHandlerResolver resolver;
+    private readonly ILeaseRouter? leaseRouter;
     private readonly Func<int, TimeSpan> backoffPolicy;
     private readonly ILogger<MultiOutboxDispatcher> logger;
+    private readonly TimeSpan leaseDuration;
 
     private IOutboxStore? lastProcessedStore;
     private int lastProcessedCount;
@@ -37,18 +39,23 @@ internal sealed class MultiOutboxDispatcher
         IOutboxSelectionStrategy selectionStrategy,
         IOutboxHandlerResolver resolver,
         ILogger<MultiOutboxDispatcher> logger,
-        Func<int, TimeSpan>? backoffPolicy = null)
+        ILeaseRouter? leaseRouter = null,
+        Func<int, TimeSpan>? backoffPolicy = null,
+        TimeSpan? leaseDuration = null)
     {
         this.storeProvider = storeProvider;
         this.selectionStrategy = selectionStrategy;
         this.resolver = resolver;
         this.logger = logger;
+        this.leaseRouter = leaseRouter;
         this.backoffPolicy = backoffPolicy ?? DefaultBackoff;
+        this.leaseDuration = leaseDuration ?? TimeSpan.FromSeconds(30);
     }
 
     /// <summary>
     /// Processes a single batch of outbox messages from the next selected store.
     /// Uses the selection strategy to determine which outbox to poll.
+    /// Acquires a tenant-level lease before processing to ensure only one worker processes messages at a time.
     /// </summary>
     /// <param name="batchSize">Maximum number of messages to process in this batch.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -76,6 +83,78 @@ internal sealed class MultiOutboxDispatcher
         }
 
         var storeIdentifier = storeProvider.GetStoreIdentifier(selectedStore);
+
+        // Try to acquire a lease for this tenant before processing
+        if (leaseRouter != null)
+        {
+            ISystemLease? lease = null;
+            try
+            {
+                var leaseFactory = await leaseRouter.GetLeaseFactoryAsync(storeIdentifier, cancellationToken).ConfigureAwait(false);
+                lease = await leaseFactory.AcquireAsync(
+                    "outbox-processing",
+                    leaseDuration,
+                    cancellationToken: cancellationToken).ConfigureAwait(false);
+
+                if (lease == null)
+                {
+                    logger.LogDebug(
+                        "Could not acquire lease for outbox processing on store '{StoreIdentifier}', skipping this iteration",
+                        storeIdentifier);
+                    lastProcessedStore = selectedStore;
+                    lastProcessedCount = 0;
+                    return 0;
+                }
+
+                logger.LogDebug(
+                    "Acquired lease for outbox processing on store '{StoreIdentifier}' with owner {OwnerToken}",
+                    storeIdentifier,
+                    lease.OwnerToken);
+
+                // Process messages while holding the lease
+                return await ProcessStoreWithLeaseAsync(selectedStore, storeIdentifier, batchSize, lease, cancellationToken).ConfigureAwait(false);
+            }
+            catch (KeyNotFoundException)
+            {
+                // No lease factory configured for this tenant, proceed without lease
+                logger.LogWarning(
+                    "No lease factory found for store '{StoreIdentifier}', processing without lease",
+                    storeIdentifier);
+                return await ProcessStoreAsync(selectedStore, storeIdentifier, batchSize, cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                if (lease != null)
+                {
+                    await lease.DisposeAsync().ConfigureAwait(false);
+                }
+            }
+        }
+        else
+        {
+            // No lease router configured, process without lease
+            return await ProcessStoreAsync(selectedStore, storeIdentifier, batchSize, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task<int> ProcessStoreWithLeaseAsync(
+        IOutboxStore selectedStore,
+        string storeIdentifier,
+        int batchSize,
+        ISystemLease lease,
+        CancellationToken cancellationToken)
+    {
+        // Combine the lease cancellation token with the provided cancellation token
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, lease.CancellationToken);
+        return await ProcessStoreAsync(selectedStore, storeIdentifier, batchSize, linkedCts.Token).ConfigureAwait(false);
+    }
+
+    private async Task<int> ProcessStoreAsync(
+        IOutboxStore selectedStore,
+        string storeIdentifier,
+        int batchSize,
+        CancellationToken cancellationToken)
+    {
         logger.LogDebug(
             "Processing outbox messages from store '{StoreIdentifier}' with batch size {BatchSize}",
             storeIdentifier,

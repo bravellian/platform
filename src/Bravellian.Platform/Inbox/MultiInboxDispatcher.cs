@@ -26,10 +26,12 @@ internal sealed class MultiInboxDispatcher
     private readonly IInboxWorkStoreProvider storeProvider;
     private readonly IInboxSelectionStrategy selectionStrategy;
     private readonly IInboxHandlerResolver resolver;
+    private readonly ILeaseRouter? leaseRouter;
     private readonly Func<int, TimeSpan> backoffPolicy;
     private readonly ILogger<MultiInboxDispatcher> logger;
     private readonly int maxAttempts;
     private readonly int leaseSeconds;
+    private readonly TimeSpan leaseDuration;
     private readonly Lock stateLock = new();
 
     private IInboxWorkStore? lastProcessedStore;
@@ -40,22 +42,27 @@ internal sealed class MultiInboxDispatcher
         IInboxSelectionStrategy selectionStrategy,
         IInboxHandlerResolver resolver,
         ILogger<MultiInboxDispatcher> logger,
+        ILeaseRouter? leaseRouter = null,
         Func<int, TimeSpan>? backoffPolicy = null,
         int maxAttempts = 5,
-        int leaseSeconds = 30)
+        int leaseSeconds = 30,
+        TimeSpan? leaseDuration = null)
     {
         this.storeProvider = storeProvider;
         this.selectionStrategy = selectionStrategy;
         this.resolver = resolver;
         this.logger = logger;
+        this.leaseRouter = leaseRouter;
         this.backoffPolicy = backoffPolicy ?? DefaultBackoff;
         this.maxAttempts = maxAttempts;
         this.leaseSeconds = leaseSeconds;
+        this.leaseDuration = leaseDuration ?? TimeSpan.FromSeconds(30);
     }
 
     /// <summary>
     /// Processes a single batch of inbox messages from the next selected store.
     /// Uses the selection strategy to determine which inbox to poll.
+    /// Acquires a tenant-level lease before processing to ensure only one worker processes messages at a time.
     /// This method is thread-safe and can be called concurrently, though it's typically
     /// called by a single background thread in MultiInboxPollingService.
     /// </summary>
@@ -89,6 +96,70 @@ internal sealed class MultiInboxDispatcher
         }
 
         var storeIdentifier = storeProvider.GetStoreIdentifier(selectedStore);
+
+        // Try to acquire a lease for this tenant before processing
+        if (leaseRouter != null)
+        {
+            ISystemLease? lease = null;
+            try
+            {
+                var leaseFactory = await leaseRouter.GetLeaseFactoryAsync(storeIdentifier, cancellationToken).ConfigureAwait(false);
+                lease = await leaseFactory.AcquireAsync(
+                    "inbox-processing",
+                    leaseDuration,
+                    cancellationToken: cancellationToken).ConfigureAwait(false);
+
+                if (lease == null)
+                {
+                    logger.LogDebug(
+                        "Could not acquire lease for inbox processing on store '{StoreIdentifier}', skipping this iteration",
+                        storeIdentifier);
+                    lock (stateLock)
+                    {
+                        lastProcessedStore = selectedStore;
+                        lastProcessedCount = 0;
+                    }
+                    return 0;
+                }
+
+                logger.LogDebug(
+                    "Acquired lease for inbox processing on store '{StoreIdentifier}' with owner {OwnerToken}",
+                    storeIdentifier,
+                    lease.OwnerToken);
+
+                // Process messages while holding the lease
+                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, lease.CancellationToken);
+                return await ProcessStoreAsync(selectedStore, storeIdentifier, batchSize, linkedCts.Token).ConfigureAwait(false);
+            }
+            catch (KeyNotFoundException)
+            {
+                // No lease factory configured for this tenant, proceed without lease
+                logger.LogWarning(
+                    "No lease factory found for store '{StoreIdentifier}', processing without lease",
+                    storeIdentifier);
+                return await ProcessStoreAsync(selectedStore, storeIdentifier, batchSize, cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                if (lease != null)
+                {
+                    await lease.DisposeAsync().ConfigureAwait(false);
+                }
+            }
+        }
+        else
+        {
+            // No lease router configured, process without lease
+            return await ProcessStoreAsync(selectedStore, storeIdentifier, batchSize, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task<int> ProcessStoreAsync(
+        IInboxWorkStore selectedStore,
+        string storeIdentifier,
+        int batchSize,
+        CancellationToken cancellationToken)
+    {
         var ownerToken = Guid.NewGuid();
 
         logger.LogDebug(
@@ -105,8 +176,11 @@ internal sealed class MultiInboxDispatcher
             if (claimedIds.Count == 0)
             {
                 logger.LogDebug("No messages claimed from store '{StoreIdentifier}'", storeIdentifier);
-                lastProcessedStore = selectedStore;
-                lastProcessedCount = 0;
+                lock (stateLock)
+                {
+                    lastProcessedStore = selectedStore;
+                    lastProcessedCount = 0;
+                }
                 return 0;
             }
 
