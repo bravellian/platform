@@ -116,7 +116,7 @@ internal sealed class MultiInboxDispatcher
                 storeIdentifier);
 
             var succeeded = new List<string>();
-            var failed = new Dictionary<string, string>(); // messageId -> error message
+            var failed = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase); // messageId -> error message
 
             // Process each claimed message
             foreach (var messageId in claimedIds)
