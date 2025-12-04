@@ -30,19 +30,31 @@ public sealed class MultiValueBackedTypeSourceGenerator : IIncrementalGenerator
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
+        // Get license header from MSBuild property
+        var licenseHeaderProvider = context.AnalyzerConfigOptionsProvider
+            .Select(static (provider, _) =>
+            {
+                provider.GlobalOptions.TryGetValue("build_property.GeneratedCodeLicenseHeader", out var header);
+                return header ?? string.Empty;
+            });
+
         var candidateFiles = context.AdditionalTextsProvider
             .Where(static text => IsCandidateFile(text.Path))
             .Select(static (text, cancellationToken) => new InputFile(text.Path, text.GetText(cancellationToken)?.ToString()))
             .Where(static input => !string.IsNullOrWhiteSpace(input.Content));
 
-        context.RegisterSourceOutput(candidateFiles, static (productionContext, input) =>
+        // Combine files with license header
+        var filesWithLicense = candidateFiles.Combine(licenseHeaderProvider);
+
+        context.RegisterSourceOutput(filesWithLicense, static (productionContext, input) =>
         {
+            var (file, licenseHeader) = input;
             try
             {
-                var generated = Generate(input.Path, input.Content!, productionContext.CancellationToken);
+                var generated = Generate(file.Path, file.Content!, licenseHeader, productionContext.CancellationToken);
                 if (generated == null || !generated.Any())
                 {
-                    GeneratorDiagnostics.ReportSkipped(productionContext, $"No output generated for '{input.Path}'. Ensure required <MultiValueString> elements or JSON fields are present.");
+                    GeneratorDiagnostics.ReportSkipped(productionContext, $"No output generated for '{file.Path}'. Ensure required <MultiValueString> elements or JSON fields are present.");
                     return;
                 }
 
@@ -60,7 +72,7 @@ public sealed class MultiValueBackedTypeSourceGenerator : IIncrementalGenerator
             }
             catch (Exception ex)
             {
-                GeneratorDiagnostics.ReportError(productionContext, $"MultiValueBackedTypeSourceGenerator failed for '{input.Path}'", ex);
+                GeneratorDiagnostics.ReportError(productionContext, $"MultiValueBackedTypeSourceGenerator failed for '{file.Path}'", ex);
             }
         });
     }
@@ -70,7 +82,7 @@ public sealed class MultiValueBackedTypeSourceGenerator : IIncrementalGenerator
     /// </summary>
     public IEnumerable<(string fileName, string source)>? GenerateFromFiles(string filePath, string fileContent, CancellationToken cancellationToken = default)
     {
-        return Generate(filePath, fileContent, cancellationToken);
+        return Generate(filePath, fileContent, string.Empty, cancellationToken);
     }
 
     private static bool IsCandidateFile(string path)
@@ -86,14 +98,14 @@ public sealed class MultiValueBackedTypeSourceGenerator : IIncrementalGenerator
         return false;
     }
 
-    private static IEnumerable<(string fileName, string source)>? Generate(string filePath, string fileContent, CancellationToken cancellationToken)
+    private static IEnumerable<(string fileName, string source)>? Generate(string filePath, string fileContent, string licenseHeader, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        return GenerateFromJson(fileContent, filePath, cancellationToken);
+        return GenerateFromJson(fileContent, filePath, licenseHeader, cancellationToken);
     }
 
-    private static IEnumerable<(string fileName, string source)>? GenerateFromJson(string fileContent, string sourceFilePath, CancellationToken cancellationToken)
+    private static IEnumerable<(string fileName, string source)>? GenerateFromJson(string fileContent, string sourceFilePath, string licenseHeader, CancellationToken cancellationToken)
     {
         try
         {
@@ -182,7 +194,8 @@ public sealed class MultiValueBackedTypeSourceGenerator : IIncrementalGenerator
                 regex ?? string.Empty,
                 bookend ?? string.Empty,
                 fields,
-                sourceFilePath
+                sourceFilePath,
+                licenseHeader
             );
 
             var generatedCode = MultiValueBackedTypeGenerator.Generate(genParams, null);

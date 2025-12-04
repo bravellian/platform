@@ -176,8 +176,8 @@ public class SqlOutboxServiceTests : SqlServerTestBase
             await outboxService!.EnqueueAsync(topic, payload, transaction, CancellationToken.None);
 
             // Verify the message has correct default values
-            var sql = @"SELECT IsProcessed, ProcessedAt, RetryCount, CreatedAt, MessageId 
-                   FROM dbo.Outbox 
+            var sql = @"SELECT IsProcessed, ProcessedAt, RetryCount, CreatedAt, MessageId
+                   FROM dbo.Outbox
                    WHERE Topic = @Topic AND Payload = @Payload";
             await using var command = new SqlCommand(sql, connection, transaction);
             command.Parameters.AddWithValue("@Topic", topic);
@@ -235,7 +235,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
 
         // Act & Assert
         // The implementation tries to access transaction.Connection without checking null
-        var exception = await Should.ThrowAsync<NullReferenceException>(
+        var exception = await Should.ThrowAsync<ArgumentNullException>(
             () => outboxService!.EnqueueAsync(validTopic, validPayload, nullTransaction, CancellationToken.None));
 
         exception.ShouldNotBeNull();

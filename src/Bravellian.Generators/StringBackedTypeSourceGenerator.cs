@@ -30,19 +30,33 @@ public sealed class StringBackedTypeSourceGenerator : IIncrementalGenerator
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
+        // Get license header from MSBuild property
+        var licenseHeaderProvider = context.AnalyzerConfigOptionsProvider
+            .Select(static (provider, _) =>
+            {
+                provider.GlobalOptions.TryGetValue("build_property.GeneratedCodeLicenseHeader", out var header);
+                return header ?? string.Empty;
+            });
+
         var candidateFiles = context.AdditionalTextsProvider
             .Where(static text => IsCandidateFile(text.Path))
             .Select(static (text, cancellationToken) => new InputFile(text.Path, text.GetText(cancellationToken)?.ToString()))
             .Where(static input => !string.IsNullOrWhiteSpace(input.Content));
 
-        context.RegisterSourceOutput(candidateFiles, static (productionContext, input) =>
+        // Combine files with license header
+        var filesWithLicense = candidateFiles.Combine(licenseHeaderProvider);
+
+        context.RegisterSourceOutput(filesWithLicense, static (productionContext, input) =>
         {
+            var (file, licenseHeader) = input;
             try
             {
-                var generated = Generate(input.Path, input.Content!, productionContext.CancellationToken);
+                var generated = Generate(file.Path, file.Content!, licenseHeader, productionContext.CancellationToken);
                 if (generated == null || !generated.Any())
                 {
-                    GeneratorDiagnostics.ReportSkipped(productionContext, $"No output generated for '{input.Path}'. Ensure required <StringBacked> elements or JSON fields are present.");
+                    GeneratorDiagnostics.ReportSkipped(productionContext, 
+                        "No output generated. Ensure required 'name' and 'namespace' properties are present and valid.", 
+                        file.Path);
                     return;
                 }
 
@@ -60,7 +74,10 @@ public sealed class StringBackedTypeSourceGenerator : IIncrementalGenerator
             }
             catch (Exception ex)
             {
-                GeneratorDiagnostics.ReportError(productionContext, $"StringBackedTypeSourceGenerator failed for '{input.Path}'", ex);
+                GeneratorDiagnostics.ReportError(productionContext, 
+                    "StringBackedTypeSourceGenerator failed to generate code.", 
+                    ex, 
+                    file.Path);
             }
         });
     }
@@ -70,7 +87,7 @@ public sealed class StringBackedTypeSourceGenerator : IIncrementalGenerator
     /// </summary>
     public IEnumerable<(string fileName, string source)>? GenerateFromFiles(string filePath, string fileContent, CancellationToken cancellationToken = default)
     {
-        return Generate(filePath, fileContent, cancellationToken);
+        return Generate(filePath, fileContent, string.Empty, cancellationToken);
     }
 
     private static bool IsCandidateFile(string path)
@@ -86,31 +103,41 @@ public sealed class StringBackedTypeSourceGenerator : IIncrementalGenerator
         return false;
     }
 
-    private static IEnumerable<(string fileName, string source)>? Generate(string filePath, string fileContent, CancellationToken cancellationToken)
+    private static IEnumerable<(string fileName, string source)>? Generate(string filePath, string fileContent, string licenseHeader, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        return GenerateFromJson(fileContent, filePath, cancellationToken);
+        return GenerateFromJson(fileContent, filePath, licenseHeader, cancellationToken);
     }
 
-    private static IEnumerable<(string fileName, string source)>? GenerateFromJson(string fileContent, string? filePath, CancellationToken cancellationToken)
+    private static IEnumerable<(string fileName, string source)>? GenerateFromJson(string fileContent, string? filePath, string licenseHeader, CancellationToken cancellationToken)
     {
         try
         {
             using var document = JsonDocument.Parse(fileContent);
             var root = document.RootElement;
 
-            if (!root.TryGetProperty("name", out var nameElement) ||
-                !root.TryGetProperty("namespace", out var namespaceElement))
+            if (!root.TryGetProperty("name", out var nameElement))
             {
-                throw new InvalidDataException($"Required properties 'name' and 'namespace' are missing in '{filePath ?? "<unknown>"}'.");
+                throw new InvalidDataException($"Required property 'name' is missing. Each type definition must have a 'name' property.");
+            }
+
+            if (!root.TryGetProperty("namespace", out var namespaceElement))
+            {
+                throw new InvalidDataException($"Required property 'namespace' is missing. Each type definition must have a 'namespace' property.");
             }
 
             var name = nameElement.GetString();
             var namespaceName = namespaceElement.GetString();
-            if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(namespaceName))
+            
+            if (string.IsNullOrWhiteSpace(name))
             {
-                throw new InvalidDataException($"Properties 'name' and 'namespace' must be non-empty in '{filePath ?? "<unknown>"}'.");
+                throw new InvalidDataException($"Property 'name' must be a non-empty string. Current value: '{name ?? "null"}'");
+            }
+            
+            if (string.IsNullOrWhiteSpace(namespaceName))
+            {
+                throw new InvalidDataException($"Property 'namespace' must be a non-empty string. Current value: '{namespaceName ?? "null"}'");
             }
 
             string? regex = null;
@@ -134,10 +161,21 @@ public sealed class StringBackedTypeSourceGenerator : IIncrementalGenerator
 
                     var propName = prop.TryGetProperty("name", out var n) ? n.GetString() : null;
                     var propType = prop.TryGetProperty("type", out var t) ? t.GetString() : null;
-                    if (!string.IsNullOrEmpty(propName) && !string.IsNullOrEmpty(propType))
+                    
+                    // Both must be present and non-empty, or both must be absent/empty
+                    var hasName = !string.IsNullOrWhiteSpace(propName);
+                    var hasType = !string.IsNullOrWhiteSpace(propType);
+                    
+                    if (hasName && hasType)
                     {
                         additionalProperties.Add((propType!, propName!));
                     }
+                    else if (hasName != hasType)
+                    {
+                        // Exactly one is set - this is an error
+                        throw new InvalidDataException($"Property definition incomplete. Both 'name' and 'type' must be specified for additional properties. Got name: '{propName ?? "null"}', type: '{propType ?? "null"}'");
+                    }
+                    // else: both are empty/null, which is valid - just skip this entry
                 }
             }
 
@@ -148,12 +186,14 @@ public sealed class StringBackedTypeSourceGenerator : IIncrementalGenerator
                 regex,
                 regexConst,
                 additionalProperties,
-                filePath
+                filePath,
+                licenseHeader
             );
 
             var generatedCode = StringBackedTypeGenerator.Generate(genParams, null);
             if (string.IsNullOrEmpty(generatedCode))
             {
+                // This shouldn't happen with valid parameters, but handle gracefully
                 return null;
             }
 
@@ -173,9 +213,18 @@ public sealed class StringBackedTypeSourceGenerator : IIncrementalGenerator
 
             return results;
         }
-        catch (Exception)
+        catch (JsonException jsonEx)
         {
-            return null;
+            throw new InvalidDataException($"Failed to parse JSON. Ensure the file is valid JSON. Details: {jsonEx.Message}", jsonEx);
+        }
+        catch (InvalidDataException)
+        {
+            // Re-throw validation errors as-is
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Unexpected error during code generation. Details: {ex.Message}", ex);
         }
     }
 }
