@@ -117,10 +117,10 @@ internal sealed class PlatformLeaseFactoryProvider : ILeaseFactoryProvider
                                         "Deploying lease schema for newly discovered database: {DatabaseName}",
                                         db.Name);
 
-                                    await DatabaseSchemaManager.EnsureLeaseSchemaAsync(
+                                    await DatabaseSchemaManager.EnsureDistributedLockSchemaAsync(
                                         db.ConnectionString,
                                         db.SchemaName,
-                                        "Lease").ConfigureAwait(false);
+                                        "DistributedLock").ConfigureAwait(false);
 
                                     logger.LogInformation(
                                         "Successfully deployed lease schema for database: {DatabaseName}",
