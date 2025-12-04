@@ -1,9 +1,11 @@
-// CONFIDENTIAL - Copyright (c) Bravellian LLC. All rights reserved.
-// See NOTICE.md for full restrictions and usage terms.
+// Licensed under the Apache License, Version 2.0.
+// See LICENSE file in the project root for full license information.
 
 namespace Bravellian.Generators;
 
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Xml.Linq;
 
 public static class GenericBackedTypeGenerator
