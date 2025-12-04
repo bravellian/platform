@@ -33,7 +33,7 @@ You can customize the license header for generated code by setting the `Generate
 </Project>
 ```
 
-If not specified, the generators will include a default Apache 2.0 license header.
+If not specified, the generators will not include a license header.
 
 ### Generated Code Characteristics
 
@@ -148,8 +148,8 @@ The generators provide detailed error messages with context:
 - **BG001**: General generator error with exception details
 - **BG002**: File skipped with reason
 - **BG003**: Duplicate generated file name detected
-- **BG005**: Validation error with item name and context
-- **BG006**: Missing required property with property name
+- **BG004**: Validation error with item name and context
+- **BG005**: Missing required property with property name
 
 Each error includes the file path and helpful context to identify and fix the issue.
 

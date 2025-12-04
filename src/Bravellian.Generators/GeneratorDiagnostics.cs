@@ -37,7 +37,7 @@ internal static class GeneratorDiagnostics
         helpLinkUri: HelpLinkUri);
 
     private static readonly DiagnosticDescriptor ValidationErrorDescriptor = new(
-        id: "BG005",
+        id: "BG004",
         title: "Validation error",
         messageFormat: "Validation failed for '{0}': {1}",
         category: Category,
@@ -46,7 +46,7 @@ internal static class GeneratorDiagnostics
         helpLinkUri: HelpLinkUri);
 
     private static readonly DiagnosticDescriptor MissingRequiredPropertyDescriptor = new(
-        id: "BG006",
+        id: "BG005",
         title: "Missing required property",
         messageFormat: "Required property '{0}' is missing in file '{1}'",
         category: Category,
