@@ -43,8 +43,10 @@ public interface IInboxWorkStore
     /// </summary>
     /// <param name="ownerToken">Token of the worker that claimed the messages.</param>
     /// <param name="messageIds">IDs of messages to abandon.</param>
+    /// <param name="lastError">Optional error message to record for troubleshooting.</param>
+    /// <param name="delay">Optional delay before the message becomes eligible for retry.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    Task AbandonAsync(Guid ownerToken, IEnumerable<string> messageIds, CancellationToken cancellationToken);
+    Task AbandonAsync(Guid ownerToken, IEnumerable<string> messageIds, string? lastError = null, TimeSpan? delay = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Marks messages as permanently failed (Dead).

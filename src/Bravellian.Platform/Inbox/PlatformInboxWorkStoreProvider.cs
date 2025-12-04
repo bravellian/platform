@@ -78,6 +78,7 @@ internal sealed class PlatformInboxWorkStoreProvider : IInboxWorkStoreProvider
                         var storeLogger = loggerFactory.CreateLogger<SqlInboxWorkStore>();
                         var store = new SqlInboxWorkStore(
                             Options.Create(options),
+                            timeProvider,
                             storeLogger);
 
                         var inboxLogger = loggerFactory.CreateLogger<SqlInboxService>();

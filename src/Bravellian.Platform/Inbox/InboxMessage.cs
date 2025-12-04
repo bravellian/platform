@@ -36,4 +36,6 @@ public sealed record InboxMessage
     public DateTimeOffset LastSeenUtc { get; internal init; }
 
     public DateTimeOffset? DueTimeUtc { get; internal init; }
+
+    public string? LastError { get; internal init; }
 }

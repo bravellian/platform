@@ -139,6 +139,11 @@ internal static class DatabaseSchemaManager
             var createScript = GetInboxCreateScript(schemaName, tableName);
             await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
         }
+        else
+        {
+            // Migrate existing tables to add LastError column if it doesn't exist
+            await MigrateInboxLastErrorColumnAsync(connection, schemaName, tableName).ConfigureAwait(false);
+        }
 
         // Ensure stored procedures exist
         await EnsureInboxStoredProceduresAsync(connection, schemaName, tableName).ConfigureAwait(false);
@@ -950,6 +955,7 @@ internal static class DatabaseSchemaManager
                 Attempts INT NOT NULL DEFAULT 0,
                 Status VARCHAR(16) NOT NULL DEFAULT 'Seen'
                     CONSTRAINT CK_{tableName}_Status CHECK (Status IN ('Seen', 'Processing', 'Done', 'Dead')),
+                LastError NVARCHAR(MAX) NULL,
 
                 -- Work Queue Pattern Columns
                 LockedUntil DATETIME2(3) NULL,
@@ -1193,11 +1199,20 @@ internal static class DatabaseSchemaManager
             $"""
             CREATE OR ALTER PROCEDURE [{schemaName}].[{tableName}_Abandon]
                             @OwnerToken UNIQUEIDENTIFIER,
-                            @Ids [{schemaName}].[StringIdList] READONLY
+                            @Ids [{schemaName}].[StringIdList] READONLY,
+                            @LastError NVARCHAR(MAX) = NULL,
+                            @DueTimeUtc DATETIME2(3) = NULL
                           AS
                           BEGIN
                             SET NOCOUNT ON;
-                            UPDATE i SET Status = 'Seen', OwnerToken = NULL, LockedUntil = NULL, LastSeenUtc = SYSUTCDATETIME()
+                            UPDATE i SET 
+                                Status = 'Seen', 
+                                OwnerToken = NULL, 
+                                LockedUntil = NULL, 
+                                LastSeenUtc = SYSUTCDATETIME(),
+                                Attempts = Attempts + 1,
+                                LastError = ISNULL(@LastError, i.LastError),
+                                DueTimeUtc = ISNULL(@DueTimeUtc, i.DueTimeUtc)
                             FROM [{schemaName}].[{tableName}] i JOIN @Ids ids ON ids.Id = i.MessageId
                             WHERE i.OwnerToken = @OwnerToken AND i.Status = 'Processing';
                           END
@@ -1211,7 +1226,12 @@ internal static class DatabaseSchemaManager
                           AS
                           BEGIN
                             SET NOCOUNT ON;
-                            UPDATE i SET Status = 'Dead', OwnerToken = NULL, LockedUntil = NULL, LastSeenUtc = SYSUTCDATETIME()
+                            UPDATE i SET 
+                                Status = 'Dead', 
+                                OwnerToken = NULL, 
+                                LockedUntil = NULL, 
+                                LastSeenUtc = SYSUTCDATETIME(),
+                                LastError = ISNULL(@Reason, i.LastError)
                             FROM [{schemaName}].[{tableName}] i JOIN @Ids ids ON ids.Id = i.MessageId
                             WHERE i.OwnerToken = @OwnerToken AND i.Status = 'Processing';
                           END
@@ -2059,5 +2079,25 @@ internal static class DatabaseSchemaManager
               EXEC sp_releaseapplock @Resource = @ResourceName, @DbPrincipal='public';
             END
             """;
+    }
+
+    /// <summary>
+    /// Migrates existing Inbox tables to add the LastError column if it doesn't exist.
+    /// This supports upgrading from the old schema to the new work queue pattern.
+    /// </summary>
+    /// <param name="connection">The database connection.</param>
+    /// <param name="schemaName">The schema name.</param>
+    /// <param name="tableName">The table name.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    private static async Task MigrateInboxLastErrorColumnAsync(SqlConnection connection, string schemaName, string tableName)
+    {
+        var sql = $"""
+            IF COL_LENGTH('[{schemaName}].[{tableName}]', 'LastError') IS NULL
+            BEGIN
+                ALTER TABLE [{schemaName}].[{tableName}] ADD LastError NVARCHAR(MAX) NULL;
+            END
+            """;
+
+        await connection.ExecuteAsync(sql).ConfigureAwait(false);
     }
 }
