@@ -1,11 +1,13 @@
 namespace Bravellian.Generators;
 
 using System;
+using System.Text;
 using Microsoft.CodeAnalysis;
 
 internal static class GeneratorDiagnostics
 {
     private const string Category = "BravellianGenerators";
+    private const string HelpLinkUri = "https://github.com/bravellian/platform/blob/main/docs/generators.md";
 
     private static readonly DiagnosticDescriptor ErrorDescriptor = new(
         id: "BG001",
@@ -13,7 +15,8 @@ internal static class GeneratorDiagnostics
         messageFormat: "{0}",
         category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true,
+        helpLinkUri: HelpLinkUri);
 
     private static readonly DiagnosticDescriptor SkippedDescriptor = new(
         id: "BG002",
@@ -21,32 +24,111 @@ internal static class GeneratorDiagnostics
         messageFormat: "{0}",
         category: Category,
         defaultSeverity: DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true,
+        helpLinkUri: HelpLinkUri);
 
     private static readonly DiagnosticDescriptor DuplicateHintNameDescriptor = new(
-        id: "BGEN001",
+        id: "BG003",
         title: "Duplicate generated hint name",
         messageFormat: "Duplicate generated hint name '{0}'. Skipping duplicate to avoid AddSource collision.",
         category: Category,
         defaultSeverity: DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true,
+        helpLinkUri: HelpLinkUri);
 
-    public static void ReportError(SourceProductionContext context, string message, Exception? exception = null)
+    private static readonly DiagnosticDescriptor ParsingErrorDescriptor = new(
+        id: "BG004",
+        title: "Parsing error",
+        messageFormat: "Failed to parse file '{0}': {1}",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        helpLinkUri: HelpLinkUri);
+
+    private static readonly DiagnosticDescriptor ValidationErrorDescriptor = new(
+        id: "BG005",
+        title: "Validation error",
+        messageFormat: "Validation failed for '{0}': {1}",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        helpLinkUri: HelpLinkUri);
+
+    private static readonly DiagnosticDescriptor MissingRequiredPropertyDescriptor = new(
+        id: "BG006",
+        title: "Missing required property",
+        messageFormat: "Required property '{0}' is missing in file '{1}'",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        helpLinkUri: HelpLinkUri);
+
+    public static void ReportError(SourceProductionContext context, string message, Exception? exception = null, string? filePath = null)
     {
-        var fullMessage = exception == null
-            ? message
-            : $"{message}\n{exception}";
+        var messageBuilder = new StringBuilder();
 
-        context.ReportDiagnostic(Diagnostic.Create(ErrorDescriptor, Location.None, fullMessage));
+        if (!string.IsNullOrEmpty(filePath))
+        {
+            messageBuilder.AppendLine($"File: {filePath}");
+        }
+
+        messageBuilder.Append(message);
+
+        if (exception != null)
+        {
+            messageBuilder.AppendLine();
+            messageBuilder.AppendLine("Exception details:");
+            messageBuilder.AppendLine($"  Type: {exception.GetType().Name}");
+            messageBuilder.AppendLine($"  Message: {exception.Message}");
+
+            if (exception.InnerException != null)
+            {
+                messageBuilder.AppendLine($"  Inner Exception: {exception.InnerException.Message}");
+            }
+
+            if (!string.IsNullOrEmpty(exception.StackTrace))
+            {
+                messageBuilder.AppendLine($"  Stack Trace: {exception.StackTrace}");
+            }
+        }
+
+        context.ReportDiagnostic(Diagnostic.Create(ErrorDescriptor, Location.None, messageBuilder.ToString()));
     }
 
-    public static void ReportSkipped(SourceProductionContext context, string message)
+    public static void ReportSkipped(SourceProductionContext context, string message, string? filePath = null)
     {
-        context.ReportDiagnostic(Diagnostic.Create(SkippedDescriptor, Location.None, message));
+        var fullMessage = string.IsNullOrEmpty(filePath)
+            ? message
+            : $"{message} (File: {filePath})";
+
+        context.ReportDiagnostic(Diagnostic.Create(SkippedDescriptor, Location.None, fullMessage));
     }
 
     public static void ReportDuplicateHintName(SourceProductionContext context, string hintName)
     {
         context.ReportDiagnostic(Diagnostic.Create(DuplicateHintNameDescriptor, Location.None, hintName));
+    }
+
+    public static void ReportParsingError(SourceProductionContext context, string filePath, string errorMessage, Exception? exception = null)
+    {
+        var details = exception != null
+            ? $"{errorMessage} ({exception.GetType().Name}: {exception.Message})"
+            : errorMessage;
+
+        context.ReportDiagnostic(Diagnostic.Create(ParsingErrorDescriptor, Location.None, filePath, details));
+    }
+
+    public static void ReportValidationError(SourceProductionContext context, string itemName, string errorMessage, string? filePath = null)
+    {
+        var fullMessage = string.IsNullOrEmpty(filePath)
+            ? $"{errorMessage}"
+            : $"{errorMessage} (File: {filePath})";
+
+        context.ReportDiagnostic(Diagnostic.Create(ValidationErrorDescriptor, Location.None, itemName, fullMessage));
+    }
+
+    public static void ReportMissingRequiredProperty(SourceProductionContext context, string propertyName, string filePath)
+    {
+        context.ReportDiagnostic(Diagnostic.Create(MissingRequiredPropertyDescriptor, Location.None, propertyName, filePath));
     }
 }

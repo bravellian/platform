@@ -42,7 +42,9 @@ public sealed class StringBackedTypeSourceGenerator : IIncrementalGenerator
                 var generated = Generate(input.Path, input.Content!, productionContext.CancellationToken);
                 if (generated == null || !generated.Any())
                 {
-                    GeneratorDiagnostics.ReportSkipped(productionContext, $"No output generated for '{input.Path}'. Ensure required <StringBacked> elements or JSON fields are present.");
+                    GeneratorDiagnostics.ReportSkipped(productionContext, 
+                        "No output generated. Ensure required 'name' and 'namespace' properties are present and valid.", 
+                        input.Path);
                     return;
                 }
 
@@ -60,7 +62,10 @@ public sealed class StringBackedTypeSourceGenerator : IIncrementalGenerator
             }
             catch (Exception ex)
             {
-                GeneratorDiagnostics.ReportError(productionContext, $"StringBackedTypeSourceGenerator failed for '{input.Path}'", ex);
+                GeneratorDiagnostics.ReportError(productionContext, 
+                    "StringBackedTypeSourceGenerator failed to generate code.", 
+                    ex, 
+                    input.Path);
             }
         });
     }
@@ -100,17 +105,27 @@ public sealed class StringBackedTypeSourceGenerator : IIncrementalGenerator
             using var document = JsonDocument.Parse(fileContent);
             var root = document.RootElement;
 
-            if (!root.TryGetProperty("name", out var nameElement) ||
-                !root.TryGetProperty("namespace", out var namespaceElement))
+            if (!root.TryGetProperty("name", out var nameElement))
             {
-                throw new InvalidDataException($"Required properties 'name' and 'namespace' are missing in '{filePath ?? "<unknown>"}'.");
+                throw new InvalidDataException($"Required property 'name' is missing. Each type definition must have a 'name' property.");
+            }
+
+            if (!root.TryGetProperty("namespace", out var namespaceElement))
+            {
+                throw new InvalidDataException($"Required property 'namespace' is missing. Each type definition must have a 'namespace' property.");
             }
 
             var name = nameElement.GetString();
             var namespaceName = namespaceElement.GetString();
-            if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(namespaceName))
+            
+            if (string.IsNullOrWhiteSpace(name))
             {
-                throw new InvalidDataException($"Properties 'name' and 'namespace' must be non-empty in '{filePath ?? "<unknown>"}'.");
+                throw new InvalidDataException($"Property 'name' must be a non-empty string. Current value: '{name ?? "null"}'");
+            }
+            
+            if (string.IsNullOrWhiteSpace(namespaceName))
+            {
+                throw new InvalidDataException($"Property 'namespace' must be a non-empty string. Current value: '{namespaceName ?? "null"}'");
             }
 
             string? regex = null;
@@ -134,9 +149,15 @@ public sealed class StringBackedTypeSourceGenerator : IIncrementalGenerator
 
                     var propName = prop.TryGetProperty("name", out var n) ? n.GetString() : null;
                     var propType = prop.TryGetProperty("type", out var t) ? t.GetString() : null;
-                    if (!string.IsNullOrEmpty(propName) && !string.IsNullOrEmpty(propType))
+                    
+                    if (!string.IsNullOrWhiteSpace(propName) && !string.IsNullOrWhiteSpace(propType))
                     {
                         additionalProperties.Add((propType!, propName!));
+                    }
+                    else if (!string.IsNullOrWhiteSpace(propName) || !string.IsNullOrWhiteSpace(propType))
+                    {
+                        // One is set but not the other - this is likely a mistake
+                        throw new InvalidDataException($"Property definition incomplete. Both 'name' and 'type' must be specified for additional properties. Got name: '{propName ?? "null"}', type: '{propType ?? "null"}'");
                     }
                 }
             }
@@ -154,7 +175,7 @@ public sealed class StringBackedTypeSourceGenerator : IIncrementalGenerator
             var generatedCode = StringBackedTypeGenerator.Generate(genParams, null);
             if (string.IsNullOrEmpty(generatedCode))
             {
-                return null;
+                throw new InvalidOperationException($"Generator produced no output for type '{name}' in namespace '{namespaceName}'. This may indicate an internal error.");
             }
 
             var fileName = $"{namespaceName!}.{name!}.{Path.GetFileName(filePath)}.g.cs";
@@ -173,9 +194,18 @@ public sealed class StringBackedTypeSourceGenerator : IIncrementalGenerator
 
             return results;
         }
-        catch (Exception)
+        catch (JsonException jsonEx)
         {
-            return null;
+            throw new InvalidDataException($"Failed to parse JSON. Ensure the file is valid JSON. Details: {jsonEx.Message}", jsonEx);
+        }
+        catch (InvalidDataException)
+        {
+            // Re-throw validation errors as-is
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Unexpected error during code generation. Details: {ex.Message}", ex);
         }
     }
 }
