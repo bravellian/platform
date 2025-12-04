@@ -160,22 +160,25 @@ internal class SqlSchedulerClient : ISchedulerClient
         {
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-            await using var command = new SqlCommand("dbo.Timers_Claim", connection)
+            var command = new SqlCommand("dbo.Timers_Claim", connection)
             {
                 CommandType = CommandType.StoredProcedure,
             };
 
-            command.Parameters.AddWithValue("@OwnerToken", ownerToken);
-            command.Parameters.AddWithValue("@LeaseSeconds", leaseSeconds);
-            command.Parameters.AddWithValue("@BatchSize", batchSize);
-
-            using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            await using (command.ConfigureAwait(false))
             {
-                result.Add((Guid)reader.GetValue(0));
-            }
+                command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+                command.Parameters.AddWithValue("@LeaseSeconds", leaseSeconds);
+                command.Parameters.AddWithValue("@BatchSize", batchSize);
 
-            return result;
+                using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    result.Add((Guid)reader.GetValue(0));
+                }
+
+                return result;
+            }
         }
     }
 
@@ -192,22 +195,25 @@ internal class SqlSchedulerClient : ISchedulerClient
         {
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-            await using var command = new SqlCommand("dbo.JobRuns_Claim", connection)
+            var command = new SqlCommand("dbo.JobRuns_Claim", connection)
             {
                 CommandType = CommandType.StoredProcedure,
             };
 
-            command.Parameters.AddWithValue("@OwnerToken", ownerToken);
-            command.Parameters.AddWithValue("@LeaseSeconds", leaseSeconds);
-            command.Parameters.AddWithValue("@BatchSize", batchSize);
-
-            using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            await using (command.ConfigureAwait(false))
             {
-                result.Add((Guid)reader.GetValue(0));
-            }
+                command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+                command.Parameters.AddWithValue("@LeaseSeconds", leaseSeconds);
+                command.Parameters.AddWithValue("@BatchSize", batchSize);
 
-            return result;
+                using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    result.Add((Guid)reader.GetValue(0));
+                }
+
+                return result;
+            }
         }
     }
 
@@ -250,12 +256,15 @@ internal class SqlSchedulerClient : ISchedulerClient
         {
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-            await using var command = new SqlCommand("dbo.Timers_ReapExpired", connection)
+            var command = new SqlCommand("dbo.Timers_ReapExpired", connection)
             {
                 CommandType = CommandType.StoredProcedure,
             };
 
-            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            await using (command.ConfigureAwait(false))
+            {
+                await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
         }
     }
 
@@ -266,12 +275,15 @@ internal class SqlSchedulerClient : ISchedulerClient
         {
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-            await using var command = new SqlCommand("dbo.JobRuns_ReapExpired", connection)
+            var command = new SqlCommand("dbo.JobRuns_ReapExpired", connection)
             {
                 CommandType = CommandType.StoredProcedure,
             };
 
-            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            await using (command.ConfigureAwait(false))
+            {
+                await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
         }
     }
 
@@ -299,17 +311,20 @@ internal class SqlSchedulerClient : ISchedulerClient
         {
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-            await using var command = new SqlCommand(procedure, connection)
+            var command = new SqlCommand(procedure, connection)
             {
                 CommandType = CommandType.StoredProcedure,
             };
 
-            command.Parameters.AddWithValue("@OwnerToken", ownerToken);
-            var parameter = command.Parameters.AddWithValue("@Ids", tvp);
-            parameter.SqlDbType = SqlDbType.Structured;
-            parameter.TypeName = $"[{options.SchemaName}].[GuidIdList]";
+            await using (command.ConfigureAwait(false))
+            {
+                command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+                var parameter = command.Parameters.AddWithValue("@Ids", tvp);
+                parameter.SqlDbType = SqlDbType.Structured;
+                parameter.TypeName = $"[{options.SchemaName}].[GuidIdList]";
 
-            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+                await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
         }
     }
 }

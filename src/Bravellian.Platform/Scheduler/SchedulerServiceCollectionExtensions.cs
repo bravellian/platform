@@ -24,7 +24,9 @@ namespace Bravellian.Platform;
 
 public static class SchedulerServiceCollectionExtensions
 {
-    /// <summary>
+    /// <summary>   
+    /// Adds SQL outbox functionality to the service collection using the specified options.
+    /// Configures outbox options, registers multi-outbox infrastructure, cleanup and schema deployment services as needed.
     /// </summary>
     /// <param name="services">The IServiceCollection to add services to.</param>
     /// <param name="options">The configuration, used to set the options.</param>
@@ -71,6 +73,7 @@ public static class SchedulerServiceCollectionExtensions
     }
 
     /// <summary>
+    /// Adds the SQL outbox functionality to the service collection.
     /// </summary>
     /// <param name="services">The IServiceCollection to add services to.</param>
     /// <param name="options">The configuration, used to set the options.</param>
@@ -157,29 +160,6 @@ public static class SchedulerServiceCollectionExtensions
             ConnectionString = connectionString,
             SchemaName = schemaName,
             TableName = tableName,
-        });
-    }
-
-    /// <summary>
-    /// Adds SQL scheduler functionality with custom schema and table names.
-    /// </summary>
-    /// <param name="services">The IServiceCollection to add services to.</param>
-    /// <param name="connectionString">The database connection string.</param>
-    /// <param name="schemaName">The database schema name (default: "dbo").</param>
-    /// <param name="jobsTableName">The jobs table name (default: "Jobs").</param>
-    /// <param name="jobRunsTableName">The job runs table name (default: "JobRuns").</param>
-    /// <param name="timersTableName">The timers table name (default: "Timers").</param>
-    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
-    [Obsolete]
-    public static IServiceCollection AddSqlScheduler(this IServiceCollection services, string connectionString, string schemaName = "dbo", string jobsTableName = "Jobs", string jobRunsTableName = "JobRuns", string timersTableName = "Timers")
-    {
-        return services.AddSqlScheduler(new SqlSchedulerOptions
-        {
-            ConnectionString = connectionString,
-            SchemaName = schemaName,
-            JobsTableName = jobsTableName,
-            JobRunsTableName = jobRunsTableName,
-            TimersTableName = timersTableName,
         });
     }
 
@@ -352,11 +332,13 @@ public static class SchedulerServiceCollectionExtensions
         return services;
     }
 
-    // Adds SQL inbox functionality for at-most-once message processing.
-    // </summary>
-    // <param name="services">The IServiceCollection to add services to.</param>
-    // <param name="options">The configuration, used to set the options.</param>
-    // <returns>The IServiceCollection so that additional calls can be chained.</returns>
+    /// <summary>
+    /// Adds SQL inbox functionality for at-most-once message processing.
+    /// Configures inbox options, registers multi-inbox infrastructure, cleanup and schema deployment services as needed.
+    /// </summary>
+    /// <param name="services">The IServiceCollection to add services to.</param>
+    /// <param name="options">The configuration, used to set the options.</param>
+    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
     public static IServiceCollection AddSqlInbox(this IServiceCollection services, SqlInboxOptions options)
     {
         services.Configure<SqlInboxOptions>(o =>
@@ -530,74 +512,6 @@ public static class SchedulerServiceCollectionExtensions
 
         // Register the inbox router for write operations
         services.AddSingleton<IInboxRouter, InboxRouter>();
-
-        return services;
-    }
-
-    /// <summary>
-    /// Adds SQL multi-scheduler functionality with support for processing scheduler work across multiple databases.
-    /// This enables a single worker to process scheduler work from multiple customer databases.
-    /// </summary>
-    /// <param name="services">The IServiceCollection to add services to.</param>
-    /// <param name="schedulerOptions">List of scheduler options, one for each database to poll.</param>
-    /// <param name="selectionStrategy">Optional selection strategy. Defaults to RoundRobinOutboxSelectionStrategy.</param>
-    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
-    [Obsolete("This method uses hardcoded database configurations and creates its own lease factories, bypassing dynamic discovery. Use AddPlatformMultiDatabaseWithDiscovery or AddPlatformMultiDatabaseWithList instead to ensure all databases go through IPlatformDatabaseDiscovery.")]
-    public static IServiceCollection AddMultiSqlScheduler(
-        this IServiceCollection services,
-        IEnumerable<SchedulerDatabaseConfig> schedulerOptions,
-        IOutboxSelectionStrategy? selectionStrategy = null)
-    {
-        var schedulerOptionsList = schedulerOptions.ToList();
-        if (schedulerOptionsList.Count == 0)
-        {
-            throw new InvalidOperationException("At least one scheduler must be configured. The schedulerOptions collection is empty.");
-        }
-
-        // Add time abstractions
-        services.AddTimeAbstractions();
-
-        // Register the store provider with the list of scheduler options
-        services.AddSingleton<ISchedulerStoreProvider>(provider =>
-        {
-            var timeProvider = provider.GetRequiredService<TimeProvider>();
-            var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
-            return new ConfiguredSchedulerStoreProvider(schedulerOptionsList, timeProvider, loggerFactory);
-        });
-
-        // Register the selection strategy
-        services.AddSingleton<IOutboxSelectionStrategy>(selectionStrategy ?? new RoundRobinOutboxSelectionStrategy());
-
-        // Register lease factories per scheduler database so work runs against the correct tenant database
-        var leaseConfigs = schedulerOptionsList.Select(o => new LeaseDatabaseConfig
-        {
-            Identifier = o.Identifier,
-            ConnectionString = o.ConnectionString,
-            SchemaName = o.SchemaName,
-        }).ToList();
-
-        services.TryAddSingleton<ILeaseFactoryProvider>(provider =>
-        {
-            var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
-            return new ConfiguredLeaseFactoryProvider(leaseConfigs, loggerFactory);
-        });
-
-        services.TryAddSingleton<ILeaseRouter>(provider =>
-        {
-            var factoryProvider = provider.GetRequiredService<ILeaseFactoryProvider>();
-            var logger = provider.GetRequiredService<ILogger<LeaseRouter>>();
-            return new LeaseRouter(factoryProvider, logger);
-        });
-
-        services.TryAddSingleton<ISystemLeaseFactory>(provider =>
-            provider.GetRequiredService<ILeaseRouter>().GetDefaultLeaseFactoryAsync().ConfigureAwait(false).GetAwaiter().GetResult());
-
-        // Register shared components
-        services.AddSingleton<MultiSchedulerDispatcher>();
-        services.AddHostedService<MultiSchedulerPollingService>();
-
-        // Register the scheduler router for write operations
-        services.AddSingleton<ISchedulerRouter, SchedulerRouter>();
 
         return services;
     }

@@ -49,14 +49,14 @@ internal sealed class PlatformLifecycleService : IHostedService
         {
             case PlatformEnvironmentStyle.MultiDatabaseNoControl:
             case PlatformEnvironmentStyle.MultiDatabaseWithControl:
-                await ValidateMultiDatabaseAsync(cancellationToken);
+                await ValidateMultiDatabaseAsync(cancellationToken).ConfigureAwait(false);
                 break;
         }
 
         // Validate control plane if configured
         if (configuration.ControlPlaneConnectionString != null)
         {
-            await ValidateControlPlaneAsync(cancellationToken);
+            await ValidateControlPlaneAsync(cancellationToken).ConfigureAwait(false);
         }
 
         logger.LogInformation("Platform startup validation completed successfully.");
@@ -75,7 +75,7 @@ internal sealed class PlatformLifecycleService : IHostedService
             throw new InvalidOperationException("Discovery must be configured for multi-database environment.");
         }
 
-        var databases = await discovery.DiscoverDatabasesAsync(cancellationToken);
+        var databases = await discovery.DiscoverDatabasesAsync(cancellationToken).ConfigureAwait(false);
 
         if (databases.Count == 0)
         {
@@ -117,10 +117,13 @@ internal sealed class PlatformLifecycleService : IHostedService
 
         try
         {
-            await using var connection = new SqlConnection(configuration.ControlPlaneConnectionString);
-            await connection.OpenAsync(cancellationToken);
+            var connection = new SqlConnection(configuration.ControlPlaneConnectionString);
+            await using (connection.ConfigureAwait(false))
+            {
+                await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             logger.LogInformation("Control plane connectivity validated successfully.");
+            }
         }
         catch (Exception ex)
         {
@@ -133,10 +136,13 @@ internal sealed class PlatformLifecycleService : IHostedService
     {
         try
         {
-            await using var connection = new SqlConnection(database.ConnectionString);
-            await connection.OpenAsync(cancellationToken);
+            var connection = new SqlConnection(database.ConnectionString);
+            await using (connection.ConfigureAwait(false))
+            {
+                await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             logger.LogDebug("Database connectivity test passed for: {DatabaseName}", database.Name);
+            }
         }
         catch (Exception ex)
         {

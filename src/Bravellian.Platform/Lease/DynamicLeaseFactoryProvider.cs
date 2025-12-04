@@ -27,7 +27,7 @@ internal sealed class DynamicLeaseFactoryProvider : ILeaseFactoryProvider, IDisp
     private readonly TimeProvider timeProvider;
     private readonly ILoggerFactory loggerFactory;
     private readonly ILogger<DynamicLeaseFactoryProvider> logger;
-    private readonly object lockObject = new();
+    private readonly Lock lockObject = new();
     private readonly SemaphoreSlim refreshSemaphore = new(1, 1);
     private readonly Dictionary<string, FactoryEntry> factoriesByIdentifier = new(StringComparer.Ordinal);
     private readonly List<ISystemLeaseFactory> currentFactories = new();

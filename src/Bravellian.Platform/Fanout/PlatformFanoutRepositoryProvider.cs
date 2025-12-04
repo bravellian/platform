@@ -44,7 +44,7 @@ internal sealed class PlatformFanoutRepositoryProvider : IFanoutRepositoryProvid
     {
         if (cachedPolicyRepositories == null)
         {
-            await InitializeAsync(cancellationToken);
+            await InitializeAsync(cancellationToken).ConfigureAwait(false);
         }
 
         return cachedPolicyRepositories!;
@@ -54,7 +54,7 @@ internal sealed class PlatformFanoutRepositoryProvider : IFanoutRepositoryProvid
     {
         if (cachedCursorRepositories == null)
         {
-            await InitializeAsync(cancellationToken);
+            await InitializeAsync(cancellationToken).ConfigureAwait(false);
         }
 
         return cachedCursorRepositories!;
@@ -62,7 +62,7 @@ internal sealed class PlatformFanoutRepositoryProvider : IFanoutRepositoryProvid
 
     private async Task InitializeAsync(CancellationToken cancellationToken)
     {
-        await initializationSemaphore.WaitAsync(cancellationToken);
+        await initializationSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             // Double-check after acquiring lock
@@ -71,7 +71,7 @@ internal sealed class PlatformFanoutRepositoryProvider : IFanoutRepositoryProvid
                 return;
             }
 
-            var databases = await discovery.DiscoverDatabasesAsync(cancellationToken);
+            var databases = await discovery.DiscoverDatabasesAsync(cancellationToken).ConfigureAwait(false);
             var policyRepositories = new List<IFanoutPolicyRepository>();
             var cursorRepositories = new List<IFanoutCursorRepository>();
 

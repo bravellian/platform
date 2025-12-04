@@ -17,20 +17,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Bravellian.Platform;
-/// <summary>
-/// Provides a mechanism for discovering scheduler database configurations dynamically.
-/// Implementations can query a registry, database, or configuration service to get
-/// the current list of customer databases.
-/// </summary>
-public interface ISchedulerDatabaseDiscovery
-{
-    /// <summary>
-    /// Discovers all scheduler database configurations that should be processed.
-    /// This method is called periodically to detect new or removed databases.
-    /// </summary>
-    /// <returns>Collection of scheduler options for all discovered databases.</returns>
-    Task<IEnumerable<SchedulerDatabaseConfig>> DiscoverDatabasesAsync(CancellationToken cancellationToken = default);
-}
 
 /// <summary>
 /// Provides access to multiple scheduler stores that are discovered dynamically at runtime.
@@ -43,7 +29,7 @@ public sealed class DynamicSchedulerStoreProvider : ISchedulerStoreProvider, IDi
     private readonly TimeProvider timeProvider;
     private readonly ILoggerFactory loggerFactory;
     private readonly ILogger<DynamicSchedulerStoreProvider> logger;
-    private readonly object lockObject = new();
+    private readonly Lock lockObject = new();
     private readonly SemaphoreSlim refreshSemaphore = new(1, 1);
     private readonly Dictionary<string, StoreEntry> storesByIdentifier = new(StringComparer.Ordinal);
     private readonly List<ISchedulerStore> currentStores = new();

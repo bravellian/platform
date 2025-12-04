@@ -61,10 +61,10 @@
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
 		</PackageReference> -->
-		<PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Condition="$(MSBuildProjectName.EndsWith('Tests')) == false" Version="4.14.0">
+		<!-- <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Condition="$(MSBuildProjectName.EndsWith('Tests')) == false" Version="4.14.0">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
-		</PackageReference>
+		</PackageReference> -->
 		<PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="4.14.0">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>

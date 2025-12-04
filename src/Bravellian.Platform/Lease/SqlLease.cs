@@ -33,7 +33,7 @@ internal sealed class SqlLease : ISystemLease
     private readonly CancellationTokenSource internalCts = new();
     private readonly CancellationTokenSource linkedCts;
     private readonly Timer renewTimer;
-    private readonly object lockObject = new();
+    private readonly Lock lockObject = new();
 
     private volatile bool isLost;
     private volatile bool isDisposed;

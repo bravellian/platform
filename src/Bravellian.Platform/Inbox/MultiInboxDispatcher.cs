@@ -30,7 +30,7 @@ internal sealed class MultiInboxDispatcher
     private readonly ILogger<MultiInboxDispatcher> logger;
     private readonly int maxAttempts;
     private readonly int leaseSeconds;
-    private readonly object stateLock = new();
+    private readonly Lock stateLock = new();
 
     private IInboxWorkStore? lastProcessedStore;
     private int lastProcessedCount;

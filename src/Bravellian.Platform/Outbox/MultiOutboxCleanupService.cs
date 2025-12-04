@@ -13,6 +13,7 @@
 // limitations under the License.
 
 
+using System.Globalization;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -183,7 +184,7 @@ internal sealed class MultiOutboxCleanupService : BackgroundService
             command.Parameters.AddWithValue("@RetentionSeconds", (int)retentionPeriod.TotalSeconds);
 
             var result = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
-            return result != null && result != DBNull.Value ? Convert.ToInt32(result) : 0;
+            return result != null && result != DBNull.Value ? Convert.ToInt32(result, CultureInfo.InvariantCulture) : 0;
         }
         catch (SqlException ex) when (ex.Number == 2812)
         {

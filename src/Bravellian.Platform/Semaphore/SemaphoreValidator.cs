@@ -24,7 +24,7 @@ internal static partial class SemaphoreValidator
     private const int MaxNameLength = 200;
     private const int MaxOwnerIdLength = 200;
 
-    [GeneratedRegex("^[a-zA-Z0-9\\-_:/.]+$", RegexOptions.Compiled)]
+    [GeneratedRegex("^[a-zA-Z0-9\\-_:/.]{1,200}$", RegexOptions.Compiled | RegexOptions.CultureInvariant, 2000)]
     private static partial Regex NamePattern();
 
     /// <summary>

@@ -58,7 +58,7 @@ public abstract class BaseFanoutPlanner : IFanoutPlanner
     {
         var list = new List<FanoutSlice>();
 
-        await foreach (var (shardKey, wk) in EnumerateCandidatesAsync(fanoutTopic, workKey, ct))
+        await foreach (var (shardKey, wk) in EnumerateCandidatesAsync(fanoutTopic, workKey, ct).ConfigureAwait(false))
         {
             var (everySeconds, jitterSeconds) = await policyRepository.GetCadenceAsync(fanoutTopic, wk, ct).ConfigureAwait(false);
             var lastCompleted = await cursorRepository.GetLastAsync(fanoutTopic, wk, shardKey, ct).ConfigureAwait(false);

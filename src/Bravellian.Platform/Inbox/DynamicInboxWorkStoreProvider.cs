@@ -17,53 +17,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Bravellian.Platform;
-/// <summary>
-/// Provides a mechanism for discovering inbox database configurations dynamically.
-/// Implementations can query a registry, database, or configuration service to get
-/// the current list of customer databases.
-/// </summary>
-public interface IInboxDatabaseDiscovery
-{
-    /// <summary>
-    /// Discovers all inbox database configurations that should be processed.
-    /// This method is called periodically to detect new or removed databases.
-    /// </summary>
-    /// <returns>Collection of inbox options for all discovered databases.</returns>
-    Task<IEnumerable<InboxDatabaseConfig>> DiscoverDatabasesAsync(CancellationToken cancellationToken = default);
-}
-
-/// <summary>
-/// Configuration for a single inbox database.
-/// </summary>
-public sealed class InboxDatabaseConfig
-{
-    /// <summary>
-    /// Gets or sets a unique identifier for this database (e.g., customer ID, tenant ID).
-    /// </summary>
-    public required string Identifier { get; set; }
-
-    /// <summary>
-    /// Gets or sets the database connection string.
-    /// </summary>
-    public required string ConnectionString { get; set; }
-
-    /// <summary>
-    /// Gets or sets the schema name for the inbox table. Defaults to "dbo".
-    /// </summary>
-    public string SchemaName { get; set; } = "dbo";
-
-    /// <summary>
-    /// Gets or sets the table name for the inbox. Defaults to "Inbox".
-    /// </summary>
-    public string TableName { get; set; } = "Inbox";
-
-    /// <summary>
-    /// Gets or sets a value indicating whether database schema deployment should be performed automatically.
-    /// When true, the required database schema will be created/updated when the database is first discovered.
-    /// Defaults to true.
-    /// </summary>
-    public bool EnableSchemaDeployment { get; set; } = true;
-}
 
 /// <summary>
 /// Provides access to multiple inbox work stores that are discovered dynamically at runtime.
@@ -76,7 +29,7 @@ internal sealed class DynamicInboxWorkStoreProvider : IInboxWorkStoreProvider, I
     private readonly TimeProvider timeProvider;
     private readonly ILoggerFactory loggerFactory;
     private readonly ILogger<DynamicInboxWorkStoreProvider> logger;
-    private readonly object lockObject = new();
+    private readonly Lock lockObject = new();
     private readonly SemaphoreSlim refreshSemaphore = new(1, 1);
     private readonly Dictionary<string, StoreEntry> storesByIdentifier = new(StringComparer.Ordinal);
     private readonly List<IInboxWorkStore> currentStores = new();

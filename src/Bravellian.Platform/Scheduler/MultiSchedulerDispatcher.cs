@@ -75,7 +75,6 @@ public sealed class MultiSchedulerDispatcher
         else
         {
             // Round-robin through stores for now
-            // TODO: Create an ISelectionStrategy<T> to properly support pluggable strategies
             var storesList = stores as List<ISchedulerStore> ?? stores.ToList();
             var index = storesList.IndexOf(lastProcessedStore!);
             selectedStore = storesList[(index + 1) % storesList.Count];

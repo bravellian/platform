@@ -62,12 +62,10 @@ internal sealed class MetricsRetentionMinuteJob
             }
             catch (Exception ex)
             {
-                // TODO: Clean up parameter order/values so the server/db logged match the placeholders without re-parsing repeatedly.
                 _logger.LogError(
                     ex,
                     "Error deleting minute metrics from database {Database} ({Server}/{Db})",
                     database.Name,
-                    database.ConnectionString,
                     ParseConnectionInfo(database.ConnectionString).Server,
                     ParseConnectionInfo(database.ConnectionString).Database);
             }

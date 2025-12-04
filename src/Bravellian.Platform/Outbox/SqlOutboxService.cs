@@ -14,6 +14,7 @@
 
 
 using System.Data;
+using System.Globalization;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
@@ -135,6 +136,9 @@ internal class SqlOutboxService : IOutbox
         DateTimeOffset? dueTimeUtc,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(transaction);
+        ArgumentNullException.ThrowIfNull(transaction.Connection);
+
         // Note: We use the connection from the provided transaction.
         await transaction.Connection.ExecuteAsync(enqueueSql, new
         {
@@ -161,24 +165,27 @@ internal class SqlOutboxService : IOutbox
             {
                 await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-                await using var command = new SqlCommand($"[{options.SchemaName}].[Outbox_Claim]", connection)
+                var command = new SqlCommand($"[{options.SchemaName}].[Outbox_Claim]", connection)
                 {
                     CommandType = CommandType.StoredProcedure,
                 };
 
-                command.Parameters.AddWithValue("@OwnerToken", ownerToken);
-                command.Parameters.AddWithValue("@LeaseSeconds", leaseSeconds);
-                command.Parameters.AddWithValue("@BatchSize", batchSize);
-
-                using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                await using (command.ConfigureAwait(false))
                 {
-                    result.Add((Guid)reader.GetValue(0));
-                }
+                    command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+                    command.Parameters.AddWithValue("@LeaseSeconds", leaseSeconds);
+                    command.Parameters.AddWithValue("@BatchSize", batchSize);
 
-                logger.LogDebug("Claimed {Count} outbox items with owner {OwnerToken}", result.Count, ownerToken);
-                SchedulerMetrics.OutboxItemsClaimed.Add(result.Count);
-                return result;
+                    using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+                    while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                    {
+                        result.Add((Guid)reader.GetValue(0));
+                    }
+
+                    logger.LogDebug("Claimed {Count} outbox items with owner {OwnerToken}", result.Count, ownerToken);
+                    SchedulerMetrics.OutboxItemsClaimed.Add(result.Count);
+                    return result;
+                }
             }
         }
         catch (Exception ex)
@@ -277,16 +284,18 @@ internal class SqlOutboxService : IOutbox
             {
                 await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-                await using var command = new SqlCommand($"[{options.SchemaName}].[Outbox_ReapExpired]", connection)
+                var command = new SqlCommand($"[{options.SchemaName}].[Outbox_ReapExpired]", connection)
                 {
                     CommandType = CommandType.StoredProcedure,
                 };
+                await using (command.ConfigureAwait(false))
+                {
+                    var reapedCount = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+                    var count = Convert.ToInt32(reapedCount ?? 0, CultureInfo.InvariantCulture);
 
-                var reapedCount = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
-                var count = Convert.ToInt32(reapedCount ?? 0);
-
-                logger.LogDebug("Reaped {Count} expired outbox items", count);
-                SchedulerMetrics.OutboxItemsReaped.Add(count);
+                    logger.LogDebug("Reaped {Count} expired outbox items", count);
+                    SchedulerMetrics.OutboxItemsReaped.Add(count);
+                }
             }
         }
         catch (Exception ex)
@@ -320,17 +329,20 @@ internal class SqlOutboxService : IOutbox
         {
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-            await using var command = new SqlCommand(procedure, connection)
+            var command = new SqlCommand(procedure, connection)
             {
                 CommandType = CommandType.StoredProcedure,
             };
 
-            command.Parameters.AddWithValue("@OwnerToken", ownerToken);
-            var parameter = command.Parameters.AddWithValue("@Ids", tvp);
-            parameter.SqlDbType = SqlDbType.Structured;
-            parameter.TypeName = $"[{options.SchemaName}].[GuidIdList]";
+            await using (command.ConfigureAwait(false))
+            {
+                command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+                var parameter = command.Parameters.AddWithValue("@Ids", tvp);
+                parameter.SqlDbType = SqlDbType.Structured;
+                parameter.TypeName = $"[{options.SchemaName}].[GuidIdList]";
 
-            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+                await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
         }
     }
 }

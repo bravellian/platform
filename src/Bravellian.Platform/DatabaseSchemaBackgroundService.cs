@@ -300,6 +300,8 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
 
     private async Task DeploySystemLeaseSchemaAsync(SystemLeaseOptions options, CancellationToken cancellationToken)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(options.ConnectionString);
+
         logger.LogDebug("Deploying system lease schema at {Schema}", options.SchemaName);
         await DatabaseSchemaManager.EnsureDistributedLockSchemaAsync(
             options.ConnectionString,

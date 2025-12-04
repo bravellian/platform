@@ -15,27 +15,6 @@
 namespace Bravellian.Platform.Semaphore;
 
 /// <summary>
-/// Result of a semaphore release operation.
-/// </summary>
-public enum SemaphoreReleaseStatus
-{
-    /// <summary>
-    /// The lease was successfully released.
-    /// </summary>
-    Released,
-
-    /// <summary>
-    /// The lease was not found (idempotent - already released or never existed).
-    /// </summary>
-    NotFound,
-
-    /// <summary>
-    /// The control plane is unavailable; operation could not be completed.
-    /// </summary>
-    Unavailable,
-}
-
-/// <summary>
 /// Result of a Release operation.
 /// </summary>
 public readonly struct SemaphoreReleaseResult

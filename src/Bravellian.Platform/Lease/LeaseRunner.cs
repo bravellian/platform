@@ -36,7 +36,7 @@ public sealed class LeaseRunner : IAsyncDisposable
     private readonly double renewPercent;
     private readonly CancellationTokenSource internalCts = new();
     private readonly Timer renewTimer;
-    private readonly object lockObject = new();
+    private readonly Lock lockObject = new();
 
     private volatile bool isLost;
     private volatile bool isDisposed;

@@ -28,7 +28,7 @@ internal sealed class PlatformLeaseFactoryProvider : ILeaseFactoryProvider
     private readonly ILogger<PlatformLeaseFactoryProvider> logger;
     private readonly PlatformConfiguration? platformConfiguration;
     private readonly bool enableSchemaDeployment;
-    private readonly object lockObject = new();
+    private readonly Lock lockObject = new();
     private readonly Dictionary<string, ISystemLeaseFactory> factoriesByKey = new(StringComparer.Ordinal);
     private readonly Dictionary<ISystemLeaseFactory, string> identifiersByFactory = new();
     private readonly ConcurrentDictionary<string, byte> schemasDeployed = new(StringComparer.Ordinal);

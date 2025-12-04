@@ -41,18 +41,3 @@ public sealed class LeaseDatabaseConfig
     /// </summary>
     public bool EnableSchemaDeployment { get; set; } = true;
 }
-
-/// <summary>
-/// Provides a mechanism for discovering lease database configurations dynamically.
-/// Implementations can query a registry, database, or configuration service to get
-/// the current list of customer databases.
-/// </summary>
-public interface ILeaseDatabaseDiscovery
-{
-    /// <summary>
-    /// Discovers all lease database configurations that should be managed.
-    /// This method is called periodically to detect new or removed databases.
-    /// </summary>
-    /// <returns>Collection of lease database configurations for all discovered databases.</returns>
-    Task<IEnumerable<LeaseDatabaseConfig>> DiscoverDatabasesAsync(CancellationToken cancellationToken = default);
-}

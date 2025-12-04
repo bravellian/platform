@@ -15,27 +15,6 @@
 namespace Bravellian.Platform;
 
 /// <summary>
-/// Represents a single application database in the platform.
-/// </summary>
-public sealed class PlatformDatabase
-{
-    /// <summary>
-    /// Gets or initializes the unique name identifier for this database.
-    /// </summary>
-    public required string Name { get; init; }
-
-    /// <summary>
-    /// Gets or initializes the connection string for this database.
-    /// </summary>
-    public required string ConnectionString { get; init; }
-
-    /// <summary>
-    /// Gets or initializes the schema name to use for platform tables (default: "dbo").
-    /// </summary>
-    public string SchemaName { get; init; } = "dbo";
-}
-
-/// <summary>
 /// Platform-level database discovery interface used by all features (Outbox, Inbox, Timers, Jobs, Fan-out).
 /// Responsible for returning the set of application databases to work with.
 /// Implementations must be read-only, idempotent, and must not perform schema changes or connect to control plane.

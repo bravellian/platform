@@ -17,27 +17,6 @@ using System.Runtime.InteropServices;
 namespace Bravellian.Platform.Semaphore;
 
 /// <summary>
-/// Result of a semaphore renew operation.
-/// </summary>
-public enum SemaphoreRenewStatus
-{
-    /// <summary>
-    /// The lease was successfully renewed.
-    /// </summary>
-    Renewed,
-
-    /// <summary>
-    /// The lease has expired or does not exist.
-    /// </summary>
-    Lost,
-
-    /// <summary>
-    /// The control plane is unavailable; operation could not be completed.
-    /// </summary>
-    Unavailable,
-}
-
-/// <summary>
 /// Result of a Renew operation.
 /// </summary>
 [StructLayout(LayoutKind.Auto)]

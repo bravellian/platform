@@ -1,0 +1,79 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <LangVersion>12.0</LangVersion>
+        <Nullable>enable</Nullable>
+        <Deterministic>true</Deterministic>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <LangVersion>latest</LangVersion>
+        <Nullable>enable</Nullable>
+        <WarningsAsErrors>$(WarningsAsErrors);NU1605</WarningsAsErrors>
+        <NoWarn>$(NoWarn);CS8632</NoWarn>
+
+        <!-- This ensures the generator dll is included as an analyzer -->
+        <IncludeBuildOutput>false</IncludeBuildOutput>
+        <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+        <IsRoslynComponent>true</IsRoslynComponent>
+
+
+
+        <!-- Package metadata -->
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+        <PackageId>Bravellian.Generators</PackageId>
+        <Version>1.0.0</Version>
+        <Authors>Bravellian</Authors>
+        <Owners>Bravellian</Owners>
+        <Description>Source generators for C# types and classes.</Description>
+        <PackageProjectUrl>https://github.com/bravellian/platform</PackageProjectUrl>
+        <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+        <RepositoryUrl>https://github.com/bravellian/platform</RepositoryUrl>
+        <PackageIcon>nuget_logo.png</PackageIcon>
+        <PackageReleaseNotes>For support, contact oss@bravellian.com</PackageReleaseNotes>
+        <NuspecProperties>id=$(PackageId);version=$(Version);authors=$(Authors)</NuspecProperties>
+        <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- The Roslyn APIs for creating generators -->
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" Version="5.0.0" />
+        <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all" Version="3.11.0" />
+        <PackageReference Include="System.Text.Json" PrivateAssets="all" GeneratePathProperty="true" Version="10.0.0" />
+        <PackageReference Include="System.IO.Pipelines" PrivateAssets="all" GeneratePathProperty="true" Version="10.0.0" />
+
+        <None Include="$(PKGSystem_Text_Json)/lib/netstandard2.0/System.Text.Json.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Include="$(PKGSystem_IO_Pipelines)/lib/netstandard2.0/System.IO.Pipelines.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Remove="bin\Debug\\Bravellian.Generators.dll" />
+        <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+        <None Include="..\..\assets\nuget_logo.png" Link="nuget_logo.png">
+          <PackagePath>\</PackagePath>
+          <Pack>True</Pack>
+        </None>
+		<None Include="Bravellian.Generators.props" Pack="true" PackagePath="build\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Update="DotNet.ReproducibleBuilds.Isolated" Version="1.2.39" />
+      <PackageReference Update="Meziantou.Analyzer" Version="2.0.257" />
+      <PackageReference Update="Roslynator.Analyzers" Version="4.14.1" />
+      <PackageReference Update="Roslynator.CodeAnalysis.Analyzers" Version="4.14.1" />
+      <PackageReference Update="Roslynator.Formatting.Analyzers" Version="4.14.1" />
+    </ItemGroup>
+
+    <PropertyGroup>
+        <GetTargetPathDependsOn>
+            $(GetTargetPathDependsOn);GetDependencyTargetPaths
+        </GetTargetPathDependsOn>
+    </PropertyGroup>
+    <Target Name="GetDependencyTargetPaths">
+        <ItemGroup>
+            <TargetPathWithTargetPlatformMoniker Include="$(PKGSystem_Text_Json)/lib/netstandard2.0/System.Text.Json.dll" IncludeRuntimeDependency="false" />
+            <TargetPathWithTargetPlatformMoniker Include="$(PKGSystem_IO_Pipelines)/lib/netstandard2.0/System.IO.Pipelines.dll" IncludeRuntimeDependency="false" />
+        </ItemGroup>
+    </Target>
+
+</Project>

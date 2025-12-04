@@ -9,6 +9,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bravellian.Platform.Tests", "tests\Bravellian.Platform.Tests\Bravellian.Platform.Tests.csproj", "{C3019488-CB69-4280-94E1-F22F9C5530C9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bravellian.Generators", "src\Bravellian.Generators\Bravellian.Generators.csproj", "{CEAB6B16-6EB0-5163-94D3-6B3FE358B15C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -43,6 +45,18 @@ Global
 		{C3019488-CB69-4280-94E1-F22F9C5530C9}.Release|x64.Build.0 = Release|Any CPU
 		{C3019488-CB69-4280-94E1-F22F9C5530C9}.Release|x86.ActiveCfg = Release|Any CPU
 		{C3019488-CB69-4280-94E1-F22F9C5530C9}.Release|x86.Build.0 = Release|Any CPU
+		{CEAB6B16-6EB0-5163-94D3-6B3FE358B15C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CEAB6B16-6EB0-5163-94D3-6B3FE358B15C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CEAB6B16-6EB0-5163-94D3-6B3FE358B15C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{CEAB6B16-6EB0-5163-94D3-6B3FE358B15C}.Debug|x64.Build.0 = Debug|Any CPU
+		{CEAB6B16-6EB0-5163-94D3-6B3FE358B15C}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{CEAB6B16-6EB0-5163-94D3-6B3FE358B15C}.Debug|x86.Build.0 = Debug|Any CPU
+		{CEAB6B16-6EB0-5163-94D3-6B3FE358B15C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CEAB6B16-6EB0-5163-94D3-6B3FE358B15C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CEAB6B16-6EB0-5163-94D3-6B3FE358B15C}.Release|x64.ActiveCfg = Release|Any CPU
+		{CEAB6B16-6EB0-5163-94D3-6B3FE358B15C}.Release|x64.Build.0 = Release|Any CPU
+		{CEAB6B16-6EB0-5163-94D3-6B3FE358B15C}.Release|x86.ActiveCfg = Release|Any CPU
+		{CEAB6B16-6EB0-5163-94D3-6B3FE358B15C}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -28,7 +28,7 @@ internal sealed class PlatformInboxWorkStoreProvider : IInboxWorkStoreProvider
     private readonly ILoggerFactory loggerFactory;
     private readonly ILogger<PlatformInboxWorkStoreProvider> logger;
     private readonly string tableName;
-    private readonly object lockObject = new();
+    private readonly Lock lockObject = new();
     private IReadOnlyList<IInboxWorkStore>? cachedStores;
     private readonly Dictionary<string, IInboxWorkStore> storesByKey = new(StringComparer.Ordinal);
     private readonly Dictionary<string, IInbox> inboxesByKey = new(StringComparer.Ordinal);

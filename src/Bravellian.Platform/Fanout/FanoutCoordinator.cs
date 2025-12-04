@@ -60,6 +60,13 @@ internal sealed class FanoutCoordinator : IFanoutCoordinator
             TimeSpan.FromSeconds(90),
             contextJson,
             cancellationToken: ct).ConfigureAwait(false);
+
+        if (lease == null)
+        {
+            logger.LogDebug("Could not acquire lease for fanout {FanoutTopic}:{WorkKey}, another instance is already running", fanoutTopic, workKey);
+            return 0;
+        }
+
         await using (lease.ConfigureAwait(false))
         {
             if (lease is null)

@@ -83,19 +83,3 @@ internal sealed class SqlLeaseFactory : ISystemLeaseFactory
         return JsonSerializer.Serialize(context);
     }
 }
-
-/// <summary>
-/// Configuration for a SQL lease factory instance.
-/// </summary>
-internal sealed record LeaseFactoryConfig
-{
-    public required string ConnectionString { get; init; }
-
-    public required string SchemaName { get; init; }
-
-    public double RenewPercent { get; init; } = 0.6;
-
-    public bool UseGate { get; init; }
-
-    public int GateTimeoutMs { get; init; } = 200;
-}

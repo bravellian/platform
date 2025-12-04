@@ -27,24 +27,3 @@ internal interface IInboxHandlerResolver
     /// <exception cref="InvalidOperationException">Thrown when no handler is registered for the topic.</exception>
     IInboxHandler GetHandler(string topic);
 }
-
-/// <summary>
-/// Default implementation of IInboxHandlerResolver that maps handlers by topic.
-/// </summary>
-internal sealed class InboxHandlerResolver : IInboxHandlerResolver
-{
-    private readonly IReadOnlyDictionary<string, IInboxHandler> byTopic;
-
-    public InboxHandlerResolver(IEnumerable<IInboxHandler> handlers)
-        => byTopic = handlers.ToDictionary(h => h.Topic, StringComparer.OrdinalIgnoreCase);
-
-    public IInboxHandler GetHandler(string topic)
-    {
-        if (!byTopic.TryGetValue(topic, out var handler))
-        {
-            throw new InvalidOperationException($"No handler registered for topic '{topic}'");
-        }
-
-        return handler;
-    }
-}

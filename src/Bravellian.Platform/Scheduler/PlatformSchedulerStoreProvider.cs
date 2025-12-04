@@ -26,7 +26,7 @@ internal sealed class PlatformSchedulerStoreProvider : ISchedulerStoreProvider
     private readonly TimeProvider timeProvider;
     private readonly ILoggerFactory loggerFactory;
     private readonly ILogger<PlatformSchedulerStoreProvider> logger;
-    private readonly object lockObject = new();
+    private readonly Lock lockObject = new();
     private IReadOnlyList<ISchedulerStore>? cachedStores;
     private readonly Dictionary<string, StoreEntry> storesByIdentifier = new(StringComparer.Ordinal);
     private readonly PlatformConfiguration? platformConfiguration;

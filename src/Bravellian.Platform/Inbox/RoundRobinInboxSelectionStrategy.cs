@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+
 namespace Bravellian.Platform;
 
 /// <summary>
@@ -23,7 +24,7 @@ namespace Bravellian.Platform;
 public sealed class RoundRobinInboxSelectionStrategy : IInboxSelectionStrategy
 {
     private int currentIndex = 0;
-    private readonly object lockObject = new();
+    private readonly Lock lockObject = new();
 
     /// <inheritdoc/>
     public IInboxWorkStore? SelectNext(

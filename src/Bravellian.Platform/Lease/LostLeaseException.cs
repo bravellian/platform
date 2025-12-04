@@ -13,10 +13,13 @@
 // limitations under the License.
 
 namespace Bravellian.Platform;
+
 /// <summary>
 /// Exception thrown when a lease has been lost.
 /// </summary>
+#pragma warning disable RCS1194 // Implement exception constructors
 public class LostLeaseException : InvalidOperationException
+#pragma warning restore RCS1194 // Implement exception constructors
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="LostLeaseException"/> class.
@@ -40,20 +43,6 @@ public class LostLeaseException : InvalidOperationException
     {
         ResourceName = leaseName;
         Owner = owner;
-    }
-
-    public LostLeaseException()
-    {
-    }
-
-    public LostLeaseException(string? message)
-        : base(message)
-    {
-    }
-
-    public LostLeaseException(string? message, Exception? innerException)
-        : base(message, innerException)
-    {
     }
 
     /// <summary>

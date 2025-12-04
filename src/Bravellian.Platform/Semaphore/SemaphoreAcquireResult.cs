@@ -17,27 +17,6 @@ using System.Runtime.InteropServices;
 namespace Bravellian.Platform.Semaphore;
 
 /// <summary>
-/// Result of a semaphore acquire operation.
-/// </summary>
-public enum SemaphoreAcquireStatus
-{
-    /// <summary>
-    /// The semaphore lease was successfully acquired.
-    /// </summary>
-    Acquired,
-
-    /// <summary>
-    /// The semaphore is at capacity; no lease was acquired.
-    /// </summary>
-    NotAcquired,
-
-    /// <summary>
-    /// The control plane is unavailable; operation could not be completed.
-    /// </summary>
-    Unavailable,
-}
-
-/// <summary>
 /// Result of a TryAcquire operation.
 /// </summary>
 [StructLayout(LayoutKind.Auto)]

@@ -29,7 +29,7 @@ internal sealed class PlatformOutboxStoreProvider : IOutboxStoreProvider
     private readonly ILoggerFactory loggerFactory;
     private readonly ILogger<PlatformOutboxStoreProvider> logger;
     private readonly string tableName;
-    private readonly object lockObject = new();
+    private readonly Lock lockObject = new();
     private IReadOnlyList<IOutboxStore>? cachedStores;
     private readonly Dictionary<string, IOutboxStore> storesByKey = new(StringComparer.Ordinal);
     private readonly Dictionary<string, IOutbox> outboxesByKey = new(StringComparer.Ordinal);
