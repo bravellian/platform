@@ -17,100 +17,62 @@ This directory contains Roslyn source generators that automatically create stron
 
 ### License Headers
 
-By default, all generated code includes an Apache 2.0 license header. You can customize this by setting the `GeneratorConfig.CustomLicenseHeader` property.
+You can customize the license header for generated code by setting the `GeneratedCodeLicenseHeader` MSBuild property in your project file:
 
-```csharp
-// Set a custom license header (typically in an assembly-level file)
-using Bravellian.Generators;
-
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("YourProject")]
-
-// In a static constructor or module initializer:
-GeneratorConfig.CustomLicenseHeader = @"
-Copyright (c) Your Company Name
-Licensed under MIT License
-See LICENSE for details
-";
+```xml
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    
+    <!-- Custom license header for generated code -->
+    <GeneratedCodeLicenseHeader>
+// Copyright (c) Your Company Name
+// Licensed under MIT License
+    </GeneratedCodeLicenseHeader>
+  </PropertyGroup>
+</Project>
 ```
 
-The license header will automatically be formatted with `//` comment prefixes if not already present.
+If not specified, the generators will include a default Apache 2.0 license header.
 
-### Interface Generation
+### Generated Code Characteristics
 
-By default, generated types implement Bravellian-specific interfaces (`IHasValueConverter`, `IBgParsable<T>`, etc.) in addition to standard .NET interfaces. You can control this behavior:
+All generated types are:
+- **Partial** - Allowing you to extend them in separate files
+- **Strongly-typed** - Providing compile-time safety
+- **JSON-serializable** - With built-in JsonConverter
+- **Type-convertible** - With built-in TypeConverter
+
+Generated types implement standard .NET interfaces:
+- `IComparable` and `IComparable<T>`
+- `IEquatable<T>`
+- `IParsable<T>` (where applicable)
+- `ISpanParsable<T>` (for GUID types)
+
+### Extending Generated Types
+
+Since all types are generated as `partial`, you can easily extend them:
 
 ```csharp
-using Bravellian.Generators;
-
-// Disable Bravellian-specific interfaces (use only standard .NET interfaces)
-GeneratorConfig.IncludeBravellianInterfaces = false;
-```
-
-When set to `false`, only standard interfaces like `IComparable<T>`, `IEquatable<T>`, `IParsable<T>` are included.
-
-### Partial Classes
-
-By default, all generated types are `partial`, allowing you to extend them in separate files:
-
-```csharp
-// Generated code (automatic)
+// Generated (automatic)
 public readonly partial record struct CustomerId
 {
     public Guid Value { get; init; }
     // ... generated members
 }
 
-// Your extension (manual)
+// Your extension (manual - in a separate file)
 public readonly partial record struct CustomerId
 {
     public static CustomerId FromLegacyId(int legacyId)
     {
         // Custom conversion logic
-        return new CustomerId(ConvertLegacyId(legacyId));
-    }
-}
-```
-
-To disable partial classes:
-
-```csharp
-GeneratorConfig.GenerateAsPartialClasses = false;
-```
-
-### Using Partial Classes for Custom Interfaces
-
-If you want to implement additional interfaces without modifying the generated code, keep `GenerateAsPartialClasses = true` (default) and create a companion partial class:
-
-```csharp
-// Generated (automatic)
-public readonly partial record struct UserId : IComparable<UserId>, IEquatable<UserId>
-{
-    // ... generated members
-}
-
-// Your extension with custom interfaces (manual)
-public readonly partial record struct UserId : IFormattable, ISerializable
-{
-    public string ToString(string? format, IFormatProvider? formatProvider)
-    {
-        // Custom formatting implementation
+        return new CustomerId(ConvertToGuid(legacyId));
     }
     
-    // ISerializable implementation
+    public bool IsSystemId() => Value == Guid.Empty;
 }
 ```
-
-## Error Messages
-
-The generators now provide detailed error messages with context:
-
-- **BG001**: General generator error with exception details
-- **BG002**: File skipped with reason
-- **BG003**: Duplicate generated file name detected
-- **BG005**: Validation error with item name and context
-- **BG006**: Missing required property with property name
-
-Each error includes the file path, exception details (if applicable), and helpful context to identify and fix the issue.
 
 ## Example Usage
 
@@ -162,30 +124,41 @@ var empty = UserId.Empty;
 var fromGuid = UserId.From(Guid.NewGuid());
 ```
 
-## Migration Guide
+### Number-Backed Enum
 
-If you're updating from a previous version with the hardcoded "CONFIDENTIAL" license header:
+Create a file named `OrderStatus.enum.json`:
 
-1. **No breaking changes** - Existing generated code continues to work
-2. **License headers automatically updated** - Next build will use Apache 2.0 license
-3. **Opt-in customization** - Use `GeneratorConfig` to customize if needed
-4. **Interface compatibility** - Bravellian interfaces still included by default
-
-To maintain the old license header (not recommended for public projects):
-
-```csharp
-GeneratorConfig.CustomLicenseHeader = @"
-CONFIDENTIAL - Copyright (c) Bravellian LLC. All rights reserved.
-See NOTICE.md for full restrictions and usage terms.
-";
+```json
+{
+  "name": "OrderStatus",
+  "namespace": "MyApp.Domain",
+  "numberType": "int",
+  "values": [
+    { "name": "Pending", "value": "0", "displayName": "Pending" },
+    { "name": "Processing", "value": "1", "displayName": "Processing" },
+    { "name": "Completed", "value": "2", "displayName": "Completed" }
+  ]
+}
 ```
+
+## Error Messages
+
+The generators provide detailed error messages with context:
+
+- **BG001**: General generator error with exception details
+- **BG002**: File skipped with reason
+- **BG003**: Duplicate generated file name detected
+- **BG005**: Validation error with item name and context
+- **BG006**: Missing required property with property name
+
+Each error includes the file path and helpful context to identify and fix the issue.
 
 ## Best Practices
 
-1. **License Headers**: Set custom license headers in a project-wide initialization file
+1. **License Headers**: Set the license header at the project level in your .csproj file
 2. **Partial Classes**: Use partial classes to extend generated types without modifying generated code
-3. **Interface Control**: Only disable Bravellian interfaces if you don't use Bravellian platform features
-4. **Error Handling**: Review build output for generator warnings and errors with full context
+3. **Naming**: Follow C# naming conventions for type names in your JSON files
+4. **Organization**: Keep generator JSON files co-located with related code
 
 ## Troubleshooting
 
@@ -203,9 +176,12 @@ Ensure your project file includes the generator package:
 
 Check that your JSON files match the expected naming pattern (e.g., `*.string.json`, `*.guid.json`)
 
-### Type not implementing expected interfaces
+### Compilation errors in generated code
 
-Check the `GeneratorConfig.IncludeBravellianInterfaces` setting and ensure it matches your needs.
+If you see compilation errors in generated files:
+1. Clean and rebuild the solution
+2. Check that all required dependencies are installed
+3. Verify your JSON configuration files are valid
 
 ## Support
 
