@@ -19,7 +19,7 @@ namespace Bravellian.Platform.Tests;
 /// <summary>
 /// Manual test for deploying schema to a SQL Server container and extracting it back to the SQL project.
 /// This is not an automated test - it's a utility to update the SQL Server project from deployed schema.
-/// 
+///
 /// To run this test:
 /// 1. Execute: dotnet test --filter "FullyQualifiedName~ManualSchemaExportTests.DeploySchemaAndExportToSqlProject"
 /// 2. The test will:
@@ -55,16 +55,16 @@ public class ManualSchemaExportTests : IAsyncLifetime
     /// <summary>
     /// This manual test deploys all platform schemas to a fresh SQL Server container
     /// and then uses SqlPackage to extract the schema and update the SQL Server project.
-    /// 
+    ///
     /// This test creates two separate databases and two separate dacpac files:
     /// 1. Control Plane database - contains Semaphore and Central Metrics schemas
     /// 2. Multi-Database schema - contains Outbox, Inbox, Scheduler, Lease, Fanout, Metrics, and DistributedLock schemas
-    /// 
-    /// Note: This test is skipped by default to prevent it from running in CI. 
+    ///
+    /// Note: This test is skipped by default to prevent it from running in CI.
     /// To run it, remove the Skip parameter or run it explicitly using the test filter.
     /// </summary>
-    //[Fact(Skip = "Manual test only - run explicitly when you want to update the SQL Server project")]
-    [Fact]
+    [Fact(Skip = "Manual test only - run explicitly when you want to update the SQL Server project")]
+    // [Fact]
     public async Task DeploySchemaAndExportToSqlProject()
     {
         // Ensure connection string is set
