@@ -100,7 +100,21 @@ public class ExtractCustomersHandler : IOutboxHandler
 
 ### 4. Setting up Fan-In Orchestration
 
-Enqueue a `join.wait` message to orchestrate the fan-in:
+Use the `EnqueueJoinWaitAsync` extension method to orchestrate the fan-in:
+
+```csharp
+// Simple approach using extension method
+await outbox.EnqueueJoinWaitAsync(
+    joinId: joinId,
+    failIfAnyStepFailed: true,
+    onCompleteTopic: "transform.start",
+    onCompletePayload: """{"transformId": "customer-import-123"}""",
+    onFailTopic: "notify.failure",
+    onFailPayload: """{"reason": "Some extractions failed"}""",
+    cancellationToken: cancellationToken);
+```
+
+Alternatively, you can manually create the payload if needed:
 
 ```csharp
 var waitPayload = new JoinWaitPayload
@@ -212,14 +226,12 @@ await outbox.EnqueueAsync("extract.orders", JsonSerializer.Serialize(extractPayl
 await outbox.EnqueueAsync("extract.products", JsonSerializer.Serialize(extractPayload), cancellationToken);
 
 // 3. Set up fan-in to start transformation when all extractions complete
-var waitPayload = new JoinWaitPayload
-{
-    JoinId = joinId,
-    FailIfAnyStepFailed = true,
-    OnCompleteTopic = "etl.transform",
-    OnCompletePayload = JsonSerializer.Serialize(new { CustomerId = customerId })
-};
-await outbox.EnqueueAsync("join.wait", JsonSerializer.Serialize(waitPayload), cancellationToken);
+await outbox.EnqueueJoinWaitAsync(
+    joinId: joinId,
+    failIfAnyStepFailed: true,
+    onCompleteTopic: "etl.transform",
+    onCompletePayload: JsonSerializer.Serialize(new { CustomerId = customerId }),
+    cancellationToken: cancellationToken);
 ```
 
 The handlers for `extract.*` topics would call `ReportStepCompletedAsync` or `ReportStepFailedAsync` as appropriate, and the `JoinWaitHandler` would automatically trigger the transformation once all extractions complete.
