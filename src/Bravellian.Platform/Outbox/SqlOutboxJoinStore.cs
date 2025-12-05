@@ -203,8 +203,7 @@ internal class SqlOutboxJoinStore : IOutboxJoinStore
             using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-            // Update only if this message hasn't already been counted
-            // We check if the message is in the join members to ensure idempotency
+            // Update only if this message is a member of the join
             var sql = $"""
                 UPDATE j
                 SET 
@@ -227,11 +226,6 @@ internal class SqlOutboxJoinStore : IOutboxJoinStore
                         FROM [{schemaName}].[OutboxJoinMember] m
                         WHERE m.JoinId = @JoinId 
                             AND m.OutboxMessageId = @OutboxMessageId
-                    )
-                    AND NOT EXISTS (
-                        -- Prevent double-counting by checking a separate tracking mechanism
-                        -- For now, we'll rely on the application layer to ensure idempotency
-                        SELECT 1 FROM (SELECT 1) x WHERE 1=0
                     )
                 """;
 
