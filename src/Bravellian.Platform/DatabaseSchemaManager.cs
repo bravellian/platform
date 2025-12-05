@@ -61,6 +61,37 @@ internal static class DatabaseSchemaManager
     }
 
     /// <summary>
+    /// Ensures that the required database schema exists for the outbox join functionality.
+    /// </summary>
+    /// <param name="connectionString">The database connection string.</param>
+    /// <param name="schemaName">The schema name (default: "dbo").</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public static async Task EnsureOutboxJoinSchemaAsync(string connectionString, string schemaName = "dbo")
+    {
+        using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync().ConfigureAwait(false);
+
+        // Ensure schema exists
+        await EnsureSchemaExistsAsync(connection, schemaName).ConfigureAwait(false);
+
+        // Check if OutboxJoin table exists
+        var joinTableExists = await TableExistsAsync(connection, schemaName, "OutboxJoin").ConfigureAwait(false);
+        if (!joinTableExists)
+        {
+            var createJoinScript = GetOutboxJoinCreateScript(schemaName);
+            await ExecuteScriptAsync(connection, createJoinScript).ConfigureAwait(false);
+        }
+
+        // Check if OutboxJoinMember table exists
+        var memberTableExists = await TableExistsAsync(connection, schemaName, "OutboxJoinMember").ConfigureAwait(false);
+        if (!memberTableExists)
+        {
+            var createMemberScript = GetOutboxJoinMemberCreateScript(schemaName);
+            await ExecuteScriptAsync(connection, createMemberScript).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
     /// Ensures that the required database schema exists for the distributed lock functionality.
     /// </summary>
     /// <param name="connectionString">The database connection string.</param>
@@ -375,6 +406,64 @@ internal static class DatabaseSchemaManager
             CREATE INDEX IX_{tableName}_WorkQueue ON [{schemaName}].[{tableName}](Status, CreatedAt)
                 INCLUDE(Id, LockedUntil, DueTimeUtc)
                 WHERE Status = 0;
+            """;
+    }
+
+    /// <summary>
+    /// Gets the SQL script to create the OutboxJoin table.
+    /// </summary>
+    /// <param name="schemaName">The schema name.</param>
+    /// <returns>The SQL create script.</returns>
+    private static string GetOutboxJoinCreateScript(string schemaName)
+    {
+        return $"""
+
+            CREATE TABLE [{schemaName}].[OutboxJoin] (
+                -- Core Fields
+                JoinId UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+                PayeWaiveTenantId BIGINT NOT NULL,
+                ExpectedSteps INT NOT NULL,
+                CompletedSteps INT NOT NULL DEFAULT 0,
+                FailedSteps INT NOT NULL DEFAULT 0,
+                Status TINYINT NOT NULL DEFAULT 0, -- 0=Pending, 1=Completed, 2=Failed, 3=Cancelled
+                
+                -- Timestamps
+                CreatedUtc DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
+                LastUpdatedUtc DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
+                
+                -- Optional metadata (JSON)
+                Metadata NVARCHAR(MAX) NULL
+            );
+
+            -- Index for querying joins by tenant and status
+            CREATE INDEX IX_OutboxJoin_TenantStatus ON [{schemaName}].[OutboxJoin](PayeWaiveTenantId, Status);
+            """;
+    }
+
+    /// <summary>
+    /// Gets the SQL script to create the OutboxJoinMember table.
+    /// </summary>
+    /// <param name="schemaName">The schema name.</param>
+    /// <returns>The SQL create script.</returns>
+    private static string GetOutboxJoinMemberCreateScript(string schemaName)
+    {
+        return $"""
+
+            CREATE TABLE [{schemaName}].[OutboxJoinMember] (
+                JoinId UNIQUEIDENTIFIER NOT NULL,
+                OutboxMessageId UNIQUEIDENTIFIER NOT NULL,
+                CreatedUtc DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
+                
+                -- Composite primary key
+                CONSTRAINT PK_OutboxJoinMember PRIMARY KEY (JoinId, OutboxMessageId),
+                
+                -- Foreign key to OutboxJoin (optional - depends on if you want cascading deletes)
+                CONSTRAINT FK_OutboxJoinMember_Join FOREIGN KEY (JoinId) 
+                    REFERENCES [{schemaName}].[OutboxJoin](JoinId) ON DELETE CASCADE
+            );
+
+            -- Index for reverse lookup: find all joins for a given message
+            CREATE INDEX IX_OutboxJoinMember_MessageId ON [{schemaName}].[OutboxJoinMember](OutboxMessageId);
             """;
     }
 

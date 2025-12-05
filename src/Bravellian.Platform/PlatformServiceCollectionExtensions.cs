@@ -453,6 +453,12 @@ public static class PlatformServiceCollectionExtensions
                 config), // Pass configuration to filter out control plane
             new RoundRobinOutboxSelectionStrategy());
 
+        // Register outbox join store (uses same connection strings as outbox)
+        services.TryAddSingleton<IOutboxJoinStore, SqlOutboxJoinStore>();
+        
+        // Register JoinWaitHandler for fan-in orchestration
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IOutboxHandler, JoinWaitHandler>());
+
         // Register multi-outbox cleanup service
         services.AddHostedService<MultiOutboxCleanupService>(sp => new MultiOutboxCleanupService(
             sp.GetRequiredService<IOutboxStoreProvider>(),
