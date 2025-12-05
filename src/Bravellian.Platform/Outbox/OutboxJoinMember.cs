@@ -36,4 +36,14 @@ public sealed record OutboxJoinMember
     /// Gets the timestamp when this association was created.
     /// </summary>
     public DateTimeOffset CreatedUtc { get; internal init; }
+
+    /// <summary>
+    /// Gets the timestamp when this member was marked as completed, or null if not completed.
+    /// </summary>
+    public DateTimeOffset? CompletedAt { get; internal init; }
+
+    /// <summary>
+    /// Gets the timestamp when this member was marked as failed, or null if not failed.
+    /// </summary>
+    public DateTimeOffset? FailedAt { get; internal init; }
 }

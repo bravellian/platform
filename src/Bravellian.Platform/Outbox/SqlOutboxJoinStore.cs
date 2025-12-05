@@ -203,7 +203,7 @@ internal class SqlOutboxJoinStore : IOutboxJoinStore
             using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-            // Update only if this message is a member of the join
+            // Update only if this message hasn't already been counted and total doesn't exceed expected
             var sql = $"""
                 UPDATE j
                 SET 
@@ -220,13 +220,23 @@ internal class SqlOutboxJoinStore : IOutboxJoinStore
                     INSERTED.LastUpdatedUtc,
                     INSERTED.Metadata
                 FROM [{schemaName}].[OutboxJoin] j
+                INNER JOIN [{schemaName}].[OutboxJoinMember] m
+                    ON j.JoinId = m.JoinId
                 WHERE j.JoinId = @JoinId
-                    AND EXISTS (
-                        SELECT 1 
-                        FROM [{schemaName}].[OutboxJoinMember] m
-                        WHERE m.JoinId = @JoinId 
-                            AND m.OutboxMessageId = @OutboxMessageId
-                    )
+                    AND m.OutboxMessageId = @OutboxMessageId
+                    AND m.CompletedAt IS NULL
+                    AND m.FailedAt IS NULL
+                    AND (j.CompletedSteps + j.FailedSteps) < j.ExpectedSteps
+                ;
+
+                -- Mark the member as completed (idempotent: only if not already completed or failed)
+                UPDATE [{schemaName}].[OutboxJoinMember]
+                SET CompletedAt = SYSUTCDATETIME()
+                WHERE JoinId = @JoinId
+                    AND OutboxMessageId = @OutboxMessageId
+                    AND CompletedAt IS NULL
+                    AND FailedAt IS NULL
+                ;
                 """;
 
             var join = await connection.QuerySingleOrDefaultAsync<OutboxJoin>(
@@ -286,6 +296,7 @@ internal class SqlOutboxJoinStore : IOutboxJoinStore
             using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
+            // Update only if this message hasn't already been counted and total doesn't exceed expected
             var sql = $"""
                 UPDATE j
                 SET 
@@ -302,13 +313,23 @@ internal class SqlOutboxJoinStore : IOutboxJoinStore
                     INSERTED.LastUpdatedUtc,
                     INSERTED.Metadata
                 FROM [{schemaName}].[OutboxJoin] j
+                INNER JOIN [{schemaName}].[OutboxJoinMember] m
+                    ON j.JoinId = m.JoinId
                 WHERE j.JoinId = @JoinId
-                    AND EXISTS (
-                        SELECT 1 
-                        FROM [{schemaName}].[OutboxJoinMember] m
-                        WHERE m.JoinId = @JoinId 
-                            AND m.OutboxMessageId = @OutboxMessageId
-                    )
+                    AND m.OutboxMessageId = @OutboxMessageId
+                    AND m.CompletedAt IS NULL
+                    AND m.FailedAt IS NULL
+                    AND (j.CompletedSteps + j.FailedSteps) < j.ExpectedSteps
+                ;
+
+                -- Mark the member as failed (idempotent: only if not already completed or failed)
+                UPDATE [{schemaName}].[OutboxJoinMember]
+                SET FailedAt = SYSUTCDATETIME()
+                WHERE JoinId = @JoinId
+                    AND OutboxMessageId = @OutboxMessageId
+                    AND CompletedAt IS NULL
+                    AND FailedAt IS NULL
+                ;
                 """;
 
             var join = await connection.QuerySingleOrDefaultAsync<OutboxJoin>(

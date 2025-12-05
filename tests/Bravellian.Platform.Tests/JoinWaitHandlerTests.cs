@@ -64,6 +64,20 @@ public class JoinWaitHandlerTests : SqlServerTestBase
             outbox);
     }
 
+    // Helper method to create an outbox message and return its ID
+    private async Task<Guid> CreateOutboxMessageAsync()
+    {
+        await using var connection = new SqlConnection(ConnectionString);
+        await connection.OpenAsync(CancellationToken.None);
+        
+        var messageId = Guid.NewGuid();
+        await connection.ExecuteAsync(
+            "INSERT INTO dbo.Outbox (Id, Topic, Payload, MessageId) VALUES (@Id, @Topic, @Payload, @MessageId)",
+            new { Id = messageId, Topic = "test.topic", Payload = "{}", MessageId = Guid.NewGuid() });
+        
+        return messageId;
+    }
+
     [Fact]
     public async Task HandleAsync_WhenJoinNotReady_ThrowsJoinNotReadyException()
     {
@@ -75,7 +89,7 @@ public class JoinWaitHandlerTests : SqlServerTestBase
             CancellationToken.None);
             
         // Complete only 1 step
-        var messageId = Guid.NewGuid();
+        var messageId = await CreateOutboxMessageAsync();
         await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId, CancellationToken.None);
         await joinStore.IncrementCompletedAsync(join.JoinId, messageId, CancellationToken.None);
         
@@ -110,8 +124,8 @@ public class JoinWaitHandlerTests : SqlServerTestBase
             CancellationToken.None);
             
         // Complete both steps
-        var messageId1 = Guid.NewGuid();
-        var messageId2 = Guid.NewGuid();
+        var messageId1 = await CreateOutboxMessageAsync();
+        var messageId2 = await CreateOutboxMessageAsync();
         await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId1, CancellationToken.None);
         await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId2, CancellationToken.None);
         await joinStore.IncrementCompletedAsync(join.JoinId, messageId1, CancellationToken.None);
@@ -152,8 +166,8 @@ public class JoinWaitHandlerTests : SqlServerTestBase
             CancellationToken.None);
             
         // Complete 1 step, fail 1 step
-        var messageId1 = Guid.NewGuid();
-        var messageId2 = Guid.NewGuid();
+        var messageId1 = await CreateOutboxMessageAsync();
+        var messageId2 = await CreateOutboxMessageAsync();
         await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId1, CancellationToken.None);
         await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId2, CancellationToken.None);
         await joinStore.IncrementCompletedAsync(join.JoinId, messageId1, CancellationToken.None);
@@ -193,7 +207,7 @@ public class JoinWaitHandlerTests : SqlServerTestBase
             null,
             CancellationToken.None);
             
-        var messageId = Guid.NewGuid();
+        var messageId = await CreateOutboxMessageAsync();
         await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId, CancellationToken.None);
         await joinStore.IncrementCompletedAsync(join.JoinId, messageId, CancellationToken.None);
         
@@ -238,7 +252,7 @@ public class JoinWaitHandlerTests : SqlServerTestBase
             null,
             CancellationToken.None);
             
-        var messageId = Guid.NewGuid();
+        var messageId = await CreateOutboxMessageAsync();
         await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId, CancellationToken.None);
         await joinStore.IncrementCompletedAsync(join.JoinId, messageId, CancellationToken.None);
         await joinStore.UpdateStatusAsync(join.JoinId, JoinStatus.Completed, CancellationToken.None);
@@ -279,8 +293,8 @@ public class JoinWaitHandlerTests : SqlServerTestBase
             CancellationToken.None);
             
         // Complete 1 step, fail 1 step
-        var messageId1 = Guid.NewGuid();
-        var messageId2 = Guid.NewGuid();
+        var messageId1 = await CreateOutboxMessageAsync();
+        var messageId2 = await CreateOutboxMessageAsync();
         await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId1, CancellationToken.None);
         await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId2, CancellationToken.None);
         await joinStore.IncrementCompletedAsync(join.JoinId, messageId1, CancellationToken.None);

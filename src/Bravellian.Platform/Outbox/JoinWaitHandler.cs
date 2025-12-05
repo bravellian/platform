@@ -121,13 +121,8 @@ public class JoinWaitHandler : IOutboxHandler
                 join.FailedSteps);
         }
 
-        // Update the join status
-        await joinStore.UpdateStatusAsync(
-            payload.JoinId,
-            finalStatus,
-            cancellationToken).ConfigureAwait(false);
-
-        // Enqueue follow-up message if configured and outbox is available
+        // Enqueue follow-up message BEFORE updating status to prevent partial failure
+        // If this fails, the join.wait message will be retried and we'll attempt again
         if (!string.IsNullOrEmpty(followUpTopic) && !string.IsNullOrEmpty(followUpPayload))
         {
             if (outbox == null)
@@ -149,6 +144,12 @@ public class JoinWaitHandler : IOutboxHandler
                     cancellationToken).ConfigureAwait(false);
             }
         }
+
+        // Update the join status after successfully enqueueing follow-up
+        await joinStore.UpdateStatusAsync(
+            payload.JoinId,
+            finalStatus,
+            cancellationToken).ConfigureAwait(false);
 
         logger.LogDebug("Successfully processed join.wait for join {JoinId}", payload.JoinId);
     }

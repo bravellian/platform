@@ -25,6 +25,7 @@ namespace Bravellian.Platform.Tests;
 public class OutboxJoinTests : SqlServerTestBase
 {
     private SqlOutboxJoinStore? joinStore;
+    private SqlOutboxService? outboxService;
     private readonly SqlOutboxOptions defaultOptions = new() 
     { 
         ConnectionString = string.Empty, 
@@ -42,12 +43,32 @@ public class OutboxJoinTests : SqlServerTestBase
         await base.InitializeAsync().ConfigureAwait(false);
         defaultOptions.ConnectionString = ConnectionString;
         
-        // Ensure join schema exists
+        // Ensure schemas exist
+        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(ConnectionString, "dbo", "Outbox");
         await DatabaseSchemaManager.EnsureOutboxJoinSchemaAsync(ConnectionString, "dbo");
         
         joinStore = new SqlOutboxJoinStore(
             Options.Create(defaultOptions), 
             NullLogger<SqlOutboxJoinStore>.Instance);
+        
+        outboxService = new SqlOutboxService(
+            Options.Create(defaultOptions),
+            NullLogger<SqlOutboxService>.Instance,
+            joinStore);
+    }
+
+    // Helper method to create an outbox message and return its ID
+    private async Task<Guid> CreateOutboxMessageAsync()
+    {
+        await using var connection = new SqlConnection(ConnectionString);
+        await connection.OpenAsync(CancellationToken.None);
+        
+        var messageId = Guid.NewGuid();
+        await connection.ExecuteAsync(
+            "INSERT INTO dbo.Outbox (Id, Topic, Payload, MessageId) VALUES (@Id, @Topic, @Payload, @MessageId)",
+            new { Id = messageId, Topic = "test.topic", Payload = "{}", MessageId = Guid.NewGuid() });
+        
+        return messageId;
     }
 
     [Fact]
@@ -124,7 +145,7 @@ public class OutboxJoinTests : SqlServerTestBase
             2,
             null,
             CancellationToken.None);
-        var messageId = Guid.NewGuid();
+        var messageId = await CreateOutboxMessageAsync();
 
         // Act
         await joinStore.AttachMessageToJoinAsync(
@@ -152,7 +173,7 @@ public class OutboxJoinTests : SqlServerTestBase
             1,
             null,
             CancellationToken.None);
-        var messageId = Guid.NewGuid();
+        var messageId = await CreateOutboxMessageAsync();
 
         // Act - attach the same message twice
         await joinStore.AttachMessageToJoinAsync(
@@ -185,7 +206,7 @@ public class OutboxJoinTests : SqlServerTestBase
             3,
             null,
             CancellationToken.None);
-        var messageId = Guid.NewGuid();
+        var messageId = await CreateOutboxMessageAsync();
         
         await joinStore.AttachMessageToJoinAsync(
             join.JoinId,
@@ -213,7 +234,7 @@ public class OutboxJoinTests : SqlServerTestBase
             3,
             null,
             CancellationToken.None);
-        var messageId = Guid.NewGuid();
+        var messageId = await CreateOutboxMessageAsync();
         
         await joinStore.AttachMessageToJoinAsync(
             join.JoinId,
@@ -267,9 +288,9 @@ public class OutboxJoinTests : SqlServerTestBase
             null,
             CancellationToken.None);
             
-        var messageId1 = Guid.NewGuid();
-        var messageId2 = Guid.NewGuid();
-        var messageId3 = Guid.NewGuid();
+        var messageId1 = await CreateOutboxMessageAsync();
+        var messageId2 = await CreateOutboxMessageAsync();
+        var messageId3 = await CreateOutboxMessageAsync();
         
         await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId1, CancellationToken.None);
         await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId2, CancellationToken.None);
@@ -297,7 +318,11 @@ public class OutboxJoinTests : SqlServerTestBase
             """{"workflow": "test"}""",
             CancellationToken.None);
             
-        var messageIds = new[] { Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid() };
+        var messageIds = new[] {
+            await CreateOutboxMessageAsync(),
+            await CreateOutboxMessageAsync(),
+            await CreateOutboxMessageAsync()
+        };
         
         foreach (var messageId in messageIds)
         {
@@ -337,7 +362,11 @@ public class OutboxJoinTests : SqlServerTestBase
             null,
             CancellationToken.None);
             
-        var messageIds = new[] { Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid() };
+        var messageIds = new[] {
+            await CreateOutboxMessageAsync(),
+            await CreateOutboxMessageAsync(),
+            await CreateOutboxMessageAsync()
+        };
         
         foreach (var messageId in messageIds)
         {
@@ -358,5 +387,86 @@ public class OutboxJoinTests : SqlServerTestBase
         finalJoin!.Status.ShouldBe(JoinStatus.Failed);
         finalJoin.CompletedSteps.ShouldBe(2);
         finalJoin.FailedSteps.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task IncrementCompletedAsync_CalledTwiceForSameMessage_IsIdempotent()
+    {
+        // Arrange
+        var join = await joinStore!.CreateJoinAsync(
+            12345,
+            2,
+            null,
+            CancellationToken.None);
+        
+        var messageId = await CreateOutboxMessageAsync();
+        await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId, CancellationToken.None);
+
+        // Act - Call increment twice for the same message
+        await joinStore.IncrementCompletedAsync(join.JoinId, messageId, CancellationToken.None);
+        await joinStore.IncrementCompletedAsync(join.JoinId, messageId, CancellationToken.None);
+
+        // Assert - Should only increment once
+        var updatedJoin = await joinStore.GetJoinAsync(join.JoinId, CancellationToken.None);
+        updatedJoin.ShouldNotBeNull();
+        updatedJoin!.CompletedSteps.ShouldBe(1);
+        updatedJoin.FailedSteps.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task IncrementFailedAsync_CalledTwiceForSameMessage_IsIdempotent()
+    {
+        // Arrange
+        var join = await joinStore!.CreateJoinAsync(
+            12345,
+            2,
+            null,
+            CancellationToken.None);
+        
+        var messageId = await CreateOutboxMessageAsync();
+        await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId, CancellationToken.None);
+
+        // Act - Call increment twice for the same message
+        await joinStore.IncrementFailedAsync(join.JoinId, messageId, CancellationToken.None);
+        await joinStore.IncrementFailedAsync(join.JoinId, messageId, CancellationToken.None);
+
+        // Assert - Should only increment once
+        var updatedJoin = await joinStore.GetJoinAsync(join.JoinId, CancellationToken.None);
+        updatedJoin.ShouldNotBeNull();
+        updatedJoin!.CompletedSteps.ShouldBe(0);
+        updatedJoin.FailedSteps.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task IncrementCompletedAsync_WhenTotalWouldExceedExpected_DoesNotOverCount()
+    {
+        // Arrange
+        var join = await joinStore!.CreateJoinAsync(
+            12345,
+            2,
+            null,
+            CancellationToken.None);
+        
+        var messageIds = new[] {
+            await CreateOutboxMessageAsync(),
+            await CreateOutboxMessageAsync(),
+            await CreateOutboxMessageAsync()
+        };
+        
+        foreach (var messageId in messageIds)
+        {
+            await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId, CancellationToken.None);
+        }
+
+        // Act - Try to increment 3 times when only 2 expected
+        await joinStore.IncrementCompletedAsync(join.JoinId, messageIds[0], CancellationToken.None);
+        await joinStore.IncrementCompletedAsync(join.JoinId, messageIds[1], CancellationToken.None);
+        await joinStore.IncrementCompletedAsync(join.JoinId, messageIds[2], CancellationToken.None);
+
+        // Assert - Should stop at expected count
+        var updatedJoin = await joinStore.GetJoinAsync(join.JoinId, CancellationToken.None);
+        updatedJoin.ShouldNotBeNull();
+        updatedJoin!.CompletedSteps.ShouldBe(2);
+        updatedJoin.FailedSteps.ShouldBe(0);
     }
 }

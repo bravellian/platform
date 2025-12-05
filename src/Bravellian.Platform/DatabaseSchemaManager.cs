@@ -453,13 +453,19 @@ internal static class DatabaseSchemaManager
                 JoinId UNIQUEIDENTIFIER NOT NULL,
                 OutboxMessageId UNIQUEIDENTIFIER NOT NULL,
                 CreatedUtc DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
+                CompletedAt DATETIME2(3) NULL,
+                FailedAt DATETIME2(3) NULL,
                 
                 -- Composite primary key
                 CONSTRAINT PK_OutboxJoinMember PRIMARY KEY (JoinId, OutboxMessageId),
                 
-                -- Foreign key to OutboxJoin (optional - depends on if you want cascading deletes)
+                -- Foreign key to OutboxJoin (cascades deletes)
                 CONSTRAINT FK_OutboxJoinMember_Join FOREIGN KEY (JoinId) 
-                    REFERENCES [{schemaName}].[OutboxJoin](JoinId) ON DELETE CASCADE
+                    REFERENCES [{schemaName}].[OutboxJoin](JoinId) ON DELETE CASCADE,
+                
+                -- Foreign key to Outbox (enforces referential integrity and cascades deletes)
+                CONSTRAINT FK_OutboxJoinMember_Outbox FOREIGN KEY (OutboxMessageId)
+                    REFERENCES [{schemaName}].[Outbox](Id) ON DELETE CASCADE
             );
 
             -- Index for reverse lookup: find all joins for a given message

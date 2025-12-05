@@ -207,7 +207,7 @@ This registers:
 
 1. **No cross-tenant joins**: Joins are scoped to a single PayeWaive tenant
 2. **No timeout mechanism**: Joins don't automatically fail after a timeout (implement separately if needed)
-3. **Application-level idempotency**: The current implementation relies on application logic to prevent double-counting completed steps
+3. **Single-database join store**: The current implementation uses a singleton `SqlOutboxJoinStore` that connects to one database. In multi-database scenarios, joins only work within the configured database. This is a known limitation that will be addressed in a future update with a provider pattern similar to the outbox store provider.
 
 ## Example: ETL Workflow
 
@@ -219,11 +219,17 @@ var joinId = await outbox.StartJoinAsync(
     metadata: """{"type": "etl", "phase": "extract"}""",
     cancellationToken);
 
-// 2. Enqueue extraction messages
+// 2. Enqueue extraction messages and attach them to the join
 var extractPayload = new { JoinId = joinId, CustomerId = customerId };
-await outbox.EnqueueAsync("extract.customers", JsonSerializer.Serialize(extractPayload), cancellationToken);
-await outbox.EnqueueAsync("extract.orders", JsonSerializer.Serialize(extractPayload), cancellationToken);
-await outbox.EnqueueAsync("extract.products", JsonSerializer.Serialize(extractPayload), cancellationToken);
+
+var msg1 = await outbox.EnqueueAsync("extract.customers", JsonSerializer.Serialize(extractPayload), cancellationToken);
+await outbox.AttachMessageToJoinAsync(joinId, msg1, cancellationToken);
+
+var msg2 = await outbox.EnqueueAsync("extract.orders", JsonSerializer.Serialize(extractPayload), cancellationToken);
+await outbox.AttachMessageToJoinAsync(joinId, msg2, cancellationToken);
+
+var msg3 = await outbox.EnqueueAsync("extract.products", JsonSerializer.Serialize(extractPayload), cancellationToken);
+await outbox.AttachMessageToJoinAsync(joinId, msg3, cancellationToken);
 
 // 3. Set up fan-in to start transformation when all extractions complete
 await outbox.EnqueueJoinWaitAsync(
