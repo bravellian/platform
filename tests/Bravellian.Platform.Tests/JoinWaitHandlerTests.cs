@@ -60,8 +60,8 @@ public class JoinWaitHandlerTests : SqlServerTestBase
             
         handler = new JoinWaitHandler(
             joinStore,
-            outbox,
-            NullLogger<JoinWaitHandler>.Instance);
+            NullLogger<JoinWaitHandler>.Instance,
+            outbox);
     }
 
     [Fact]

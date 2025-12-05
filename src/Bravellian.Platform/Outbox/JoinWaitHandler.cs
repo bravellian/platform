@@ -24,7 +24,7 @@ namespace Bravellian.Platform;
 public class JoinWaitHandler : IOutboxHandler
 {
     private readonly IOutboxJoinStore joinStore;
-    private readonly IOutbox outbox;
+    private readonly IOutbox? outbox;
     private readonly ILogger<JoinWaitHandler> logger;
 
     /// <summary>
@@ -32,12 +32,12 @@ public class JoinWaitHandler : IOutboxHandler
     /// </summary>
     public JoinWaitHandler(
         IOutboxJoinStore joinStore,
-        IOutbox outbox,
-        ILogger<JoinWaitHandler> logger)
+        ILogger<JoinWaitHandler> logger,
+        IOutbox? outbox = null)
     {
         this.joinStore = joinStore;
-        this.outbox = outbox;
         this.logger = logger;
+        this.outbox = outbox;
     }
 
     /// <inheritdoc/>
@@ -127,18 +127,27 @@ public class JoinWaitHandler : IOutboxHandler
             finalStatus,
             cancellationToken).ConfigureAwait(false);
 
-        // Enqueue follow-up message if configured
+        // Enqueue follow-up message if configured and outbox is available
         if (!string.IsNullOrEmpty(followUpTopic) && !string.IsNullOrEmpty(followUpPayload))
         {
-            logger.LogDebug(
-                "Enqueueing follow-up message for join {JoinId}: topic={Topic}",
-                payload.JoinId,
-                followUpTopic);
+            if (outbox == null)
+            {
+                logger.LogWarning(
+                    "Cannot enqueue follow-up message for join {JoinId} - IOutbox not available. Configure follow-up via alternative mechanism.",
+                    payload.JoinId);
+            }
+            else
+            {
+                logger.LogDebug(
+                    "Enqueueing follow-up message for join {JoinId}: topic={Topic}",
+                    payload.JoinId,
+                    followUpTopic);
 
-            await outbox.EnqueueAsync(
-                followUpTopic,
-                followUpPayload,
-                cancellationToken).ConfigureAwait(false);
+                await outbox.EnqueueAsync(
+                    followUpTopic,
+                    followUpPayload,
+                    cancellationToken).ConfigureAwait(false);
+            }
         }
 
         logger.LogDebug("Successfully processed join.wait for join {JoinId}", payload.JoinId);
