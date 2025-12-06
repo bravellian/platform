@@ -60,7 +60,7 @@ internal class SqlOutboxJoinStore : IOutboxJoinStore
                     (PayeWaiveTenantId, ExpectedSteps, Metadata)
                 OUTPUT 
                     INSERTED.JoinId,
-                    INSERTED.PayeWaiveTenantId,
+                    INSERTED.PayeWaiveTenantId AS TenantId,
                     INSERTED.ExpectedSteps,
                     INSERTED.CompletedSteps,
                     INSERTED.FailedSteps,
@@ -159,7 +159,7 @@ internal class SqlOutboxJoinStore : IOutboxJoinStore
             var sql = $"""
                 SELECT 
                     JoinId,
-                    PayeWaiveTenantId,
+                    PayeWaiveTenantId AS TenantId,
                     ExpectedSteps,
                     CompletedSteps,
                     FailedSteps,
@@ -212,7 +212,7 @@ internal class SqlOutboxJoinStore : IOutboxJoinStore
                     LastUpdatedUtc = SYSUTCDATETIME()
                 OUTPUT 
                     INSERTED.JoinId,
-                    INSERTED.PayeWaiveTenantId,
+                    INSERTED.PayeWaiveTenantId AS TenantId,
                     INSERTED.ExpectedSteps,
                     INSERTED.CompletedSteps,
                     INSERTED.FailedSteps,
@@ -305,7 +305,7 @@ internal class SqlOutboxJoinStore : IOutboxJoinStore
                     LastUpdatedUtc = SYSUTCDATETIME()
                 OUTPUT 
                     INSERTED.JoinId,
-                    INSERTED.PayeWaiveTenantId,
+                    INSERTED.PayeWaiveTenantId AS TenantId,
                     INSERTED.ExpectedSteps,
                     INSERTED.CompletedSteps,
                     INSERTED.FailedSteps,

@@ -64,12 +64,12 @@ public class OutboxJoinTests : SqlServerTestBase
         await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(CancellationToken.None);
 
-        var messageId = Guid.NewGuid();
+        var id = Guid.NewGuid();
         await connection.ExecuteAsync(
             "INSERT INTO dbo.Outbox (Id, Topic, Payload, MessageId) VALUES (@Id, @Topic, @Payload, @MessageId)",
-            new { Id = Guid.NewGuid(), Topic = "test.topic", Payload = "{}", MessageId = messageId });
+            new { Id = id, Topic = "test.topic", Payload = "{}", MessageId = Guid.NewGuid() });
 
-        return OutboxMessageIdentifier.From(messageId);
+        return OutboxMessageIdentifier.From(id);
     }
 
     [Fact]
@@ -592,7 +592,7 @@ public class OutboxJoinTests : SqlServerTestBase
 
         await connection.ExecuteAsync(
             "[dbo].[Outbox_Claim]",
-            new { OwnerToken = ownerToken, LeaseSeconds = 30, BatchSize = 10 },
+            new { OwnerToken = ownerToken.Value, LeaseSeconds = 30, BatchSize = 10 },
             commandType: System.Data.CommandType.StoredProcedure);
     }
 
@@ -606,7 +606,7 @@ public class OutboxJoinTests : SqlServerTestBase
         {
             CommandType = System.Data.CommandType.StoredProcedure,
         };
-        command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+        command.Parameters.AddWithValue("@OwnerToken", ownerToken.Value);
         var parameter = command.Parameters.AddWithValue("@Ids", idsTable);
         parameter.SqlDbType = System.Data.SqlDbType.Structured;
         parameter.TypeName = "[dbo].[GuidIdList]";
@@ -623,7 +623,7 @@ public class OutboxJoinTests : SqlServerTestBase
         {
             CommandType = System.Data.CommandType.StoredProcedure,
         };
-        command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+        command.Parameters.AddWithValue("@OwnerToken", ownerToken.Value);
         command.Parameters.AddWithValue("@LastError", error);
         command.Parameters.AddWithValue("@ProcessedBy", "TestMachine");
         var parameter = command.Parameters.AddWithValue("@Ids", idsTable);
