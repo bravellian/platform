@@ -13,6 +13,7 @@
 // limitations under the License.
 
 using System.ComponentModel;
+using System.Text.Json.Serialization;
 
 namespace Bravellian.Platform;
 
@@ -21,6 +22,7 @@ namespace Bravellian.Platform;
 /// This is used to identify the process that claims and processes outbox messages.
 /// </summary>
 [TypeConverter(typeof(OwnerTokenTypeConverter))]
+[JsonConverter(typeof(OwnerTokenJsonConverter))]
 public readonly record struct OwnerToken
 {
     // Static constructor to ensure Dapper type handler is registered

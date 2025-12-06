@@ -13,6 +13,7 @@
 // limitations under the License.
 
 using System.ComponentModel;
+using System.Text.Json.Serialization;
 
 namespace Bravellian.Platform;
 
@@ -20,6 +21,7 @@ namespace Bravellian.Platform;
 /// Strongly-typed identifier for an outbox join.
 /// </summary>
 [TypeConverter(typeof(JoinIdTypeConverter))]
+[JsonConverter(typeof(JoinIdJsonConverter))]
 public readonly record struct JoinId
 {
     // Static constructor to ensure Dapper type handler is registered
