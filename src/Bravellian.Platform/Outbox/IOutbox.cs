@@ -170,4 +170,54 @@ public interface IOutbox
     /// </summary>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     Task ReapExpiredAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Starts a new join to track a group of related outbox messages.
+    /// </summary>
+    /// <param name="tenantId">The PayeWaive tenant identifier.</param>
+    /// <param name="expectedSteps">The total number of steps expected to complete.</param>
+    /// <param name="metadata">Optional metadata (JSON string) for the join.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>The join ID of the newly created join.</returns>
+    Task<Guid> StartJoinAsync(
+        long tenantId,
+        int expectedSteps,
+        string? metadata,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Associates an outbox message with a join.
+    /// This operation is idempotent - calling it multiple times with the same parameters has no additional effect.
+    /// </summary>
+    /// <param name="joinId">The join identifier.</param>
+    /// <param name="outboxMessageId">The outbox message identifier.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    Task AttachMessageToJoinAsync(
+        Guid joinId,
+        Guid outboxMessageId,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Reports that a step in a join has completed successfully.
+    /// This operation is idempotent when called with the same outboxMessageId.
+    /// </summary>
+    /// <param name="joinId">The join identifier.</param>
+    /// <param name="outboxMessageId">The outbox message identifier that completed.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    Task ReportStepCompletedAsync(
+        Guid joinId,
+        Guid outboxMessageId,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Reports that a step in a join has failed.
+    /// This operation is idempotent when called with the same outboxMessageId.
+    /// </summary>
+    /// <param name="joinId">The join identifier.</param>
+    /// <param name="outboxMessageId">The outbox message identifier that failed.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    Task ReportStepFailedAsync(
+        Guid joinId,
+        Guid outboxMessageId,
+        CancellationToken cancellationToken);
 }

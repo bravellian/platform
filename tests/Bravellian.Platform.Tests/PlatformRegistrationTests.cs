@@ -319,5 +319,9 @@ public class PlatformRegistrationTests
         public Task AbandonAsync(Guid ownerToken, IEnumerable<Guid> ids, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task FailAsync(Guid ownerToken, IEnumerable<Guid> ids, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task ReapExpiredAsync(CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<Guid> StartJoinAsync(long tenantId, int expectedSteps, string? metadata, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task AttachMessageToJoinAsync(Guid joinId, Guid outboxMessageId, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task ReportStepCompletedAsync(Guid joinId, Guid outboxMessageId, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task ReportStepFailedAsync(Guid joinId, Guid outboxMessageId, CancellationToken cancellationToken) => throw new NotImplementedException();
     }
 }

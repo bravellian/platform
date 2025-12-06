@@ -28,12 +28,17 @@ internal class SqlOutboxService : IOutbox
     private readonly string connectionString;
     private readonly string enqueueSql;
     private readonly ILogger<SqlOutboxService> logger;
+    private readonly IOutboxJoinStore? joinStore;
 
-    public SqlOutboxService(IOptions<SqlOutboxOptions> options, ILogger<SqlOutboxService> logger)
+    public SqlOutboxService(
+        IOptions<SqlOutboxOptions> options,
+        ILogger<SqlOutboxService> logger,
+        IOutboxJoinStore? joinStore = null)
     {
         this.options = options.Value;
         connectionString = this.options.ConnectionString;
         this.logger = logger;
+        this.joinStore = joinStore;
 
         // Build the SQL query using configured schema and table names
         enqueueSql = $"""
@@ -344,5 +349,85 @@ internal class SqlOutboxService : IOutbox
                 await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             }
         }
+    }
+
+    public async Task<Guid> StartJoinAsync(
+        long tenantId,
+        int expectedSteps,
+        string? metadata,
+        CancellationToken cancellationToken)
+    {
+        if (joinStore == null)
+        {
+            throw new InvalidOperationException(
+                "Join functionality is not available. Ensure IOutboxJoinStore is registered in the service collection.");
+        }
+
+        // Ensure join schema exists before attempting to create join (if enabled)
+        if (options.EnableSchemaDeployment)
+        {
+            await DatabaseSchemaManager.EnsureOutboxJoinSchemaAsync(
+                connectionString,
+                options.SchemaName).ConfigureAwait(false);
+        }
+
+        var join = await joinStore.CreateJoinAsync(
+            tenantId,
+            expectedSteps,
+            metadata,
+            cancellationToken).ConfigureAwait(false);
+
+        return join.JoinId;
+    }
+
+    public async Task AttachMessageToJoinAsync(
+        Guid joinId,
+        Guid outboxMessageId,
+        CancellationToken cancellationToken)
+    {
+        if (joinStore == null)
+        {
+            throw new InvalidOperationException(
+                "Join functionality is not available. Ensure IOutboxJoinStore is registered in the service collection.");
+        }
+
+        await joinStore.AttachMessageToJoinAsync(
+            joinId,
+            outboxMessageId,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task ReportStepCompletedAsync(
+        Guid joinId,
+        Guid outboxMessageId,
+        CancellationToken cancellationToken)
+    {
+        if (joinStore == null)
+        {
+            throw new InvalidOperationException(
+                "Join functionality is not available. Ensure IOutboxJoinStore is registered in the service collection.");
+        }
+
+        await joinStore.IncrementCompletedAsync(
+            joinId,
+            outboxMessageId,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task ReportStepFailedAsync(
+        Guid joinId,
+        Guid outboxMessageId,
+        CancellationToken cancellationToken)
+    {
+        if (joinStore == null)
+        {
+            throw new InvalidOperationException(
+                "Join functionality is not available. Ensure IOutboxJoinStore is registered in the service collection.");
+        }
+
+        await joinStore.IncrementFailedAsync(
+            joinId,
+            outboxMessageId,
+            cancellationToken).ConfigureAwait(false);
     }
 }
