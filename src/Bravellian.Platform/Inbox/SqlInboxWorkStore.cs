@@ -44,7 +44,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
     }
 
     public async Task<IReadOnlyList<string>> ClaimAsync(
-        Guid ownerToken,
+        Bravellian.Platform.OwnerToken ownerToken,
         int leaseSeconds,
         int batchSize,
         CancellationToken cancellationToken)
@@ -93,7 +93,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
     }
 
     public async Task AckAsync(
-        Guid ownerToken,
+        Bravellian.Platform.OwnerToken ownerToken,
         IEnumerable<string> messageIds,
         CancellationToken cancellationToken)
     {
@@ -145,7 +145,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
     }
 
     public async Task AbandonAsync(
-        Guid ownerToken,
+        Bravellian.Platform.OwnerToken ownerToken,
         IEnumerable<string> messageIds,
         string? lastError = null,
         TimeSpan? delay = null,
@@ -212,7 +212,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
     }
 
     public async Task FailAsync(
-        Guid ownerToken,
+        Bravellian.Platform.OwnerToken ownerToken,
         IEnumerable<string> messageIds,
         string error,
         CancellationToken cancellationToken)

@@ -28,7 +28,7 @@ public interface IInboxWorkStore
     /// <param name="batchSize">Maximum number of messages to claim.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>List of claimed message IDs.</returns>
-    Task<IReadOnlyList<string>> ClaimAsync(Guid ownerToken, int leaseSeconds, int batchSize, CancellationToken cancellationToken);
+    Task<IReadOnlyList<string>> ClaimAsync(Bravellian.Platform.OwnerToken ownerToken, int leaseSeconds, int batchSize, CancellationToken cancellationToken);
 
     /// <summary>
     /// Acknowledges successful processing of messages, marking them as Done.
@@ -36,7 +36,7 @@ public interface IInboxWorkStore
     /// <param name="ownerToken">Token of the worker that claimed the messages.</param>
     /// <param name="messageIds">IDs of messages to acknowledge.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    Task AckAsync(Guid ownerToken, IEnumerable<string> messageIds, CancellationToken cancellationToken);
+    Task AckAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<string> messageIds, CancellationToken cancellationToken);
 
     /// <summary>
     /// Abandons processing of messages, returning them to Ready state for retry.
@@ -46,7 +46,7 @@ public interface IInboxWorkStore
     /// <param name="lastError">Optional error message to record for troubleshooting.</param>
     /// <param name="delay">Optional delay before the message becomes eligible for retry.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    Task AbandonAsync(Guid ownerToken, IEnumerable<string> messageIds, string? lastError = null, TimeSpan? delay = null, CancellationToken cancellationToken = default);
+    Task AbandonAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<string> messageIds, string? lastError = null, TimeSpan? delay = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Marks messages as permanently failed (Dead).
@@ -55,7 +55,7 @@ public interface IInboxWorkStore
     /// <param name="messageIds">IDs of messages to fail.</param>
     /// <param name="error">Error message to record.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    Task FailAsync(Guid ownerToken, IEnumerable<string> messageIds, string error, CancellationToken cancellationToken);
+    Task FailAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<string> messageIds, string error, CancellationToken cancellationToken);
 
     /// <summary>
     /// Reclaims expired leases, returning messages to Ready state.

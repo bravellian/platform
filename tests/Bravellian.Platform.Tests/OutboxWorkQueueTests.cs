@@ -13,6 +13,7 @@
 // limitations under the License.
 
 
+using Bravellian.Platform.Outbox;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -53,7 +54,7 @@ public class OutboxWorkQueueTests : SqlServerTestBase
     {
         // Arrange
         var testIds = await CreateTestOutboxItemsAsync(3);
-        var ownerToken = Guid.NewGuid();
+        Bravellian.Platform.OwnerToken ownerToken = Bravellian.Platform.OwnerToken.GenerateNew();
 
         // Act
         var claimedIds = await outboxService!.ClaimAsync(ownerToken, 30, 10, TestContext.Current.CancellationToken);
@@ -69,7 +70,7 @@ public class OutboxWorkQueueTests : SqlServerTestBase
     {
         // Arrange
         await CreateTestOutboxItemsAsync(5);
-        var ownerToken = Guid.NewGuid();
+        Bravellian.Platform.OwnerToken ownerToken = Bravellian.Platform.OwnerToken.GenerateNew();
 
         // Act
         var claimedIds = await outboxService!.ClaimAsync(ownerToken, 30, 2, TestContext.Current.CancellationToken);
@@ -83,7 +84,7 @@ public class OutboxWorkQueueTests : SqlServerTestBase
     {
         // Arrange
         var testIds = await CreateTestOutboxItemsAsync(2);
-        var ownerToken = Guid.NewGuid();
+        Bravellian.Platform.OwnerToken ownerToken = Bravellian.Platform.OwnerToken.GenerateNew();
         var claimedIds = await outboxService!.ClaimAsync(ownerToken, 30, 10, TestContext.Current.CancellationToken);
 
         // Act
@@ -99,7 +100,7 @@ public class OutboxWorkQueueTests : SqlServerTestBase
     {
         // Arrange
         var testIds = await CreateTestOutboxItemsAsync(2);
-        var ownerToken = Guid.NewGuid();
+        Bravellian.Platform.OwnerToken ownerToken = Bravellian.Platform.OwnerToken.GenerateNew();
         var claimedIds = await outboxService!.ClaimAsync(ownerToken, 30, 10, TestContext.Current.CancellationToken);
 
         // Act
@@ -114,7 +115,7 @@ public class OutboxWorkQueueTests : SqlServerTestBase
     {
         // Arrange
         var testIds = await CreateTestOutboxItemsAsync(1);
-        var ownerToken = Guid.NewGuid();
+        Bravellian.Platform.OwnerToken ownerToken = Bravellian.Platform.OwnerToken.GenerateNew();
         var claimedIds = await outboxService!.ClaimAsync(ownerToken, 30, 10, TestContext.Current.CancellationToken);
 
         // Act
@@ -129,7 +130,7 @@ public class OutboxWorkQueueTests : SqlServerTestBase
     {
         // Arrange
         var testIds = await CreateTestOutboxItemsAsync(1);
-        var ownerToken = Guid.NewGuid();
+        Bravellian.Platform.OwnerToken ownerToken = Bravellian.Platform.OwnerToken.GenerateNew();
         await outboxService!.ClaimAsync(ownerToken, 1, 10, TestContext.Current.CancellationToken); // 1 second lease
 
         // Wait for lease to expire
@@ -147,8 +148,8 @@ public class OutboxWorkQueueTests : SqlServerTestBase
     {
         // Arrange
         var testIds = await CreateTestOutboxItemsAsync(10);
-        var worker1Token = Guid.NewGuid();
-        var worker2Token = Guid.NewGuid();
+        var worker1Token = OwnerToken.GenerateNew();
+        var worker2Token = OwnerToken.GenerateNew();
 
         // Act - simulate concurrent claims
         var claimTask1 = outboxService!.ClaimAsync(worker1Token, 30, 5, TestContext.Current.CancellationToken);
@@ -171,8 +172,8 @@ public class OutboxWorkQueueTests : SqlServerTestBase
     {
         // Arrange
         var testIds = await CreateTestOutboxItemsAsync(1);
-        var ownerToken = Guid.NewGuid();
-        var invalidToken = Guid.NewGuid();
+        Bravellian.Platform.OwnerToken ownerToken = Bravellian.Platform.OwnerToken.GenerateNew();
+        var invalidToken = OwnerToken.GenerateNew();
         var claimedIds = await outboxService!.ClaimAsync(ownerToken, 30, 10, TestContext.Current.CancellationToken);
 
         // Act - try to ack with wrong owner
@@ -182,9 +183,9 @@ public class OutboxWorkQueueTests : SqlServerTestBase
         await VerifyOutboxStatusAsync(claimedIds, 1); // Status = InProgress
     }
 
-    private async Task<List<Guid>> CreateTestOutboxItemsAsync(int count)
+    private async Task<List<OutboxWorkItemIdentifier>> CreateTestOutboxItemsAsync(int count)
     {
-        var ids = new List<Guid>();
+        var ids = new List<OutboxWorkItemIdentifier>();
 
         var connection = new SqlConnection(ConnectionString);
         await using (connection.ConfigureAwait(false))
@@ -193,7 +194,7 @@ public class OutboxWorkQueueTests : SqlServerTestBase
 
             for (int i = 0; i < count; i++)
             {
-                var id = Guid.NewGuid();
+                var id = OutboxWorkItemIdentifier.GenerateNew();
                 ids.Add(id);
 
                 await connection.ExecuteAsync(
@@ -207,7 +208,7 @@ public class OutboxWorkQueueTests : SqlServerTestBase
         }
     }
 
-    private async Task VerifyOutboxStatusAsync(IEnumerable<Guid> ids, int expectedStatus)
+    private async Task VerifyOutboxStatusAsync(IEnumerable<OutboxWorkItemIdentifier> ids, int expectedStatus)
     {
         var connection = new SqlConnection(ConnectionString);
         await using (connection.ConfigureAwait(false))
@@ -223,7 +224,7 @@ public class OutboxWorkQueueTests : SqlServerTestBase
         }
     }
 
-    private async Task VerifyOutboxProcessedAsync(IEnumerable<Guid> ids, bool expectedProcessed)
+    private async Task VerifyOutboxProcessedAsync(IEnumerable<OutboxWorkItemIdentifier> ids, bool expectedProcessed)
     {
         var connection = new SqlConnection(ConnectionString);
         await using (connection.ConfigureAwait(false))

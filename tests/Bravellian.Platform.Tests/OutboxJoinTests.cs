@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Bravellian.Platform.Outbox;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -26,11 +27,11 @@ public class OutboxJoinTests : SqlServerTestBase
 {
     private SqlOutboxJoinStore? joinStore;
     private SqlOutboxService? outboxService;
-    private readonly SqlOutboxOptions defaultOptions = new() 
-    { 
-        ConnectionString = string.Empty, 
-        SchemaName = "dbo", 
-        TableName = "Outbox" 
+    private readonly SqlOutboxOptions defaultOptions = new()
+    {
+        ConnectionString = string.Empty,
+        SchemaName = "dbo",
+        TableName = "Outbox"
     };
 
     public OutboxJoinTests(ITestOutputHelper testOutputHelper, SqlServerCollectionFixture fixture)
@@ -42,15 +43,15 @@ public class OutboxJoinTests : SqlServerTestBase
     {
         await base.InitializeAsync().ConfigureAwait(false);
         defaultOptions.ConnectionString = ConnectionString;
-        
+
         // Ensure schemas exist
         await DatabaseSchemaManager.EnsureOutboxSchemaAsync(ConnectionString, "dbo", "Outbox");
         await DatabaseSchemaManager.EnsureOutboxJoinSchemaAsync(ConnectionString, "dbo");
-        
+
         joinStore = new SqlOutboxJoinStore(
-            Options.Create(defaultOptions), 
+            Options.Create(defaultOptions),
             NullLogger<SqlOutboxJoinStore>.Instance);
-        
+
         outboxService = new SqlOutboxService(
             Options.Create(defaultOptions),
             NullLogger<SqlOutboxService>.Instance,
@@ -58,17 +59,17 @@ public class OutboxJoinTests : SqlServerTestBase
     }
 
     // Helper method to create an outbox message and return its ID
-    private async Task<Guid> CreateOutboxMessageAsync()
+    private async Task<OutboxMessageIdentifier> CreateOutboxMessageAsync()
     {
         await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(CancellationToken.None);
-        
+
         var messageId = Guid.NewGuid();
         await connection.ExecuteAsync(
             "INSERT INTO dbo.Outbox (Id, Topic, Payload, MessageId) VALUES (@Id, @Topic, @Payload, @MessageId)",
-            new { Id = messageId, Topic = "test.topic", Payload = "{}", MessageId = Guid.NewGuid() });
-        
-        return messageId;
+            new { Id = Guid.NewGuid(), Topic = "test.topic", Payload = "{}", MessageId = messageId });
+
+        return OutboxMessageIdentifier.From(messageId);
     }
 
     [Fact]
@@ -88,8 +89,8 @@ public class OutboxJoinTests : SqlServerTestBase
 
         // Assert
         join.ShouldNotBeNull();
-        join.JoinId.ShouldNotBe(Guid.Empty);
-        join.PayeWaiveTenantId.ShouldBe(tenantId);
+        join.JoinId.ShouldNotBe(JoinIdentifier.Empty);
+        join.TenantId.ShouldBe(tenantId);
         join.ExpectedSteps.ShouldBe(expectedSteps);
         join.CompletedSteps.ShouldBe(0);
         join.FailedSteps.ShouldBe(0);
@@ -125,7 +126,7 @@ public class OutboxJoinTests : SqlServerTestBase
     public async Task GetJoinAsync_WithNonExistentJoin_ReturnsNull()
     {
         // Arrange
-        var nonExistentJoinId = Guid.NewGuid();
+        var nonExistentJoinId = JoinIdentifier.GenerateNew();
 
         // Act
         var join = await joinStore!.GetJoinAsync(
@@ -156,7 +157,7 @@ public class OutboxJoinTests : SqlServerTestBase
         // Assert - verify association exists in database
         await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(CancellationToken.None);
-        
+
         var count = await connection.ExecuteScalarAsync<int>(
             "SELECT COUNT(*) FROM dbo.OutboxJoinMember WHERE JoinId = @JoinId AND OutboxMessageId = @MessageId",
             new { JoinId = join.JoinId, MessageId = messageId });
@@ -180,7 +181,7 @@ public class OutboxJoinTests : SqlServerTestBase
             join.JoinId,
             messageId,
             CancellationToken.None);
-            
+
         await joinStore.AttachMessageToJoinAsync(
             join.JoinId,
             messageId,
@@ -189,7 +190,7 @@ public class OutboxJoinTests : SqlServerTestBase
         // Assert - verify only one association exists
         await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(CancellationToken.None);
-        
+
         var count = await connection.ExecuteScalarAsync<int>(
             "SELECT COUNT(*) FROM dbo.OutboxJoinMember WHERE JoinId = @JoinId AND OutboxMessageId = @MessageId",
             new { JoinId = join.JoinId, MessageId = messageId });
@@ -207,7 +208,7 @@ public class OutboxJoinTests : SqlServerTestBase
             null,
             CancellationToken.None);
         var messageId = await CreateOutboxMessageAsync();
-        
+
         await joinStore.AttachMessageToJoinAsync(
             join.JoinId,
             messageId,
@@ -235,7 +236,7 @@ public class OutboxJoinTests : SqlServerTestBase
             null,
             CancellationToken.None);
         var messageId = await CreateOutboxMessageAsync();
-        
+
         await joinStore.AttachMessageToJoinAsync(
             join.JoinId,
             messageId,
@@ -287,11 +288,11 @@ public class OutboxJoinTests : SqlServerTestBase
             3,
             null,
             CancellationToken.None);
-            
+
         var messageId1 = await CreateOutboxMessageAsync();
         var messageId2 = await CreateOutboxMessageAsync();
         var messageId3 = await CreateOutboxMessageAsync();
-        
+
         await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId1, CancellationToken.None);
         await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId2, CancellationToken.None);
         await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId3, CancellationToken.None);
@@ -317,13 +318,13 @@ public class OutboxJoinTests : SqlServerTestBase
             3,
             """{"workflow": "test"}""",
             CancellationToken.None);
-            
+
         var messageIds = new[] {
             await CreateOutboxMessageAsync(),
             await CreateOutboxMessageAsync(),
             await CreateOutboxMessageAsync()
         };
-        
+
         foreach (var messageId in messageIds)
         {
             await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId, CancellationToken.None);
@@ -340,7 +341,7 @@ public class OutboxJoinTests : SqlServerTestBase
         updatedJoin.ShouldNotBeNull();
         updatedJoin!.CompletedSteps.ShouldBe(3);
         updatedJoin.FailedSteps.ShouldBe(0);
-        
+
         // Mark as completed
         await joinStore.UpdateStatusAsync(join.JoinId, JoinStatus.Completed, CancellationToken.None);
 
@@ -361,13 +362,13 @@ public class OutboxJoinTests : SqlServerTestBase
             3,
             null,
             CancellationToken.None);
-            
+
         var messageIds = new[] {
             await CreateOutboxMessageAsync(),
             await CreateOutboxMessageAsync(),
             await CreateOutboxMessageAsync()
         };
-        
+
         foreach (var messageId in messageIds)
         {
             await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId, CancellationToken.None);
@@ -398,7 +399,7 @@ public class OutboxJoinTests : SqlServerTestBase
             2,
             null,
             CancellationToken.None);
-        
+
         var messageId = await CreateOutboxMessageAsync();
         await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId, CancellationToken.None);
 
@@ -422,7 +423,7 @@ public class OutboxJoinTests : SqlServerTestBase
             2,
             null,
             CancellationToken.None);
-        
+
         var messageId = await CreateOutboxMessageAsync();
         await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId, CancellationToken.None);
 
@@ -446,13 +447,13 @@ public class OutboxJoinTests : SqlServerTestBase
             2,
             null,
             CancellationToken.None);
-        
+
         var messageIds = new[] {
             await CreateOutboxMessageAsync(),
             await CreateOutboxMessageAsync(),
             await CreateOutboxMessageAsync()
         };
-        
+
         foreach (var messageId in messageIds)
         {
             await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId, CancellationToken.None);
@@ -483,11 +484,11 @@ public class OutboxJoinTests : SqlServerTestBase
         // Create two outbox messages and attach them to the join
         var messageId1 = await CreateOutboxMessageAsync();
         var messageId2 = await CreateOutboxMessageAsync();
-        
+
         await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId1, CancellationToken.None);
         await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId2, CancellationToken.None);
 
-        var ownerToken = Guid.NewGuid();
+        Bravellian.Platform.OwnerToken ownerToken = Bravellian.Platform.OwnerToken.GenerateNew();
 
         // Claim and acknowledge the first message
         await ClaimMessagesAsync(ownerToken);
@@ -523,11 +524,11 @@ public class OutboxJoinTests : SqlServerTestBase
         // Create two outbox messages and attach them to the join
         var messageId1 = await CreateOutboxMessageAsync();
         var messageId2 = await CreateOutboxMessageAsync();
-        
+
         await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId1, CancellationToken.None);
         await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId2, CancellationToken.None);
 
-        var ownerToken = Guid.NewGuid();
+        Bravellian.Platform.OwnerToken ownerToken = Bravellian.Platform.OwnerToken.GenerateNew();
 
         // Claim and acknowledge the first message (success)
         await ClaimMessagesAsync(ownerToken);
@@ -558,7 +559,7 @@ public class OutboxJoinTests : SqlServerTestBase
         var messageId = await CreateOutboxMessageAsync();
         await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId, CancellationToken.None);
 
-        var ownerToken = Guid.NewGuid();
+        Bravellian.Platform.OwnerToken ownerToken = Bravellian.Platform.OwnerToken.GenerateNew();
 
         // Claim and acknowledge the message
         await ClaimMessagesAsync(ownerToken);
@@ -584,23 +585,23 @@ public class OutboxJoinTests : SqlServerTestBase
     }
 
     // Helper methods for test cleanup
-    private async Task ClaimMessagesAsync(Guid ownerToken)
+    private async Task ClaimMessagesAsync(Bravellian.Platform.OwnerToken ownerToken)
     {
         await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(CancellationToken.None);
-        
+
         await connection.ExecuteAsync(
             "[dbo].[Outbox_Claim]",
             new { OwnerToken = ownerToken, LeaseSeconds = 30, BatchSize = 10 },
             commandType: System.Data.CommandType.StoredProcedure);
     }
 
-    private async Task AckMessageAsync(Guid ownerToken, Guid messageId)
+    private async Task AckMessageAsync(Bravellian.Platform.OwnerToken ownerToken, OutboxMessageIdentifier messageId)
     {
         await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(CancellationToken.None);
-        
-        var idsTable = CreateGuidIdTable(new[] { messageId });
+
+        var idsTable = CreateGuidIdTable(new[] { messageId.Value });
         using var command = new SqlCommand("[dbo].[Outbox_Ack]", connection)
         {
             CommandType = System.Data.CommandType.StoredProcedure,
@@ -612,12 +613,12 @@ public class OutboxJoinTests : SqlServerTestBase
         await command.ExecuteNonQueryAsync(CancellationToken.None);
     }
 
-    private async Task FailMessageAsync(Guid ownerToken, Guid messageId, string error)
+    private async Task FailMessageAsync(Bravellian.Platform.OwnerToken ownerToken, OutboxMessageIdentifier messageId, string error)
     {
         await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(CancellationToken.None);
-        
-        var idsTable = CreateGuidIdTable(new[] { messageId });
+
+        var idsTable = CreateGuidIdTable(new[] { messageId.Value });
         using var command = new SqlCommand("[dbo].[Outbox_Fail]", connection)
         {
             CommandType = System.Data.CommandType.StoredProcedure,

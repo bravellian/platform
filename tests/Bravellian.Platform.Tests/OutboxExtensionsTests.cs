@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System.Text.Json;
+using Bravellian.Platform.Outbox;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -27,11 +27,11 @@ public class OutboxExtensionsTests : SqlServerTestBase
 {
     private SqlOutboxJoinStore? joinStore;
     private SqlOutboxService? outbox;
-    private readonly SqlOutboxOptions defaultOptions = new() 
-    { 
-        ConnectionString = string.Empty, 
-        SchemaName = "dbo", 
-        TableName = "Outbox" 
+    private readonly SqlOutboxOptions defaultOptions = new()
+    {
+        ConnectionString = string.Empty,
+        SchemaName = "dbo",
+        TableName = "Outbox"
     };
 
     public OutboxExtensionsTests(ITestOutputHelper testOutputHelper, SqlServerCollectionFixture fixture)
@@ -43,17 +43,17 @@ public class OutboxExtensionsTests : SqlServerTestBase
     {
         await base.InitializeAsync().ConfigureAwait(false);
         defaultOptions.ConnectionString = ConnectionString;
-        
+
         // Ensure schemas exist
         await DatabaseSchemaManager.EnsureOutboxSchemaAsync(ConnectionString, "dbo", "Outbox");
         await DatabaseSchemaManager.EnsureOutboxJoinSchemaAsync(ConnectionString, "dbo");
-        
+
         joinStore = new SqlOutboxJoinStore(
-            Options.Create(defaultOptions), 
+            Options.Create(defaultOptions),
             NullLogger<SqlOutboxJoinStore>.Instance);
-            
+
         outbox = new SqlOutboxService(
-            Options.Create(defaultOptions), 
+            Options.Create(defaultOptions),
             NullLogger<SqlOutboxService>.Instance,
             joinStore);
     }
@@ -62,7 +62,7 @@ public class OutboxExtensionsTests : SqlServerTestBase
     public async Task EnqueueJoinWaitAsync_WithAllParameters_EnqueuesCorrectMessage()
     {
         // Arrange
-        var joinId = Guid.NewGuid();
+        var joinId = JoinIdentifier.GenerateNew();
         var onCompleteTopic = "etl.transform";
         var onCompletePayload = """{"transformId": "123"}""";
         var onFailTopic = "notify.failure";
@@ -81,12 +81,12 @@ public class OutboxExtensionsTests : SqlServerTestBase
         // Assert - verify message was enqueued with correct payload
         await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(CancellationToken.None);
-        
+
         var message = await connection.QuerySingleOrDefaultAsync<dynamic>(
             "SELECT TOP 1 Payload FROM dbo.Outbox WHERE Topic = 'join.wait' ORDER BY CreatedAt DESC");
 
         message.ShouldNotBeNull();
-        
+
         var payload = JsonSerializer.Deserialize<JoinWaitPayload>((string)message.Payload);
         payload.ShouldNotBeNull();
         payload!.JoinId.ShouldBe(joinId);
@@ -101,7 +101,7 @@ public class OutboxExtensionsTests : SqlServerTestBase
     public async Task EnqueueJoinWaitAsync_WithMinimalParameters_EnqueuesCorrectMessage()
     {
         // Arrange
-        var joinId = Guid.NewGuid();
+        var joinId = JoinIdentifier.GenerateNew();
 
         // Act
         await outbox!.EnqueueJoinWaitAsync(
@@ -111,12 +111,12 @@ public class OutboxExtensionsTests : SqlServerTestBase
         // Assert - verify message was enqueued with defaults
         await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(CancellationToken.None);
-        
+
         var message = await connection.QuerySingleOrDefaultAsync<dynamic>(
             "SELECT TOP 1 Payload FROM dbo.Outbox WHERE Topic = 'join.wait' ORDER BY CreatedAt DESC");
 
         message.ShouldNotBeNull();
-        
+
         var payload = JsonSerializer.Deserialize<JoinWaitPayload>((string)message.Payload);
         payload.ShouldNotBeNull();
         payload!.JoinId.ShouldBe(joinId);
@@ -131,7 +131,7 @@ public class OutboxExtensionsTests : SqlServerTestBase
     public async Task EnqueueJoinWaitAsync_WithFailIfAnyStepFailedFalse_EnqueuesCorrectMessage()
     {
         // Arrange
-        var joinId = Guid.NewGuid();
+        var joinId = JoinIdentifier.GenerateNew();
 
         // Act
         await outbox!.EnqueueJoinWaitAsync(
@@ -143,12 +143,12 @@ public class OutboxExtensionsTests : SqlServerTestBase
         // Assert
         await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(CancellationToken.None);
-        
+
         var message = await connection.QuerySingleOrDefaultAsync<dynamic>(
             "SELECT TOP 1 Payload FROM dbo.Outbox WHERE Topic = 'join.wait' ORDER BY CreatedAt DESC");
 
         message.ShouldNotBeNull();
-        
+
         var payload = JsonSerializer.Deserialize<JoinWaitPayload>((string)message.Payload);
         payload.ShouldNotBeNull();
         payload!.JoinId.ShouldBe(joinId);

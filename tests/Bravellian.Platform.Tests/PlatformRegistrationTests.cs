@@ -14,6 +14,7 @@
 
 
 using System.Data;
+using Bravellian.Platform.Outbox;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Bravellian.Platform.Tests;
@@ -275,28 +276,28 @@ public class PlatformRegistrationTests
         public Task<IReadOnlyList<OutboxMessage>> ClaimDueAsync(int limit, CancellationToken cancellationToken) =>
             throw new NotImplementedException();
 
-        public Task MarkDispatchedAsync(Guid id, CancellationToken cancellationToken) =>
+        public Task MarkDispatchedAsync(OutboxWorkItemIdentifier id, CancellationToken cancellationToken) =>
             throw new NotImplementedException();
 
-        public Task RescheduleAsync(Guid id, TimeSpan delay, string lastError, CancellationToken cancellationToken) =>
+        public Task RescheduleAsync(OutboxWorkItemIdentifier id, TimeSpan delay, string lastError, CancellationToken cancellationToken) =>
             throw new NotImplementedException();
 
-        public Task FailAsync(Guid id, string lastError, CancellationToken cancellationToken) =>
+        public Task FailAsync(OutboxWorkItemIdentifier id, string lastError, CancellationToken cancellationToken) =>
             throw new NotImplementedException();
     }
 
     private sealed class DummyInboxWorkStore : IInboxWorkStore
     {
-        public Task<IReadOnlyList<string>> ClaimAsync(Guid ownerToken, int leaseSeconds, int batchSize, CancellationToken cancellationToken) =>
+        public Task<IReadOnlyList<string>> ClaimAsync(Bravellian.Platform.OwnerToken ownerToken, int leaseSeconds, int batchSize, CancellationToken cancellationToken) =>
             throw new NotImplementedException();
 
-        public Task AckAsync(Guid ownerToken, IEnumerable<string> messageIds, CancellationToken cancellationToken) =>
+        public Task AckAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<string> messageIds, CancellationToken cancellationToken) =>
             throw new NotImplementedException();
 
-        public Task AbandonAsync(Guid ownerToken, IEnumerable<string> messageIds, string? lastError = null, TimeSpan? delay = null, CancellationToken cancellationToken = default) =>
+        public Task AbandonAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<string> messageIds, string? lastError = null, TimeSpan? delay = null, CancellationToken cancellationToken = default) =>
             throw new NotImplementedException();
 
-        public Task FailAsync(Guid ownerToken, IEnumerable<string> messageIds, string error, CancellationToken cancellationToken) =>
+        public Task FailAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<string> messageIds, string error, CancellationToken cancellationToken) =>
             throw new NotImplementedException();
 
         public Task ReapExpiredAsync(CancellationToken cancellationToken) =>
@@ -314,14 +315,14 @@ public class PlatformRegistrationTests
         public Task EnqueueAsync(string topic, string payload, IDbTransaction transaction, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task EnqueueAsync(string topic, string payload, IDbTransaction transaction, string? correlationId, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task EnqueueAsync(string topic, string payload, IDbTransaction transaction, string? correlationId, DateTimeOffset? dueTimeUtc, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task<IReadOnlyList<Guid>> ClaimAsync(Guid ownerToken, int leaseSeconds, int batchSize, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task AckAsync(Guid ownerToken, IEnumerable<Guid> ids, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task AbandonAsync(Guid ownerToken, IEnumerable<Guid> ids, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task FailAsync(Guid ownerToken, IEnumerable<Guid> ids, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<IReadOnlyList<OutboxWorkItemIdentifier>> ClaimAsync(Bravellian.Platform.OwnerToken ownerToken, int leaseSeconds, int batchSize, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task AckAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<OutboxWorkItemIdentifier> ids, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task AbandonAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<OutboxWorkItemIdentifier> ids, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task FailAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<OutboxWorkItemIdentifier> ids, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task ReapExpiredAsync(CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task<Guid> StartJoinAsync(long tenantId, int expectedSteps, string? metadata, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task AttachMessageToJoinAsync(Guid joinId, Guid outboxMessageId, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task ReportStepCompletedAsync(Guid joinId, Guid outboxMessageId, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task ReportStepFailedAsync(Guid joinId, Guid outboxMessageId, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<JoinIdentifier> StartJoinAsync(long tenantId, int expectedSteps, string? metadata, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task AttachMessageToJoinAsync(Bravellian.Platform.Outbox.JoinIdentifier joinId, OutboxMessageIdentifier outboxMessageId, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task ReportStepCompletedAsync(Bravellian.Platform.Outbox.JoinIdentifier joinId, OutboxMessageIdentifier outboxMessageId, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task ReportStepFailedAsync(Bravellian.Platform.Outbox.JoinIdentifier joinId, OutboxMessageIdentifier outboxMessageId, CancellationToken cancellationToken) => throw new NotImplementedException();
     }
 }

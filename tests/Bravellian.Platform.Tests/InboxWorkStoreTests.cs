@@ -42,7 +42,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
     {
         // Arrange
         var store = CreateInboxWorkStore();
-        var ownerToken = Guid.NewGuid();
+        Bravellian.Platform.OwnerToken ownerToken = Bravellian.Platform.OwnerToken.GenerateNew();
 
         // Act
         var claimedIds = await store.ClaimAsync(ownerToken, leaseSeconds: 30, batchSize: 10, CancellationToken.None);
@@ -57,7 +57,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
         // Arrange
         var inbox = CreateInboxService();
         var store = CreateInboxWorkStore();
-        var ownerToken = Guid.NewGuid();
+        Bravellian.Platform.OwnerToken ownerToken = Bravellian.Platform.OwnerToken.GenerateNew();
 
         // Enqueue a test message
         await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload", cancellationToken: TestContext.Current.CancellationToken);
@@ -87,8 +87,8 @@ public class InboxWorkStoreTests : SqlServerTestBase
         // Arrange
         var inbox = CreateInboxService();
         var store = CreateInboxWorkStore();
-        var owner1 = Guid.NewGuid();
-        var owner2 = Guid.NewGuid();
+        var owner1 = OwnerToken.GenerateNew();
+        var owner2 = OwnerToken.GenerateNew();
 
         // Enqueue a single message
         await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload", cancellationToken: TestContext.Current.CancellationToken);
@@ -114,7 +114,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
         // Arrange
         var inbox = CreateInboxService();
         var store = CreateInboxWorkStore();
-        var ownerToken = Guid.NewGuid();
+        Bravellian.Platform.OwnerToken ownerToken = Bravellian.Platform.OwnerToken.GenerateNew();
 
         // Enqueue and claim a message
         await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload", cancellationToken: TestContext.Current.CancellationToken);
@@ -143,7 +143,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
         // Arrange
         var inbox = CreateInboxService();
         var store = CreateInboxWorkStore();
-        var ownerToken = Guid.NewGuid();
+        Bravellian.Platform.OwnerToken ownerToken = Bravellian.Platform.OwnerToken.GenerateNew();
 
         // Enqueue and claim a message
         await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload", cancellationToken: TestContext.Current.CancellationToken);
@@ -171,7 +171,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
         // Arrange
         var inbox = CreateInboxService();
         var store = CreateInboxWorkStore();
-        var ownerToken = Guid.NewGuid();
+        Bravellian.Platform.OwnerToken ownerToken = Bravellian.Platform.OwnerToken.GenerateNew();
 
         // Enqueue and claim a message
         await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload", cancellationToken: TestContext.Current.CancellationToken);
@@ -199,8 +199,8 @@ public class InboxWorkStoreTests : SqlServerTestBase
         // Arrange
         var inbox = CreateInboxService();
         var store = CreateInboxWorkStore();
-        var rightOwner = Guid.NewGuid();
-        var wrongOwner = Guid.NewGuid();
+        var rightOwner = OwnerToken.GenerateNew();
+        var wrongOwner = OwnerToken.GenerateNew();
 
         // Enqueue and claim a message with rightOwner
         await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload", cancellationToken: TestContext.Current.CancellationToken);

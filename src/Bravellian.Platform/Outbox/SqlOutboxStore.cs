@@ -1,4 +1,4 @@
-﻿// Copyright (c) Bravellian
+// Copyright (c) Bravellian
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
 // limitations under the License.
 
 
+using Bravellian.Platform.Outbox;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
@@ -31,7 +32,7 @@ internal class SqlOutboxStore : IOutboxStore
     private readonly ILogger<SqlOutboxStore> logger;
     private readonly string serverName;
     private readonly string databaseName;
-    private readonly Guid ownerToken;
+    private readonly Bravellian.Platform.OwnerToken ownerToken;
     private readonly int leaseSeconds;
 
     public SqlOutboxStore(IOptions<SqlOutboxOptions> options, TimeProvider timeProvider, ILogger<SqlOutboxStore> logger)
@@ -42,7 +43,7 @@ internal class SqlOutboxStore : IOutboxStore
         tableName = opts.TableName;
         this.timeProvider = timeProvider;
         this.logger = logger;
-        ownerToken = Guid.NewGuid();
+        ownerToken = OwnerToken.GenerateNew();
         leaseSeconds = (int)opts.LeaseDuration.TotalSeconds;
 
         (serverName, databaseName) = ParseConnectionInfo(connectionString);
@@ -72,7 +73,7 @@ internal class SqlOutboxStore : IOutboxStore
                 commandType: System.Data.CommandType.StoredProcedure).ConfigureAwait(false);
 
             var idList = claimedIds.ToList();
-            
+
             if (idList.Count == 0)
             {
                 logger.LogDebug("No outbox messages claimed");
@@ -105,7 +106,7 @@ internal class SqlOutboxStore : IOutboxStore
         }
     }
 
-    public async Task MarkDispatchedAsync(Guid id, CancellationToken cancellationToken)
+    public async Task MarkDispatchedAsync(OutboxWorkItemIdentifier id, CancellationToken cancellationToken)
     {
         logger.LogDebug("Marking outbox message {MessageId} as dispatched", id);
 
@@ -115,7 +116,7 @@ internal class SqlOutboxStore : IOutboxStore
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             // Create a table-valued parameter with the single ID
-            var idsTable = CreateGuidIdTable(new[] { id });
+            var idsTable = CreateGuidIdTable(new[] { id.Value });
             using var command = new SqlCommand($"[{schemaName}].[{tableName}_Ack]", connection)
             {
                 CommandType = System.Data.CommandType.StoredProcedure,
@@ -143,7 +144,7 @@ internal class SqlOutboxStore : IOutboxStore
         }
     }
 
-    public async Task RescheduleAsync(Guid id, TimeSpan delay, string lastError, CancellationToken cancellationToken)
+    public async Task RescheduleAsync(OutboxWorkItemIdentifier id, TimeSpan delay, string lastError, CancellationToken cancellationToken)
     {
         var nextAttempt = timeProvider.GetUtcNow().Add(delay);
 
@@ -157,7 +158,7 @@ internal class SqlOutboxStore : IOutboxStore
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             // Use Abandon to release the lock and update retry count, error, and due time atomically
-            var idsTable = CreateGuidIdTable(new[] { id });
+            var idsTable = CreateGuidIdTable(new[] { id.Value });
             using var abandonCommand = new SqlCommand($"[{schemaName}].[{tableName}_Abandon]", connection)
             {
                 CommandType = System.Data.CommandType.StoredProcedure,
@@ -187,7 +188,7 @@ internal class SqlOutboxStore : IOutboxStore
         }
     }
 
-    public async Task FailAsync(Guid id, string lastError, CancellationToken cancellationToken)
+    public async Task FailAsync(OutboxWorkItemIdentifier id, string lastError, CancellationToken cancellationToken)
     {
         logger.LogWarning("Permanently failing outbox message {MessageId} due to error: {Error}", id, lastError);
 
@@ -197,7 +198,7 @@ internal class SqlOutboxStore : IOutboxStore
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             // Use Fail stored procedure to mark as permanently failed with error and machine info
-            var idsTable = CreateGuidIdTable(new[] { id });
+            var idsTable = CreateGuidIdTable(new[] { id.Value });
             using var command = new SqlCommand($"[{schemaName}].[{tableName}_Fail]", connection)
             {
                 CommandType = System.Data.CommandType.StoredProcedure,

@@ -56,7 +56,7 @@ internal sealed class SqlLease : ISystemLease
         string connectionString,
         string schemaName,
         string resourceName,
-        Guid ownerToken,
+        Bravellian.Platform.OwnerToken ownerToken,
         long fencingToken,
         TimeSpan leaseDuration,
         double renewPercent,
@@ -94,7 +94,7 @@ internal sealed class SqlLease : ISystemLease
     public string ResourceName { get; }
 
     /// <inheritdoc/>
-    public Guid OwnerToken { get; }
+    public Bravellian.Platform.OwnerToken OwnerToken { get; }
 
     /// <inheritdoc/>
     public long FencingToken { get; private set; }
@@ -126,11 +126,11 @@ internal sealed class SqlLease : ISystemLease
         bool useGate,
         int gateTimeoutMs,
         string? contextJson,
-        Guid? ownerToken,
+        OwnerToken? ownerToken,
         CancellationToken cancellationToken,
         ILogger logger)
     {
-        var token = ownerToken ?? Guid.NewGuid();
+        var token = ownerToken ?? OwnerToken.GenerateNew();
         var leaseSeconds = (int)Math.Ceiling(leaseDuration.TotalSeconds);
 
         using var connection = new SqlConnection(connectionString);

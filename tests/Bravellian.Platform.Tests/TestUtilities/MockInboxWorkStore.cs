@@ -32,19 +32,19 @@ public class MockInboxWorkStore : IInboxWorkStore
     }
 
     /// <inheritdoc/>
-    public Task<IReadOnlyList<string>> ClaimAsync(Guid ownerToken, int leaseSeconds, int batchSize, CancellationToken cancellationToken)
+    public Task<IReadOnlyList<string>> ClaimAsync(Bravellian.Platform.OwnerToken ownerToken, int leaseSeconds, int batchSize, CancellationToken cancellationToken)
         => Task.FromResult<IReadOnlyList<string>>(new List<string>());
 
     /// <inheritdoc/>
-    public Task AckAsync(Guid ownerToken, IEnumerable<string> messageIds, CancellationToken cancellationToken)
+    public Task AckAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<string> messageIds, CancellationToken cancellationToken)
         => Task.CompletedTask;
 
     /// <inheritdoc/>
-    public Task AbandonAsync(Guid ownerToken, IEnumerable<string> messageIds, string? lastError = null, TimeSpan? delay = null, CancellationToken cancellationToken = default)
+    public Task AbandonAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<string> messageIds, string? lastError = null, TimeSpan? delay = null, CancellationToken cancellationToken = default)
         => Task.CompletedTask;
 
     /// <inheritdoc/>
-    public Task FailAsync(Guid ownerToken, IEnumerable<string> messageIds, string error, CancellationToken cancellationToken)
+    public Task FailAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<string> messageIds, string error, CancellationToken cancellationToken)
         => Task.CompletedTask;
 
     /// <inheritdoc/>

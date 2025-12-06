@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Bravellian.Platform.Outbox;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
@@ -98,8 +99,8 @@ internal class SqlOutboxJoinStore : IOutboxJoinStore
     }
 
     public async Task AttachMessageToJoinAsync(
-        Guid joinId,
-        Guid outboxMessageId,
+        Bravellian.Platform.Outbox.JoinIdentifier joinId,
+        OutboxMessageIdentifier outboxMessageId,
         CancellationToken cancellationToken)
     {
         logger.LogDebug(
@@ -146,7 +147,7 @@ internal class SqlOutboxJoinStore : IOutboxJoinStore
         }
     }
 
-    public async Task<OutboxJoin?> GetJoinAsync(Guid joinId, CancellationToken cancellationToken)
+    public async Task<OutboxJoin?> GetJoinAsync(Bravellian.Platform.Outbox.JoinIdentifier joinId, CancellationToken cancellationToken)
     {
         logger.LogDebug("Getting join {JoinId}", joinId);
 
@@ -189,8 +190,8 @@ internal class SqlOutboxJoinStore : IOutboxJoinStore
     }
 
     public async Task<OutboxJoin> IncrementCompletedAsync(
-        Guid joinId,
-        Guid outboxMessageId,
+        Bravellian.Platform.Outbox.JoinIdentifier joinId,
+        OutboxMessageIdentifier outboxMessageId,
         CancellationToken cancellationToken)
     {
         logger.LogDebug(
@@ -282,8 +283,8 @@ internal class SqlOutboxJoinStore : IOutboxJoinStore
     }
 
     public async Task<OutboxJoin> IncrementFailedAsync(
-        Guid joinId,
-        Guid outboxMessageId,
+        Bravellian.Platform.Outbox.JoinIdentifier joinId,
+        OutboxMessageIdentifier outboxMessageId,
         CancellationToken cancellationToken)
     {
         logger.LogDebug(
@@ -373,7 +374,7 @@ internal class SqlOutboxJoinStore : IOutboxJoinStore
     }
 
     public async Task UpdateStatusAsync(
-        Guid joinId,
+        Bravellian.Platform.Outbox.JoinIdentifier joinId,
         byte status,
         CancellationToken cancellationToken)
     {
@@ -419,8 +420,8 @@ internal class SqlOutboxJoinStore : IOutboxJoinStore
         }
     }
 
-    public async Task<IReadOnlyList<Guid>> GetJoinMessagesAsync(
-        Guid joinId,
+    public async Task<IReadOnlyList<OutboxMessageIdentifier>> GetJoinMessagesAsync(
+        Bravellian.Platform.Outbox.JoinIdentifier joinId,
         CancellationToken cancellationToken)
     {
         logger.LogDebug("Getting messages for join {JoinId}", joinId);
@@ -440,7 +441,7 @@ internal class SqlOutboxJoinStore : IOutboxJoinStore
                 sql,
                 new { JoinId = joinId }).ConfigureAwait(false);
 
-            var result = messageIds.ToList();
+            var result = messageIds.Select(id => OutboxMessageIdentifier.From(id)).ToList();
 
             logger.LogDebug(
                 "Found {Count} messages for join {JoinId}",

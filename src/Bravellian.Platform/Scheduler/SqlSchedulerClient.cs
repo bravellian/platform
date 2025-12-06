@@ -1,4 +1,4 @@
-﻿// Copyright (c) Bravellian
+// Copyright (c) Bravellian
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -148,7 +148,7 @@ internal class SqlSchedulerClient : ISchedulerClient
     }
 
     public async Task<IReadOnlyList<Guid>> ClaimTimersAsync(
-        Guid ownerToken,
+        Bravellian.Platform.OwnerToken ownerToken,
         int leaseSeconds,
         int batchSize,
         CancellationToken cancellationToken)
@@ -183,7 +183,7 @@ internal class SqlSchedulerClient : ISchedulerClient
     }
 
     public async Task<IReadOnlyList<Guid>> ClaimJobRunsAsync(
-        Guid ownerToken,
+        Bravellian.Platform.OwnerToken ownerToken,
         int leaseSeconds,
         int batchSize,
         CancellationToken cancellationToken)
@@ -218,7 +218,7 @@ internal class SqlSchedulerClient : ISchedulerClient
     }
 
     public async Task AckTimersAsync(
-        Guid ownerToken,
+        Bravellian.Platform.OwnerToken ownerToken,
         IEnumerable<Guid> ids,
         CancellationToken cancellationToken)
     {
@@ -226,7 +226,7 @@ internal class SqlSchedulerClient : ISchedulerClient
     }
 
     public async Task AckJobRunsAsync(
-        Guid ownerToken,
+        Bravellian.Platform.OwnerToken ownerToken,
         IEnumerable<Guid> ids,
         CancellationToken cancellationToken)
     {
@@ -234,7 +234,7 @@ internal class SqlSchedulerClient : ISchedulerClient
     }
 
     public async Task AbandonTimersAsync(
-        Guid ownerToken,
+        Bravellian.Platform.OwnerToken ownerToken,
         IEnumerable<Guid> ids,
         CancellationToken cancellationToken)
     {
@@ -242,7 +242,7 @@ internal class SqlSchedulerClient : ISchedulerClient
     }
 
     public async Task AbandonJobRunsAsync(
-        Guid ownerToken,
+        Bravellian.Platform.OwnerToken ownerToken,
         IEnumerable<Guid> ids,
         CancellationToken cancellationToken)
     {
@@ -289,7 +289,7 @@ internal class SqlSchedulerClient : ISchedulerClient
 
     private async Task ExecuteWithIdsAsync(
         string procedure,
-        Guid ownerToken,
+        Bravellian.Platform.OwnerToken ownerToken,
         IEnumerable<Guid> ids,
         CancellationToken cancellationToken)
     {

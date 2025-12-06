@@ -13,6 +13,7 @@
 // limitations under the License.
 
 
+using Bravellian.Platform.Outbox;
 using Bravellian.Platform.Tests.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -102,7 +103,7 @@ public class OutboxHandlerTests : SqlServerTestBase
 
         var message = new OutboxMessage
         {
-            Id = Guid.NewGuid(),
+            Id = OutboxWorkItemIdentifier.GenerateNew(),
             Topic = "Test.Topic",
             Payload = "test payload",
             RetryCount = 0,
@@ -132,7 +133,7 @@ public class OutboxHandlerTests : SqlServerTestBase
 
         var message = new OutboxMessage
         {
-            Id = Guid.NewGuid(),
+            Id = OutboxWorkItemIdentifier.GenerateNew(),
             Topic = "Unknown.Topic",
             Payload = "test payload",
             RetryCount = 0,
@@ -163,7 +164,7 @@ public class OutboxHandlerTests : SqlServerTestBase
 
         var message = new OutboxMessage
         {
-            Id = Guid.NewGuid(),
+            Id = OutboxWorkItemIdentifier.GenerateNew(),
             Topic = "Test.Topic",
             Payload = "test payload",
             RetryCount = 2,
@@ -197,7 +198,7 @@ public class OutboxHandlerTests : SqlServerTestBase
 
         var message = new OutboxMessage
         {
-            Id = Guid.NewGuid(),
+            Id = OutboxWorkItemIdentifier.GenerateNew(),
             Topic = "Test.Topic",
             Payload = "test payload",
             RetryCount = 0,
@@ -231,7 +232,7 @@ public class OutboxHandlerTests : SqlServerTestBase
 
         var message = new OutboxMessage
         {
-            Id = Guid.NewGuid(),
+            Id = OutboxWorkItemIdentifier.GenerateNew(),
             Topic = "Test.Topic",
             Payload = "test payload",
             RetryCount = 0,
@@ -264,7 +265,7 @@ public class OutboxHandlerTests : SqlServerTestBase
 
         var successMessage = new OutboxMessage
         {
-            Id = Guid.NewGuid(),
+            Id = OutboxWorkItemIdentifier.GenerateNew(),
             Topic = "Test.Topic",
             Payload = "success payload",
             RetryCount = 0,
@@ -272,7 +273,7 @@ public class OutboxHandlerTests : SqlServerTestBase
 
         var failMessage = new OutboxMessage
         {
-            Id = Guid.NewGuid(),
+            Id = OutboxWorkItemIdentifier.GenerateNew(),
             Topic = "Unknown.Topic",
             Payload = "fail payload",
             RetryCount = 0,
@@ -427,11 +428,11 @@ public class OutboxHandlerTests : SqlServerTestBase
     {
         private readonly List<OutboxMessage> messages = new List<OutboxMessage>();
 
-        public List<Guid> DispatchedMessages { get; } = new List<Guid>();
+        public List<OutboxWorkItemIdentifier> DispatchedMessages { get; } = new List<OutboxWorkItemIdentifier>();
 
-        public List<KeyValuePair<Guid, string>> FailedMessages { get; } = new List<KeyValuePair<Guid, string>>();
+        public List<KeyValuePair<OutboxWorkItemIdentifier, string>> FailedMessages { get; } = new List<KeyValuePair<OutboxWorkItemIdentifier, string>>();
 
-        public List<KeyValuePair<Guid, (TimeSpan Delay, string Error)>> RescheduledMessages { get; } = new List<KeyValuePair<Guid, (TimeSpan Delay, string Error)>>();
+        public List<KeyValuePair<OutboxWorkItemIdentifier, (TimeSpan Delay, string Error)>> RescheduledMessages { get; } = new List<KeyValuePair<OutboxWorkItemIdentifier, (TimeSpan Delay, string Error)>>();
 
         public void AddMessage(OutboxMessage message)
         {
@@ -444,21 +445,21 @@ public class OutboxHandlerTests : SqlServerTestBase
             return Task.FromResult<IReadOnlyList<OutboxMessage>>(claimed);
         }
 
-        public Task MarkDispatchedAsync(Guid id, CancellationToken cancellationToken)
+        public Task MarkDispatchedAsync(OutboxWorkItemIdentifier id, CancellationToken cancellationToken)
         {
             DispatchedMessages.Add(id);
             return Task.CompletedTask;
         }
 
-        public Task FailAsync(Guid id, string lastError, CancellationToken cancellationToken)
+        public Task FailAsync(OutboxWorkItemIdentifier id, string lastError, CancellationToken cancellationToken)
         {
-            FailedMessages.Add(new KeyValuePair<Guid, string>(id, lastError));
+            FailedMessages.Add(new KeyValuePair<OutboxWorkItemIdentifier, string>(id, lastError));
             return Task.CompletedTask;
         }
 
-        public Task RescheduleAsync(Guid id, TimeSpan delay, string lastError, CancellationToken cancellationToken)
+        public Task RescheduleAsync(OutboxWorkItemIdentifier id, TimeSpan delay, string lastError, CancellationToken cancellationToken)
         {
-            RescheduledMessages.Add(new KeyValuePair<Guid, (TimeSpan, string)>(id, (delay, lastError)));
+            RescheduledMessages.Add(new KeyValuePair<OutboxWorkItemIdentifier, (TimeSpan, string)>(id, (delay, lastError)));
             return Task.CompletedTask;
         }
     }
