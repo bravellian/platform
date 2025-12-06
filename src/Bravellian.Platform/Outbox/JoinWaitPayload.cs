@@ -22,7 +22,7 @@ public sealed record JoinWaitPayload
     /// <summary>
     /// Gets or sets the join identifier to wait for.
     /// </summary>
-    public Guid JoinId { get; set; }
+    public JoinId JoinId { get; set; }
 
     /// <summary>
     /// Gets or sets whether the join should fail if any step failed.

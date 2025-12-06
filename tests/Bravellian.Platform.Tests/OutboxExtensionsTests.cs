@@ -62,7 +62,7 @@ public class OutboxExtensionsTests : SqlServerTestBase
     public async Task EnqueueJoinWaitAsync_WithAllParameters_EnqueuesCorrectMessage()
     {
         // Arrange
-        var joinId = Guid.NewGuid();
+        var joinId = JoinId.NewJoinId();
         var onCompleteTopic = "etl.transform";
         var onCompletePayload = """{"transformId": "123"}""";
         var onFailTopic = "notify.failure";
@@ -89,7 +89,7 @@ public class OutboxExtensionsTests : SqlServerTestBase
         
         var payload = JsonSerializer.Deserialize<JoinWaitPayload>((string)message.Payload);
         payload.ShouldNotBeNull();
-        payload!.JoinId.ShouldBe(joinId);
+        payload!.JoinId.Value.ShouldBe(joinId.Value);
         payload.FailIfAnyStepFailed.ShouldBeTrue();
         payload.OnCompleteTopic.ShouldBe(onCompleteTopic);
         payload.OnCompletePayload.ShouldBe(onCompletePayload);
@@ -101,7 +101,7 @@ public class OutboxExtensionsTests : SqlServerTestBase
     public async Task EnqueueJoinWaitAsync_WithMinimalParameters_EnqueuesCorrectMessage()
     {
         // Arrange
-        var joinId = Guid.NewGuid();
+        var joinId = JoinId.NewJoinId();
 
         // Act
         await outbox!.EnqueueJoinWaitAsync(
@@ -119,7 +119,7 @@ public class OutboxExtensionsTests : SqlServerTestBase
         
         var payload = JsonSerializer.Deserialize<JoinWaitPayload>((string)message.Payload);
         payload.ShouldNotBeNull();
-        payload!.JoinId.ShouldBe(joinId);
+        payload!.JoinId.Value.ShouldBe(joinId.Value);
         payload.FailIfAnyStepFailed.ShouldBeTrue(); // Default value
         payload.OnCompleteTopic.ShouldBeNull();
         payload.OnCompletePayload.ShouldBeNull();
@@ -131,7 +131,7 @@ public class OutboxExtensionsTests : SqlServerTestBase
     public async Task EnqueueJoinWaitAsync_WithFailIfAnyStepFailedFalse_EnqueuesCorrectMessage()
     {
         // Arrange
-        var joinId = Guid.NewGuid();
+        var joinId = JoinId.NewJoinId();
 
         // Act
         await outbox!.EnqueueJoinWaitAsync(
@@ -151,7 +151,7 @@ public class OutboxExtensionsTests : SqlServerTestBase
         
         var payload = JsonSerializer.Deserialize<JoinWaitPayload>((string)message.Payload);
         payload.ShouldNotBeNull();
-        payload!.JoinId.ShouldBe(joinId);
+        payload!.JoinId.Value.ShouldBe(joinId.Value);
         payload.FailIfAnyStepFailed.ShouldBeFalse();
         payload.OnCompleteTopic.ShouldBe("complete");
     }

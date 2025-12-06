@@ -311,17 +311,17 @@ public class PlatformRegistrationTests
         public Task EnqueueAsync(string topic, string payload, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task EnqueueAsync(string topic, string payload, string? correlationId, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task EnqueueAsync(string topic, string payload, string? correlationId, DateTimeOffset? dueTimeUtc, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task EnqueueAsync(string topic, string payload, string? correlationId, DateTimeOffset? dueTimeUtc, JoinId? joinId, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task EnqueueAsync(string topic, string payload, IDbTransaction transaction, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task EnqueueAsync(string topic, string payload, IDbTransaction transaction, string? correlationId, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task EnqueueAsync(string topic, string payload, IDbTransaction transaction, string? correlationId, DateTimeOffset? dueTimeUtc, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task<IReadOnlyList<Guid>> ClaimAsync(Guid ownerToken, int leaseSeconds, int batchSize, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task AckAsync(Guid ownerToken, IEnumerable<Guid> ids, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task AbandonAsync(Guid ownerToken, IEnumerable<Guid> ids, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task FailAsync(Guid ownerToken, IEnumerable<Guid> ids, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task EnqueueAsync(string topic, string payload, IDbTransaction transaction, string? correlationId, DateTimeOffset? dueTimeUtc, JoinId? joinId, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<IReadOnlyList<Guid>> ClaimAsync(OwnerToken ownerToken, int leaseSeconds, int batchSize, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task AckAsync(OwnerToken ownerToken, IEnumerable<Guid> ids, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task AbandonAsync(OwnerToken ownerToken, IEnumerable<Guid> ids, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task FailAsync(OwnerToken ownerToken, IEnumerable<Guid> ids, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task ReapExpiredAsync(CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task<Guid> StartJoinAsync(long tenantId, int expectedSteps, string? metadata, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task AttachMessageToJoinAsync(Guid joinId, Guid outboxMessageId, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task ReportStepCompletedAsync(Guid joinId, Guid outboxMessageId, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task ReportStepFailedAsync(Guid joinId, Guid outboxMessageId, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<JoinId> StartJoinAsync(long tenantId, int expectedSteps, string? metadata, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task AttachMessageToJoinAsync(JoinId joinId, Guid outboxMessageId, CancellationToken cancellationToken) => throw new NotImplementedException();
     }
 }

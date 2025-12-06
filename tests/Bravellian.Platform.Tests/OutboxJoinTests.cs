@@ -88,7 +88,7 @@ public class OutboxJoinTests : SqlServerTestBase
 
         // Assert
         join.ShouldNotBeNull();
-        join.JoinId.ShouldNotBe(Guid.Empty);
+        join.JoinId.Value.ShouldNotBe(Guid.Empty);
         join.PayeWaiveTenantId.ShouldBe(tenantId);
         join.ExpectedSteps.ShouldBe(expectedSteps);
         join.CompletedSteps.ShouldBe(0);

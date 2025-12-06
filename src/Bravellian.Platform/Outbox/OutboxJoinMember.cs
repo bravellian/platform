@@ -25,7 +25,7 @@ public sealed record OutboxJoinMember
     /// <summary>
     /// Gets the join identifier.
     /// </summary>
-    public Guid JoinId { get; internal init; }
+    public JoinId JoinId { get; internal init; }
 
     /// <summary>
     /// Gets the outbox message identifier.

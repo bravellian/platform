@@ -42,7 +42,7 @@ public interface IOutboxJoinStore
     /// <param name="outboxMessageId">The outbox message identifier.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     Task AttachMessageToJoinAsync(
-        Guid joinId,
+        JoinId joinId,
         Guid outboxMessageId,
         CancellationToken cancellationToken);
 
@@ -52,7 +52,7 @@ public interface IOutboxJoinStore
     /// <param name="joinId">The join identifier.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The join, or null if not found.</returns>
-    Task<OutboxJoin?> GetJoinAsync(Guid joinId, CancellationToken cancellationToken);
+    Task<OutboxJoin?> GetJoinAsync(JoinId joinId, CancellationToken cancellationToken);
 
     /// <summary>
     /// Increments the completed steps counter for a join.
@@ -63,7 +63,7 @@ public interface IOutboxJoinStore
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The updated join.</returns>
     Task<OutboxJoin> IncrementCompletedAsync(
-        Guid joinId,
+        JoinId joinId,
         Guid outboxMessageId,
         CancellationToken cancellationToken);
 
@@ -76,7 +76,7 @@ public interface IOutboxJoinStore
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The updated join.</returns>
     Task<OutboxJoin> IncrementFailedAsync(
-        Guid joinId,
+        JoinId joinId,
         Guid outboxMessageId,
         CancellationToken cancellationToken);
 
@@ -87,7 +87,7 @@ public interface IOutboxJoinStore
     /// <param name="status">The new status.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     Task UpdateStatusAsync(
-        Guid joinId,
+        JoinId joinId,
         byte status,
         CancellationToken cancellationToken);
 
@@ -98,6 +98,6 @@ public interface IOutboxJoinStore
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>List of outbox message IDs.</returns>
     Task<IReadOnlyList<Guid>> GetJoinMessagesAsync(
-        Guid joinId,
+        JoinId joinId,
         CancellationToken cancellationToken);
 }
