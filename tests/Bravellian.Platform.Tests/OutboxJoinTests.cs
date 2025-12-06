@@ -469,4 +469,178 @@ public class OutboxJoinTests : SqlServerTestBase
         updatedJoin!.CompletedSteps.ShouldBe(2);
         updatedJoin.FailedSteps.ShouldBe(0);
     }
+
+    [Fact]
+    public async Task OutboxAck_AutomaticallyReportsJoinCompletion()
+    {
+        // Arrange - Create a join with 2 expected steps
+        var join = await joinStore!.CreateJoinAsync(
+            12345,
+            2,
+            null,
+            CancellationToken.None);
+
+        // Create two outbox messages and attach them to the join
+        var messageId1 = await CreateOutboxMessageAsync();
+        var messageId2 = await CreateOutboxMessageAsync();
+        
+        await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId1, CancellationToken.None);
+        await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId2, CancellationToken.None);
+
+        var ownerToken = Guid.NewGuid();
+
+        // Claim and acknowledge the first message
+        await ClaimMessagesAsync(ownerToken);
+        await AckMessageAsync(ownerToken, messageId1);
+
+        // Assert - Join should have 1 completed step
+        var joinAfterFirst = await joinStore.GetJoinAsync(join.JoinId, CancellationToken.None);
+        joinAfterFirst.ShouldNotBeNull();
+        joinAfterFirst!.CompletedSteps.ShouldBe(1);
+        joinAfterFirst.FailedSteps.ShouldBe(0);
+
+        // Claim and acknowledge the second message
+        await ClaimMessagesAsync(ownerToken);
+        await AckMessageAsync(ownerToken, messageId2);
+
+        // Assert - Join should have 2 completed steps
+        var joinAfterSecond = await joinStore.GetJoinAsync(join.JoinId, CancellationToken.None);
+        joinAfterSecond.ShouldNotBeNull();
+        joinAfterSecond!.CompletedSteps.ShouldBe(2);
+        joinAfterSecond.FailedSteps.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task OutboxFail_AutomaticallyReportsJoinFailure()
+    {
+        // Arrange - Create a join with 2 expected steps
+        var join = await joinStore!.CreateJoinAsync(
+            12345,
+            2,
+            null,
+            CancellationToken.None);
+
+        // Create two outbox messages and attach them to the join
+        var messageId1 = await CreateOutboxMessageAsync();
+        var messageId2 = await CreateOutboxMessageAsync();
+        
+        await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId1, CancellationToken.None);
+        await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId2, CancellationToken.None);
+
+        var ownerToken = Guid.NewGuid();
+
+        // Claim and acknowledge the first message (success)
+        await ClaimMessagesAsync(ownerToken);
+        await AckMessageAsync(ownerToken, messageId1);
+
+        // Claim and fail the second message
+        await ClaimMessagesAsync(ownerToken);
+        await FailMessageAsync(ownerToken, messageId2, "Test error");
+
+        // Assert - Join should have 1 completed step and 1 failed step
+        var finalJoin = await joinStore.GetJoinAsync(join.JoinId, CancellationToken.None);
+        finalJoin.ShouldNotBeNull();
+        finalJoin!.CompletedSteps.ShouldBe(1);
+        finalJoin.FailedSteps.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task OutboxAck_MultipleAcksForSameMessage_IsIdempotent()
+    {
+        // Arrange - Create a join with 1 expected step
+        var join = await joinStore!.CreateJoinAsync(
+            12345,
+            1,
+            null,
+            CancellationToken.None);
+
+        // Create a message and attach it to the join
+        var messageId = await CreateOutboxMessageAsync();
+        await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId, CancellationToken.None);
+
+        var ownerToken = Guid.NewGuid();
+
+        // Claim and acknowledge the message
+        await ClaimMessagesAsync(ownerToken);
+        await AckMessageAsync(ownerToken, messageId);
+
+        // Assert - Join should have 1 completed step
+        var joinAfterFirst = await joinStore.GetJoinAsync(join.JoinId, CancellationToken.None);
+        joinAfterFirst.ShouldNotBeNull();
+        joinAfterFirst!.CompletedSteps.ShouldBe(1);
+        joinAfterFirst.FailedSteps.ShouldBe(0);
+
+        // Act - Try to acknowledge the same message again (simulating retry or race condition)
+        // Note: The Ack procedure requires OwnerToken and Status = 1, so this won't actually
+        // update the outbox message (already processed), but we're testing that the join
+        // counter doesn't get incremented again
+        await AckMessageAsync(ownerToken, messageId);
+
+        // Assert - Join should still have only 1 completed step (idempotent)
+        var joinAfterSecond = await joinStore.GetJoinAsync(join.JoinId, CancellationToken.None);
+        joinAfterSecond.ShouldNotBeNull();
+        joinAfterSecond!.CompletedSteps.ShouldBe(1);
+        joinAfterSecond.FailedSteps.ShouldBe(0);
+    }
+
+    // Helper methods for test cleanup
+    private async Task ClaimMessagesAsync(Guid ownerToken)
+    {
+        await using var connection = new SqlConnection(ConnectionString);
+        await connection.OpenAsync(CancellationToken.None);
+        
+        await connection.ExecuteAsync(
+            "[dbo].[Outbox_Claim]",
+            new { OwnerToken = ownerToken, LeaseSeconds = 30, BatchSize = 10 },
+            commandType: System.Data.CommandType.StoredProcedure);
+    }
+
+    private async Task AckMessageAsync(Guid ownerToken, Guid messageId)
+    {
+        await using var connection = new SqlConnection(ConnectionString);
+        await connection.OpenAsync(CancellationToken.None);
+        
+        var idsTable = CreateGuidIdTable(new[] { messageId });
+        using var command = new SqlCommand("[dbo].[Outbox_Ack]", connection)
+        {
+            CommandType = System.Data.CommandType.StoredProcedure,
+        };
+        command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+        var parameter = command.Parameters.AddWithValue("@Ids", idsTable);
+        parameter.SqlDbType = System.Data.SqlDbType.Structured;
+        parameter.TypeName = "[dbo].[GuidIdList]";
+        await command.ExecuteNonQueryAsync(CancellationToken.None);
+    }
+
+    private async Task FailMessageAsync(Guid ownerToken, Guid messageId, string error)
+    {
+        await using var connection = new SqlConnection(ConnectionString);
+        await connection.OpenAsync(CancellationToken.None);
+        
+        var idsTable = CreateGuidIdTable(new[] { messageId });
+        using var command = new SqlCommand("[dbo].[Outbox_Fail]", connection)
+        {
+            CommandType = System.Data.CommandType.StoredProcedure,
+        };
+        command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+        command.Parameters.AddWithValue("@LastError", error);
+        command.Parameters.AddWithValue("@ProcessedBy", "TestMachine");
+        var parameter = command.Parameters.AddWithValue("@Ids", idsTable);
+        parameter.SqlDbType = System.Data.SqlDbType.Structured;
+        parameter.TypeName = "[dbo].[GuidIdList]";
+        await command.ExecuteNonQueryAsync(CancellationToken.None);
+    }
+
+    private static System.Data.DataTable CreateGuidIdTable(IEnumerable<Guid> ids)
+    {
+        var table = new System.Data.DataTable();
+        table.Columns.Add("Id", typeof(Guid));
+
+        foreach (var id in ids)
+        {
+            table.Rows.Add(id);
+        }
+
+        return table;
+    }
 }
