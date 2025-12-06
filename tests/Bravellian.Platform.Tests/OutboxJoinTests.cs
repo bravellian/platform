@@ -487,30 +487,11 @@ public class OutboxJoinTests : SqlServerTestBase
         await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId1, CancellationToken.None);
         await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId2, CancellationToken.None);
 
-        // Claim the messages using the outbox store
-        await using var connection = new SqlConnection(ConnectionString);
-        await connection.OpenAsync(CancellationToken.None);
-
         var ownerToken = Guid.NewGuid();
-        var leaseSeconds = 30;
 
-        // Claim the first message
-        await connection.ExecuteAsync(
-            "[dbo].[Outbox_Claim]",
-            new { OwnerToken = ownerToken, LeaseSeconds = leaseSeconds, BatchSize = 10 },
-            commandType: System.Data.CommandType.StoredProcedure);
-
-        // Act - Acknowledge the first message (should automatically update the join)
-        var idsTable1 = CreateGuidIdTable(new[] { messageId1 });
-        using var ackCommand1 = new SqlCommand("[dbo].[Outbox_Ack]", connection)
-        {
-            CommandType = System.Data.CommandType.StoredProcedure,
-        };
-        ackCommand1.Parameters.AddWithValue("@OwnerToken", ownerToken);
-        var parameter1 = ackCommand1.Parameters.AddWithValue("@Ids", idsTable1);
-        parameter1.SqlDbType = System.Data.SqlDbType.Structured;
-        parameter1.TypeName = "[dbo].[GuidIdList]";
-        await ackCommand1.ExecuteNonQueryAsync(CancellationToken.None);
+        // Claim and acknowledge the first message
+        await ClaimMessagesAsync(ownerToken);
+        await AckMessageAsync(ownerToken, messageId1);
 
         // Assert - Join should have 1 completed step
         var joinAfterFirst = await joinStore.GetJoinAsync(join.JoinId, CancellationToken.None);
@@ -518,23 +499,9 @@ public class OutboxJoinTests : SqlServerTestBase
         joinAfterFirst!.CompletedSteps.ShouldBe(1);
         joinAfterFirst.FailedSteps.ShouldBe(0);
 
-        // Claim the second message
-        await connection.ExecuteAsync(
-            "[dbo].[Outbox_Claim]",
-            new { OwnerToken = ownerToken, LeaseSeconds = leaseSeconds, BatchSize = 10 },
-            commandType: System.Data.CommandType.StoredProcedure);
-
-        // Acknowledge the second message
-        var idsTable2 = CreateGuidIdTable(new[] { messageId2 });
-        using var ackCommand2 = new SqlCommand("[dbo].[Outbox_Ack]", connection)
-        {
-            CommandType = System.Data.CommandType.StoredProcedure,
-        };
-        ackCommand2.Parameters.AddWithValue("@OwnerToken", ownerToken);
-        var parameter2 = ackCommand2.Parameters.AddWithValue("@Ids", idsTable2);
-        parameter2.SqlDbType = System.Data.SqlDbType.Structured;
-        parameter2.TypeName = "[dbo].[GuidIdList]";
-        await ackCommand2.ExecuteNonQueryAsync(CancellationToken.None);
+        // Claim and acknowledge the second message
+        await ClaimMessagesAsync(ownerToken);
+        await AckMessageAsync(ownerToken, messageId2);
 
         // Assert - Join should have 2 completed steps
         var joinAfterSecond = await joinStore.GetJoinAsync(join.JoinId, CancellationToken.None);
@@ -560,56 +527,69 @@ public class OutboxJoinTests : SqlServerTestBase
         await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId1, CancellationToken.None);
         await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId2, CancellationToken.None);
 
-        // Claim the messages using the outbox store
-        await using var connection = new SqlConnection(ConnectionString);
-        await connection.OpenAsync(CancellationToken.None);
-
         var ownerToken = Guid.NewGuid();
-        var leaseSeconds = 30;
 
-        // Claim the first message
-        await connection.ExecuteAsync(
-            "[dbo].[Outbox_Claim]",
-            new { OwnerToken = ownerToken, LeaseSeconds = leaseSeconds, BatchSize = 10 },
-            commandType: System.Data.CommandType.StoredProcedure);
+        // Claim and acknowledge the first message (success)
+        await ClaimMessagesAsync(ownerToken);
+        await AckMessageAsync(ownerToken, messageId1);
 
-        // Act - Acknowledge the first message (success)
-        var idsTable1 = CreateGuidIdTable(new[] { messageId1 });
-        using var ackCommand = new SqlCommand("[dbo].[Outbox_Ack]", connection)
-        {
-            CommandType = System.Data.CommandType.StoredProcedure,
-        };
-        ackCommand.Parameters.AddWithValue("@OwnerToken", ownerToken);
-        var ackParameter = ackCommand.Parameters.AddWithValue("@Ids", idsTable1);
-        ackParameter.SqlDbType = System.Data.SqlDbType.Structured;
-        ackParameter.TypeName = "[dbo].[GuidIdList]";
-        await ackCommand.ExecuteNonQueryAsync(CancellationToken.None);
-
-        // Claim the second message
-        await connection.ExecuteAsync(
-            "[dbo].[Outbox_Claim]",
-            new { OwnerToken = ownerToken, LeaseSeconds = leaseSeconds, BatchSize = 10 },
-            commandType: System.Data.CommandType.StoredProcedure);
-
-        // Fail the second message
-        var idsTable2 = CreateGuidIdTable(new[] { messageId2 });
-        using var failCommand = new SqlCommand("[dbo].[Outbox_Fail]", connection)
-        {
-            CommandType = System.Data.CommandType.StoredProcedure,
-        };
-        failCommand.Parameters.AddWithValue("@OwnerToken", ownerToken);
-        failCommand.Parameters.AddWithValue("@LastError", "Test error");
-        failCommand.Parameters.AddWithValue("@ProcessedBy", "TestMachine");
-        var failParameter = failCommand.Parameters.AddWithValue("@Ids", idsTable2);
-        failParameter.SqlDbType = System.Data.SqlDbType.Structured;
-        failParameter.TypeName = "[dbo].[GuidIdList]";
-        await failCommand.ExecuteNonQueryAsync(CancellationToken.None);
+        // Claim and fail the second message
+        await ClaimMessagesAsync(ownerToken);
+        await FailMessageAsync(ownerToken, messageId2, "Test error");
 
         // Assert - Join should have 1 completed step and 1 failed step
         var finalJoin = await joinStore.GetJoinAsync(join.JoinId, CancellationToken.None);
         finalJoin.ShouldNotBeNull();
         finalJoin!.CompletedSteps.ShouldBe(1);
         finalJoin.FailedSteps.ShouldBe(1);
+    }
+
+    // Helper methods for test cleanup
+    private async Task ClaimMessagesAsync(Guid ownerToken)
+    {
+        await using var connection = new SqlConnection(ConnectionString);
+        await connection.OpenAsync(CancellationToken.None);
+        
+        await connection.ExecuteAsync(
+            "[dbo].[Outbox_Claim]",
+            new { OwnerToken = ownerToken, LeaseSeconds = 30, BatchSize = 10 },
+            commandType: System.Data.CommandType.StoredProcedure);
+    }
+
+    private async Task AckMessageAsync(Guid ownerToken, Guid messageId)
+    {
+        await using var connection = new SqlConnection(ConnectionString);
+        await connection.OpenAsync(CancellationToken.None);
+        
+        var idsTable = CreateGuidIdTable(new[] { messageId });
+        using var command = new SqlCommand("[dbo].[Outbox_Ack]", connection)
+        {
+            CommandType = System.Data.CommandType.StoredProcedure,
+        };
+        command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+        var parameter = command.Parameters.AddWithValue("@Ids", idsTable);
+        parameter.SqlDbType = System.Data.SqlDbType.Structured;
+        parameter.TypeName = "[dbo].[GuidIdList]";
+        await command.ExecuteNonQueryAsync(CancellationToken.None);
+    }
+
+    private async Task FailMessageAsync(Guid ownerToken, Guid messageId, string error)
+    {
+        await using var connection = new SqlConnection(ConnectionString);
+        await connection.OpenAsync(CancellationToken.None);
+        
+        var idsTable = CreateGuidIdTable(new[] { messageId });
+        using var command = new SqlCommand("[dbo].[Outbox_Fail]", connection)
+        {
+            CommandType = System.Data.CommandType.StoredProcedure,
+        };
+        command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+        command.Parameters.AddWithValue("@LastError", error);
+        command.Parameters.AddWithValue("@ProcessedBy", "TestMachine");
+        var parameter = command.Parameters.AddWithValue("@Ids", idsTable);
+        parameter.SqlDbType = System.Data.SqlDbType.Structured;
+        parameter.TypeName = "[dbo].[GuidIdList]";
+        await command.ExecuteNonQueryAsync(CancellationToken.None);
     }
 
     private static System.Data.DataTable CreateGuidIdTable(IEnumerable<Guid> ids)
