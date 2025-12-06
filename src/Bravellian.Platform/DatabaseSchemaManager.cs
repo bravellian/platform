@@ -1176,9 +1176,39 @@ internal static class DatabaseSchemaManager
                           AS
                           BEGIN
                             SET NOCOUNT ON;
+                            
+                            -- Mark outbox messages as dispatched
                             UPDATE o SET Status = 2, OwnerToken = NULL, LockedUntil = NULL, IsProcessed = 1, ProcessedAt = SYSUTCDATETIME()
                             FROM [{schemaName}].[{tableName}] o JOIN @Ids i ON i.Id = o.Id
                             WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
+                            
+                            -- Automatically report join completion for any joins this message is part of
+                            -- Only execute if OutboxJoin tables exist (i.e., join feature is enabled)
+                            IF OBJECT_ID(N'[{schemaName}].[OutboxJoinMember]', N'U') IS NOT NULL
+                            BEGIN
+                                -- Update join counts for messages that were successfully processed
+                                UPDATE j
+                                SET 
+                                    CompletedSteps = CompletedSteps + 1,
+                                    LastUpdatedUtc = SYSUTCDATETIME()
+                                FROM [{schemaName}].[OutboxJoin] j
+                                INNER JOIN [{schemaName}].[OutboxJoinMember] m
+                                    ON j.JoinId = m.JoinId
+                                INNER JOIN @Ids i
+                                    ON m.OutboxMessageId = i.Id
+                                WHERE m.CompletedAt IS NULL
+                                    AND m.FailedAt IS NULL
+                                    AND (j.CompletedSteps + j.FailedSteps) < j.ExpectedSteps;
+                                
+                                -- Mark the join members as completed
+                                UPDATE m
+                                SET CompletedAt = SYSUTCDATETIME()
+                                FROM [{schemaName}].[OutboxJoinMember] m
+                                INNER JOIN @Ids i
+                                    ON m.OutboxMessageId = i.Id
+                                WHERE m.CompletedAt IS NULL
+                                    AND m.FailedAt IS NULL;
+                            END
                           END
             """,
 
@@ -1212,6 +1242,8 @@ internal static class DatabaseSchemaManager
                           AS
                           BEGIN
                             SET NOCOUNT ON;
+                            
+                            -- Mark outbox messages as failed
                             UPDATE o SET 
                                 Status = 3, 
                                 OwnerToken = NULL, 
@@ -1220,6 +1252,34 @@ internal static class DatabaseSchemaManager
                                 ProcessedBy = ISNULL(@ProcessedBy, o.ProcessedBy)
                             FROM [{schemaName}].[{tableName}] o JOIN @Ids i ON i.Id = o.Id
                             WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
+                            
+                            -- Automatically report join failure for any joins this message is part of
+                            -- Only execute if OutboxJoin tables exist (i.e., join feature is enabled)
+                            IF OBJECT_ID(N'[{schemaName}].[OutboxJoinMember]', N'U') IS NOT NULL
+                            BEGIN
+                                -- Update join counts for messages that failed
+                                UPDATE j
+                                SET 
+                                    FailedSteps = FailedSteps + 1,
+                                    LastUpdatedUtc = SYSUTCDATETIME()
+                                FROM [{schemaName}].[OutboxJoin] j
+                                INNER JOIN [{schemaName}].[OutboxJoinMember] m
+                                    ON j.JoinId = m.JoinId
+                                INNER JOIN @Ids i
+                                    ON m.OutboxMessageId = i.Id
+                                WHERE m.CompletedAt IS NULL
+                                    AND m.FailedAt IS NULL
+                                    AND (j.CompletedSteps + j.FailedSteps) < j.ExpectedSteps;
+                                
+                                -- Mark the join members as failed
+                                UPDATE m
+                                SET FailedAt = SYSUTCDATETIME()
+                                FROM [{schemaName}].[OutboxJoinMember] m
+                                INNER JOIN @Ids i
+                                    ON m.OutboxMessageId = i.Id
+                                WHERE m.CompletedAt IS NULL
+                                    AND m.FailedAt IS NULL;
+                            END
                           END
             """,
 
