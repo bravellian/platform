@@ -167,7 +167,7 @@ internal class SqlSchedulerClient : ISchedulerClient
 
             await using (command.ConfigureAwait(false))
             {
-                command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+                command.Parameters.AddWithValue("@OwnerToken", ownerToken.Value);
                 command.Parameters.AddWithValue("@LeaseSeconds", leaseSeconds);
                 command.Parameters.AddWithValue("@BatchSize", batchSize);
 
@@ -202,7 +202,7 @@ internal class SqlSchedulerClient : ISchedulerClient
 
             await using (command.ConfigureAwait(false))
             {
-                command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+                command.Parameters.AddWithValue("@OwnerToken", ownerToken.Value);
                 command.Parameters.AddWithValue("@LeaseSeconds", leaseSeconds);
                 command.Parameters.AddWithValue("@BatchSize", batchSize);
 
@@ -318,7 +318,7 @@ internal class SqlSchedulerClient : ISchedulerClient
 
             await using (command.ConfigureAwait(false))
             {
-                command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+                command.Parameters.AddWithValue("@OwnerToken", ownerToken.Value);
                 var parameter = command.Parameters.AddWithValue("@Ids", tvp);
                 parameter.SqlDbType = SqlDbType.Structured;
                 parameter.TypeName = $"[{options.SchemaName}].[GuidIdList]";

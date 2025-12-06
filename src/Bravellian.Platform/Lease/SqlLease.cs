@@ -142,7 +142,7 @@ internal sealed class SqlLease : ISystemLease
         };
 
         command.Parameters.AddWithValue("@ResourceName", resourceName);
-        command.Parameters.AddWithValue("@OwnerToken", token);
+        command.Parameters.AddWithValue("@OwnerToken", token.Value);
         command.Parameters.AddWithValue("@LeaseSeconds", leaseSeconds);
         command.Parameters.AddWithValue("@ContextJson", contextJson ?? (object)DBNull.Value);
         command.Parameters.AddWithValue("@UseGate", useGate);
@@ -278,7 +278,7 @@ internal sealed class SqlLease : ISystemLease
             };
 
             command.Parameters.AddWithValue("@ResourceName", ResourceName);
-            command.Parameters.AddWithValue("@OwnerToken", OwnerToken);
+            command.Parameters.AddWithValue("@OwnerToken", OwnerToken.Value);
             command.Parameters.AddWithValue("@LeaseSeconds", leaseSeconds);
 
             var renewedParam = new SqlParameter("@Renewed", SqlDbType.Bit) { Direction = ParameterDirection.Output };
@@ -327,7 +327,7 @@ internal sealed class SqlLease : ISystemLease
         };
 
         command.Parameters.AddWithValue("@ResourceName", ResourceName);
-        command.Parameters.AddWithValue("@OwnerToken", OwnerToken);
+        command.Parameters.AddWithValue("@OwnerToken", OwnerToken.Value);
 
         await command.ExecuteNonQueryAsync().ConfigureAwait(false);
 

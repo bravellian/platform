@@ -64,7 +64,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
                 $"[{schemaName}].[{tableName}_Claim]",
                 new
                 {
-                    OwnerToken = ownerToken,
+                    OwnerToken = ownerToken.Value,
                     LeaseSeconds = leaseSeconds,
                     BatchSize = batchSize,
                 },
@@ -118,7 +118,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
             {
                 CommandType = System.Data.CommandType.StoredProcedure,
             };
-            command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+            command.Parameters.AddWithValue("@OwnerToken", ownerToken.Value);
             var parameter = command.Parameters.AddWithValue("@Ids", idsTable);
             parameter.SqlDbType = System.Data.SqlDbType.Structured;
             parameter.TypeName = $"[{schemaName}].[StringIdList]";
@@ -173,7 +173,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
             {
                 CommandType = System.Data.CommandType.StoredProcedure,
             };
-            command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+            command.Parameters.AddWithValue("@OwnerToken", ownerToken.Value);
             var parameter = command.Parameters.AddWithValue("@Ids", idsTable);
             parameter.SqlDbType = System.Data.SqlDbType.Structured;
             parameter.TypeName = $"[{schemaName}].[StringIdList]";
@@ -239,7 +239,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
             {
                 CommandType = System.Data.CommandType.StoredProcedure,
             };
-            command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+            command.Parameters.AddWithValue("@OwnerToken", ownerToken.Value);
             var parameter = command.Parameters.AddWithValue("@Ids", idsTable);
             parameter.SqlDbType = System.Data.SqlDbType.Structured;
             parameter.TypeName = $"[{schemaName}].[StringIdList]";

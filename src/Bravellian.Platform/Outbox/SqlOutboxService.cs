@@ -178,7 +178,7 @@ internal class SqlOutboxService : IOutbox
 
                 await using (command.ConfigureAwait(false))
                 {
-                    command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+                    command.Parameters.AddWithValue("@OwnerToken", ownerToken.Value);
                     command.Parameters.AddWithValue("@LeaseSeconds", leaseSeconds);
                     command.Parameters.AddWithValue("@BatchSize", batchSize);
 
@@ -327,7 +327,7 @@ internal class SqlOutboxService : IOutbox
         tvp.Columns.Add("Id", typeof(Guid));
         foreach (var id in idList)
         {
-            tvp.Rows.Add(id);
+            tvp.Rows.Add(id.Value);
         }
 
         var connection = new SqlConnection(connectionString);
@@ -342,7 +342,7 @@ internal class SqlOutboxService : IOutbox
 
             await using (command.ConfigureAwait(false))
             {
-                command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+                command.Parameters.AddWithValue("@OwnerToken", ownerToken.Value);
                 var parameter = command.Parameters.AddWithValue("@Ids", tvp);
                 parameter.SqlDbType = SqlDbType.Structured;
                 parameter.TypeName = $"[{options.SchemaName}].[GuidIdList]";

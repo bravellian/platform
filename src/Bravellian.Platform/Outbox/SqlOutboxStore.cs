@@ -66,7 +66,7 @@ internal class SqlOutboxStore : IOutboxStore
                 $"[{schemaName}].[{tableName}_Claim]",
                 new
                 {
-                    OwnerToken = ownerToken,
+                    OwnerToken = ownerToken.Value,
                     LeaseSeconds = leaseSeconds,
                     BatchSize = limit,
                 },
@@ -121,7 +121,7 @@ internal class SqlOutboxStore : IOutboxStore
             {
                 CommandType = System.Data.CommandType.StoredProcedure,
             };
-            command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+            command.Parameters.AddWithValue("@OwnerToken", ownerToken.Value);
             var parameter = command.Parameters.AddWithValue("@Ids", idsTable);
             parameter.SqlDbType = System.Data.SqlDbType.Structured;
             parameter.TypeName = $"[{schemaName}].[GuidIdList]";
@@ -163,7 +163,7 @@ internal class SqlOutboxStore : IOutboxStore
             {
                 CommandType = System.Data.CommandType.StoredProcedure,
             };
-            abandonCommand.Parameters.AddWithValue("@OwnerToken", ownerToken);
+            abandonCommand.Parameters.AddWithValue("@OwnerToken", ownerToken.Value);
             abandonCommand.Parameters.AddWithValue("@LastError", lastError ?? (object)DBNull.Value);
             abandonCommand.Parameters.AddWithValue("@DueTimeUtc", nextAttempt.UtcDateTime);
             var parameter = abandonCommand.Parameters.AddWithValue("@Ids", idsTable);
@@ -203,7 +203,7 @@ internal class SqlOutboxStore : IOutboxStore
             {
                 CommandType = System.Data.CommandType.StoredProcedure,
             };
-            command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+            command.Parameters.AddWithValue("@OwnerToken", ownerToken.Value);
             command.Parameters.AddWithValue("@LastError", lastError ?? (object)DBNull.Value);
             command.Parameters.AddWithValue("@ProcessedBy", $"{Environment.MachineName}:FAILED");
             var parameter = command.Parameters.AddWithValue("@Ids", idsTable);
