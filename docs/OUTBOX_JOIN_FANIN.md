@@ -58,45 +58,35 @@ var messageId3 = await outbox.EnqueueAsync("extract.products", payload3, cancell
 await outbox.AttachMessageToJoinAsync(joinId, messageId3, cancellationToken);
 ```
 
-### 3. Reporting Step Completion
+### 3. Handler Implementation
 
-In your message handlers, report when steps complete or fail:
+**Important**: As of the latest version, join completion is reported **automatically** when the outbox message is marked as dispatched or failed. Your handlers no longer need to manually call `ReportStepCompletedAsync` or `ReportStepFailedAsync`.
+
+Simply implement your handler as normal:
 
 ```csharp
 public class ExtractCustomersHandler : IOutboxHandler
 {
-    private readonly IOutbox outbox;
-    
     public string Topic => "extract.customers";
     
     public async Task HandleAsync(OutboxMessage message, CancellationToken cancellationToken)
     {
-        try
-        {
-            // Parse payload to get joinId
-            var payload = JsonSerializer.Deserialize<ExtractPayload>(message.Payload);
-            
-            // Do the work
-            await ExtractCustomersAsync(cancellationToken);
-            
-            // Report success
-            await outbox.ReportStepCompletedAsync(
-                payload.JoinId,
-                message.Id,
-                cancellationToken);
-        }
-        catch (Exception)
-        {
-            // Report failure
-            await outbox.ReportStepFailedAsync(
-                payload.JoinId,
-                message.Id,
-                cancellationToken);
-            throw;
-        }
+        // Do the work
+        await ExtractCustomersAsync(cancellationToken);
+        
+        // That's it! When this completes successfully, the outbox framework
+        // will automatically report join completion for any joins this message
+        // is part of.
+        
+        // If an exception is thrown, the framework will automatically report
+        // join failure when the message is marked as failed.
     }
 }
 ```
+
+This automatic behavior is implemented in the database stored procedures (`Outbox_Ack` and `Outbox_Fail`), which check if the message is part of any joins and update the join counters accordingly. This eliminates the need to leak join semantics into your handler code.
+
+**Note**: The manual methods `ReportStepCompletedAsync` and `ReportStepFailedAsync` are still available in the `IOutbox` interface for backward compatibility and edge cases where you might need explicit control over join reporting.
 
 ### 4. Setting up Fan-In Orchestration
 
@@ -139,6 +129,28 @@ The `JoinWaitHandler` will:
 3. If yes, determine if the join succeeded or failed
 4. Update join status
 5. Enqueue the appropriate follow-up message
+
+## How Automatic Join Reporting Works
+
+The automatic join reporting is implemented at the database level in the outbox stored procedures:
+
+1. **On Success (`Outbox_Ack`)**: When a message is marked as successfully dispatched, the stored procedure:
+   - Marks the outbox message as processed
+   - Checks if the message is part of any joins (via `OutboxJoinMember` table)
+   - Increments the `CompletedSteps` counter for each associated join
+   - Marks the join member as completed
+
+2. **On Failure (`Outbox_Fail`)**: When a message is permanently failed, the stored procedure:
+   - Marks the outbox message as failed
+   - Checks if the message is part of any joins
+   - Increments the `FailedSteps` counter for each associated join
+   - Marks the join member as failed
+
+This approach has several advantages:
+- **Decoupling**: Handlers don't need to know about joins
+- **Consistency**: Updates to message status and join counters happen in the same transaction
+- **Performance**: No additional round trips to the database
+- **Backward compatibility**: Works with existing deployments; if join tables don't exist, the logic is skipped
 
 ## Configuration Options
 
@@ -198,10 +210,11 @@ This registers:
 ## Best Practices
 
 1. **Always set ExpectedSteps correctly**: The join will not complete until CompletedSteps + FailedSteps equals ExpectedSteps
-2. **Make step completion reporting idempotent**: Handlers should be safe to retry
-3. **Use metadata for debugging**: Store workflow information in join metadata for easier troubleshooting
-4. **Monitor join status**: Query OutboxJoin table to track long-running joins
-5. **Set appropriate retry delays**: The `join.wait` message will be retried according to standard outbox backoff settings
+2. **Keep handlers simple**: With automatic join reporting, your handlers don't need any join-specific logic
+3. **No need to include joinId in payloads**: Since handlers don't report completion manually, you don't need to pass the joinId through the payload
+4. **Use metadata for debugging**: Store workflow information in join metadata for easier troubleshooting
+5. **Monitor join status**: Query OutboxJoin table to track long-running joins
+6. **Set appropriate retry delays**: The `join.wait` message will be retried according to standard outbox backoff settings
 
 ## Limitations
 
@@ -220,7 +233,8 @@ var joinId = await outbox.StartJoinAsync(
     cancellationToken);
 
 // 2. Enqueue extraction messages and attach them to the join
-var extractPayload = new { JoinId = joinId, CustomerId = customerId };
+// Note: The payload no longer needs to contain the joinId
+var extractPayload = new { CustomerId = customerId };
 
 var msg1 = await outbox.EnqueueAsync("extract.customers", JsonSerializer.Serialize(extractPayload), cancellationToken);
 await outbox.AttachMessageToJoinAsync(joinId, msg1, cancellationToken);
@@ -240,4 +254,21 @@ await outbox.EnqueueJoinWaitAsync(
     cancellationToken: cancellationToken);
 ```
 
-The handlers for `extract.*` topics would call `ReportStepCompletedAsync` or `ReportStepFailedAsync` as appropriate, and the `JoinWaitHandler` would automatically trigger the transformation once all extractions complete.
+The handlers for `extract.*` topics can now be implemented without any join-specific logic:
+
+```csharp
+public class ExtractCustomersHandler : IOutboxHandler
+{
+    public string Topic => "extract.customers";
+    
+    public async Task HandleAsync(OutboxMessage message, CancellationToken cancellationToken)
+    {
+        var payload = JsonSerializer.Deserialize<ExtractPayload>(message.Payload);
+        
+        // Just do the work - join completion is automatic!
+        await ExtractCustomersAsync(payload.CustomerId, cancellationToken);
+    }
+}
+```
+
+When all three extraction handlers complete successfully, the `JoinWaitHandler` will automatically trigger the transformation.
