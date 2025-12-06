@@ -78,7 +78,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
             new { MessageId = "msg-1" });
 
         Assert.Equal("Processing", result.Status);
-        Assert.Equal(ownerToken, result.OwnerToken);
+        Assert.Equal(ownerToken.Value, (Guid)result.OwnerToken);
     }
 
     [Fact]
@@ -219,7 +219,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
             new { MessageId = "msg-1" });
 
         Assert.Equal("Processing", result.Status);
-        Assert.Equal(rightOwner, result.OwnerToken);
+        Assert.Equal(rightOwner.Value, (Guid)result.OwnerToken);
     }
 
     [Fact]

@@ -70,12 +70,12 @@ public class JoinWaitHandlerTests : SqlServerTestBase
         await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(CancellationToken.None);
 
-        var messageId = Guid.NewGuid();
+        var id = Guid.NewGuid();
         await connection.ExecuteAsync(
             "INSERT INTO dbo.Outbox (Id, Topic, Payload, MessageId) VALUES (@Id, @Topic, @Payload, @MessageId)",
-            new { Id = Guid.NewGuid(), Topic = "test.topic", Payload = "{}", MessageId = messageId });
+            new { Id = id, Topic = "test.topic", Payload = "{}", MessageId = Guid.NewGuid() });
 
-        return OutboxMessageIdentifier.From(messageId);
+        return OutboxMessageIdentifier.From(id);
     }
 
     [Fact]
