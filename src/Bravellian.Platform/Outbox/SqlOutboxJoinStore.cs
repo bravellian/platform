@@ -36,6 +36,10 @@ internal class SqlOutboxJoinStore : IOutboxJoinStore
         connectionString = opts.ConnectionString;
         schemaName = opts.SchemaName;
         this.logger = logger;
+
+        // Ensure Dapper type handlers are registered
+        JoinIdTypeHandler.Register();
+        OwnerTokenTypeHandler.Register();
     }
 
     public async Task<OutboxJoin> CreateJoinAsync(

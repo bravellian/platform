@@ -394,6 +394,10 @@ public static class PlatformServiceCollectionExtensions
 
     private static void RegisterCoreServices(IServiceCollection services, bool enableSchemaDeployment)
     {
+        // Register Dapper type handlers for strongly-typed IDs
+        JoinIdTypeHandler.Register();
+        OwnerTokenTypeHandler.Register();
+
         // Add time abstractions
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<IMonotonicClock, MonotonicClock>();

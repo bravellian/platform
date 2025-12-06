@@ -22,6 +22,12 @@ namespace Bravellian.Platform;
 [TypeConverter(typeof(JoinIdTypeConverter))]
 public readonly record struct JoinId
 {
+    // Static constructor to ensure Dapper type handler is registered
+    static JoinId()
+    {
+        JoinIdTypeHandler.Register();
+    }
+
     private readonly Guid value;
 
     /// <summary>

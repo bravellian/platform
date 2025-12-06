@@ -23,6 +23,12 @@ namespace Bravellian.Platform;
 [TypeConverter(typeof(OwnerTokenTypeConverter))]
 public readonly record struct OwnerToken
 {
+    // Static constructor to ensure Dapper type handler is registered
+    static OwnerToken()
+    {
+        OwnerTokenTypeHandler.Register();
+    }
+
     private readonly Guid value;
 
     /// <summary>

@@ -38,6 +38,10 @@ internal class SqlOutboxService : IOutbox
         connectionString = this.options.ConnectionString;
         this.logger = logger;
         this.joinStore = joinStore;
+
+        // Ensure Dapper type handlers are registered
+        JoinIdTypeHandler.Register();
+        OwnerTokenTypeHandler.Register();
     }
 
 
@@ -224,7 +228,7 @@ internal class SqlOutboxService : IOutbox
 
                 await using (command.ConfigureAwait(false))
                 {
-                    command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+                    command.Parameters.AddWithValue("@OwnerToken", ownerToken.Value);
                     command.Parameters.AddWithValue("@LeaseSeconds", leaseSeconds);
                     command.Parameters.AddWithValue("@BatchSize", batchSize);
 
@@ -388,7 +392,7 @@ internal class SqlOutboxService : IOutbox
 
             await using (command.ConfigureAwait(false))
             {
-                command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+                command.Parameters.AddWithValue("@OwnerToken", ownerToken.Value);
                 var parameter = command.Parameters.AddWithValue("@Ids", tvp);
                 parameter.SqlDbType = SqlDbType.Structured;
                 parameter.TypeName = $"[{options.SchemaName}].[GuidIdList]";
