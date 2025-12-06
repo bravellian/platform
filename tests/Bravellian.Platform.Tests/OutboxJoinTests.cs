@@ -544,6 +544,45 @@ public class OutboxJoinTests : SqlServerTestBase
         finalJoin.FailedSteps.ShouldBe(1);
     }
 
+    [Fact]
+    public async Task OutboxAck_MultipleAcksForSameMessage_IsIdempotent()
+    {
+        // Arrange - Create a join with 1 expected step
+        var join = await joinStore!.CreateJoinAsync(
+            12345,
+            1,
+            null,
+            CancellationToken.None);
+
+        // Create a message and attach it to the join
+        var messageId = await CreateOutboxMessageAsync();
+        await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId, CancellationToken.None);
+
+        var ownerToken = Guid.NewGuid();
+
+        // Claim and acknowledge the message
+        await ClaimMessagesAsync(ownerToken);
+        await AckMessageAsync(ownerToken, messageId);
+
+        // Assert - Join should have 1 completed step
+        var joinAfterFirst = await joinStore.GetJoinAsync(join.JoinId, CancellationToken.None);
+        joinAfterFirst.ShouldNotBeNull();
+        joinAfterFirst!.CompletedSteps.ShouldBe(1);
+        joinAfterFirst.FailedSteps.ShouldBe(0);
+
+        // Act - Try to acknowledge the same message again (simulating retry or race condition)
+        // Note: The Ack procedure requires OwnerToken and Status = 1, so this won't actually
+        // update the outbox message (already processed), but we're testing that the join
+        // counter doesn't get incremented again
+        await AckMessageAsync(ownerToken, messageId);
+
+        // Assert - Join should still have only 1 completed step (idempotent)
+        var joinAfterSecond = await joinStore.GetJoinAsync(join.JoinId, CancellationToken.None);
+        joinAfterSecond.ShouldNotBeNull();
+        joinAfterSecond!.CompletedSteps.ShouldBe(1);
+        joinAfterSecond.FailedSteps.ShouldBe(0);
+    }
+
     // Helper methods for test cleanup
     private async Task ClaimMessagesAsync(Guid ownerToken)
     {

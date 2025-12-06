@@ -78,8 +78,10 @@ public class ExtractCustomersHandler : IOutboxHandler
         // will automatically report join completion for any joins this message
         // is part of.
         
-        // If an exception is thrown, the framework will automatically report
-        // join failure when the message is marked as failed.
+        // If an exception is thrown and the handler continues to fail until the
+        // message is permanently failed, the framework will automatically report
+        // join failure. Note that temporary failures (which trigger retries) do
+        // not increment the join's FailedSteps counter.
     }
 }
 ```
@@ -87,6 +89,8 @@ public class ExtractCustomersHandler : IOutboxHandler
 This automatic behavior is implemented in the database stored procedures (`Outbox_Ack` and `Outbox_Fail`), which check if the message is part of any joins and update the join counters accordingly. This eliminates the need to leak join semantics into your handler code.
 
 **Note**: The manual methods `ReportStepCompletedAsync` and `ReportStepFailedAsync` are still available in the `IOutbox` interface for backward compatibility and edge cases where you might need explicit control over join reporting.
+
+**Warning**: Do not mix manual and automatic join reporting for the same message. If you manually report completion/failure, the automatic reporting may not work correctly. The manual methods should only be used when you've completely disabled the automatic behavior or need to report join status independently of message processing outcome (edge cases only).
 
 ### 4. Setting up Fan-In Orchestration
 
