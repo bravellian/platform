@@ -36,7 +36,7 @@ public static class OutboxExtensions
     /// <returns>A task representing the asynchronous operation.</returns>
     public static async Task EnqueueJoinWaitAsync(
         this IOutbox outbox,
-        Guid joinId,
+        JoinId joinId,
         bool failIfAnyStepFailed = true,
         string? onCompleteTopic = null,
         string? onCompletePayload = null,

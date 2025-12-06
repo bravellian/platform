@@ -26,7 +26,6 @@ internal class SqlOutboxService : IOutbox
 {
     private readonly SqlOutboxOptions options;
     private readonly string connectionString;
-    private readonly string enqueueSql;
     private readonly ILogger<SqlOutboxService> logger;
     private readonly IOutboxJoinStore? joinStore;
 
@@ -39,13 +38,6 @@ internal class SqlOutboxService : IOutbox
         connectionString = this.options.ConnectionString;
         this.logger = logger;
         this.joinStore = joinStore;
-
-        // Build the SQL query using configured schema and table names
-        enqueueSql = $"""
-
-                        INSERT INTO [{this.options.SchemaName}].[{this.options.TableName}] (Topic, Payload, CorrelationId, MessageId, DueTimeUtc)
-                        VALUES (@Topic, @Payload, @CorrelationId, NEWID(), @DueTimeUtc);
-            """;
     }
 
 
@@ -73,6 +65,17 @@ internal class SqlOutboxService : IOutbox
         DateTimeOffset? dueTimeUtc,
         CancellationToken cancellationToken)
     {
+        await EnqueueAsync(topic, payload, correlationId, dueTimeUtc, null, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task EnqueueAsync(
+        string topic,
+        string payload,
+        string? correlationId,
+        DateTimeOffset? dueTimeUtc,
+        JoinId? joinId,
+        CancellationToken cancellationToken)
+    {
         // Ensure outbox table exists before attempting to enqueue (if enabled)
         if (options.EnableSchemaDeployment)
         {
@@ -95,13 +98,29 @@ internal class SqlOutboxService : IOutbox
             {
                 try
                 {
-                    await connection.ExecuteAsync(enqueueSql, new
+                    var messageId = await connection.ExecuteScalarAsync<Guid>(
+                        $"""
+                        INSERT INTO [{options.SchemaName}].[{options.TableName}] (Topic, Payload, CorrelationId, MessageId, DueTimeUtc)
+                        OUTPUT inserted.Id
+                        VALUES (@Topic, @Payload, @CorrelationId, NEWID(), @DueTimeUtc);
+                        """,
+                        new
+                        {
+                            Topic = topic,
+                            Payload = payload,
+                            CorrelationId = correlationId,
+                            DueTimeUtc = dueTimeUtc?.UtcDateTime,
+                        },
+                        transaction: transaction).ConfigureAwait(false);
+
+                    // If joinId is provided, attach the message to the join
+                    if (joinId.HasValue && joinStore != null)
                     {
-                        Topic = topic,
-                        Payload = payload,
-                        CorrelationId = correlationId,
-                        DueTimeUtc = dueTimeUtc?.UtcDateTime,
-                    }, transaction: transaction).ConfigureAwait(false);
+                        await joinStore.AttachMessageToJoinAsync(
+                            joinId.Value,
+                            messageId,
+                            cancellationToken).ConfigureAwait(false);
+                    }
 
                     await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
                 }
@@ -141,21 +160,49 @@ internal class SqlOutboxService : IOutbox
         DateTimeOffset? dueTimeUtc,
         CancellationToken cancellationToken)
     {
+        await EnqueueAsync(topic, payload, transaction, correlationId, dueTimeUtc, null, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task EnqueueAsync(
+        string topic,
+        string payload,
+        IDbTransaction transaction,
+        string? correlationId,
+        DateTimeOffset? dueTimeUtc,
+        JoinId? joinId,
+        CancellationToken cancellationToken)
+    {
         ArgumentNullException.ThrowIfNull(transaction);
         ArgumentNullException.ThrowIfNull(transaction.Connection);
 
         // Note: We use the connection from the provided transaction.
-        await transaction.Connection.ExecuteAsync(enqueueSql, new
+        var messageId = await transaction.Connection.ExecuteScalarAsync<Guid>(
+            $"""
+            INSERT INTO [{options.SchemaName}].[{options.TableName}] (Topic, Payload, CorrelationId, MessageId, DueTimeUtc)
+            OUTPUT inserted.Id
+            VALUES (@Topic, @Payload, @CorrelationId, NEWID(), @DueTimeUtc);
+            """,
+            new
+            {
+                Topic = topic,
+                Payload = payload,
+                CorrelationId = correlationId,
+                DueTimeUtc = dueTimeUtc?.UtcDateTime,
+            },
+            transaction: transaction).ConfigureAwait(false);
+
+        // If joinId is provided, attach the message to the join
+        if (joinId.HasValue && joinStore != null)
         {
-            Topic = topic,
-            Payload = payload,
-            CorrelationId = correlationId,
-            DueTimeUtc = dueTimeUtc?.UtcDateTime,
-        }, transaction: transaction).ConfigureAwait(false);
+            await joinStore.AttachMessageToJoinAsync(
+                joinId.Value,
+                messageId,
+                cancellationToken).ConfigureAwait(false);
+        }
     }
 
     public async Task<IReadOnlyList<Guid>> ClaimAsync(
-        Guid ownerToken,
+        OwnerToken ownerToken,
         int leaseSeconds,
         int batchSize,
         CancellationToken cancellationToken)
@@ -201,7 +248,7 @@ internal class SqlOutboxService : IOutbox
     }
 
     public async Task AckAsync(
-        Guid ownerToken,
+        OwnerToken ownerToken,
         IEnumerable<Guid> ids,
         CancellationToken cancellationToken)
     {
@@ -227,7 +274,7 @@ internal class SqlOutboxService : IOutbox
     }
 
     public async Task AbandonAsync(
-        Guid ownerToken,
+        OwnerToken ownerToken,
         IEnumerable<Guid> ids,
         CancellationToken cancellationToken)
     {
@@ -253,7 +300,7 @@ internal class SqlOutboxService : IOutbox
     }
 
     public async Task FailAsync(
-        Guid ownerToken,
+        OwnerToken ownerToken,
         IEnumerable<Guid> ids,
         CancellationToken cancellationToken)
     {
@@ -312,7 +359,7 @@ internal class SqlOutboxService : IOutbox
 
     private async Task ExecuteWithIdsAsync(
         string procedure,
-        Guid ownerToken,
+        OwnerToken ownerToken,
         IEnumerable<Guid> ids,
         CancellationToken cancellationToken)
     {
@@ -351,7 +398,7 @@ internal class SqlOutboxService : IOutbox
         }
     }
 
-    public async Task<Guid> StartJoinAsync(
+    public async Task<JoinId> StartJoinAsync(
         long tenantId,
         int expectedSteps,
         string? metadata,
@@ -381,7 +428,7 @@ internal class SqlOutboxService : IOutbox
     }
 
     public async Task AttachMessageToJoinAsync(
-        Guid joinId,
+        JoinId joinId,
         Guid outboxMessageId,
         CancellationToken cancellationToken)
     {
@@ -392,40 +439,6 @@ internal class SqlOutboxService : IOutbox
         }
 
         await joinStore.AttachMessageToJoinAsync(
-            joinId,
-            outboxMessageId,
-            cancellationToken).ConfigureAwait(false);
-    }
-
-    public async Task ReportStepCompletedAsync(
-        Guid joinId,
-        Guid outboxMessageId,
-        CancellationToken cancellationToken)
-    {
-        if (joinStore == null)
-        {
-            throw new InvalidOperationException(
-                "Join functionality is not available. Ensure IOutboxJoinStore is registered in the service collection.");
-        }
-
-        await joinStore.IncrementCompletedAsync(
-            joinId,
-            outboxMessageId,
-            cancellationToken).ConfigureAwait(false);
-    }
-
-    public async Task ReportStepFailedAsync(
-        Guid joinId,
-        Guid outboxMessageId,
-        CancellationToken cancellationToken)
-    {
-        if (joinStore == null)
-        {
-            throw new InvalidOperationException(
-                "Join functionality is not available. Ensure IOutboxJoinStore is registered in the service collection.");
-        }
-
-        await joinStore.IncrementFailedAsync(
             joinId,
             outboxMessageId,
             cancellationToken).ConfigureAwait(false);

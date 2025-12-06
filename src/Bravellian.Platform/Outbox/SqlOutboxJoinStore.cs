@@ -98,7 +98,7 @@ internal class SqlOutboxJoinStore : IOutboxJoinStore
     }
 
     public async Task AttachMessageToJoinAsync(
-        Guid joinId,
+        JoinId joinId,
         Guid outboxMessageId,
         CancellationToken cancellationToken)
     {
@@ -146,7 +146,7 @@ internal class SqlOutboxJoinStore : IOutboxJoinStore
         }
     }
 
-    public async Task<OutboxJoin?> GetJoinAsync(Guid joinId, CancellationToken cancellationToken)
+    public async Task<OutboxJoin?> GetJoinAsync(JoinId joinId, CancellationToken cancellationToken)
     {
         logger.LogDebug("Getting join {JoinId}", joinId);
 
@@ -189,7 +189,7 @@ internal class SqlOutboxJoinStore : IOutboxJoinStore
     }
 
     public async Task<OutboxJoin> IncrementCompletedAsync(
-        Guid joinId,
+        JoinId joinId,
         Guid outboxMessageId,
         CancellationToken cancellationToken)
     {
@@ -282,7 +282,7 @@ internal class SqlOutboxJoinStore : IOutboxJoinStore
     }
 
     public async Task<OutboxJoin> IncrementFailedAsync(
-        Guid joinId,
+        JoinId joinId,
         Guid outboxMessageId,
         CancellationToken cancellationToken)
     {
@@ -373,7 +373,7 @@ internal class SqlOutboxJoinStore : IOutboxJoinStore
     }
 
     public async Task UpdateStatusAsync(
-        Guid joinId,
+        JoinId joinId,
         byte status,
         CancellationToken cancellationToken)
     {
@@ -420,7 +420,7 @@ internal class SqlOutboxJoinStore : IOutboxJoinStore
     }
 
     public async Task<IReadOnlyList<Guid>> GetJoinMessagesAsync(
-        Guid joinId,
+        JoinId joinId,
         CancellationToken cancellationToken)
     {
         logger.LogDebug("Getting messages for join {JoinId}", joinId);

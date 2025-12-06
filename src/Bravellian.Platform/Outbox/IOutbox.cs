@@ -58,6 +58,7 @@ public interface IOutbox
     /// <param name="payload">The message content, typically serialized as a string (e.g., JSON).</param>
     /// <param name="correlationId">An optional ID to trace the message back to its source.</param>
     /// <param name="dueTimeUtc">An optional timestamp indicating when the message should become eligible for processing.</param>
+    /// <param name="joinId">An optional join identifier to associate the message with a join.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     Task EnqueueAsync(
@@ -65,6 +66,7 @@ public interface IOutbox
         string payload,
         string? correlationId,
         DateTimeOffset? dueTimeUtc,
+        JoinId? joinId,
         CancellationToken cancellationToken);
 
     /// <summary>
@@ -108,6 +110,7 @@ public interface IOutbox
     /// <param name="transaction">The database transaction to participate in.</param>
     /// <param name="correlationId">An optional ID to trace the message back to its source.</param>
     /// <param name="dueTimeUtc">An optional timestamp indicating when the message should become eligible for processing.</param>
+    /// <param name="joinId">An optional join identifier to associate the message with a join.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     Task EnqueueAsync(
@@ -116,6 +119,7 @@ public interface IOutbox
         IDbTransaction transaction,
         string? correlationId,
         DateTimeOffset? dueTimeUtc,
+        JoinId? joinId,
         CancellationToken cancellationToken);
 
     /// <summary>
@@ -127,19 +131,21 @@ public interface IOutbox
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>A list of claimed message identifiers.</returns>
     Task<IReadOnlyList<Guid>> ClaimAsync(
-        Guid ownerToken,
+        OwnerToken ownerToken,
         int leaseSeconds,
         int batchSize,
         CancellationToken cancellationToken);
 
     /// <summary>
     /// Acknowledges outbox messages as successfully processed.
+    /// When a message that is part of a join is acknowledged, the join's completed steps counter
+    /// is automatically incremented.
     /// </summary>
     /// <param name="ownerToken">The unique token identifying the owning process.</param>
     /// <param name="ids">The identifiers of messages to acknowledge.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     Task AckAsync(
-        Guid ownerToken,
+        OwnerToken ownerToken,
         IEnumerable<Guid> ids,
         CancellationToken cancellationToken);
 
@@ -150,18 +156,20 @@ public interface IOutbox
     /// <param name="ids">The identifiers of messages to abandon.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     Task AbandonAsync(
-        Guid ownerToken,
+        OwnerToken ownerToken,
         IEnumerable<Guid> ids,
         CancellationToken cancellationToken);
 
     /// <summary>
     /// Marks outbox messages as failed with error information.
+    /// When a message that is part of a join is marked as failed, the join's failed steps counter
+    /// is automatically incremented.
     /// </summary>
     /// <param name="ownerToken">The unique token identifying the owning process.</param>
     /// <param name="ids">The identifiers of messages to fail.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     Task FailAsync(
-        Guid ownerToken,
+        OwnerToken ownerToken,
         IEnumerable<Guid> ids,
         CancellationToken cancellationToken);
 
@@ -179,7 +187,7 @@ public interface IOutbox
     /// <param name="metadata">Optional metadata (JSON string) for the join.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>The join ID of the newly created join.</returns>
-    Task<Guid> StartJoinAsync(
+    Task<JoinId> StartJoinAsync(
         long tenantId,
         int expectedSteps,
         string? metadata,
@@ -193,31 +201,7 @@ public interface IOutbox
     /// <param name="outboxMessageId">The outbox message identifier.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     Task AttachMessageToJoinAsync(
-        Guid joinId,
-        Guid outboxMessageId,
-        CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Reports that a step in a join has completed successfully.
-    /// This operation is idempotent when called with the same outboxMessageId.
-    /// </summary>
-    /// <param name="joinId">The join identifier.</param>
-    /// <param name="outboxMessageId">The outbox message identifier that completed.</param>
-    /// <param name="cancellationToken">Token to cancel the operation.</param>
-    Task ReportStepCompletedAsync(
-        Guid joinId,
-        Guid outboxMessageId,
-        CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Reports that a step in a join has failed.
-    /// This operation is idempotent when called with the same outboxMessageId.
-    /// </summary>
-    /// <param name="joinId">The join identifier.</param>
-    /// <param name="outboxMessageId">The outbox message identifier that failed.</param>
-    /// <param name="cancellationToken">Token to cancel the operation.</param>
-    Task ReportStepFailedAsync(
-        Guid joinId,
+        JoinId joinId,
         Guid outboxMessageId,
         CancellationToken cancellationToken);
 }

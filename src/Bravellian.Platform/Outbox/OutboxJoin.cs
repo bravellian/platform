@@ -23,7 +23,7 @@ public sealed record OutboxJoin
     /// <summary>
     /// Gets the unique identifier for this join.
     /// </summary>
-    public Guid JoinId { get; internal init; }
+    public JoinId JoinId { get; internal init; }
 
     /// <summary>
     /// Gets the PayeWaive tenant identifier for this join.
