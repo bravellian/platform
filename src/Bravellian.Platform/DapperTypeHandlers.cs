@@ -17,7 +17,6 @@
 using System.Data;
 using Bravellian.Platform.Inbox;
 using Bravellian.Platform.Metrics;
-using Bravellian.Platform.Outbox;
 using Dapper;
 
 namespace Bravellian.Platform;
@@ -99,141 +98,6 @@ internal sealed class NullableInboxMessageIdentifierTypeHandler : SqlMapper.Type
 
     /// <inheritdoc/>
     public override void SetValue(IDbDataParameter parameter, InboxMessageIdentifier? value)
-    {
-        if (value.HasValue)
-        {
-            parameter.Value = value.Value.Value;
-            parameter.DbType = DbType.Guid;
-        }
-        else
-        {
-            parameter.Value = DBNull.Value;
-        }
-    }
-}
-
-/// <summary>
-/// Dapper type handler for OutboxMessageIdentifier to convert between Guid and OutboxMessageIdentifier.
-/// </summary>
-internal sealed class OutboxMessageIdentifierTypeHandler : SqlMapper.TypeHandler<OutboxMessageIdentifier>
-{
-    /// <inheritdoc/>
-    public override OutboxMessageIdentifier Parse(object value)
-    {
-        return value is Guid guid ? OutboxMessageIdentifier.From(guid) : default;
-    }
-
-    /// <inheritdoc/>
-    public override void SetValue(IDbDataParameter parameter, OutboxMessageIdentifier value)
-    {
-        parameter.Value = value.Value;
-        parameter.DbType = DbType.Guid;
-    }
-}
-
-/// <summary>
-/// Dapper type handler for nullable OutboxMessageIdentifier to convert between Guid? and OutboxMessageIdentifier?.
-/// </summary>
-internal sealed class NullableOutboxMessageIdentifierTypeHandler : SqlMapper.TypeHandler<OutboxMessageIdentifier?>
-{
-    /// <inheritdoc/>
-    public override OutboxMessageIdentifier? Parse(object value)
-    {
-        return value is Guid guid ? OutboxMessageIdentifier.From(guid) : null;
-    }
-
-    /// <inheritdoc/>
-    public override void SetValue(IDbDataParameter parameter, OutboxMessageIdentifier? value)
-    {
-        if (value.HasValue)
-        {
-            parameter.Value = value.Value.Value;
-            parameter.DbType = DbType.Guid;
-        }
-        else
-        {
-            parameter.Value = DBNull.Value;
-        }
-    }
-}
-
-/// <summary>
-/// Dapper type handler for OutboxWorkItemIdentifier to convert between Guid and OutboxWorkItemIdentifier.
-/// </summary>
-internal sealed class OutboxWorkItemIdentifierTypeHandler : SqlMapper.TypeHandler<OutboxWorkItemIdentifier>
-{
-    /// <inheritdoc/>
-    public override OutboxWorkItemIdentifier Parse(object value)
-    {
-        return value is Guid guid ? OutboxWorkItemIdentifier.From(guid) : default;
-    }
-
-    /// <inheritdoc/>
-    public override void SetValue(IDbDataParameter parameter, OutboxWorkItemIdentifier value)
-    {
-        parameter.Value = value.Value;
-        parameter.DbType = DbType.Guid;
-    }
-}
-
-/// <summary>
-/// Dapper type handler for nullable OutboxWorkItemIdentifier to convert between Guid? and OutboxWorkItemIdentifier?.
-/// </summary>
-internal sealed class NullableOutboxWorkItemIdentifierTypeHandler : SqlMapper.TypeHandler<OutboxWorkItemIdentifier?>
-{
-    /// <inheritdoc/>
-    public override OutboxWorkItemIdentifier? Parse(object value)
-    {
-        return value is Guid guid ? OutboxWorkItemIdentifier.From(guid) : null;
-    }
-
-    /// <inheritdoc/>
-    public override void SetValue(IDbDataParameter parameter, OutboxWorkItemIdentifier? value)
-    {
-        if (value.HasValue)
-        {
-            parameter.Value = value.Value.Value;
-            parameter.DbType = DbType.Guid;
-        }
-        else
-        {
-            parameter.Value = DBNull.Value;
-        }
-    }
-}
-
-/// <summary>
-/// Dapper type handler for JoinIdentifier to convert between Guid and JoinIdentifier.
-/// </summary>
-internal sealed class JoinIdentifierTypeHandler : SqlMapper.TypeHandler<JoinIdentifier>
-{
-    /// <inheritdoc/>
-    public override JoinIdentifier Parse(object value)
-    {
-        return value is Guid guid ? JoinIdentifier.From(guid) : default;
-    }
-
-    /// <inheritdoc/>
-    public override void SetValue(IDbDataParameter parameter, JoinIdentifier value)
-    {
-        parameter.Value = value.Value;
-        parameter.DbType = DbType.Guid;
-    }
-}
-
-/// <summary>
-/// Dapper type handler for nullable JoinIdentifier to convert between Guid? and JoinIdentifier?.
-/// </summary>
-internal sealed class NullableJoinIdentifierTypeHandler : SqlMapper.TypeHandler<JoinIdentifier?>
-{
-    /// <inheritdoc/>
-    public override JoinIdentifier? Parse(object value)
-    {
-        return value is Guid guid ? JoinIdentifier.From(guid) : null;
-    }
-
-    /// <inheritdoc/>
-    public override void SetValue(IDbDataParameter parameter, JoinIdentifier? value)
     {
         if (value.HasValue)
         {
@@ -365,18 +229,6 @@ public static class DapperTypeHandlerRegistration
             // Register InboxMessageIdentifier handlers
             SqlMapper.AddTypeHandler(new InboxMessageIdentifierTypeHandler());
             SqlMapper.AddTypeHandler(new NullableInboxMessageIdentifierTypeHandler());
-
-            // Register OutboxMessageIdentifier handlers
-            SqlMapper.AddTypeHandler(new OutboxMessageIdentifierTypeHandler());
-            SqlMapper.AddTypeHandler(new NullableOutboxMessageIdentifierTypeHandler());
-
-            // Register OutboxWorkItemIdentifier handlers
-            SqlMapper.AddTypeHandler(new OutboxWorkItemIdentifierTypeHandler());
-            SqlMapper.AddTypeHandler(new NullableOutboxWorkItemIdentifierTypeHandler());
-
-            // Register JoinIdentifier handlers
-            SqlMapper.AddTypeHandler(new JoinIdentifierTypeHandler());
-            SqlMapper.AddTypeHandler(new NullableJoinIdentifierTypeHandler());
 
             // Register InstanceIdentifier handlers
             SqlMapper.AddTypeHandler(new InstanceIdentifierTypeHandler());
