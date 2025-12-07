@@ -1,0 +1,4 @@
+﻿CREATE TYPE [infra].[StringIdList] AS TABLE (
+    [Id] VARCHAR (64) NOT NULL,
+    PRIMARY KEY CLUSTERED ([Id] ASC));
+
