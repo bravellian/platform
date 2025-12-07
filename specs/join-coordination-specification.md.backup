@@ -1,0 +1,597 @@
+# Join Coordination Component – Functional Specification
+
+## 1. Meta
+
+| Property      | Value                    |
+| ------------- | ------------------------ |
+| **Component** | Join Coordination        |
+| **Version**   | 1.0                      |
+| **Status**    | Draft                    |
+| **Owner**     | Bravellian Platform Team |
+
+---
+
+## 2. Purpose and Scope
+
+### 2.1 Purpose
+
+The Join Coordination component provides a fan‑in primitive on top of the Outbox. It tracks a group of related Outbox messages (steps) and coordinates their completion, so that a follow‑up action can run once all steps are either completed or failed.
+
+It does this by:
+
+* Tracking joins (`OutboxJoin`) and their members (`OutboxJoinMember`).
+* Automatically updating join state when Outbox messages complete or fail.
+* Providing a “join wait” mechanism that enqueues a continuation when a join completes.
+
+Outbox itself remains join‑agnostic. Outbox messages do not store join IDs. Joins reference Outbox messages by `OutboxMessageIdentifier`.
+
+### 2.2 Core Responsibilities
+
+1. **Join Creation** – Create a join with an expected number of steps and optional grouping/metadata.
+2. **Membership Tracking** – Attach Outbox messages to a join, idempotently.
+3. **Progress Accounting** – Track completed and failed steps per join.
+4. **Join Completion Evaluation** – Determine when `CompletedSteps + FailedSteps` reaches `ExpectedSteps` and compute overall join status.
+5. **Continuation Dispatch** – On completion, enqueue follow‑up Outbox messages (success or failure path).
+6. **Integration with Outbox** – Hook into Outbox completion/failure so join counters update automatically.
+
+### 2.3 Scope
+
+**In scope**
+
+* SQL‑backed join tracking (`OutboxJoin`, `OutboxJoinMember`) in the same database as the Outbox.
+* Attaching Outbox messages (by `OutboxMessageIdentifier`) to joins.
+* Join wait messages and a `JoinWaitHandler` that fan‑in to continuation messages.
+* Integration with Outbox stored procedures (ack/fail) for automatic join updates.
+
+**Out of scope**
+
+* Cross‑database joins (joins spanning Outbox messages from multiple databases).
+* Aggregating or merging payloads from join members.
+* Workflow modeling beyond simple “all steps done => emit continuation” patterns.
+* Exactly‑once semantics for join continuations (joins inherit Outbox at‑least‑once behavior).
+
+---
+
+## 3. Non-Goals
+
+This component does **not**:
+
+1. Enforce ordering of steps within a join.
+2. Guarantee that all expected steps were actually enqueued; it only counts steps that are attached.
+3. Enforce any particular payload schema for join metadata or continuation payloads.
+4. Provide cross‑tenant or cross‑database transactional joins.
+5. Replace higher‑level workflow engines; it is a low‑level fan‑in primitive.
+
+---
+
+## 4. Key Concepts and Terms
+
+### 4.1 Core Entities
+
+* **Join**
+  A coordination record representing a group of related Outbox messages (steps) that must all complete. Persisted in `OutboxJoin`.
+
+* **Join Member**
+  An association between a join and a specific Outbox message, identified by `OutboxMessageIdentifier`. Persisted in `OutboxJoinMember`.
+
+* **Step**
+  A single Outbox message participating in a join, represented by an `OutboxMessageIdentifier`.
+
+* **Join Status**
+  A small integer status for the join:
+
+  * `0` – Pending
+  * `1` – Completed
+  * `2` – Failed
+  * `3` – Cancelled
+
+* **Join Member Status**
+  A small integer status for the join member:
+
+  * `0` – Pending
+  * `1` – Completed
+  * `2` – Failed
+
+* **ExpectedSteps**
+  The number of steps that must complete or fail for the join to be considered finished.
+
+* **CompletedSteps / FailedSteps**
+  Counters on the join summarizing how many attached messages completed or failed.
+
+### 4.2 Identifiers and Types
+
+* **JoinIdentifier**
+  Strongly‑typed identifier (e.g., `readonly record struct JoinIdentifier(Guid Value)`) representing a join. Not persisted directly in Outbox messages.
+
+* **OutboxMessageIdentifier**
+  Strongly‑typed identifier for the logical Outbox message (defined in the Outbox spec). Used to link joins to Outbox messages.
+
+### 4.3 Grouping and Metadata
+
+* **GroupingKey**
+  Optional string used to scope or group joins (e.g., per customer, tenant, or workflow). Null or empty grouping keys mean “unscoped”.
+
+* **Metadata**
+  Optional opaque string (typically JSON) attached to the join for domain‑specific information.
+
+### 4.4 Join Wait and Continuations
+
+* **Join Wait Message**
+  An Outbox message (e.g., topic `join.wait`) that instructs the system to wait for a specific join to complete and then enqueue a continuation message.
+
+* **Join Wait Handler**
+  A handler that processes join wait messages, checks join progress, and either:
+
+  * Abandons the wait message if the join is not complete yet, or
+  * Enqueues the success or failure continuation when the join is complete.
+
+---
+
+## 5. Public API Surface
+
+> Note: Names and signatures here match existing usage. These operations may be implemented as extension methods over `IOutbox` or as methods on a dedicated service (e.g., `IJoinCoordinator`). The behavior is the same either way.
+
+### 5.1 Join Operations
+
+#### 5.1.1 StartJoinAsync
+
+```csharp
+Task<JoinIdentifier> StartJoinAsync(
+    string? groupingKey,
+    int expectedSteps,
+    string? metadata,
+    CancellationToken cancellationToken)
+```
+
+**Parameters**
+
+* `groupingKey` (optional)
+
+  * Type: `string?`
+  * MAY be null.
+  * Empty string (`""`) MUST be treated as null and normalized to null.
+  * MUST NOT exceed 255 characters when non‑null.
+  * Used to scope joins for querying and analysis.
+
+* `expectedSteps` (required)
+
+  * Type: `int`
+  * MUST be greater than 0.
+  * If `expectedSteps <= 0`, the method MUST throw `ArgumentOutOfRangeException`.
+  * Number of steps required for the join to finish.
+
+* `metadata` (optional)
+
+  * Type: `string?`
+  * MAY be null or empty.
+  * Stored as NVARCHAR(MAX); no enforced schema.
+  * Typically JSON describing the join.
+
+* `cancellationToken` (required)
+
+  * Type: `CancellationToken`
+  * Standard cancellation semantics.
+
+**Return value**
+
+* `JoinIdentifier` – the identifier of the created join.
+
+---
+
+#### 5.1.2 AttachMessageToJoinAsync
+
+```csharp
+Task AttachMessageToJoinAsync(
+    JoinIdentifier joinId,
+    OutboxMessageIdentifier outboxMessageId,
+    CancellationToken cancellationToken)
+```
+
+**Parameters**
+
+* `joinId` (required)
+
+  * Type: `JoinIdentifier`
+  * MUST NOT be the default/empty identifier.
+  * MUST reference an existing join; if not, the implementation MUST throw an `InvalidOperationException`.
+
+* `outboxMessageId` (required)
+
+  * Type: `OutboxMessageIdentifier`
+  * MUST NOT be default/empty.
+  * Identifies the Outbox message being attached as a step.
+
+* `cancellationToken` (required)
+
+  * Type: `CancellationToken`.
+
+**Behavior**
+
+* Creates a `OutboxJoinMember` row for `(joinId, outboxMessageId)` if it does not already exist.
+* MUST be idempotent: calling with the same `(joinId, outboxMessageId)` multiple times MUST NOT create duplicates or change counters.
+
+---
+
+#### 5.1.3 ReportStepCompletedAsync
+
+```csharp
+Task ReportStepCompletedAsync(
+    JoinIdentifier joinId,
+    OutboxMessageIdentifier outboxMessageId,
+    CancellationToken cancellationToken)
+```
+
+#### 5.1.4 ReportStepFailedAsync
+
+```csharp
+Task ReportStepFailedAsync(
+    JoinIdentifier joinId,
+    OutboxMessageIdentifier outboxMessageId,
+    CancellationToken cancellationToken)
+```
+
+**Shared parameter semantics**
+
+* `joinId`
+
+  * Same constraints as in `AttachMessageToJoinAsync`.
+
+* `outboxMessageId`
+
+  * Same constraints as in `AttachMessageToJoinAsync`.
+
+* `cancellationToken`
+
+  * Standard cancellation token.
+
+**Behavior**
+
+* `ReportStepCompletedAsync`:
+
+  * Marks the join member as completed.
+  * Increments `CompletedSteps` for the join.
+* `ReportStepFailedAsync`:
+
+  * Marks the join member as failed.
+  * Increments `FailedSteps` for the join.
+* Both methods MUST be idempotent per `(joinId, outboxMessageId)`:
+
+  * Repeating the same call MUST NOT double‑increment counters.
+
+> Implementation note: In typical deployments, these operations are not called directly. Instead, join state is updated automatically when Outbox messages are acknowledged/failed by the Outbox stored procedures. The methods remain available for edge cases and troubleshooting.
+
+---
+
+### 5.2 Join Wait / Continuation Operations
+
+#### 5.2.1 EnqueueJoinWaitAsync
+
+```csharp
+Task EnqueueJoinWaitAsync(
+    JoinIdentifier joinId,
+    bool failIfAnyStepFailed,
+    string onCompleteTopic,
+    string onCompletePayload,
+    string? onFailTopic,
+    string? onFailPayload,
+    CancellationToken cancellationToken)
+```
+
+**Parameters**
+
+* `joinId` (required)
+
+  * Type: `JoinIdentifier`
+  * MUST NOT be default/empty.
+  * MUST refer to an existing join; otherwise the method MUST throw `InvalidOperationException`.
+
+* `failIfAnyStepFailed` (required)
+
+  * Type: `bool`
+  * If `true`, the join is considered failed when any step fails.
+  * If `false`, the join is considered completed as long as all steps are either completed or failed.
+
+* `onCompleteTopic` (required)
+
+  * Type: `string`
+  * MUST NOT be null or empty.
+  * MUST follow the same constraints as Outbox `topic`:
+
+    * Case‑sensitive.
+    * Length ≤ 255 characters.
+
+* `onCompletePayload` (required)
+
+  * Type: `string`
+  * MUST NOT be null.
+  * MAY be empty.
+  * Treated as opaque string (typically JSON).
+
+* `onFailTopic` (optional)
+
+  * Type: `string?`
+  * MAY be null if no failure continuation is desired.
+  * If non‑null, MUST be non‑empty and respect the same topic constraints.
+  * If `failIfAnyStepFailed` is true and `onFailTopic` is null, a failed join will not enqueue any continuation.
+
+* `onFailPayload` (optional)
+
+  * Type: `string?`
+  * MAY be null or empty.
+  * Treated as opaque string.
+
+* `cancellationToken` (required)
+
+  * Type: `CancellationToken`.
+
+**Behavior**
+
+* Enqueues a “join wait” Outbox message (e.g., topic `join.wait`) that encodes the above parameters.
+* The join wait message is processed by `JoinWaitHandler`.
+
+---
+
+### 5.3 JoinWaitHandler
+
+```csharp
+public sealed class JoinWaitHandler : IOutboxHandler
+{
+    public string Topic { get; }  // e.g., "join.wait"
+    public Task HandleAsync(OutboxMessage message, CancellationToken cancellationToken);
+}
+```
+
+**Topic**
+
+* `Topic` MUST be a constant string (e.g., `"join.wait"`).
+* MUST conform to the Outbox topic rules.
+
+**HandleAsync**
+
+* `message.Payload` MUST contain the serialized form of the `EnqueueJoinWaitAsync` parameters (including at least `joinId`, `failIfAnyStepFailed`, and continuation info).
+* The handler:
+
+  * Reads join state.
+  * Decides whether to abandon or complete the join wait message.
+  * Enqueues continuation messages via Outbox when appropriate.
+
+---
+
+## 6. Behavioral Requirements
+
+Use RFC 2119 language. IDs are `JOIN-###`.
+
+### 6.1 Join Creation
+
+* **JOIN-001**: `StartJoinAsync` MUST insert a new row into `OutboxJoin` with:
+
+  * `CompletedSteps = 0`
+  * `FailedSteps = 0`
+  * `Status = Pending`.
+
+* **JOIN-002**: `StartJoinAsync` MUST throw `ArgumentOutOfRangeException` if `expectedSteps <= 0`.
+
+* **JOIN-003**: `StartJoinAsync` MUST store the `groupingKey` normalized such that empty strings are persisted as `NULL`.
+
+* **JOIN-004**: If `groupingKey` is non‑null and its length exceeds 255 characters, `StartJoinAsync` MUST throw `ArgumentException` or allow the database to reject the insert.
+
+* **JOIN-005**: `StartJoinAsync` MUST set `CreatedUtc` and `LastUpdatedUtc` to the current UTC time.
+
+* **JOIN-006**: `StartJoinAsync` MUST return a `JoinIdentifier` corresponding to the persisted `JoinId` value.
+
+### 6.2 Join Membership
+
+* **JOIN-010**: `AttachMessageToJoinAsync` MUST create an `OutboxJoinMember` row with:
+
+  * `(JoinId, OutboxMessageId) = (joinId, outboxMessageId)`
+  * `Status = Pending`
+  * `CreatedUtc = current UTC time`
+    if no such row already exists.
+
+* **JOIN-011**: `AttachMessageToJoinAsync` MUST be idempotent. Calling it multiple times with the same `(joinId, outboxMessageId)` MUST NOT create duplicate rows or increment any join counters.
+
+* **JOIN-012**: `AttachMessageToJoinAsync` MUST throw `InvalidOperationException` if `joinId` does not exist in `OutboxJoin`.
+
+* **JOIN-013**: `AttachMessageToJoinAsync` MUST NOT modify `CompletedSteps` or `FailedSteps`.
+
+* **JOIN-014**: `OutboxJoinMember` MUST NOT introduce any foreign key from `Outbox` back into joins; joins remain discoverable only via `OutboxMessageIdentifier` and the join tables.
+
+### 6.3 Step Completion and Failure
+
+* **JOIN-020**: `ReportStepCompletedAsync` MUST:
+
+  * Mark the `OutboxJoinMember.Status` as Completed for the given `(joinId, outboxMessageId)`.
+  * Increment `CompletedSteps` for the join if this is the first time the step is being marked as completed.
+
+* **JOIN-021**: `ReportStepFailedAsync` MUST:
+
+  * Mark the `OutboxJoinMember.Status` as Failed for the given `(joinId, outboxMessageId)`.
+  * Increment `FailedSteps` for the join if this is the first time the step is being marked as failed.
+
+* **JOIN-022**: `ReportStepCompletedAsync` and `ReportStepFailedAsync` MUST be idempotent. Repeated calls with the same `(joinId, outboxMessageId)` and same status MUST NOT increment counters again.
+
+* **JOIN-023**: For any join, the invariant `CompletedSteps + FailedSteps <= ExpectedSteps` MUST hold at all times.
+
+* **JOIN-024**: All updates to `OutboxJoinMember` and `OutboxJoin` counters for a single call to `ReportStepCompletedAsync` or `ReportStepFailedAsync` MUST occur within a single database transaction.
+
+### 6.4 Integration with Outbox
+
+* **JOIN-030**: When an Outbox message is acknowledged as successfully processed, the Join component MUST treat that as a step completion for all joins that have a member row referencing that message’s `OutboxMessageIdentifier`.
+
+* **JOIN-031**: When an Outbox message is permanently failed, the Join component MUST treat that as a step failure for all joins that have a member row referencing that message’s `OutboxMessageIdentifier`.
+
+* **JOIN-032**: The updates described in JOIN‑030 and JOIN‑031 MUST be performed atomically with the Outbox ack/fail operation (within the same transaction) to avoid inconsistent join counters.
+
+* **JOIN-033**: The integration in JOIN‑030 and JOIN‑031 MUST NOT require any join‑specific columns on the Outbox table; it MUST operate solely via `OutboxJoinMember` and `OutboxMessageIdentifier`.
+
+* **JOIN-034**: Manual calls to `ReportStepCompletedAsync` and `ReportStepFailedAsync` MUST produce the same observable result as the automatic updates in JOIN‑030 and JOIN‑031.
+
+### 6.5 Join Completion and Status
+
+* **JOIN-040**: A join MUST be considered “complete” when `CompletedSteps + FailedSteps == ExpectedSteps`.
+
+* **JOIN-041**: When a join transitions from incomplete to complete:
+
+  * If `FailedSteps > 0`, the join’s `Status` MUST be set to Failed (`2`).
+  * If `FailedSteps == 0`, the join’s `Status` MUST be set to Completed (`1`).
+
+* **JOIN-042**: Once a join is in Completed or Failed status, `CompletedSteps`, `FailedSteps`, and `Status` MUST NOT change further.
+
+* **JOIN-043**: The `LastUpdatedUtc` field on `OutboxJoin` MUST be updated each time `CompletedSteps`, `FailedSteps`, or `Status` changes.
+
+### 6.6 Join Wait Handler
+
+* **JOIN-050**: `JoinWaitHandler.Topic` MUST be the configured join wait topic (e.g., `"join.wait"`). All join wait messages MUST use this topic.
+
+* **JOIN-051**: `JoinWaitHandler.HandleAsync` MUST deserialize `message.Payload` into a structure that provides at least:
+
+  * `JoinIdentifier joinId`
+  * `bool failIfAnyStepFailed`
+  * `string onCompleteTopic`
+  * `string onCompletePayload`
+  * `string? onFailTopic`
+  * `string? onFailPayload`
+
+* **JOIN-052**: If the join referenced by `joinId` does not exist, `JoinWaitHandler` MUST fail the join wait message (not retry indefinitely), typically by marking it as failed via Outbox.
+
+* **JOIN-053**: If the join exists but is not yet complete (`CompletedSteps + FailedSteps < ExpectedSteps`), `JoinWaitHandler` MUST abandon the join wait message so it can be retried later.
+
+* **JOIN-054**: If the join is complete and `failIfAnyStepFailed == true` and `FailedSteps > 0`:
+
+  * If `onFailTopic` is non‑null/non‑empty, `JoinWaitHandler` MUST enqueue a failure continuation message using `onFailTopic`/`onFailPayload`.
+  * If `onFailTopic` is null/empty, `JoinWaitHandler` MUST NOT enqueue any continuation.
+
+* **JOIN-055**: If the join is complete and either `failIfAnyStepFailed == false` or `FailedSteps == 0`, `JoinWaitHandler` MUST enqueue a success continuation message using `onCompleteTopic`/`onCompletePayload`.
+
+* **JOIN-056**: After enqueueing the appropriate continuation (or none), `JoinWaitHandler` MUST acknowledge the join wait message so it is not processed again.
+
+* **JOIN-057**: `JoinWaitHandler` SHOULD perform all decisions based only on the current state of `OutboxJoin` and not on Outbox message contents.
+
+### 6.7 Concurrency and Consistency
+
+* **JOIN-060**: Multiple workers MAY operate on joins concurrently. The implementation MUST ensure that join counters and statuses remain consistent under concurrent updates.
+
+* **JOIN-061**: All updates to `OutboxJoin` and `OutboxJoinMember` MUST use appropriate locking or optimistic concurrency (e.g., row‑level locks or version columns) to prevent lost updates.
+
+* **JOIN-062**: The Join component MUST handle database deadlocks by either retrying the update or propagating the exception so the caller can retry.
+
+### 6.8 Observability
+
+* **JOIN-070**: Join creation (`StartJoinAsync`) SHOULD be logged at INFO level, including `JoinId`, `groupingKey`, and `expectedSteps`.
+
+* **JOIN-071**: Join membership changes (`AttachMessageToJoinAsync`) SHOULD be logged at DEBUG level, including `JoinId` and `OutboxMessageId`.
+
+* **JOIN-072**: Join counters reaching completion (JOIN‑040) SHOULD be logged at INFO level, including join status and step counts.
+
+* **JOIN-073**: Join wait handling decisions (abandon vs success vs failure continuation) SHOULD be logged at DEBUG or INFO level.
+
+---
+
+## 7. Configuration and Limits
+
+### 7.1 Schema
+
+The Join component assumes the following SQL schema (names may be configurable; defaults shown):
+
+#### 7.1.1 OutboxJoin Table
+
+```sql
+CREATE TABLE [dbo].[OutboxJoin] (
+    JoinId UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    GroupingKey NVARCHAR(255) NULL,
+    ExpectedSteps INT NOT NULL,
+    CompletedSteps INT NOT NULL DEFAULT 0,
+    FailedSteps INT NOT NULL DEFAULT 0,
+    Status TINYINT NOT NULL DEFAULT 0,  -- 0=Pending, 1=Completed, 2=Failed, 3=Cancelled
+    CreatedUtc DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
+    LastUpdatedUtc DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
+    Metadata NVARCHAR(MAX) NULL
+);
+
+CREATE INDEX IX_OutboxJoin_GroupingKey
+    ON [dbo].[OutboxJoin](GroupingKey)
+    WHERE GroupingKey IS NOT NULL;
+```
+
+#### 7.1.2 OutboxJoinMember Table
+
+```sql
+CREATE TABLE [dbo].[OutboxJoinMember] (
+    JoinId UNIQUEIDENTIFIER NOT NULL,
+    OutboxMessageId UNIQUEIDENTIFIER NOT NULL,
+    Status TINYINT NOT NULL DEFAULT 0,  -- 0=Pending, 1=Completed, 2=Failed
+    CreatedUtc DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT PK_OutboxJoinMember PRIMARY KEY (JoinId, OutboxMessageId),
+    CONSTRAINT FK_OutboxJoinMember_Join FOREIGN KEY (JoinId)
+        REFERENCES [dbo].[OutboxJoin](JoinId) ON DELETE CASCADE
+);
+
+CREATE INDEX IX_OutboxJoinMember_OutboxMessageId
+    ON [dbo].[OutboxJoinMember](OutboxMessageId);
+```
+
+> The Outbox table itself is defined in the Outbox Component specification and MUST NOT contain any join‑specific columns.
+
+### 7.2 Limits and Constraints
+
+* `GroupingKey` length:
+
+  * Max 255 characters.
+* `ExpectedSteps`:
+
+  * MUST be > 0.
+  * Recommended practical upper bound depends on workload; very large joins may impact performance.
+* `Metadata`:
+
+  * Stored as NVARCHAR(MAX); subject to SQL Server limits.
+* Number of joins and join members:
+
+  * There is no hard limit; storage and performance are constrained by database size and indexing.
+
+### 7.3 Schema Deployment
+
+* **JOIN-080**: If join schema deployment is enabled, the Join component MUST create `OutboxJoin` and `OutboxJoinMember` tables and their indexes if they do not exist.
+* **JOIN-081**: Schema deployment MUST be idempotent; repeated runs MUST NOT fail if the schema already exists.
+* **JOIN-082**: Join schema deployment MAY be coupled with Outbox schema deployment or configured separately, but MUST NOT modify the Outbox table structure.
+
+---
+
+## 8. Risks / Open Questions
+
+### 8.1 Join Store and Multi-Database Scenarios
+
+Current implementation assumptions (e.g., a singleton `SqlOutboxJoinStore`) typically connect joins to a single database. In multi‑database Outbox scenarios, this means:
+
+* Each database has its own join tables.
+* Joins do not span multiple databases.
+
+**Open Question**: Should there be a `IJoinStoreProvider` (analogous to `IOutboxStoreProvider`) to support multi‑database join coordination, or should joins remain strictly per‑database?
+
+### 8.2 Automatic vs Manual Step Reporting
+
+Join counters are primarily updated automatically by Outbox ack/fail stored procedures. The API also exposes manual reporting methods:
+
+* `ReportStepCompletedAsync`
+* `ReportStepFailedAsync`
+
+**Open Questions:**
+
+* Are these manual methods required for any planned workflows, or can they be marked as advanced / diagnostic only?
+* Should the default guidance explicitly discourage manual calls unless Outbox integration is unavailable?
+
+### 8.3 Cross-Database Joins
+
+The Join component intentionally does not support cross‑database joins.
+
+**Risk**: Some workflows may try to coordinate steps that span multiple tenant or shard databases.
+
+**Guidance**: Use higher‑level workflows, sagas, or compensating actions for cross‑database coordination.
+
+### 8.4 Retention and Cleanup
+
+The spec does not define a retention policy for:
+
+* Completed/failed joins.
+* Join member records.
+
+**Open Question**: Should there be a background cleanup mechanism (e.g., delete joins older than N days) or leave retention policies to the host application?

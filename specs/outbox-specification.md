@@ -24,8 +24,6 @@ The Outbox component implements the [Transactional Outbox pattern](https://micro
 4. **Failure Handling**: Implement automatic retry with exponential backoff for transient failures
 5. **Multi-Database Support**: Process messages across multiple databases in multi-tenant scenarios
 
-**Note**: Join/fan-in coordination is an optional feature built on top of the core Outbox functionality. It is documented in this specification for completeness but is architecturally separate from the core message processing.
-
 ### 2.3 Scope
 
 **In Scope:**
@@ -37,9 +35,6 @@ The Outbox component implements the [Transactional Outbox pattern](https://micro
 - Message scheduling with due times
 - SQL Server backend implementation
 
-**Architecturally Separate (but included for completeness):**
-- Join/fan-in coordination for workflow orchestration (built on top of core Outbox, not integral to message processing)
-
 **Out of Scope:**
 - Direct message broker integration (handled by user-provided handlers)
 - Message transformation or enrichment (handled by user-provided handlers)
@@ -48,6 +43,9 @@ The Outbox component implements the [Transactional Outbox pattern](https://micro
 - Non-SQL Server backends (future consideration)
 - Message priority queuing (future consideration)
 
+**Related Components (documented separately):**
+- Join / fan-in coordination built on top of Outbox using `OutboxMessageIdentifier` and Outbox stored procedures. The Outbox component itself remains join-agnostic.
+
 ## 3. Non-Goals
 
 This component does NOT:
@@ -55,7 +53,7 @@ This component does NOT:
 1. **Replace Message Brokers**: The Outbox is not a general-purpose message broker. It coordinates local database writes with eventual message delivery.
 2. **Guarantee Exactly-Once Processing**: The component provides at-least-once delivery semantics. Handlers must be idempotent.
 3. **Provide Ordered Message Delivery**: Messages may be processed in any order, regardless of creation time or topic.
-4. **Support Cross-Database Transactions**: Each message is enqueued in a single database; joins across databases are not currently supported.
+4. **Support Cross-Database Transactions**: Each message is enqueued in a single database; distributed transactions across databases are not supported.
 5. **Implement Business Logic**: The Outbox dispatches messages; all business logic lives in handler implementations.
 
 ## 4. Key Concepts and Terms
@@ -76,8 +74,6 @@ The Outbox component uses strongly-typed identifiers (implemented as `readonly r
 
 - **OutboxMessageIdentifier**: The logical message identifier that remains constant across retries. While `OutboxWorkItemIdentifier` represents the work item in the queue, `OutboxMessageIdentifier` represents the semantic message itself. This is useful for idempotency checks and correlation across multiple processing attempts.
 
-- **JoinIdentifier**: A unique identifier for a join coordination primitive. Joins use this ID to track groups of related messages and coordinate fan-in operations.
-
 - **OwnerToken**: A unique identifier for a worker process or instance. When a worker claims messages, it provides its `OwnerToken` to establish ownership. Only the owning worker can acknowledge, abandon, or fail messages it has claimed. This prevents conflicts when multiple workers are processing messages concurrently.
 
 ### 4.3 Work Queue Semantics
@@ -96,21 +92,11 @@ The Outbox component uses strongly-typed identifiers (implemented as `readonly r
 - **Selection Strategy**: Algorithm for choosing which store to poll next (e.g., round-robin, drain-first)
 - **Router**: Routes write operations to the correct outbox store based on a routing key (e.g., tenant ID)
 
-### 4.5 Join/Fan-In Concepts
-
-- **Join**: A coordination primitive that tracks completion of multiple related messages
-- **Join Member**: An association between a join and a specific outbox message
-- **Expected Steps**: The total number of messages that must complete for a join to finish
-- **Completed Steps**: Count of messages that have been successfully processed
-- **Failed Steps**: Count of messages that have permanently failed
-- **Join Status**: Current state of the join (Pending, Completed, Failed, Cancelled)
-- **Grouping Key**: An optional string identifier used to scope joins to a specific context (e.g., customer ID, tenant ID, workflow ID). Joins with the same grouping key are logically related.
-
-### 4.6 Scheduling Concepts
+### 4.5 Scheduling Concepts
 
 - **Due Time**: An optional UTC timestamp indicating when a message should become eligible for processing
 - **Deferred Message**: A message with a future due time that won't be claimed until that time arrives
-- **Next Attempt Time**: For failed messages, the calculated time when the next retry should occur
+- **Next Attempt Time**: The earliest UTC time when a message (including previously failed or abandoned messages) becomes eligible to be claimed again
 
 ## 5. Public API Surface
 
@@ -179,6 +165,8 @@ Task EnqueueAsync(
   - **Type**: `CancellationToken`
   - **Purpose**: Allows cancellation of the async operation
 
+_Implementation note_: The runtime MAY expose convenience overloads of `EnqueueAsync` that omit `transaction`, `correlationId`, and/or `dueTimeUtc`. For the purposes of this specification, all overloads are defined in terms of this canonical signature. Omitted arguments are treated as if `null` (or `CancellationToken.None`) was passed.
+
 **Work Queue Operations:**
 
 ```csharp
@@ -191,10 +179,32 @@ Task<IReadOnlyList<OutboxWorkItemIdentifier>> ClaimAsync(
 
 **Parameters:**
 
-- **`ownerToken`**: Unique identifier for the claiming worker process. Only this worker can subsequently ack/abandon/fail the claimed messages.
-- **`leaseSeconds`**: Duration in seconds to hold the lease (recommended: 10-300 seconds).
-- **`batchSize`**: Maximum number of messages to claim (recommended: 1-100).
-- **`cancellationToken`**: Cancellation token for the operation.
+- `ownerToken` (required): A stable identifier for the worker instance.
+  - Type: `OwnerToken` (strongly-typed GUID).
+  - Constraints:
+    - MUST NOT be the default/empty value.
+    - SHOULD remain constant for the lifetime of the worker process instance.
+  - Purpose: Used to enforce that only the owning worker can ack/abandon/fail the messages it claimed.
+
+- `leaseSeconds` (required): Duration in seconds for which the claim is valid.
+  - Type: `int`
+  - Constraints:
+    - MUST be greater than 0.
+    - SHOULD be between 10 and 300 seconds for typical workloads.
+    - If `leaseSeconds <= 0`, the method MUST throw an `ArgumentOutOfRangeException`.
+  - Purpose: Controls how long messages are locked before they can be reaped or reclaimed.
+
+- `batchSize` (required): Maximum number of messages to claim.
+  - Type: `int`
+  - Constraints:
+    - MUST be greater than 0.
+    - SHOULD be between 1 and 100 for typical workloads.
+    - If `batchSize <= 0`, the method MUST throw an `ArgumentOutOfRangeException`.
+  - Purpose: Batches work for efficiency while bounding per-iteration load.
+
+- `cancellationToken` (required): Cancellation token for the operation.
+  - Type: `CancellationToken`
+  - Purpose: Allows cancelling the claim operation.
 
 ```csharp
 Task AckAsync(
@@ -205,9 +215,21 @@ Task AckAsync(
 
 **Parameters:**
 
-- **`ownerToken`**: MUST match the token used to claim the messages.
-- **`ids`**: Message identifiers to acknowledge. Mismatched IDs are silently ignored.
-- **`cancellationToken`**: Cancellation token for the operation.
+- `ids` (required): The set of work item identifiers to acknowledge.
+  - Type: `IEnumerable<OutboxWorkItemIdentifier>`
+  - Constraints:
+    - MUST NOT be null.
+    - MAY be empty; an empty sequence is treated as a no-op.
+    - Duplicate IDs within the sequence MUST be tolerated and MUST NOT cause errors.
+  - Purpose: Indicates which claimed messages to transition to the next state.
+
+- `ownerToken` (required): The worker identity that previously claimed the messages.
+  - Constraints:
+    - MUST match the `OwnerToken` currently stored on each message to be updated.
+  - Behavior:
+    - Messages whose `OwnerToken` does not match are silently ignored and MUST NOT cause the method to fail.
+
+- `cancellationToken` (required): Cancellation token for the operation.
 
 ```csharp
 Task AbandonAsync(
@@ -218,9 +240,21 @@ Task AbandonAsync(
 
 **Parameters:**
 
-- **`ownerToken`**: MUST match the token used to claim the messages.
-- **`ids`**: Message identifiers to abandon for retry. Mismatched IDs are silently ignored.
-- **`cancellationToken`**: Cancellation token for the operation.
+- `ids` (required): The set of work item identifiers to abandon.
+  - Type: `IEnumerable<OutboxWorkItemIdentifier>`
+  - Constraints:
+    - MUST NOT be null.
+    - MAY be empty; an empty sequence is treated as a no-op.
+    - Duplicate IDs within the sequence MUST be tolerated and MUST NOT cause errors.
+  - Purpose: Indicates which claimed messages to transition to the next state.
+
+- `ownerToken` (required): The worker identity that previously claimed the messages.
+  - Constraints:
+    - MUST match the `OwnerToken` currently stored on each message to be updated.
+  - Behavior:
+    - Messages whose `OwnerToken` does not match are silently ignored and MUST NOT cause the method to fail.
+
+- `cancellationToken` (required): Cancellation token for the operation.
 
 ```csharp
 Task FailAsync(
@@ -231,9 +265,21 @@ Task FailAsync(
 
 **Parameters:**
 
-- **`ownerToken`**: MUST match the token used to claim the messages.
-- **`ids`**: Message identifiers to permanently fail. Mismatched IDs are silently ignored.
-- **`cancellationToken`**: Cancellation token for the operation.
+- `ids` (required): The set of work item identifiers to fail.
+  - Type: `IEnumerable<OutboxWorkItemIdentifier>`
+  - Constraints:
+    - MUST NOT be null.
+    - MAY be empty; an empty sequence is treated as a no-op.
+    - Duplicate IDs within the sequence MUST be tolerated and MUST NOT cause errors.
+  - Purpose: Indicates which claimed messages to transition to the next state.
+
+- `ownerToken` (required): The worker identity that previously claimed the messages.
+  - Constraints:
+    - MUST match the `OwnerToken` currently stored on each message to be updated.
+  - Behavior:
+    - Messages whose `OwnerToken` does not match are silently ignored and MUST NOT cause the method to fail.
+
+- `cancellationToken` (required): Cancellation token for the operation.
 
 ```csharp
 Task ReapExpiredAsync(CancellationToken cancellationToken)
@@ -241,34 +287,8 @@ Task ReapExpiredAsync(CancellationToken cancellationToken)
 
 **Parameters:**
 
-- **`cancellationToken`**: Cancellation token for the operation.
-
-**Note on Join Operations:**
-
-Join/fan-in operations are an advanced coordination feature built on top of the core Outbox functionality. They are documented here for completeness, but joins are not integral to the Outbox message processing. The Outbox table and message processing logic have no inherent knowledge of joins; messages can optionally be associated with joins via the separate `OutboxJoinMember` table. For detailed join operation specifications, see the separate Join Coordination specification document.
-
-```csharp
-Task<JoinIdentifier> StartJoinAsync(
-    string? groupingKey,
-    int expectedSteps,
-    string? metadata,
-    CancellationToken cancellationToken)
-
-Task AttachMessageToJoinAsync(
-    JoinIdentifier joinId,
-    OutboxMessageIdentifier outboxMessageId,
-    CancellationToken cancellationToken)
-
-Task ReportStepCompletedAsync(
-    JoinIdentifier joinId,
-    OutboxMessageIdentifier outboxMessageId,
-    CancellationToken cancellationToken)
-
-Task ReportStepFailedAsync(
-    JoinIdentifier joinId,
-    OutboxMessageIdentifier outboxMessageId,
-    CancellationToken cancellationToken)
-```
+- `cancellationToken` (required): Cancellation token for the operation.
+  - Purpose: Allows cancellation of the reap operation. If cancellation is requested, the method MUST stop processing as soon as practical.
 
 #### 5.1.2 IOutboxHandler
 
@@ -279,14 +299,36 @@ string Topic { get; }  // The topic this handler processes
 Task HandleAsync(OutboxMessage message, CancellationToken cancellationToken)
 ```
 
+**Topic Property Constraints:**
+
+- `Topic` MUST be non-null and non-empty.
+- The handler's `Topic` MUST match the `topic` value used in `EnqueueAsync` calls in a case-sensitive manner.
+- The same length and character recommendations as `topic` (see §5.1.1) apply.
+
+**HandleAsync Parameters:**
+
+- `message`: The claimed outbox message to process. MUST NOT be null.
+- `cancellationToken`: Standard cancellation token. Handlers SHOULD honor cancellation where practical.
+
 #### 5.1.3 IOutboxRouter
 
 Interface for routing write operations to specific databases in multi-tenant scenarios.
 
 ```csharp
-IOutbox GetOutbox(string key)  // Get outbox for a string routing key
-IOutbox GetOutbox(Guid key)    // Get outbox for a GUID routing key
+IOutbox GetOutbox(string routingKey)
 ```
+
+**Parameters:**
+
+- `routingKey` (required): Opaque routing identifier used to choose a tenant/database.
+  - Type: `string`
+  - Constraints:
+    - MUST NOT be null or empty.
+    - SHOULD be stable and unique per outbox store (e.g., tenant ID, database name).
+  - Behavior:
+    - If no outbox exists for the specified `routingKey`, the method MUST throw `InvalidOperationException`.
+
+_Implementation note_: Some implementations MAY provide additional overloads (e.g., `GetOutbox(Guid tenantId)`) that internally convert other key types to strings before delegating to this canonical method. Such overloads are convenience APIs and do not change the specified behavior.
 
 #### 5.1.4 IOutboxStore
 
@@ -298,6 +340,19 @@ Task MarkDispatchedAsync(OutboxWorkItemIdentifier id, CancellationToken cancella
 Task RescheduleAsync(OutboxWorkItemIdentifier id, TimeSpan delay, string lastError, CancellationToken cancellationToken)
 Task FailAsync(OutboxWorkItemIdentifier id, string lastError, CancellationToken cancellationToken)
 ```
+
+**Parameter Semantics:**
+
+- `ClaimDueAsync(int limit, ...)`
+  - `limit` MUST be greater than 0. If `limit <= 0`, the store MUST throw an `ArgumentOutOfRangeException`.
+  - The store MUST NOT return more than `limit` messages.
+
+- `RescheduleAsync(OutboxWorkItemIdentifier id, TimeSpan delay, string lastError, ...)`
+  - `delay` MUST be greater than zero; zero or negative values MUST result in an `ArgumentOutOfRangeException`.
+  - `lastError` MAY be null or empty. Implementations SHOULD normalize empty strings to null to avoid noise.
+
+- `FailAsync(OutboxWorkItemIdentifier id, string lastError, ...)`
+  - `lastError` MAY be null or empty; same normalization rule as above.
 
 ### 5.2 Data Types
 
@@ -389,7 +444,7 @@ IServiceCollection AddOutboxHandler<THandler>(this IServiceCollection services) 
 
 **OBX-017**: `ClaimAsync` MUST atomically select and lock up to `batchSize` ready messages using database-level locking mechanisms (e.g., `WITH (UPDLOCK, READPAST, ROWLOCK)`).
 
-**OBX-018**: `ClaimAsync` MUST only claim messages where `DueTimeUtc` is null or less than or equal to the current UTC time.
+**OBX-018**: `ClaimAsync` MUST only claim messages where `DueTimeUtc` is null or less than or equal to the current UTC time (if `DueTimeUtc` is used).
 
 **OBX-019**: `ClaimAsync` MUST only claim messages that are not currently leased by another worker (i.e., `LockedUntil` is null or in the past).
 
@@ -407,6 +462,12 @@ IServiceCollection AddOutboxHandler<THandler>(this IServiceCollection services) 
 
 **OBX-026**: `ClaimAsync` MUST respect the `batchSize` limit and MUST NOT claim more messages than requested.
 
+**OBX-127**: `ClaimAsync` MUST throw an `ArgumentOutOfRangeException` if `leaseSeconds <= 0`.
+
+**OBX-128**: `ClaimAsync` MUST throw an `ArgumentOutOfRangeException` if `batchSize <= 0`.
+
+**OBX-130**: `ClaimAsync` MUST only claim messages where `NextAttemptAt` is less than or equal to the current UTC time.
+
 ### 6.3 Message Acknowledgment
 
 **OBX-027**: `AckAsync` MUST mark the specified messages as successfully processed by setting `IsProcessed` = true.
@@ -421,9 +482,7 @@ IServiceCollection AddOutboxHandler<THandler>(this IServiceCollection services) 
 
 **OBX-032**: After `AckAsync` completes, the acknowledged messages MUST NOT be returned by subsequent `ClaimAsync` calls.
 
-**OBX-033**: If a message is part of any joins, `AckAsync` MUST increment the `CompletedSteps` counter for each associated join.
-
-**OBX-034**: The increment of join counters in `AckAsync` MUST occur atomically with marking the message as processed.
+**OBX-129**: `AckAsync`, `AbandonAsync`, and `FailAsync` MUST throw an `ArgumentNullException` if `ids` is null, and MUST treat an empty `ids` collection as a no-op.
 
 ### 6.4 Message Abandonment
 
@@ -450,10 +509,6 @@ IServiceCollection AddOutboxHandler<THandler>(this IServiceCollection services) 
 **OBX-044**: `FailAsync` MUST only fail messages whose `OwnerToken` matches the provided `ownerToken`.
 
 **OBX-045**: `FailAsync` MUST ignore message IDs that do not exist or do not match the owner token, without throwing an exception.
-
-**OBX-046**: If a message is part of any joins, `FailAsync` MUST increment the `FailedSteps` counter for each associated join.
-
-**OBX-047**: The increment of join counters in `FailAsync` MUST occur atomically with marking the message as failed.
 
 **OBX-048**: After `FailAsync` completes, the failed messages MUST NOT be returned by subsequent `ClaimAsync` calls.
 
@@ -529,42 +584,6 @@ IServiceCollection AddOutboxHandler<THandler>(this IServiceCollection services) 
 
 **OBX-079**: The dynamic provider MUST NOT unnecessarily recreate stores if the database configuration has not changed.
 
-### 6.11 Join/Fan-In Coordination
-
-**OBX-080**: `StartJoinAsync` MUST create a new join record with the specified `groupingKey`, `expectedSteps`, and optional `metadata`.
-
-**OBX-081**: `StartJoinAsync` MUST return a unique `JoinIdentifier` for the created join.
-
-**OBX-082**: `StartJoinAsync` MUST initialize the join with `CompletedSteps` = 0 and `FailedSteps` = 0.
-
-**OBX-083**: `AttachMessageToJoinAsync` MUST create a join member record associating the specified message with the specified join.
-
-**OBX-084**: `AttachMessageToJoinAsync` MUST be idempotent; calling it multiple times with the same parameters MUST have no additional effect.
-
-**OBX-085**: `ReportStepCompletedAsync` MUST increment the `CompletedSteps` counter for the specified join.
-
-**OBX-086**: `ReportStepCompletedAsync` MUST be idempotent when called with the same `outboxMessageId`.
-
-**OBX-087**: `ReportStepFailedAsync` MUST increment the `FailedSteps` counter for the specified join.
-
-**OBX-088**: `ReportStepFailedAsync` MUST be idempotent when called with the same `outboxMessageId`.
-
-**OBX-089**: Join counters (`CompletedSteps` and `FailedSteps`) SHOULD be automatically updated by the database when messages are acknowledged or failed, eliminating the need for explicit calls to `ReportStepCompletedAsync` or `ReportStepFailedAsync` in most cases.
-
-**OBX-090**: The `JoinWaitHandler` MUST check if a join is complete by verifying that `CompletedSteps + FailedSteps = ExpectedSteps`.
-
-**OBX-091**: If the join is not complete, the `JoinWaitHandler` MUST abandon the `join.wait` message for retry later.
-
-**OBX-092**: If the join is complete and `FailIfAnyStepFailed` is true, the join MUST be marked as failed if `FailedSteps > 0`.
-
-**OBX-093**: If the join is complete and succeeds, the `JoinWaitHandler` MUST enqueue the message specified by `OnCompleteTopic` and `OnCompletePayload`.
-
-**OBX-094**: If the join is complete and fails, the `JoinWaitHandler` MUST enqueue the message specified by `OnFailTopic` and `OnFailPayload`.
-
-**OBX-095**: Joins MAY be scoped to a logical grouping using the optional `groupingKey` parameter. Joins with the same grouping key are logically related and can be used to isolate coordination within specific contexts (e.g., per customer, per tenant, per workflow).
-
-**OBX-096**: A single message MAY participate in multiple joins.
-
 ### 6.12 Concurrency and Consistency
 
 **OBX-097**: All database operations within a single Outbox method call MUST execute within a single transaction to ensure atomicity.
@@ -599,7 +618,9 @@ IServiceCollection AddOutboxHandler<THandler>(this IServiceCollection services) 
 
 **OBX-110**: Schema deployment operations SHOULD be idempotent; running them multiple times MUST NOT cause errors.
 
-**OBX-111**: The Outbox schema MUST include the following tables: `Outbox`, `OutboxJoin`, `OutboxJoinMember`.
+**OBX-111**: The Outbox schema MUST include the `Outbox` table and associated indexes needed for claiming and processing messages.
+
+> Join-related tables (e.g., `OutboxJoin`, `OutboxJoinMember`) are owned by the Join component and are specified in the Join Coordination specification.
 
 **OBX-112**: The Outbox schema MUST include stored procedures for claim, ack, abandon, fail, and reap operations.
 
@@ -657,23 +678,7 @@ The following constraints are enforced by the Outbox component (also documented 
 
 ## 8. Open Questions / Inconsistencies
 
-### 8.1 Join Store Singleton Limitation
-
-**Observation**: The current `SqlOutboxJoinStore` implementation is registered as a singleton and connects to a single database. In multi-database scenarios, joins only work within the configured database. This is inconsistent with the multi-database support for the main Outbox.
-
-**Impact**: Users cannot create joins that span multiple databases. Each database's joins are isolated to that database, determined by the grouping key.
-
-**Recommendation**: Consider implementing an `IOutboxJoinStoreProvider` pattern similar to `IOutboxStoreProvider` to support joins across multiple databases in future versions.
-
-### 8.2 Automatic vs. Manual Join Reporting
-
-**Observation**: The documentation states that join completion is reported automatically by database stored procedures (`Outbox_Ack` and `Outbox_Fail`), but the `IOutbox` interface still exposes `ReportStepCompletedAsync` and `ReportStepFailedAsync` methods.
-
-**Impact**: This dual mechanism may confuse users about when to use manual vs. automatic reporting.
-
-**Recommendation**: Clarify in documentation that manual methods are provided for backward compatibility and edge cases only. Most users should rely on automatic reporting.
-
-### 8.3 Message Ordering
+### 8.1 Message Ordering
 
 **Observation**: The specification explicitly states that message ordering is not guaranteed, but some users may expect FIFO ordering within a topic.
 
@@ -681,7 +686,7 @@ The following constraints are enforced by the Outbox component (also documented 
 
 **Recommendation**: Consider adding an optional "sequence number" or "partition key" feature in a future version to support ordered processing within partitions.
 
-### 8.4 Dead Letter Queue
+### 8.2 Dead Letter Queue
 
 **Observation**: The current implementation permanently fails messages after max retries but does not provide a dedicated dead letter queue or storage mechanism.
 
@@ -741,38 +746,6 @@ CREATE TABLE [dbo].[Outbox] (
 
 CREATE INDEX IX_Outbox_WorkQueue ON [dbo].[Outbox](Status, CreatedAt) INCLUDE(Id, OwnerToken);
 CREATE INDEX IX_Outbox_DueTime ON [dbo].[Outbox](DueTimeUtc) WHERE DueTimeUtc IS NOT NULL;
-```
-
-### A.2 OutboxJoin Table
-
-```sql
-CREATE TABLE [dbo].[OutboxJoin] (
-    JoinId UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    GroupingKey NVARCHAR(255) NULL,  -- Optional scoping identifier (e.g., customer ID, tenant ID, workflow ID)
-    ExpectedSteps INT NOT NULL,
-    CompletedSteps INT NOT NULL DEFAULT 0,
-    FailedSteps INT NOT NULL DEFAULT 0,
-    Status TINYINT NOT NULL DEFAULT 0,  -- 0=Pending, 1=Completed, 2=Failed, 3=Cancelled
-    CreatedUtc DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
-    LastUpdatedUtc DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
-    Metadata NVARCHAR(MAX) NULL
-);
-
-CREATE INDEX IX_OutboxJoin_GroupingKey ON [dbo].[OutboxJoin](GroupingKey) WHERE GroupingKey IS NOT NULL;
-```
-
-### A.3 OutboxJoinMember Table
-
-```sql
-CREATE TABLE [dbo].[OutboxJoinMember] (
-    JoinId UNIQUEIDENTIFIER NOT NULL,
-    OutboxMessageId UNIQUEIDENTIFIER NOT NULL,
-    Status TINYINT NOT NULL DEFAULT 0,  -- 0=Pending, 1=Completed, 2=Failed
-    CreatedUtc DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
-    CONSTRAINT PK_OutboxJoinMember PRIMARY KEY (JoinId, OutboxMessageId),
-    CONSTRAINT FK_OutboxJoinMember_Join FOREIGN KEY (JoinId) 
-        REFERENCES [dbo].[OutboxJoin](JoinId) ON DELETE CASCADE
-);
 ```
 
 ## Appendix B: Handler Implementation Example
@@ -845,52 +818,12 @@ public class OrderService
         
         // Enqueue message to the tenant's database
         await outbox.EnqueueAsync(
-            "order.created",
-            JsonSerializer.Serialize(order),
-            order.Id.ToString(),
+            topic: "order.created",
+            payload: JsonSerializer.Serialize(order),
+            transaction: null,
+            correlationId: order.Id.ToString(),
+            dueTimeUtc: null,
             cancellationToken: CancellationToken.None);
-    }
-}
-```
-
-## Appendix D: Join/Fan-In Example
-
-```csharp
-// Start a join for 3 parallel extraction tasks
-// The grouping key scopes this join to a specific customer
-var joinId = await outbox.StartJoinAsync(
-    groupingKey: customerId,
-    expectedSteps: 3,
-    metadata: """{"type": "etl", "phase": "extract"}""",
-    cancellationToken);
-
-// Enqueue extraction messages and attach to join
-var msg1 = await outbox.EnqueueAsync("extract.customers", payload1, cancellationToken);
-await outbox.AttachMessageToJoinAsync(joinId, msg1, cancellationToken);
-
-var msg2 = await outbox.EnqueueAsync("extract.orders", payload2, cancellationToken);
-await outbox.AttachMessageToJoinAsync(joinId, msg2, cancellationToken);
-
-var msg3 = await outbox.EnqueueAsync("extract.products", payload3, cancellationToken);
-await outbox.AttachMessageToJoinAsync(joinId, msg3, cancellationToken);
-
-// Set up fan-in to start transformation when all extractions complete
-await outbox.EnqueueJoinWaitAsync(
-    joinId: joinId,
-    failIfAnyStepFailed: true,
-    onCompleteTopic: "etl.transform",
-    onCompletePayload: JsonSerializer.Serialize(new { CustomerId = customerId }),
-    cancellationToken: cancellationToken);
-
-// Handlers don't need any join-specific logic - automatic reporting handles it
-public class ExtractCustomersHandler : IOutboxHandler
-{
-    public string Topic => "extract.customers";
-    
-    public async Task HandleAsync(OutboxMessage message, CancellationToken cancellationToken)
-    {
-        // Just do the work - join completion is automatic!
-        await ExtractCustomersAsync(cancellationToken);
     }
 }
 ```
