@@ -341,6 +341,32 @@ internal static class DatabaseSchemaManager
     }
 
     /// <summary>
+    /// Adapts a stored procedure script for custom schema and table names.
+    /// </summary>
+    /// <param name="script">The original SQL script.</param>
+    /// <param name="schemaName">The target schema name.</param>
+    /// <param name="tableName">The table name (e.g., "Outbox", "Inbox").</param>
+    /// <param name="procedureNamePrefix">The procedure name prefix (e.g., "Outbox", "Inbox").</param>
+    /// <returns>The adapted SQL script.</returns>
+    private static string AdaptProcedureScript(string script, string schemaName, string tableName, string procedureNamePrefix)
+    {
+        var adaptedScript = AdaptSchemaName(script, schemaName);
+        
+        // If table name is different from the procedure prefix, replace table references
+        if (!string.Equals(tableName, procedureNamePrefix, StringComparison.Ordinal))
+        {
+            // Replace procedure names: Outbox_Claim -> {tableName}_Claim
+            adaptedScript = adaptedScript.Replace($"[{procedureNamePrefix}_", $"[{tableName}_", StringComparison.Ordinal);
+            adaptedScript = adaptedScript.Replace($".{procedureNamePrefix}_", $".{tableName}_", StringComparison.Ordinal);
+            
+            // Replace table references
+            adaptedScript = adaptedScript.Replace($"[{procedureNamePrefix}]", $"[{tableName}]", StringComparison.Ordinal);
+        }
+        
+        return adaptedScript;
+    }
+
+    /// <summary>
     /// Checks if a table exists in the specified schema.
     /// </summary>
     /// <param name="connection">The database connection.</param>
@@ -1056,175 +1082,14 @@ internal static class DatabaseSchemaManager
     /// <returns>A task representing the asynchronous operation.</returns>
     private static async Task CreateOutboxWorkQueueProceduresAsync(SqlConnection connection, string schemaName, string tableName)
     {
-        // Create procedures one by one to avoid batch execution issues
-        var procedures = new[]
+        // Load and adapt stored procedures from embedded resources
+        var procedureNames = new[] { "Outbox_Claim", "Outbox_Ack", "Outbox_Abandon", "Outbox_Fail", "Outbox_ReapExpired" };
+        
+        foreach (var procName in procedureNames)
         {
-            $"""
-            CREATE OR ALTER PROCEDURE [{schemaName}].[{tableName}_Claim]
-                            @OwnerToken UNIQUEIDENTIFIER,
-                            @LeaseSeconds INT,
-                            @BatchSize INT = 50
-                          AS
-                          BEGIN
-                            SET NOCOUNT ON;
-                            DECLARE @now DATETIMEOFFSET(3) = SYSDATETIMEOFFSET();
-                            DECLARE @until DATETIMEOFFSET(3) = DATEADD(SECOND, @LeaseSeconds, @now);
-
-                            WITH cte AS (
-                                SELECT TOP (@BatchSize) Id
-                                FROM [{schemaName}].[{tableName}] WITH (READPAST, UPDLOCK, ROWLOCK)
-                                WHERE Status = 0
-                                    AND (LockedUntil IS NULL OR LockedUntil <= @now)
-                                    AND (DueTimeUtc IS NULL OR DueTimeUtc <= @now)
-                                ORDER BY CreatedAt
-                            )
-                            UPDATE o SET Status = 1, OwnerToken = @OwnerToken, LockedUntil = @until
-                            OUTPUT inserted.Id
-                            FROM [{schemaName}].[{tableName}] o JOIN cte ON cte.Id = o.Id;
-                          END
-            """,
-
-            $"""
-            CREATE OR ALTER PROCEDURE [{schemaName}].[{tableName}_Ack]
-                            @OwnerToken UNIQUEIDENTIFIER,
-                            @Ids [{schemaName}].[GuidIdList] READONLY
-                          AS
-                          BEGIN
-                            SET NOCOUNT ON;
-
-                            -- Mark outbox messages as dispatched
-                            UPDATE o SET Status = 2, OwnerToken = NULL, LockedUntil = NULL, IsProcessed = 1, ProcessedAt = SYSDATETIMEOFFSET()
-                            FROM [{schemaName}].[{tableName}] o JOIN @Ids i ON i.Id = o.Id
-                            WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
-
-                            -- Only proceed with join updates if any messages were actually acknowledged
-                            -- and OutboxJoin tables exist (i.e., join feature is enabled)
-                            IF @@ROWCOUNT > 0 AND OBJECT_ID(N'[{schemaName}].[OutboxJoinMember]', N'U') IS NOT NULL
-                            BEGIN
-                                -- First, mark the join members as completed (idempotent via WHERE clause)
-                                -- This prevents race conditions by ensuring a member can only be marked once
-                                UPDATE m
-                                SET CompletedAt = SYSDATETIMEOFFSET()
-                                FROM [{schemaName}].[OutboxJoinMember] m
-                                INNER JOIN @Ids i
-                                    ON m.OutboxMessageId = i.Id
-                                WHERE m.CompletedAt IS NULL
-                                    AND m.FailedAt IS NULL;
-
-                                -- Then, increment counter ONLY for joins with members that were just marked
-                                -- Using @@ROWCOUNT from previous UPDATE ensures we only count newly marked members
-                                IF @@ROWCOUNT > 0
-                                BEGIN
-                                    UPDATE j
-                                    SET
-                                        CompletedSteps = CompletedSteps + 1,
-                                        LastUpdatedUtc = SYSDATETIMEOFFSET()
-                                    FROM [{schemaName}].[OutboxJoin] j
-                                    INNER JOIN [{schemaName}].[OutboxJoinMember] m
-                                        ON j.JoinId = m.JoinId
-                                    INNER JOIN @Ids i
-                                        ON m.OutboxMessageId = i.Id
-                                    WHERE m.CompletedAt IS NOT NULL
-                                        AND m.FailedAt IS NULL
-                                        AND m.CompletedAt >= DATEADD(SECOND, -1, SYSDATETIMEOFFSET())
-                                        AND (j.CompletedSteps + j.FailedSteps) < j.ExpectedSteps;
-                                END
-                            END
-                          END
-            """,
-
-            $"""
-            CREATE OR ALTER PROCEDURE [{schemaName}].[{tableName}_Abandon]
-                            @OwnerToken UNIQUEIDENTIFIER,
-                            @Ids [{schemaName}].[GuidIdList] READONLY,
-                            @LastError NVARCHAR(MAX) = NULL,
-                            @DueTimeUtc DATETIMEOFFSET(3) = NULL
-                          AS
-                          BEGIN
-                            SET NOCOUNT ON;
-                            UPDATE o SET
-                                Status = 0,
-                                OwnerToken = NULL,
-                                LockedUntil = NULL,
-                                RetryCount = RetryCount + 1,
-                                LastError = ISNULL(@LastError, o.LastError),
-                                DueTimeUtc = ISNULL(@DueTimeUtc, o.DueTimeUtc)
-                            FROM [{schemaName}].[{tableName}] o JOIN @Ids i ON i.Id = o.Id
-                            WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
-                          END
-            """,
-
-            $"""
-            CREATE OR ALTER PROCEDURE [{schemaName}].[{tableName}_Fail]
-                            @OwnerToken UNIQUEIDENTIFIER,
-                            @Ids [{schemaName}].[GuidIdList] READONLY,
-                            @LastError NVARCHAR(MAX) = NULL,
-                            @ProcessedBy NVARCHAR(100) = NULL
-                          AS
-                          BEGIN
-                            SET NOCOUNT ON;
-
-                            -- Mark outbox messages as failed
-                            UPDATE o SET
-                                Status = 3,
-                                OwnerToken = NULL,
-                                LockedUntil = NULL,
-                                LastError = ISNULL(@LastError, o.LastError),
-                                ProcessedBy = ISNULL(@ProcessedBy, o.ProcessedBy)
-                            FROM [{schemaName}].[{tableName}] o JOIN @Ids i ON i.Id = o.Id
-                            WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
-
-                            -- Only proceed with join updates if any messages were actually failed
-                            -- and OutboxJoin tables exist (i.e., join feature is enabled)
-                            IF @@ROWCOUNT > 0 AND OBJECT_ID(N'[{schemaName}].[OutboxJoinMember]', N'U') IS NOT NULL
-                            BEGIN
-                                -- First, mark the join members as failed (idempotent via WHERE clause)
-                                -- This prevents race conditions by ensuring a member can only be marked once
-                                UPDATE m
-                                SET FailedAt = SYSDATETIMEOFFSET()
-                                FROM [{schemaName}].[OutboxJoinMember] m
-                                INNER JOIN @Ids i
-                                    ON m.OutboxMessageId = i.Id
-                                WHERE m.CompletedAt IS NULL
-                                    AND m.FailedAt IS NULL;
-
-                                -- Then, increment counter ONLY for joins with members that were just marked
-                                -- Using @@ROWCOUNT from previous UPDATE ensures we only count newly marked members
-                                IF @@ROWCOUNT > 0
-                                BEGIN
-                                    UPDATE j
-                                    SET
-                                        FailedSteps = FailedSteps + 1,
-                                        LastUpdatedUtc = SYSDATETIMEOFFSET()
-                                    FROM [{schemaName}].[OutboxJoin] j
-                                    INNER JOIN [{schemaName}].[OutboxJoinMember] m
-                                        ON j.JoinId = m.JoinId
-                                    INNER JOIN @Ids i
-                                        ON m.OutboxMessageId = i.Id
-                                    WHERE m.CompletedAt IS NULL
-                                        AND m.FailedAt IS NOT NULL
-                                        AND m.FailedAt >= DATEADD(SECOND, -1, SYSDATETIMEOFFSET())
-                                        AND (j.CompletedSteps + j.FailedSteps) < j.ExpectedSteps;
-                                END
-                            END
-                          END
-            """,
-
-            $"""
-            CREATE OR ALTER PROCEDURE [{schemaName}].[{tableName}_ReapExpired]
-                          AS
-                          BEGIN
-                            SET NOCOUNT ON;
-                            UPDATE [{schemaName}].[{tableName}] SET Status = 0, OwnerToken = NULL, LockedUntil = NULL
-                            WHERE Status = 1 AND LockedUntil IS NOT NULL AND LockedUntil <= SYSDATETIMEOFFSET();
-                            SELECT @@ROWCOUNT AS ReapedCount;
-                          END
-            """,
-        };
-
-        foreach (var procedure in procedures)
-        {
-            await connection.ExecuteAsync(procedure).ConfigureAwait(false);
+            var script = SqlResourceLoader.GetMultiDatabaseProcedureScript(procName);
+            var adaptedScript = AdaptProcedureScript(script, schemaName, tableName, "Outbox");
+            await ExecuteScriptAsync(connection, adaptedScript).ConfigureAwait(false);
         }
     }
 
