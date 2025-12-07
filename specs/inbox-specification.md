@@ -129,7 +129,7 @@ Task<bool> AlreadyProcessedAsync(
 
 - **`messageId`** (required, non-null): The unique identifier of the message from the external system.
   - **Type**: `string`
-  - **Constraints**: 
+  - **Constraints**:
     - MUST NOT be null or empty string
     - MUST NOT exceed 255 characters
     - Case-sensitive
@@ -172,6 +172,7 @@ Task<bool> AlreadyProcessedAsync(
 ```csharp
 Task MarkProcessingAsync(
     string messageId,
+    string source,
     CancellationToken cancellationToken)
 ```
 
@@ -179,13 +180,18 @@ Task MarkProcessingAsync(
 
 - **`messageId`** (required, non-null): The unique identifier of the message.
   - Same constraints as in `AlreadyProcessedAsync`
-  - **Purpose**: Identifies which message to transition to Processing state
+  - **Purpose**: Part of the composite key identifying which message to transition to Processing state
+
+- **`source`** (required, non-null): The originating system or component.
+  - Same constraints as in `AlreadyProcessedAsync`
+  - **Purpose**: Part of the composite key identifying which message to transition to Processing state
 
 - **`cancellationToken`** (required): Cancellation token for the operation.
 
 ```csharp
 Task MarkProcessedAsync(
     string messageId,
+    string source,
     CancellationToken cancellationToken)
 ```
 
@@ -193,13 +199,18 @@ Task MarkProcessedAsync(
 
 - **`messageId`** (required, non-null): The unique identifier of the message.
   - Same constraints as in `AlreadyProcessedAsync`
-  - **Purpose**: Identifies which message to mark as successfully processed (Done state)
+  - **Purpose**: Part of the composite key identifying which message to mark as successfully processed (Done state)
+
+- **`source`** (required, non-null): The originating system or component.
+  - Same constraints as in `AlreadyProcessedAsync`
+  - **Purpose**: Part of the composite key identifying which message to mark as successfully processed (Done state)
 
 - **`cancellationToken`** (required): Cancellation token for the operation.
 
 ```csharp
 Task MarkDeadAsync(
     string messageId,
+    string source,
     CancellationToken cancellationToken)
 ```
 
@@ -207,7 +218,11 @@ Task MarkDeadAsync(
 
 - **`messageId`** (required, non-null): The unique identifier of the message.
   - Same constraints as in `AlreadyProcessedAsync`
-  - **Purpose**: Identifies which message to mark as permanently failed (Dead state)
+  - **Purpose**: Part of the composite key identifying which message to mark as permanently failed (Dead state)
+
+- **`source`** (required, non-null): The originating system or component.
+  - Same constraints as in `AlreadyProcessedAsync`
+  - **Purpose**: Part of the composite key identifying which message to mark as permanently failed (Dead state)
 
 - **`cancellationToken`** (required): Cancellation token for the operation.
 
@@ -228,7 +243,7 @@ Task EnqueueAsync(
 
 - **`topic`** (required, non-null): The message topic used for routing to handlers.
   - **Type**: `string`
-  - **Constraints**: 
+  - **Constraints**:
     - MUST NOT be null or empty string
     - MUST NOT exceed 255 characters
     - Case-sensitive (e.g., "Order.Created" ≠ "order.created")
@@ -601,177 +616,179 @@ IServiceCollection AddInboxHandler<THandler>(this IServiceCollection services) w
 
 **IBX-042**: `ClaimAsync` MUST only claim messages where the next attempt time (accounting for backoff) is less than or equal to the current UTC time.
 
+**IBX-043a**: `ClaimAsync` MUST throw an `ArgumentException` if `ownerToken` is the default/empty GUID value.
+
 ### 6.4 Message Acknowledgment
 
-**IBX-043**: `AckAsync` MUST mark the specified messages as successfully processed by transitioning them to Done state.
+**IBX-044**: `AckAsync` MUST mark the specified messages as successfully processed by transitioning them to Done state.
 
-**IBX-044**: `AckAsync` MUST only acknowledge messages whose `OwnerToken` matches the provided `ownerToken`.
+**IBX-045**: `AckAsync` MUST only acknowledge messages whose `OwnerToken` matches the provided `ownerToken`.
 
-**IBX-045**: `AckAsync` MUST ignore message IDs that do not exist or do not match the owner token, without throwing an exception.
+**IBX-046**: `AckAsync` MUST ignore message IDs that do not exist or do not match the owner token, without throwing an exception.
 
-**IBX-046**: After `AckAsync` completes, the acknowledged messages MUST NOT be returned by subsequent `ClaimAsync` calls.
+**IBX-047**: After `AckAsync` completes, the acknowledged messages MUST NOT be returned by subsequent `ClaimAsync` calls.
 
-**IBX-047**: `AckAsync` MUST throw an `ArgumentNullException` if `messageIds` is null, and MUST treat an empty `messageIds` collection as a no-op.
+**IBX-048**: `AckAsync` MUST throw an `ArgumentNullException` if `messageIds` is null, and MUST treat an empty `messageIds` collection as a no-op.
 
-**IBX-048**: `AckAsync` MUST clear the `OwnerToken` and `LockedUntil` when transitioning to Done state.
+**IBX-049**: `AckAsync` MUST clear the `OwnerToken` and `LockedUntil` when transitioning to Done state.
 
 ### 6.5 Message Abandonment
 
-**IBX-049**: `AbandonAsync` MUST release the lease on the specified messages by setting `LockedUntil` to null and `OwnerToken` to null.
+**IBX-050**: `AbandonAsync` MUST release the lease on the specified messages by setting `LockedUntil` to null and `OwnerToken` to null.
 
-**IBX-050**: `AbandonAsync` MUST increment the `Attempt` counter for each abandoned message.
+**IBX-051**: `AbandonAsync` MUST increment the `Attempt` counter for each abandoned message.
 
-**IBX-051**: `AbandonAsync` MUST calculate a new next attempt time using exponential backoff based on `Attempt`, unless a specific `delay` is provided.
+**IBX-052**: `AbandonAsync` MUST calculate a new next attempt time using exponential backoff based on `Attempt`, unless a specific `delay` is provided.
 
-**IBX-052**: If `delay` is provided and is greater than zero, `AbandonAsync` MUST use that specific delay value instead of the default backoff calculation.
+**IBX-053**: If `delay` is provided and is greater than zero, `AbandonAsync` MUST use that specific delay value instead of the default backoff calculation.
 
-**IBX-053**: `AbandonAsync` MUST only abandon messages whose `OwnerToken` matches the provided `ownerToken`.
+**IBX-054**: `AbandonAsync` MUST only abandon messages whose `OwnerToken` matches the provided `ownerToken`.
 
-**IBX-054**: `AbandonAsync` MUST ignore message IDs that do not exist or do not match the owner token, without throwing an exception.
+**IBX-055**: `AbandonAsync` MUST ignore message IDs that do not exist or do not match the owner token, without throwing an exception.
 
-**IBX-055**: After `AbandonAsync` completes, the abandoned messages MUST become available for claiming again after the backoff/delay period expires.
+**IBX-056**: After `AbandonAsync` completes, the abandoned messages MUST become available for claiming again after the backoff/delay period expires.
 
-**IBX-056**: `AbandonAsync` SHOULD record the `lastError` message if provided by the caller.
+**IBX-057**: `AbandonAsync` SHOULD record the `lastError` message if provided by the caller.
 
-**IBX-057**: If `delay` is provided but is zero or negative, `AbandonAsync` MUST throw an `ArgumentOutOfRangeException`.
+**IBX-058**: If `delay` is provided but is zero or negative, `AbandonAsync` MUST throw an `ArgumentOutOfRangeException`.
 
-**IBX-058**: `AbandonAsync` MUST throw an `ArgumentNullException` if `messageIds` is null, and MUST treat an empty `messageIds` collection as a no-op.
+**IBX-059**: `AbandonAsync` MUST throw an `ArgumentNullException` if `messageIds` is null, and MUST treat an empty `messageIds` collection as a no-op.
 
 ### 6.6 Message Failure
 
-**IBX-059**: `FailAsync` MUST mark the specified messages as permanently failed by transitioning them to Dead state.
+**IBX-060**: `FailAsync` MUST mark the specified messages as permanently failed by transitioning them to Dead state.
 
-**IBX-060**: `FailAsync` MUST record the `error` message provided by the caller.
+**IBX-061**: `FailAsync` MUST record the `error` message provided by the caller.
 
-**IBX-061**: `FailAsync` MUST only fail messages whose `OwnerToken` matches the provided `ownerToken`.
+**IBX-062**: `FailAsync` MUST only fail messages whose `OwnerToken` matches the provided `ownerToken`.
 
-**IBX-062**: `FailAsync` MUST ignore message IDs that do not exist or do not match the owner token, without throwing an exception.
+**IBX-063**: `FailAsync` MUST ignore message IDs that do not exist or do not match the owner token, without throwing an exception.
 
-**IBX-063**: After `FailAsync` completes, the failed messages MUST NOT be returned by subsequent `ClaimAsync` calls.
+**IBX-064**: After `FailAsync` completes, the failed messages MUST NOT be returned by subsequent `ClaimAsync` calls.
 
-**IBX-064**: `FailAsync` MUST clear the `OwnerToken` and `LockedUntil` when transitioning to Dead state.
+**IBX-065**: `FailAsync` MUST clear the `OwnerToken` and `LockedUntil` when transitioning to Dead state.
 
-**IBX-065**: `FailAsync` MUST throw an `ArgumentNullException` if `messageIds` is null, and MUST treat an empty `messageIds` collection as a no-op.
+**IBX-066**: `FailAsync` MUST throw an `ArgumentNullException` if `messageIds` is null, and MUST treat an empty `messageIds` collection as a no-op.
 
-**IBX-066**: `FailAsync` MUST throw an `ArgumentNullException` if `error` is null.
+**IBX-067**: `FailAsync` MUST throw an `ArgumentNullException` if `error` is null.
 
 ### 6.7 Lease Expiration and Reaping
 
-**IBX-067**: `ReapExpiredAsync` MUST identify all messages where `LockedUntil` is not null and is less than the current UTC time.
+**IBX-068**: `ReapExpiredAsync` MUST identify all messages where `LockedUntil` is not null and is less than the current UTC time.
 
-**IBX-068**: `ReapExpiredAsync` MUST release the lease on expired messages by setting `LockedUntil` to null and `OwnerToken` to null.
+**IBX-069**: `ReapExpiredAsync` MUST release the lease on expired messages by setting `LockedUntil` to null and `OwnerToken` to null.
 
-**IBX-069**: `ReapExpiredAsync` MUST make reaped messages available for claiming by subsequent `ClaimAsync` calls, subject to backoff constraints.
+**IBX-070**: `ReapExpiredAsync` MUST make reaped messages available for claiming by subsequent `ClaimAsync` calls, subject to backoff constraints.
 
-**IBX-070**: `ReapExpiredAsync` MUST NOT modify messages that are in Done or Dead state.
+**IBX-071**: `ReapExpiredAsync` MUST NOT modify messages that are in Done or Dead state.
 
-**IBX-071**: The Inbox polling service SHOULD call `ReapExpiredAsync` periodically to recover from worker crashes.
+**IBX-072**: The Inbox polling service SHOULD call `ReapExpiredAsync` periodically to recover from worker crashes.
 
 ### 6.8 Message Handlers
 
-**IBX-072**: The Inbox dispatcher MUST route each claimed message to the handler whose `Topic` property matches the message's topic.
+**IBX-073**: The Inbox dispatcher MUST route each claimed message to the handler whose `Topic` property matches the message's topic.
 
-**IBX-073**: If no handler is registered for a message's topic, the Inbox dispatcher MUST log a warning and SHOULD abandon the message for retry.
+**IBX-074**: If no handler is registered for a message's topic, the Inbox dispatcher MUST log a warning and SHOULD abandon the message for retry.
 
-**IBX-074**: If a handler throws an exception, the Inbox dispatcher MUST catch the exception and determine whether to abandon or fail the message based on a backoff policy.
+**IBX-075**: If a handler throws an exception, the Inbox dispatcher MUST catch the exception and determine whether to abandon or fail the message based on a backoff policy.
 
-**IBX-075**: Handlers MUST be invoked with the full `InboxMessage` object and a `CancellationToken`.
+**IBX-076**: Handlers MUST be invoked with the full `InboxMessage` object and a `CancellationToken`.
 
-**IBX-076**: Handlers SHOULD be idempotent, as messages may be processed more than once if abandoned and retried.
+**IBX-077**: Handlers SHOULD be idempotent, as messages may be processed more than once if abandoned and retried.
 
-**IBX-077**: The Inbox dispatcher MUST NOT call handlers concurrently for the same message.
+**IBX-078**: The Inbox dispatcher MUST NOT call handlers concurrently for the same message.
 
-**IBX-078**: The Inbox dispatcher MAY call handlers concurrently for different messages.
+**IBX-079**: The Inbox dispatcher MAY call handlers concurrently for different messages.
 
 ### 6.9 Retry and Backoff
 
-**IBX-079**: The Inbox MUST implement exponential backoff for retrying failed messages.
+**IBX-080**: The Inbox MUST implement exponential backoff for retrying failed messages.
 
-**IBX-080**: The default backoff policy SHOULD use the formula: `delay = min(2^attempt seconds, 60 seconds)`.
+**IBX-081**: The default backoff policy SHOULD use the formula: `delay = min(2^attempt seconds, 60 seconds)`.
 
-**IBX-081**: The backoff policy MAY be customizable via configuration or dependency injection.
+**IBX-082**: The backoff policy MAY be customizable via configuration or dependency injection.
 
-**IBX-082**: After the maximum attempt count is reached, the Inbox SHOULD permanently fail the message by calling `FailAsync`.
+**IBX-083**: After the maximum attempt count is reached, the Inbox SHOULD permanently fail the message by calling `FailAsync`.
 
-**IBX-083**: The maximum attempt count SHOULD be configurable, with a sensible default (e.g., 10 attempts).
+**IBX-084**: The maximum attempt count SHOULD be configurable, with a sensible default (e.g., 10 attempts).
 
 ### 6.10 Multi-Database Support
 
-**IBX-084**: When configured with multiple databases via `AddMultiSqlInbox`, the Inbox MUST maintain separate stores for each database.
+**IBX-085**: When configured with multiple databases via `AddMultiSqlInbox`, the Inbox MUST maintain separate stores for each database.
 
-**IBX-085**: The Inbox dispatcher MUST use an `IInboxSelectionStrategy` to determine which store to poll on each iteration.
+**IBX-086**: The Inbox dispatcher MUST use an `IInboxSelectionStrategy` to determine which store to poll on each iteration.
 
-**IBX-086**: The provided `RoundRobinInboxSelectionStrategy` MUST cycle through all stores in order, processing one batch from each before moving to the next.
+**IBX-087**: The provided `RoundRobinInboxSelectionStrategy` MUST cycle through all stores in order, processing one batch from each before moving to the next.
 
-**IBX-087**: The provided `DrainFirstInboxSelectionStrategy` MUST continue processing from the same store until it returns no messages, then move to the next store.
+**IBX-088**: The provided `DrainFirstInboxSelectionStrategy` MUST continue processing from the same store until it returns no messages, then move to the next store.
 
-**IBX-088**: The `IInboxWorkStoreProvider` MUST return a consistent identifier for each store via `GetStoreIdentifier`.
+**IBX-089**: The `IInboxWorkStoreProvider` MUST return a consistent identifier for each store via `GetStoreIdentifier`.
 
-**IBX-089**: The Inbox dispatcher MUST log the store identifier when processing messages to aid in troubleshooting.
+**IBX-090**: The Inbox dispatcher MUST log the store identifier when processing messages to aid in troubleshooting.
 
-**IBX-090**: The `IInboxRouter.GetInbox(key)` MUST return the `IInbox` instance associated with the specified routing key.
+**IBX-091**: The `IInboxRouter.GetInbox(key)` MUST return the `IInbox` instance associated with the specified routing key.
 
-**IBX-091**: The `IInboxRouter` MUST throw an `InvalidOperationException` if no inbox exists for the specified routing key.
+**IBX-092**: The `IInboxRouter` MUST throw an `InvalidOperationException` if no inbox exists for the specified routing key.
 
 ### 6.11 Dynamic Database Discovery
 
-**IBX-092**: When configured with `AddDynamicMultiSqlInbox`, the Inbox MUST periodically invoke `IInboxDatabaseDiscovery.DiscoverDatabasesAsync` to refresh the list of databases.
+**IBX-093**: When configured with `AddDynamicMultiSqlInbox`, the Inbox MUST periodically invoke `IInboxDatabaseDiscovery.DiscoverDatabasesAsync` to refresh the list of databases.
 
-**IBX-093**: The default refresh interval SHOULD be 5 minutes.
+**IBX-094**: The default refresh interval SHOULD be 5 minutes.
 
-**IBX-094**: When new databases are discovered, the dynamic provider MUST create new inbox stores for those databases.
+**IBX-095**: When new databases are discovered, the dynamic provider MUST create new inbox stores for those databases.
 
-**IBX-095**: When databases are removed from discovery results, the dynamic provider MUST remove the corresponding inbox stores.
+**IBX-096**: When databases are removed from discovery results, the dynamic provider MUST remove the corresponding inbox stores.
 
-**IBX-096**: The dynamic provider MUST NOT unnecessarily recreate stores if the database configuration has not changed.
+**IBX-097**: The dynamic provider MUST NOT unnecessarily recreate stores if the database configuration has not changed.
 
 ### 6.12 Cleanup Operations
 
-**IBX-097**: The Inbox MAY provide cleanup operations to remove old Done messages from the database.
+**IBX-098**: The Inbox MAY provide cleanup operations to remove old Done messages from the database.
 
-**IBX-098**: Cleanup operations MUST NOT remove messages that are in Seen, Processing, or Dead state.
+**IBX-099**: Cleanup operations MUST NOT remove messages that are in Seen, Processing, or Dead state.
 
-**IBX-099**: Cleanup operations SHOULD be configurable with a retention period (e.g., keep messages for 30 days).
+**IBX-100**: Cleanup operations SHOULD be configurable with a retention period (e.g., keep messages for 30 days).
 
-**IBX-100**: Cleanup operations MUST use batching to avoid long-running transactions.
+**IBX-101**: Cleanup operations MUST use batching to avoid long-running transactions.
 
 ### 6.13 Concurrency and Consistency
 
-**IBX-101**: All database operations within a single Inbox method call MUST execute within a single transaction to ensure atomicity.
+**IBX-102**: All database operations within a single Inbox method call MUST execute within a single transaction to ensure atomicity.
 
-**IBX-102**: The Inbox MUST use appropriate database isolation levels to prevent dirty reads, non-repeatable reads, and phantom reads during claim operations.
+**IBX-103**: The Inbox MUST use appropriate database isolation levels to prevent dirty reads, non-repeatable reads, and phantom reads during claim operations.
 
-**IBX-103**: The Inbox MUST handle database deadlocks gracefully by retrying the operation or propagating the exception to the caller.
+**IBX-104**: The Inbox MUST handle database deadlocks gracefully by retrying the operation or propagating the exception to the caller.
 
-**IBX-104**: Multiple worker processes MAY safely operate on the same Inbox table concurrently.
+**IBX-105**: Multiple worker processes MAY safely operate on the same Inbox table concurrently.
 
-**IBX-105**: The Inbox MUST ensure that a message is never claimed by more than one worker at the same time.
+**IBX-106**: The Inbox MUST ensure that a message is never claimed by more than one worker at the same time.
 
 ### 6.14 Observability
 
-**IBX-106**: The Inbox SHOULD log all deduplication checks at DEBUG level, including whether the message was already processed.
+**IBX-107**: The Inbox SHOULD log all deduplication checks at DEBUG level, including whether the message was already processed.
 
-**IBX-107**: The Inbox SHOULD log all enqueue operations at INFO level, including topic, source, and message ID.
+**IBX-108**: The Inbox SHOULD log all enqueue operations at INFO level, including topic, source, and message ID.
 
-**IBX-108**: The Inbox SHOULD log all claim operations at DEBUG level, including the number of messages claimed.
+**IBX-109**: The Inbox SHOULD log all claim operations at DEBUG level, including the number of messages claimed.
 
-**IBX-109**: The Inbox SHOULD log all handler invocations at INFO level, including topic and message ID.
+**IBX-110**: The Inbox SHOULD log all handler invocations at INFO level, including topic and message ID.
 
-**IBX-110**: The Inbox MUST log handler exceptions at ERROR level, including the exception details and message ID.
+**IBX-111**: The Inbox MUST log handler exceptions at ERROR level, including the exception details and message ID.
 
-**IBX-111**: The Inbox SHOULD log reap operations at INFO level, including the number of messages reaped.
+**IBX-112**: The Inbox SHOULD log reap operations at INFO level, including the number of messages reaped.
 
-**IBX-112**: For multi-database scenarios, all log messages SHOULD include the store identifier to aid in troubleshooting.
+**IBX-113**: For multi-database scenarios, all log messages SHOULD include the store identifier to aid in troubleshooting.
 
 ### 6.15 Schema Deployment
 
-**IBX-113**: When `EnableSchemaDeployment` is true, the Inbox MUST create the necessary database tables and indexes if they do not already exist.
+**IBX-114**: When `EnableSchemaDeployment` is true, the Inbox MUST create the necessary database tables and indexes if they do not already exist.
 
-**IBX-114**: When `EnableSchemaDeployment` is false, the Inbox MUST assume the schema exists and MUST NOT attempt to create it.
+**IBX-115**: When `EnableSchemaDeployment` is false, the Inbox MUST assume the schema exists and MUST NOT attempt to create it.
 
-**IBX-115**: Schema deployment operations SHOULD be idempotent; running them multiple times MUST NOT cause errors.
+**IBX-116**: Schema deployment operations SHOULD be idempotent; running them multiple times MUST NOT cause errors.
 
-**IBX-116**: The Inbox schema MUST include the `Inbox` table and associated indexes needed for claiming and processing messages.
+**IBX-117**: The Inbox schema MUST include the `Inbox` table and associated indexes needed for claiming and processing messages.
 
 ## 7. Configuration and Limits
 
@@ -796,28 +813,28 @@ The following constraints are enforced by the Inbox component:
 - **MessageId**: Maximum 255 characters (IBX-011)
 - **Source**: Maximum 255 characters (IBX-012)
 - **Topic**: Maximum 255 characters (IBX-020)
-- **Payload**: Maximum ~2GB (NVARCHAR(MAX) limit) (IBX-117)
+- **Payload**: Maximum ~2GB (NVARCHAR(MAX) limit) (IBX-118)
 - **Hash**: Maximum ~2GB (VARBINARY(MAX) limit), recommended SHA256 (32 bytes)
-- **LeaseSeconds**: Recommended 10-300 seconds (IBX-118)
-- **BatchSize**: Recommended 1-100 (IBX-119)
+- **LeaseSeconds**: Recommended 10-300 seconds (IBX-119)
+- **BatchSize**: Recommended 1-100 (IBX-120)
 
-**IBX-117**: The `payload` parameter MAY be arbitrarily large, subject to database column limits (NVARCHAR(MAX), approximately 2GB).
+**IBX-118**: The `payload` parameter MAY be arbitrarily large, subject to database column limits (NVARCHAR(MAX), approximately 2GB).
 
-**IBX-118**: The `leaseSeconds` parameter SHOULD be between 10 and 300 seconds for optimal performance.
+**IBX-119**: The `leaseSeconds` parameter SHOULD be between 10 and 300 seconds for optimal performance.
 
-**IBX-119**: The `batchSize` parameter SHOULD be between 1 and 100 for optimal performance.
+**IBX-120**: The `batchSize` parameter SHOULD be between 1 and 100 for optimal performance.
 
-**IBX-120**: A single Inbox instance MAY process thousands of messages per second, depending on handler complexity and database performance.
+**IBX-121**: A single Inbox instance MAY process thousands of messages per second, depending on handler complexity and database performance.
 
 ### 7.3 Performance Considerations
 
-**IBX-121**: The Inbox SHOULD use database indexes on the `Status`, `LockedUntil`, and `DueTimeUtc` columns to optimize claim queries.
+**IBX-122**: The Inbox SHOULD use database indexes on the `Status`, `LockedUntil`, and `DueTimeUtc` columns to optimize claim queries.
 
-**IBX-122**: For multi-database scenarios, the Inbox SHOULD cache `IInbox` instances to avoid recreating them on every operation.
+**IBX-123**: For multi-database scenarios, the Inbox SHOULD cache `IInbox` instances to avoid recreating them on every operation.
 
-**IBX-123**: The polling service SHOULD implement a backoff mechanism when no messages are available to reduce database load.
+**IBX-124**: The polling service SHOULD implement a backoff mechanism when no messages are available to reduce database load.
 
-**IBX-124**: The Inbox SHOULD use composite indexes on (`Source`, `MessageId`) for efficient deduplication lookups.
+**IBX-125**: The Inbox SHOULD use composite indexes on (`Source`, `MessageId`) for efficient deduplication lookups.
 
 ### 7.4 Security Considerations
 
@@ -828,6 +845,8 @@ The following constraints are enforced by the Inbox component:
 **IBX-127**: The Inbox SHOULD support encrypted connections to the database via the connection string.
 
 **IBX-128**: Content hashes SHOULD use cryptographic hash functions (e.g., SHA256) to prevent collision attacks.
+
+**IBX-129**: If `ownerToken` is the default/empty GUID value, methods that accept it MUST throw an `ArgumentException`.
 
 ## 8. Open Questions / Inconsistencies
 
@@ -1075,4 +1094,4 @@ public class WebhookService
 
 ---
 
-**End of Specification**
+## End of Specification
