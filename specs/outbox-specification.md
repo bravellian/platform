@@ -65,7 +65,19 @@ This component does NOT:
 - **Correlation ID**: An optional identifier to trace messages back to their source or group related messages
 - **Handler**: An implementation of `IOutboxHandler` that processes messages for a specific topic
 
-### 4.2 Work Queue Semantics
+### 4.2 Strongly-Typed Identifiers
+
+The Outbox component uses strongly-typed identifiers (implemented as `readonly record struct` wrappers around `Guid`) to prevent mixing up different types of IDs and provide type safety:
+
+- **OutboxWorkItemIdentifier**: The primary key of an outbox message in the work queue table. This is the identifier used by workers to claim, acknowledge, abandon, or fail messages. It represents a specific instance of a message in the queue with its processing state.
+
+- **OutboxMessageIdentifier**: The logical message identifier that remains constant across retries. While `OutboxWorkItemIdentifier` represents the work item in the queue, `OutboxMessageIdentifier` represents the semantic message itself. This is useful for idempotency checks and correlation across multiple processing attempts.
+
+- **JoinIdentifier**: A unique identifier for a join coordination primitive. Joins use this ID to track groups of related messages and coordinate fan-in operations.
+
+- **OwnerToken**: A unique identifier for a worker process or instance. When a worker claims messages, it provides its `OwnerToken` to establish ownership. Only the owning worker can acknowledge, abandon, or fail messages it has claimed. This prevents conflicts when multiple workers are processing messages concurrently.
+
+### 4.3 Work Queue Semantics
 
 - **Claim**: Atomically reserve messages for processing with a time-bounded lease
 - **Lease**: A time-limited lock on a message, preventing other workers from processing it
@@ -74,14 +86,14 @@ This component does NOT:
 - **Fail**: Permanently mark a message as failed (used for permanent errors after max retries)
 - **Reap**: Recover messages whose leases have expired due to worker crashes or timeouts
 
-### 4.3 Multi-Database Concepts
+### 4.4 Multi-Database Concepts
 
 - **Outbox Store**: A single database instance containing an Outbox table
 - **Store Provider**: Manages access to multiple outbox stores (one per database/tenant)
 - **Selection Strategy**: Algorithm for choosing which store to poll next (e.g., round-robin, drain-first)
 - **Router**: Routes write operations to the correct outbox store based on a routing key (e.g., tenant ID)
 
-### 4.4 Join/Fan-In Concepts
+### 4.5 Join/Fan-In Concepts
 
 - **Join**: A coordination primitive that tracks completion of multiple related messages
 - **Join Member**: An association between a join and a specific outbox message
@@ -89,8 +101,9 @@ This component does NOT:
 - **Completed Steps**: Count of messages that have been successfully processed
 - **Failed Steps**: Count of messages that have permanently failed
 - **Join Status**: Current state of the join (Pending, Completed, Failed, Cancelled)
+- **Grouping Key**: An optional string identifier used to scope joins to a specific context (e.g., customer ID, tenant ID, workflow ID). Joins with the same grouping key are logically related.
 
-### 4.5 Scheduling Concepts
+### 4.6 Scheduling Concepts
 
 - **Due Time**: An optional UTC timestamp indicating when a message should become eligible for processing
 - **Deferred Message**: A message with a future due time that won't be claimed until that time arrives
@@ -131,7 +144,7 @@ Task ReapExpiredAsync(CancellationToken cancellationToken)
 **Join Operations:**
 
 ```csharp
-Task<JoinIdentifier> StartJoinAsync(long tenantId, int expectedSteps, string? metadata, CancellationToken cancellationToken)
+Task<JoinIdentifier> StartJoinAsync(string? groupingKey, int expectedSteps, string? metadata, CancellationToken cancellationToken)
 Task AttachMessageToJoinAsync(JoinIdentifier joinId, OutboxMessageIdentifier outboxMessageId, CancellationToken cancellationToken)
 Task ReportStepCompletedAsync(JoinIdentifier joinId, OutboxMessageIdentifier outboxMessageId, CancellationToken cancellationToken)
 Task ReportStepFailedAsync(JoinIdentifier joinId, OutboxMessageIdentifier outboxMessageId, CancellationToken cancellationToken)
@@ -386,7 +399,7 @@ IServiceCollection AddOutboxHandler<THandler>(this IServiceCollection services) 
 
 ### 6.11 Join/Fan-In Coordination
 
-**OBX-074**: `StartJoinAsync` MUST create a new join record with the specified `tenantId`, `expectedSteps`, and optional `metadata`.
+**OBX-074**: `StartJoinAsync` MUST create a new join record with the specified `groupingKey`, `expectedSteps`, and optional `metadata`.
 
 **OBX-075**: `StartJoinAsync` MUST return a unique `JoinIdentifier` for the created join.
 
@@ -416,7 +429,7 @@ IServiceCollection AddOutboxHandler<THandler>(this IServiceCollection services) 
 
 **OBX-088**: If the join is complete and fails, the `JoinWaitHandler` MUST enqueue the message specified by `OnFailTopic` and `OnFailPayload`.
 
-**OBX-089**: Joins MUST be scoped to a single tenant (identified by `tenantId`).
+**OBX-089**: Joins MAY be scoped to a logical grouping using the optional `groupingKey` parameter. Joins with the same grouping key are logically related and can be used to isolate coordination within specific contexts (e.g., per customer, per tenant, per workflow).
 
 **OBX-090**: A single message MAY participate in multiple joins.
 
@@ -512,7 +525,7 @@ IServiceCollection AddOutboxHandler<THandler>(this IServiceCollection services) 
 
 **Observation**: The current `SqlOutboxJoinStore` implementation is registered as a singleton and connects to a single database. In multi-database scenarios, joins only work within the configured database. This is inconsistent with the multi-database support for the main Outbox.
 
-**Impact**: Users cannot create joins that span multiple tenant databases. Each tenant's joins are isolated.
+**Impact**: Users cannot create joins that span multiple databases. Each database's joins are isolated to that database, determined by the grouping key.
 
 **Recommendation**: Consider implementing an `IOutboxJoinStoreProvider` pattern similar to `IOutboxStoreProvider` to support joins across multiple databases in future versions.
 
@@ -599,7 +612,7 @@ CREATE INDEX IX_Outbox_DueTime ON [dbo].[Outbox](DueTimeUtc) WHERE DueTimeUtc IS
 ```sql
 CREATE TABLE [dbo].[OutboxJoin] (
     JoinId UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    PayeWaiveTenantId BIGINT NOT NULL,
+    GroupingKey NVARCHAR(255) NULL,  -- Optional scoping identifier (e.g., customer ID, tenant ID, workflow ID)
     ExpectedSteps INT NOT NULL,
     CompletedSteps INT NOT NULL DEFAULT 0,
     FailedSteps INT NOT NULL DEFAULT 0,
@@ -608,6 +621,8 @@ CREATE TABLE [dbo].[OutboxJoin] (
     LastUpdatedUtc DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
     Metadata NVARCHAR(MAX) NULL
 );
+
+CREATE INDEX IX_OutboxJoin_GroupingKey ON [dbo].[OutboxJoin](GroupingKey) WHERE GroupingKey IS NOT NULL;
 ```
 
 ### A.3 OutboxJoinMember Table
@@ -706,8 +721,9 @@ public class OrderService
 
 ```csharp
 // Start a join for 3 parallel extraction tasks
+// The grouping key scopes this join to a specific customer
 var joinId = await outbox.StartJoinAsync(
-    tenantId: customerId,
+    groupingKey: customerId,
     expectedSteps: 3,
     metadata: """{"type": "etl", "phase": "extract"}""",
     cancellationToken);
