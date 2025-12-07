@@ -13,6 +13,7 @@
 // limitations under the License.
 
 
+using Bravellian.Platform.Outbox;
 using Bravellian.Platform.Tests.TestUtilities;
 using Dapper;
 using Microsoft.Data.SqlClient;
@@ -81,7 +82,7 @@ public class SqlOutboxStoreTests : SqlServerTestBase
 
         // Assert
         messages.Count.ShouldBe(1);
-        messages.First().Id.ShouldBe(messageId);
+        messages.First().Id.ShouldBe(OutboxWorkItemIdentifier.From(messageId));
         messages.First().Topic.ShouldBe("Test.Topic");
         messages.First().Payload.ShouldBe("test payload");
     }
@@ -142,7 +143,7 @@ public class SqlOutboxStoreTests : SqlServerTestBase
         await outboxStore!.ClaimDueAsync(10, CancellationToken.None);
 
         // Act
-        await outboxStore!.MarkDispatchedAsync(messageId, CancellationToken.None);
+        await outboxStore!.MarkDispatchedAsync(OutboxWorkItemIdentifier.From(messageId), CancellationToken.None);
 
         // Assert - Check the message is marked as processed (Status = Done, IsProcessed = 1)
         var result = await connection.QueryFirstAsync(
@@ -183,7 +184,7 @@ public class SqlOutboxStoreTests : SqlServerTestBase
         var errorMessage = "Test error";
 
         // Act
-        await outboxStore!.RescheduleAsync(messageId, delay, errorMessage, CancellationToken.None);
+        await outboxStore!.RescheduleAsync(OutboxWorkItemIdentifier.From(messageId), delay, errorMessage, CancellationToken.None);
 
         // Assert - Check the message is updated
         var result = await connection.QueryFirstAsync(
@@ -224,7 +225,7 @@ public class SqlOutboxStoreTests : SqlServerTestBase
         var errorMessage = "Permanent failure";
 
         // Act
-        await outboxStore!.FailAsync(messageId, errorMessage, CancellationToken.None);
+        await outboxStore!.FailAsync(OutboxWorkItemIdentifier.From(messageId), errorMessage, CancellationToken.None);
 
         // Assert - Check the message is marked as failed
         var result = await connection.QueryFirstAsync(

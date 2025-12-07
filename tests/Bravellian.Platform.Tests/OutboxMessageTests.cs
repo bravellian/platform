@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Bravellian.Platform.Outbox;
+
 namespace Bravellian.Platform.Tests;
 
 public class OutboxMessageTests
@@ -33,7 +35,7 @@ public class OutboxMessageTests
         // Verify key properties exist
         var idProperty = messageType.GetProperty(nameof(OutboxMessage.Id));
         idProperty.ShouldNotBeNull();
-        idProperty.PropertyType.ShouldBe(typeof(Guid));
+        idProperty.PropertyType.ShouldBe(typeof(OutboxWorkItemIdentifier));
 
         var topicProperty = messageType.GetProperty(nameof(OutboxMessage.Topic));
         topicProperty.ShouldNotBeNull();
@@ -54,7 +56,7 @@ public class OutboxMessageTests
         // Verify all properties have the correct types
         var messageType = typeof(OutboxMessage);
 
-        messageType.GetProperty(nameof(OutboxMessage.Id))?.PropertyType.ShouldBe(typeof(Guid));
+        messageType.GetProperty(nameof(OutboxMessage.Id))?.PropertyType.ShouldBe(typeof(OutboxWorkItemIdentifier));
         messageType.GetProperty(nameof(OutboxMessage.Payload))?.PropertyType.ShouldBe(typeof(string));
         messageType.GetProperty(nameof(OutboxMessage.Topic))?.PropertyType.ShouldBe(typeof(string));
         messageType.GetProperty(nameof(OutboxMessage.CreatedAt))?.PropertyType.ShouldBe(typeof(DateTimeOffset));
@@ -63,7 +65,7 @@ public class OutboxMessageTests
         messageType.GetProperty(nameof(OutboxMessage.ProcessedBy))?.PropertyType.ShouldBe(typeof(string));
         messageType.GetProperty(nameof(OutboxMessage.RetryCount))?.PropertyType.ShouldBe(typeof(int));
         messageType.GetProperty(nameof(OutboxMessage.LastError))?.PropertyType.ShouldBe(typeof(string));
-        messageType.GetProperty(nameof(OutboxMessage.MessageId))?.PropertyType.ShouldBe(typeof(Guid));
+        messageType.GetProperty(nameof(OutboxMessage.MessageId))?.PropertyType.ShouldBe(typeof(OutboxMessageIdentifier));
         messageType.GetProperty(nameof(OutboxMessage.CorrelationId))?.PropertyType.ShouldBe(typeof(string));
         messageType.GetProperty(nameof(OutboxMessage.DueTimeUtc))?.PropertyType.ShouldBe(typeof(DateTimeOffset?));
     }

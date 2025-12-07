@@ -1,4 +1,4 @@
-﻿// Copyright (c) Bravellian
+// Copyright (c) Bravellian
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,6 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+using Bravellian.Platform.Outbox;
 
 namespace Bravellian.Platform;
 
@@ -32,18 +34,18 @@ public interface IOutboxStore
     /// <summary>Mark as successfully dispatched.</summary>
     /// <param name="id">Message ID.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    Task MarkDispatchedAsync(Guid id, CancellationToken cancellationToken);
+    Task MarkDispatchedAsync(OutboxWorkItemIdentifier id, CancellationToken cancellationToken);
 
     /// <summary>Reschedule with backoff and record error.</summary>
     /// <param name="id">Message ID.</param>
     /// <param name="delay">Delay before next attempt.</param>
     /// <param name="lastError">Error message to record.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    Task RescheduleAsync(Guid id, TimeSpan delay, string lastError, CancellationToken cancellationToken);
+    Task RescheduleAsync(OutboxWorkItemIdentifier id, TimeSpan delay, string lastError, CancellationToken cancellationToken);
 
     /// <summary>Mark as permanently failed (no further retries).</summary>
     /// <param name="id">Message ID.</param>
     /// <param name="lastError">Error message to record.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    Task FailAsync(Guid id, string lastError, CancellationToken cancellationToken);
+    Task FailAsync(OutboxWorkItemIdentifier id, string lastError, CancellationToken cancellationToken);
 }

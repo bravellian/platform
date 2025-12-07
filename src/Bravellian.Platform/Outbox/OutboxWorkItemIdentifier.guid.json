@@ -1,0 +1,4 @@
+{
+  "name": "OutboxWorkItemIdentifier",
+  "namespace": "Bravellian.Platform.Outbox"
+}

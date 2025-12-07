@@ -160,7 +160,7 @@ internal sealed class MultiInboxDispatcher
         int batchSize,
         CancellationToken cancellationToken)
     {
-        var ownerToken = Guid.NewGuid();
+        Bravellian.Platform.OwnerToken ownerToken = Bravellian.Platform.OwnerToken.GenerateNew();
 
         logger.LogDebug(
             "Processing inbox messages from store '{StoreIdentifier}' with batch size {BatchSize} and owner {OwnerToken}",
@@ -262,7 +262,7 @@ internal sealed class MultiInboxDispatcher
     private async Task<(bool Success, string ErrorMessage)> ProcessSingleMessageAsync(
         IInboxWorkStore store,
         string storeIdentifier,
-        Guid ownerToken,
+        Bravellian.Platform.OwnerToken ownerToken,
         string messageId,
         CancellationToken cancellationToken)
     {
@@ -328,7 +328,7 @@ internal sealed class MultiInboxDispatcher
     private async Task HandleFailedMessagesAsync(
         IInboxWorkStore store,
         string storeIdentifier,
-        Guid ownerToken,
+        Bravellian.Platform.OwnerToken ownerToken,
         IDictionary<string, string> failedMessages,
         CancellationToken cancellationToken)
     {

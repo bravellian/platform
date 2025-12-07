@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Bravellian.Platform.Outbox;
+
 namespace Bravellian.Platform;
 
 /// <summary>
@@ -25,12 +27,12 @@ public sealed record OutboxJoinMember
     /// <summary>
     /// Gets the join identifier.
     /// </summary>
-    public Guid JoinId { get; internal init; }
+    public JoinIdentifier JoinId { get; internal init; }
 
     /// <summary>
     /// Gets the outbox message identifier.
     /// </summary>
-    public Guid OutboxMessageId { get; internal init; }
+    public OutboxMessageIdentifier OutboxMessageId { get; internal init; }
 
     /// <summary>
     /// Gets the timestamp when this association was created.

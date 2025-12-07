@@ -1,4 +1,4 @@
-﻿// Copyright (c) Bravellian
+// Copyright (c) Bravellian
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
 // limitations under the License.
 
 using System.Data;
+using Bravellian.Platform.Outbox;
 
 namespace Bravellian.Platform;
 /// <summary>
@@ -126,8 +127,8 @@ public interface IOutbox
     /// <param name="batchSize">The maximum number of items to claim.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>A list of claimed message identifiers.</returns>
-    Task<IReadOnlyList<Guid>> ClaimAsync(
-        Guid ownerToken,
+    Task<IReadOnlyList<OutboxWorkItemIdentifier>> ClaimAsync(
+        Bravellian.Platform.OwnerToken ownerToken,
         int leaseSeconds,
         int batchSize,
         CancellationToken cancellationToken);
@@ -139,8 +140,8 @@ public interface IOutbox
     /// <param name="ids">The identifiers of messages to acknowledge.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     Task AckAsync(
-        Guid ownerToken,
-        IEnumerable<Guid> ids,
+        Bravellian.Platform.OwnerToken ownerToken,
+        IEnumerable<OutboxWorkItemIdentifier> ids,
         CancellationToken cancellationToken);
 
     /// <summary>
@@ -150,8 +151,8 @@ public interface IOutbox
     /// <param name="ids">The identifiers of messages to abandon.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     Task AbandonAsync(
-        Guid ownerToken,
-        IEnumerable<Guid> ids,
+        Bravellian.Platform.OwnerToken ownerToken,
+        IEnumerable<OutboxWorkItemIdentifier> ids,
         CancellationToken cancellationToken);
 
     /// <summary>
@@ -161,8 +162,8 @@ public interface IOutbox
     /// <param name="ids">The identifiers of messages to fail.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     Task FailAsync(
-        Guid ownerToken,
-        IEnumerable<Guid> ids,
+        Bravellian.Platform.OwnerToken ownerToken,
+        IEnumerable<OutboxWorkItemIdentifier> ids,
         CancellationToken cancellationToken);
 
     /// <summary>
@@ -179,7 +180,7 @@ public interface IOutbox
     /// <param name="metadata">Optional metadata (JSON string) for the join.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>The join ID of the newly created join.</returns>
-    Task<Guid> StartJoinAsync(
+    Task<JoinIdentifier> StartJoinAsync(
         long tenantId,
         int expectedSteps,
         string? metadata,
@@ -193,8 +194,8 @@ public interface IOutbox
     /// <param name="outboxMessageId">The outbox message identifier.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     Task AttachMessageToJoinAsync(
-        Guid joinId,
-        Guid outboxMessageId,
+        Bravellian.Platform.Outbox.JoinIdentifier joinId,
+        OutboxMessageIdentifier outboxMessageId,
         CancellationToken cancellationToken);
 
     /// <summary>
@@ -205,8 +206,8 @@ public interface IOutbox
     /// <param name="outboxMessageId">The outbox message identifier that completed.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     Task ReportStepCompletedAsync(
-        Guid joinId,
-        Guid outboxMessageId,
+        Bravellian.Platform.Outbox.JoinIdentifier joinId,
+        OutboxMessageIdentifier outboxMessageId,
         CancellationToken cancellationToken);
 
     /// <summary>
@@ -217,7 +218,7 @@ public interface IOutbox
     /// <param name="outboxMessageId">The outbox message identifier that failed.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     Task ReportStepFailedAsync(
-        Guid joinId,
-        Guid outboxMessageId,
+        JoinIdentifier joinId,
+        OutboxMessageIdentifier outboxMessageId,
         CancellationToken cancellationToken);
 }

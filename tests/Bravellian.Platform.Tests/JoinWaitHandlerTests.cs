@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System.Text.Json;
+using Bravellian.Platform.Outbox;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -28,11 +28,11 @@ public class JoinWaitHandlerTests : SqlServerTestBase
     private SqlOutboxJoinStore? joinStore;
     private SqlOutboxService? outbox;
     private JoinWaitHandler? handler;
-    private readonly SqlOutboxOptions defaultOptions = new() 
-    { 
-        ConnectionString = string.Empty, 
-        SchemaName = "dbo", 
-        TableName = "Outbox" 
+    private readonly SqlOutboxOptions defaultOptions = new()
+    {
+        ConnectionString = string.Empty,
+        SchemaName = "dbo",
+        TableName = "Outbox"
     };
 
     public JoinWaitHandlerTests(ITestOutputHelper testOutputHelper, SqlServerCollectionFixture fixture)
@@ -44,20 +44,20 @@ public class JoinWaitHandlerTests : SqlServerTestBase
     {
         await base.InitializeAsync().ConfigureAwait(false);
         defaultOptions.ConnectionString = ConnectionString;
-        
+
         // Ensure schemas exist
         await DatabaseSchemaManager.EnsureOutboxSchemaAsync(ConnectionString, "dbo", "Outbox");
         await DatabaseSchemaManager.EnsureOutboxJoinSchemaAsync(ConnectionString, "dbo");
-        
+
         joinStore = new SqlOutboxJoinStore(
-            Options.Create(defaultOptions), 
+            Options.Create(defaultOptions),
             NullLogger<SqlOutboxJoinStore>.Instance);
-            
+
         outbox = new SqlOutboxService(
-            Options.Create(defaultOptions), 
+            Options.Create(defaultOptions),
             NullLogger<SqlOutboxService>.Instance,
             joinStore);
-            
+
         handler = new JoinWaitHandler(
             joinStore,
             NullLogger<JoinWaitHandler>.Instance,
@@ -65,17 +65,17 @@ public class JoinWaitHandlerTests : SqlServerTestBase
     }
 
     // Helper method to create an outbox message and return its ID
-    private async Task<Guid> CreateOutboxMessageAsync()
+    private async Task<OutboxMessageIdentifier> CreateOutboxMessageAsync()
     {
         await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(CancellationToken.None);
-        
-        var messageId = Guid.NewGuid();
+
+        var id = Guid.NewGuid();
         await connection.ExecuteAsync(
             "INSERT INTO dbo.Outbox (Id, Topic, Payload, MessageId) VALUES (@Id, @Topic, @Payload, @MessageId)",
-            new { Id = messageId, Topic = "test.topic", Payload = "{}", MessageId = Guid.NewGuid() });
-        
-        return messageId;
+            new { Id = id, Topic = "test.topic", Payload = "{}", MessageId = Guid.NewGuid() });
+
+        return OutboxMessageIdentifier.From(id);
     }
 
     [Fact]
@@ -87,25 +87,25 @@ public class JoinWaitHandlerTests : SqlServerTestBase
             3, // Expecting 3 steps
             null,
             CancellationToken.None);
-            
+
         // Complete only 1 step
         var messageId = await CreateOutboxMessageAsync();
         await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId, CancellationToken.None);
         await joinStore.IncrementCompletedAsync(join.JoinId, messageId, CancellationToken.None);
-        
+
         var payload = new JoinWaitPayload
         {
             JoinId = join.JoinId,
             FailIfAnyStepFailed = true
         };
-        
+
         var message = new OutboxMessage
         {
-            Id = Guid.NewGuid(),
+            Id = OutboxWorkItemIdentifier.GenerateNew(),
             Topic = "join.wait",
             Payload = JsonSerializer.Serialize(payload),
             CreatedAt = DateTimeOffset.UtcNow,
-            MessageId = Guid.NewGuid()
+            MessageId = OutboxMessageIdentifier.GenerateNew()
         };
 
         // Act & Assert
@@ -122,7 +122,7 @@ public class JoinWaitHandlerTests : SqlServerTestBase
             2, // Expecting 2 steps
             null,
             CancellationToken.None);
-            
+
         // Complete both steps
         var messageId1 = await CreateOutboxMessageAsync();
         var messageId2 = await CreateOutboxMessageAsync();
@@ -130,20 +130,20 @@ public class JoinWaitHandlerTests : SqlServerTestBase
         await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId2, CancellationToken.None);
         await joinStore.IncrementCompletedAsync(join.JoinId, messageId1, CancellationToken.None);
         await joinStore.IncrementCompletedAsync(join.JoinId, messageId2, CancellationToken.None);
-        
+
         var payload = new JoinWaitPayload
         {
             JoinId = join.JoinId,
             FailIfAnyStepFailed = true
         };
-        
+
         var message = new OutboxMessage
         {
-            Id = Guid.NewGuid(),
+            Id = OutboxWorkItemIdentifier.GenerateNew(),
             Topic = "join.wait",
             Payload = JsonSerializer.Serialize(payload),
             CreatedAt = DateTimeOffset.UtcNow,
-            MessageId = Guid.NewGuid()
+            MessageId = OutboxMessageIdentifier.GenerateNew()
         };
 
         // Act
@@ -164,7 +164,7 @@ public class JoinWaitHandlerTests : SqlServerTestBase
             2, // Expecting 2 steps
             null,
             CancellationToken.None);
-            
+
         // Complete 1 step, fail 1 step
         var messageId1 = await CreateOutboxMessageAsync();
         var messageId2 = await CreateOutboxMessageAsync();
@@ -172,20 +172,20 @@ public class JoinWaitHandlerTests : SqlServerTestBase
         await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId2, CancellationToken.None);
         await joinStore.IncrementCompletedAsync(join.JoinId, messageId1, CancellationToken.None);
         await joinStore.IncrementFailedAsync(join.JoinId, messageId2, CancellationToken.None);
-        
+
         var payload = new JoinWaitPayload
         {
             JoinId = join.JoinId,
             FailIfAnyStepFailed = true
         };
-        
+
         var message = new OutboxMessage
         {
-            Id = Guid.NewGuid(),
+            Id = OutboxWorkItemIdentifier.GenerateNew(),
             Topic = "join.wait",
             Payload = JsonSerializer.Serialize(payload),
             CreatedAt = DateTimeOffset.UtcNow,
-            MessageId = Guid.NewGuid()
+            MessageId = OutboxMessageIdentifier.GenerateNew()
         };
 
         // Act
@@ -206,11 +206,11 @@ public class JoinWaitHandlerTests : SqlServerTestBase
             1, // Expecting 1 step
             null,
             CancellationToken.None);
-            
+
         var messageId = await CreateOutboxMessageAsync();
         await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId, CancellationToken.None);
         await joinStore.IncrementCompletedAsync(join.JoinId, messageId, CancellationToken.None);
-        
+
         var payload = new JoinWaitPayload
         {
             JoinId = join.JoinId,
@@ -218,14 +218,14 @@ public class JoinWaitHandlerTests : SqlServerTestBase
             OnCompleteTopic = "etl.start-transform",
             OnCompletePayload = """{"transformId": "123"}"""
         };
-        
+
         var message = new OutboxMessage
         {
-            Id = Guid.NewGuid(),
+            Id = OutboxWorkItemIdentifier.GenerateNew(),
             Topic = "join.wait",
             Payload = JsonSerializer.Serialize(payload),
             CreatedAt = DateTimeOffset.UtcNow,
-            MessageId = Guid.NewGuid()
+            MessageId = OutboxMessageIdentifier.GenerateNew()
         };
 
         // Act
@@ -234,7 +234,7 @@ public class JoinWaitHandlerTests : SqlServerTestBase
         // Assert - verify follow-up message was enqueued
         await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(CancellationToken.None);
-        
+
         var count = await connection.ExecuteScalarAsync<int>(
             "SELECT COUNT(*) FROM dbo.Outbox WHERE Topic = @Topic",
             new { Topic = "etl.start-transform" });
@@ -251,25 +251,25 @@ public class JoinWaitHandlerTests : SqlServerTestBase
             1,
             null,
             CancellationToken.None);
-            
+
         var messageId = await CreateOutboxMessageAsync();
         await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId, CancellationToken.None);
         await joinStore.IncrementCompletedAsync(join.JoinId, messageId, CancellationToken.None);
         await joinStore.UpdateStatusAsync(join.JoinId, JoinStatus.Completed, CancellationToken.None);
-        
+
         var payload = new JoinWaitPayload
         {
             JoinId = join.JoinId,
             FailIfAnyStepFailed = true
         };
-        
+
         var message = new OutboxMessage
         {
-            Id = Guid.NewGuid(),
+            Id = OutboxWorkItemIdentifier.GenerateNew(),
             Topic = "join.wait",
             Payload = JsonSerializer.Serialize(payload),
             CreatedAt = DateTimeOffset.UtcNow,
-            MessageId = Guid.NewGuid()
+            MessageId = OutboxMessageIdentifier.GenerateNew()
         };
 
         // Act - handle twice
@@ -291,7 +291,7 @@ public class JoinWaitHandlerTests : SqlServerTestBase
             2,
             null,
             CancellationToken.None);
-            
+
         // Complete 1 step, fail 1 step
         var messageId1 = await CreateOutboxMessageAsync();
         var messageId2 = await CreateOutboxMessageAsync();
@@ -299,20 +299,20 @@ public class JoinWaitHandlerTests : SqlServerTestBase
         await joinStore.AttachMessageToJoinAsync(join.JoinId, messageId2, CancellationToken.None);
         await joinStore.IncrementCompletedAsync(join.JoinId, messageId1, CancellationToken.None);
         await joinStore.IncrementFailedAsync(join.JoinId, messageId2, CancellationToken.None);
-        
+
         var payload = new JoinWaitPayload
         {
             JoinId = join.JoinId,
             FailIfAnyStepFailed = false // Ignore failures
         };
-        
+
         var message = new OutboxMessage
         {
-            Id = Guid.NewGuid(),
+            Id = OutboxWorkItemIdentifier.GenerateNew(),
             Topic = "join.wait",
             Payload = JsonSerializer.Serialize(payload),
             CreatedAt = DateTimeOffset.UtcNow,
-            MessageId = Guid.NewGuid()
+            MessageId = OutboxMessageIdentifier.GenerateNew()
         };
 
         // Act

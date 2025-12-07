@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Bravellian.Platform.Outbox;
+
 namespace Bravellian.Platform;
 
 /// <summary>
@@ -42,8 +44,8 @@ public interface IOutboxJoinStore
     /// <param name="outboxMessageId">The outbox message identifier.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     Task AttachMessageToJoinAsync(
-        Guid joinId,
-        Guid outboxMessageId,
+        Bravellian.Platform.Outbox.JoinIdentifier joinId,
+        OutboxMessageIdentifier outboxMessageId,
         CancellationToken cancellationToken);
 
     /// <summary>
@@ -52,7 +54,7 @@ public interface IOutboxJoinStore
     /// <param name="joinId">The join identifier.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The join, or null if not found.</returns>
-    Task<OutboxJoin?> GetJoinAsync(Guid joinId, CancellationToken cancellationToken);
+    Task<OutboxJoin?> GetJoinAsync(Bravellian.Platform.Outbox.JoinIdentifier joinId, CancellationToken cancellationToken);
 
     /// <summary>
     /// Increments the completed steps counter for a join.
@@ -63,8 +65,8 @@ public interface IOutboxJoinStore
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The updated join.</returns>
     Task<OutboxJoin> IncrementCompletedAsync(
-        Guid joinId,
-        Guid outboxMessageId,
+        Bravellian.Platform.Outbox.JoinIdentifier joinId,
+        OutboxMessageIdentifier outboxMessageId,
         CancellationToken cancellationToken);
 
     /// <summary>
@@ -76,8 +78,8 @@ public interface IOutboxJoinStore
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The updated join.</returns>
     Task<OutboxJoin> IncrementFailedAsync(
-        Guid joinId,
-        Guid outboxMessageId,
+        Bravellian.Platform.Outbox.JoinIdentifier joinId,
+        OutboxMessageIdentifier outboxMessageId,
         CancellationToken cancellationToken);
 
     /// <summary>
@@ -87,7 +89,7 @@ public interface IOutboxJoinStore
     /// <param name="status">The new status.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     Task UpdateStatusAsync(
-        Guid joinId,
+        Bravellian.Platform.Outbox.JoinIdentifier joinId,
         byte status,
         CancellationToken cancellationToken);
 
@@ -97,7 +99,7 @@ public interface IOutboxJoinStore
     /// <param name="joinId">The join identifier.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>List of outbox message IDs.</returns>
-    Task<IReadOnlyList<Guid>> GetJoinMessagesAsync(
-        Guid joinId,
+    Task<IReadOnlyList<OutboxMessageIdentifier>> GetJoinMessagesAsync(
+        Bravellian.Platform.Outbox.JoinIdentifier joinId,
         CancellationToken cancellationToken);
 }

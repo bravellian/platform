@@ -1,4 +1,4 @@
-﻿// Copyright (c) Bravellian
+// Copyright (c) Bravellian
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -79,7 +79,7 @@ public interface ISchedulerClient
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>A list of claimed timer identifiers.</returns>
     Task<IReadOnlyList<Guid>> ClaimTimersAsync(
-        Guid ownerToken,
+        Bravellian.Platform.OwnerToken ownerToken,
         int leaseSeconds,
         int batchSize,
         CancellationToken cancellationToken);
@@ -93,7 +93,7 @@ public interface ISchedulerClient
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>A list of claimed job run identifiers.</returns>
     Task<IReadOnlyList<Guid>> ClaimJobRunsAsync(
-        Guid ownerToken,
+        Bravellian.Platform.OwnerToken ownerToken,
         int leaseSeconds,
         int batchSize,
         CancellationToken cancellationToken);
@@ -105,7 +105,7 @@ public interface ISchedulerClient
     /// <param name="ids">The identifiers of timers to acknowledge.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     Task AckTimersAsync(
-        Guid ownerToken,
+        Bravellian.Platform.OwnerToken ownerToken,
         IEnumerable<Guid> ids,
         CancellationToken cancellationToken);
 
@@ -116,7 +116,7 @@ public interface ISchedulerClient
     /// <param name="ids">The identifiers of job runs to acknowledge.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     Task AckJobRunsAsync(
-        Guid ownerToken,
+        Bravellian.Platform.OwnerToken ownerToken,
         IEnumerable<Guid> ids,
         CancellationToken cancellationToken);
 
@@ -127,7 +127,7 @@ public interface ISchedulerClient
     /// <param name="ids">The identifiers of timers to abandon.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     Task AbandonTimersAsync(
-        Guid ownerToken,
+        Bravellian.Platform.OwnerToken ownerToken,
         IEnumerable<Guid> ids,
         CancellationToken cancellationToken);
 
@@ -138,7 +138,7 @@ public interface ISchedulerClient
     /// <param name="ids">The identifiers of job runs to abandon.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     Task AbandonJobRunsAsync(
-        Guid ownerToken,
+        Bravellian.Platform.OwnerToken ownerToken,
         IEnumerable<Guid> ids,
         CancellationToken cancellationToken);
 

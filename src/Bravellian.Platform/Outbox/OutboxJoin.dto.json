@@ -1,0 +1,44 @@
+{
+  "name": "OutboxJoin",
+  "namespace": "Bravellian.Platform",
+  "properties": [
+    {
+      "name": "JoinId",
+      "type": "Bravellian.Platform.Outbox.JoinIdentifier"
+    },
+    {
+      "name": "TenantId",
+      "type": "long"
+    },
+    {
+      "name": "ExpectedSteps",
+      "type": "int"
+    },
+    {
+      "name": "CompletedSteps",
+      "type": "int"
+    },
+    {
+      "name": "FailedSteps",
+      "type": "int"
+    },
+    {
+      "name": "Status",
+      "type": "byte"
+    },
+    {
+      "name": "CreatedUtc",
+      "type": "DateTimeOffset"
+    },
+    {
+      "name": "LastUpdatedUtc",
+      "type": "DateTimeOffset"
+    },
+    {
+      "name": "Metadata",
+      "type": "string",
+      "required": false,
+      "nullable": true
+    }
+  ]
+}

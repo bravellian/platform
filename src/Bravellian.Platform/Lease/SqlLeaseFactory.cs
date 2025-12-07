@@ -40,7 +40,7 @@ internal sealed class SqlLeaseFactory : ISystemLeaseFactory
         string resourceName,
         TimeSpan leaseDuration,
         string? contextJson = null,
-        Guid? ownerToken = null,
+        OwnerToken? ownerToken = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(resourceName);

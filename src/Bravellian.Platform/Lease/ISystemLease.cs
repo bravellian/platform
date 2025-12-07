@@ -26,7 +26,7 @@ public interface ISystemLease : IAsyncDisposable
     /// <summary>
     /// Gets the unique token identifying the owner of this lease.
     /// </summary>
-    Guid OwnerToken { get; }
+    Bravellian.Platform.OwnerToken OwnerToken { get; }
 
     /// <summary>
     /// Gets the current fencing token for this lease.

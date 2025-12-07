@@ -1,4 +1,4 @@
-﻿// Copyright (c) Bravellian
+// Copyright (c) Bravellian
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 
 using System.Data;
 using System.Globalization;
+using Bravellian.Platform.Outbox;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
@@ -154,8 +155,8 @@ internal class SqlOutboxService : IOutbox
         }, transaction: transaction).ConfigureAwait(false);
     }
 
-    public async Task<IReadOnlyList<Guid>> ClaimAsync(
-        Guid ownerToken,
+    public async Task<IReadOnlyList<OutboxWorkItemIdentifier>> ClaimAsync(
+        Bravellian.Platform.OwnerToken ownerToken,
         int leaseSeconds,
         int batchSize,
         CancellationToken cancellationToken)
@@ -177,7 +178,7 @@ internal class SqlOutboxService : IOutbox
 
                 await using (command.ConfigureAwait(false))
                 {
-                    command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+                    command.Parameters.AddWithValue("@OwnerToken", ownerToken.Value);
                     command.Parameters.AddWithValue("@LeaseSeconds", leaseSeconds);
                     command.Parameters.AddWithValue("@BatchSize", batchSize);
 
@@ -189,7 +190,7 @@ internal class SqlOutboxService : IOutbox
 
                     logger.LogDebug("Claimed {Count} outbox items with owner {OwnerToken}", result.Count, ownerToken);
                     SchedulerMetrics.OutboxItemsClaimed.Add(result.Count);
-                    return result;
+                    return result.Select(id => OutboxWorkItemIdentifier.From(id)).ToList();
                 }
             }
         }
@@ -201,8 +202,8 @@ internal class SqlOutboxService : IOutbox
     }
 
     public async Task AckAsync(
-        Guid ownerToken,
-        IEnumerable<Guid> ids,
+        Bravellian.Platform.OwnerToken ownerToken,
+        IEnumerable<OutboxWorkItemIdentifier> ids,
         CancellationToken cancellationToken)
     {
         using var activity = SchedulerMetrics.StartActivity("outbox.ack");
@@ -227,8 +228,8 @@ internal class SqlOutboxService : IOutbox
     }
 
     public async Task AbandonAsync(
-        Guid ownerToken,
-        IEnumerable<Guid> ids,
+        Bravellian.Platform.OwnerToken ownerToken,
+        IEnumerable<OutboxWorkItemIdentifier> ids,
         CancellationToken cancellationToken)
     {
         using var activity = SchedulerMetrics.StartActivity("outbox.abandon");
@@ -253,8 +254,8 @@ internal class SqlOutboxService : IOutbox
     }
 
     public async Task FailAsync(
-        Guid ownerToken,
-        IEnumerable<Guid> ids,
+        Bravellian.Platform.OwnerToken ownerToken,
+        IEnumerable<OutboxWorkItemIdentifier> ids,
         CancellationToken cancellationToken)
     {
         using var activity = SchedulerMetrics.StartActivity("outbox.fail");
@@ -312,8 +313,8 @@ internal class SqlOutboxService : IOutbox
 
     private async Task ExecuteWithIdsAsync(
         string procedure,
-        Guid ownerToken,
-        IEnumerable<Guid> ids,
+        Bravellian.Platform.OwnerToken ownerToken,
+        IEnumerable<OutboxWorkItemIdentifier> ids,
         CancellationToken cancellationToken)
     {
         var idList = ids.ToList();
@@ -326,7 +327,7 @@ internal class SqlOutboxService : IOutbox
         tvp.Columns.Add("Id", typeof(Guid));
         foreach (var id in idList)
         {
-            tvp.Rows.Add(id);
+            tvp.Rows.Add(id.Value);
         }
 
         var connection = new SqlConnection(connectionString);
@@ -341,7 +342,7 @@ internal class SqlOutboxService : IOutbox
 
             await using (command.ConfigureAwait(false))
             {
-                command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+                command.Parameters.AddWithValue("@OwnerToken", ownerToken.Value);
                 var parameter = command.Parameters.AddWithValue("@Ids", tvp);
                 parameter.SqlDbType = SqlDbType.Structured;
                 parameter.TypeName = $"[{options.SchemaName}].[GuidIdList]";
@@ -351,7 +352,7 @@ internal class SqlOutboxService : IOutbox
         }
     }
 
-    public async Task<Guid> StartJoinAsync(
+    public async Task<JoinIdentifier> StartJoinAsync(
         long tenantId,
         int expectedSteps,
         string? metadata,
@@ -381,8 +382,8 @@ internal class SqlOutboxService : IOutbox
     }
 
     public async Task AttachMessageToJoinAsync(
-        Guid joinId,
-        Guid outboxMessageId,
+        Bravellian.Platform.Outbox.JoinIdentifier joinId,
+        OutboxMessageIdentifier outboxMessageId,
         CancellationToken cancellationToken)
     {
         if (joinStore == null)
@@ -398,8 +399,8 @@ internal class SqlOutboxService : IOutbox
     }
 
     public async Task ReportStepCompletedAsync(
-        Guid joinId,
-        Guid outboxMessageId,
+        Bravellian.Platform.Outbox.JoinIdentifier joinId,
+        OutboxMessageIdentifier outboxMessageId,
         CancellationToken cancellationToken)
     {
         if (joinStore == null)
@@ -415,8 +416,8 @@ internal class SqlOutboxService : IOutbox
     }
 
     public async Task ReportStepFailedAsync(
-        Guid joinId,
-        Guid outboxMessageId,
+        Bravellian.Platform.Outbox.JoinIdentifier joinId,
+        OutboxMessageIdentifier outboxMessageId,
         CancellationToken cancellationToken)
     {
         if (joinStore == null)
