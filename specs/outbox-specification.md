@@ -23,7 +23,8 @@ The Outbox component implements the [Transactional Outbox pattern](https://micro
 3. **Message Routing**: Route messages to appropriate handlers based on topic
 4. **Failure Handling**: Implement automatic retry with exponential backoff for transient failures
 5. **Multi-Database Support**: Process messages across multiple databases in multi-tenant scenarios
-6. **Join/Fan-In Coordination**: Coordinate multiple related messages and trigger follow-up actions when all complete
+
+**Note**: Join/fan-in coordination is an optional feature built on top of the core Outbox functionality. It is documented in this specification for completeness but is architecturally separate from the core message processing.
 
 ### 2.3 Scope
 
@@ -33,9 +34,11 @@ The Outbox component implements the [Transactional Outbox pattern](https://micro
 - Handler-based message routing and processing
 - Automatic retry with configurable backoff policies
 - Multi-database/multi-tenant message processing
-- Join/fan-in coordination for workflow orchestration
 - Message scheduling with due times
 - SQL Server backend implementation
+
+**Architecturally Separate (but included for completeness):**
+- Join/fan-in coordination for workflow orchestration (built on top of core Outbox, not integral to message processing)
 
 **Out of Scope:**
 - Direct message broker integration (handled by user-provided handlers)
@@ -120,34 +123,151 @@ The primary interface for enqueuing and managing outbox messages.
 **Enqueue Operations:**
 
 ```csharp
-// Standalone (creates own transaction)
-Task EnqueueAsync(string topic, string payload, CancellationToken cancellationToken)
-Task EnqueueAsync(string topic, string payload, string? correlationId, CancellationToken cancellationToken)
-Task EnqueueAsync(string topic, string payload, string? correlationId, DateTimeOffset? dueTimeUtc, CancellationToken cancellationToken)
-
-// Transactional (participates in existing transaction)
-Task EnqueueAsync(string topic, string payload, IDbTransaction transaction, CancellationToken cancellationToken)
-Task EnqueueAsync(string topic, string payload, IDbTransaction transaction, string? correlationId, CancellationToken cancellationToken)
-Task EnqueueAsync(string topic, string payload, IDbTransaction transaction, string? correlationId, DateTimeOffset? dueTimeUtc, CancellationToken cancellationToken)
+Task EnqueueAsync(
+    string topic,
+    string payload,
+    IDbTransaction? transaction,
+    string? correlationId,
+    DateTimeOffset? dueTimeUtc,
+    CancellationToken cancellationToken)
 ```
+
+**Parameters:**
+
+- **`topic`** (required, non-null): The message topic used for routing to handlers.
+  - **Type**: `string`
+  - **Constraints**: 
+    - MUST NOT be null or empty string
+    - MUST NOT exceed 255 characters
+    - Case-sensitive (e.g., "Order.Created" ≠ "order.created")
+    - No specific character restrictions, but recommend using alphanumeric characters, dots, hyphens, and underscores for clarity
+  - **Purpose**: Routes the message to the appropriate `IOutboxHandler` implementation
+
+- **`payload`** (required, non-null): The message content.
+  - **Type**: `string`
+  - **Constraints**:
+    - MUST NOT be null
+    - MAY be empty string (valid for messages with no body)
+    - Maximum size limited by database NVARCHAR(MAX) (approximately 2GB)
+  - **Format**: Typically JSON, but the Outbox does not enforce or validate format. Handlers are responsible for deserialization.
+  - **Purpose**: Contains the message data to be processed by handlers
+
+- **`transaction`** (optional): Database transaction to participate in.
+  - **Type**: `IDbTransaction?`
+  - **Constraints**:
+    - If null: Method creates its own connection and transaction
+    - If non-null: Method participates in the provided transaction and does NOT commit/rollback it
+  - **Purpose**: Enables atomic enqueueing with other database operations
+
+- **`correlationId`** (optional): Identifier for tracing and correlation.
+  - **Type**: `string?`
+  - **Constraints**:
+    - MAY be null
+    - Empty string ("") is treated as null and normalized to null
+    - MUST NOT exceed 255 characters when non-null
+  - **Purpose**: Links related messages or traces messages back to originating requests
+
+- **`dueTimeUtc`** (optional): Scheduled processing time.
+  - **Type**: `DateTimeOffset?`
+  - **Constraints**:
+    - MAY be null (message is immediately eligible for processing)
+    - If non-null, MUST be in UTC (enforcement is caller's responsibility)
+    - Past dates are treated as immediate eligibility
+  - **Purpose**: Defers message processing until the specified time
+
+- **`cancellationToken`** (required): Cancellation token for the operation.
+  - **Type**: `CancellationToken`
+  - **Purpose**: Allows cancellation of the async operation
 
 **Work Queue Operations:**
 
 ```csharp
-Task<IReadOnlyList<OutboxWorkItemIdentifier>> ClaimAsync(OwnerToken ownerToken, int leaseSeconds, int batchSize, CancellationToken cancellationToken)
-Task AckAsync(OwnerToken ownerToken, IEnumerable<OutboxWorkItemIdentifier> ids, CancellationToken cancellationToken)
-Task AbandonAsync(OwnerToken ownerToken, IEnumerable<OutboxWorkItemIdentifier> ids, CancellationToken cancellationToken)
-Task FailAsync(OwnerToken ownerToken, IEnumerable<OutboxWorkItemIdentifier> ids, CancellationToken cancellationToken)
+Task<IReadOnlyList<OutboxWorkItemIdentifier>> ClaimAsync(
+    OwnerToken ownerToken,
+    int leaseSeconds,
+    int batchSize,
+    CancellationToken cancellationToken)
+```
+
+**Parameters:**
+
+- **`ownerToken`**: Unique identifier for the claiming worker process. Only this worker can subsequently ack/abandon/fail the claimed messages.
+- **`leaseSeconds`**: Duration in seconds to hold the lease (recommended: 10-300 seconds).
+- **`batchSize`**: Maximum number of messages to claim (recommended: 1-100).
+- **`cancellationToken`**: Cancellation token for the operation.
+
+```csharp
+Task AckAsync(
+    OwnerToken ownerToken,
+    IEnumerable<OutboxWorkItemIdentifier> ids,
+    CancellationToken cancellationToken)
+```
+
+**Parameters:**
+
+- **`ownerToken`**: MUST match the token used to claim the messages.
+- **`ids`**: Message identifiers to acknowledge. Mismatched IDs are silently ignored.
+- **`cancellationToken`**: Cancellation token for the operation.
+
+```csharp
+Task AbandonAsync(
+    OwnerToken ownerToken,
+    IEnumerable<OutboxWorkItemIdentifier> ids,
+    CancellationToken cancellationToken)
+```
+
+**Parameters:**
+
+- **`ownerToken`**: MUST match the token used to claim the messages.
+- **`ids`**: Message identifiers to abandon for retry. Mismatched IDs are silently ignored.
+- **`cancellationToken`**: Cancellation token for the operation.
+
+```csharp
+Task FailAsync(
+    OwnerToken ownerToken,
+    IEnumerable<OutboxWorkItemIdentifier> ids,
+    CancellationToken cancellationToken)
+```
+
+**Parameters:**
+
+- **`ownerToken`**: MUST match the token used to claim the messages.
+- **`ids`**: Message identifiers to permanently fail. Mismatched IDs are silently ignored.
+- **`cancellationToken`**: Cancellation token for the operation.
+
+```csharp
 Task ReapExpiredAsync(CancellationToken cancellationToken)
 ```
 
-**Join Operations:**
+**Parameters:**
+
+- **`cancellationToken`**: Cancellation token for the operation.
+
+**Note on Join Operations:**
+
+Join/fan-in operations are an advanced coordination feature built on top of the core Outbox functionality. They are documented here for completeness, but joins are not integral to the Outbox message processing. The Outbox table and message processing logic have no inherent knowledge of joins; messages can optionally be associated with joins via the separate `OutboxJoinMember` table. For detailed join operation specifications, see the separate Join Coordination specification document.
 
 ```csharp
-Task<JoinIdentifier> StartJoinAsync(string? groupingKey, int expectedSteps, string? metadata, CancellationToken cancellationToken)
-Task AttachMessageToJoinAsync(JoinIdentifier joinId, OutboxMessageIdentifier outboxMessageId, CancellationToken cancellationToken)
-Task ReportStepCompletedAsync(JoinIdentifier joinId, OutboxMessageIdentifier outboxMessageId, CancellationToken cancellationToken)
-Task ReportStepFailedAsync(JoinIdentifier joinId, OutboxMessageIdentifier outboxMessageId, CancellationToken cancellationToken)
+Task<JoinIdentifier> StartJoinAsync(
+    string? groupingKey,
+    int expectedSteps,
+    string? metadata,
+    CancellationToken cancellationToken)
+
+Task AttachMessageToJoinAsync(
+    JoinIdentifier joinId,
+    OutboxMessageIdentifier outboxMessageId,
+    CancellationToken cancellationToken)
+
+Task ReportStepCompletedAsync(
+    JoinIdentifier joinId,
+    OutboxMessageIdentifier outboxMessageId,
+    CancellationToken cancellationToken)
+
+Task ReportStepFailedAsync(
+    JoinIdentifier joinId,
+    OutboxMessageIdentifier outboxMessageId,
+    CancellationToken cancellationToken)
 ```
 
 #### 5.1.2 IOutboxHandler
@@ -243,233 +363,245 @@ IServiceCollection AddOutboxHandler<THandler>(this IServiceCollection services) 
 
 **OBX-005**: The Outbox MUST reject `EnqueueAsync` calls with null `payload` by throwing an `ArgumentException`.
 
-**OBX-006**: If `dueTimeUtc` is provided and is in the future, the Outbox MUST NOT make the message available for claiming until that time has passed.
+**OBX-006**: The Outbox MUST accept empty string ("") as a valid `payload` value.
 
-**OBX-007**: If `dueTimeUtc` is null or in the past, the Outbox MUST make the message immediately available for claiming.
+**OBX-007**: If `topic` exceeds 255 characters, the Outbox MUST throw an `ArgumentException` or allow the database to reject it with a SQL exception.
 
-**OBX-008**: The Outbox MUST assign each message a unique `OutboxWorkItemIdentifier` upon insertion.
+**OBX-008**: The Outbox MUST treat an empty string `correlationId` as equivalent to null and normalize it to null before storage.
 
-**OBX-009**: The Outbox MUST record the `CreatedAt` timestamp using the database server's UTC time upon insertion.
+**OBX-009**: If `correlationId` is non-null and non-empty, it MUST NOT exceed 255 characters.
 
-**OBX-010**: The Outbox MUST initialize newly enqueued messages with `RetryCount` = 0 and `IsProcessed` = false.
+**OBX-010**: The `topic` parameter is case-sensitive. "Order.Created" and "order.created" are treated as different topics.
+
+**OBX-011**: The Outbox does NOT validate or enforce any format for `payload`. Handlers are responsible for deserializing and validating payload content.
+
+**OBX-012**: If `dueTimeUtc` is provided and is in the future, the Outbox MUST NOT make the message available for claiming until that time has passed.
+
+**OBX-013**: If `dueTimeUtc` is null or in the past, the Outbox MUST make the message immediately available for claiming.
+
+**OBX-014**: The Outbox MUST assign each message a unique `OutboxWorkItemIdentifier` upon insertion.
+
+**OBX-015**: The Outbox MUST record the `CreatedAt` timestamp using the database server's UTC time upon insertion.
+
+**OBX-016**: The Outbox MUST initialize newly enqueued messages with `RetryCount` = 0 and `IsProcessed` = false.
 
 ### 6.2 Message Claiming
 
-**OBX-011**: `ClaimAsync` MUST atomically select and lock up to `batchSize` ready messages using database-level locking mechanisms (e.g., `WITH (UPDLOCK, READPAST, ROWLOCK)`).
+**OBX-017**: `ClaimAsync` MUST atomically select and lock up to `batchSize` ready messages using database-level locking mechanisms (e.g., `WITH (UPDLOCK, READPAST, ROWLOCK)`).
 
-**OBX-012**: `ClaimAsync` MUST only claim messages where `DueTimeUtc` is null or less than or equal to the current UTC time.
+**OBX-018**: `ClaimAsync` MUST only claim messages where `DueTimeUtc` is null or less than or equal to the current UTC time.
 
-**OBX-013**: `ClaimAsync` MUST only claim messages that are not currently leased by another worker (i.e., `LockedUntil` is null or in the past).
+**OBX-019**: `ClaimAsync` MUST only claim messages that are not currently leased by another worker (i.e., `LockedUntil` is null or in the past).
 
-**OBX-014**: `ClaimAsync` MUST set `LockedUntil` to the current UTC time plus `leaseSeconds`.
+**OBX-020**: `ClaimAsync` MUST set `LockedUntil` to the current UTC time plus `leaseSeconds`.
 
-**OBX-015**: `ClaimAsync` MUST set `OwnerToken` to the provided `ownerToken` value.
+**OBX-021**: `ClaimAsync` MUST set `OwnerToken` to the provided `ownerToken` value.
 
-**OBX-016**: `ClaimAsync` MUST return a list of `OutboxWorkItemIdentifier` for all successfully claimed messages.
+**OBX-022**: `ClaimAsync` MUST return a list of `OutboxWorkItemIdentifier` for all successfully claimed messages.
 
-**OBX-017**: If no messages are ready, `ClaimAsync` MUST return an empty list without throwing an exception.
+**OBX-023**: If no messages are ready, `ClaimAsync` MUST return an empty list without throwing an exception.
 
-**OBX-018**: `ClaimAsync` MUST NOT claim messages that are marked as processed (`IsProcessed` = true).
+**OBX-024**: `ClaimAsync` MUST NOT claim messages that are marked as processed (`IsProcessed` = true).
 
-**OBX-019**: `ClaimAsync` MUST NOT claim messages that are marked as permanently failed.
+**OBX-025**: `ClaimAsync` MUST NOT claim messages that are marked as permanently failed.
 
-**OBX-020**: `ClaimAsync` MUST respect the `batchSize` limit and MUST NOT claim more messages than requested.
+**OBX-026**: `ClaimAsync` MUST respect the `batchSize` limit and MUST NOT claim more messages than requested.
 
 ### 6.3 Message Acknowledgment
 
-**OBX-021**: `AckAsync` MUST mark the specified messages as successfully processed by setting `IsProcessed` = true.
+**OBX-027**: `AckAsync` MUST mark the specified messages as successfully processed by setting `IsProcessed` = true.
 
-**OBX-022**: `AckAsync` MUST set `ProcessedAt` to the current UTC timestamp.
+**OBX-028**: `AckAsync` MUST set `ProcessedAt` to the current UTC timestamp.
 
-**OBX-023**: `AckAsync` SHOULD set `ProcessedBy` to identify the worker that processed the message.
+**OBX-029**: `AckAsync` SHOULD set `ProcessedBy` to identify the worker that processed the message.
 
-**OBX-024**: `AckAsync` MUST only acknowledge messages whose `OwnerToken` matches the provided `ownerToken`.
+**OBX-030**: `AckAsync` MUST only acknowledge messages whose `OwnerToken` matches the provided `ownerToken`.
 
-**OBX-025**: `AckAsync` MUST ignore message IDs that do not exist or do not match the owner token, without throwing an exception.
+**OBX-031**: `AckAsync` MUST ignore message IDs that do not exist or do not match the owner token, without throwing an exception.
 
-**OBX-026**: After `AckAsync` completes, the acknowledged messages MUST NOT be returned by subsequent `ClaimAsync` calls.
+**OBX-032**: After `AckAsync` completes, the acknowledged messages MUST NOT be returned by subsequent `ClaimAsync` calls.
 
-**OBX-027**: If a message is part of any joins, `AckAsync` MUST increment the `CompletedSteps` counter for each associated join.
+**OBX-033**: If a message is part of any joins, `AckAsync` MUST increment the `CompletedSteps` counter for each associated join.
 
-**OBX-028**: The increment of join counters in `AckAsync` MUST occur atomically with marking the message as processed.
+**OBX-034**: The increment of join counters in `AckAsync` MUST occur atomically with marking the message as processed.
 
 ### 6.4 Message Abandonment
 
-**OBX-029**: `AbandonAsync` MUST release the lease on the specified messages by setting `LockedUntil` to null and `OwnerToken` to null.
+**OBX-035**: `AbandonAsync` MUST release the lease on the specified messages by setting `LockedUntil` to null and `OwnerToken` to null.
 
-**OBX-030**: `AbandonAsync` MUST increment the `RetryCount` for each abandoned message.
+**OBX-036**: `AbandonAsync` MUST increment the `RetryCount` for each abandoned message.
 
-**OBX-031**: `AbandonAsync` MUST calculate a new `NextAttemptAt` time using exponential backoff based on `RetryCount`.
+**OBX-037**: `AbandonAsync` MUST calculate a new `NextAttemptAt` time using exponential backoff based on `RetryCount`.
 
-**OBX-032**: `AbandonAsync` MUST only abandon messages whose `OwnerToken` matches the provided `ownerToken`.
+**OBX-038**: `AbandonAsync` MUST only abandon messages whose `OwnerToken` matches the provided `ownerToken`.
 
-**OBX-033**: `AbandonAsync` MUST ignore message IDs that do not exist or do not match the owner token, without throwing an exception.
+**OBX-039**: `AbandonAsync` MUST ignore message IDs that do not exist or do not match the owner token, without throwing an exception.
 
-**OBX-034**: After `AbandonAsync` completes, the abandoned messages MUST become available for claiming again after the backoff period expires.
+**OBX-040**: After `AbandonAsync` completes, the abandoned messages MUST become available for claiming again after the backoff period expires.
 
-**OBX-035**: `AbandonAsync` SHOULD record the last error message if provided by the caller.
+**OBX-041**: `AbandonAsync` SHOULD record the last error message if provided by the caller.
 
 ### 6.5 Message Failure
 
-**OBX-036**: `FailAsync` MUST mark the specified messages as permanently failed and prevent them from being claimed again.
+**OBX-042**: `FailAsync` MUST mark the specified messages as permanently failed and prevent them from being claimed again.
 
-**OBX-037**: `FailAsync` MUST record the `lastError` message provided by the caller.
+**OBX-043**: `FailAsync` MUST record the `lastError` message provided by the caller.
 
-**OBX-038**: `FailAsync` MUST only fail messages whose `OwnerToken` matches the provided `ownerToken`.
+**OBX-044**: `FailAsync` MUST only fail messages whose `OwnerToken` matches the provided `ownerToken`.
 
-**OBX-039**: `FailAsync` MUST ignore message IDs that do not exist or do not match the owner token, without throwing an exception.
+**OBX-045**: `FailAsync` MUST ignore message IDs that do not exist or do not match the owner token, without throwing an exception.
 
-**OBX-040**: If a message is part of any joins, `FailAsync` MUST increment the `FailedSteps` counter for each associated join.
+**OBX-046**: If a message is part of any joins, `FailAsync` MUST increment the `FailedSteps` counter for each associated join.
 
-**OBX-041**: The increment of join counters in `FailAsync` MUST occur atomically with marking the message as failed.
+**OBX-047**: The increment of join counters in `FailAsync` MUST occur atomically with marking the message as failed.
 
-**OBX-042**: After `FailAsync` completes, the failed messages MUST NOT be returned by subsequent `ClaimAsync` calls.
+**OBX-048**: After `FailAsync` completes, the failed messages MUST NOT be returned by subsequent `ClaimAsync` calls.
 
 ### 6.6 Lease Expiration and Reaping
 
-**OBX-043**: `ReapExpiredAsync` MUST identify all messages where `LockedUntil` is not null and is less than the current UTC time.
+**OBX-049**: `ReapExpiredAsync` MUST identify all messages where `LockedUntil` is not null and is less than the current UTC time.
 
-**OBX-044**: `ReapExpiredAsync` MUST release the lease on expired messages by setting `LockedUntil` to null and `OwnerToken` to null.
+**OBX-050**: `ReapExpiredAsync` MUST release the lease on expired messages by setting `LockedUntil` to null and `OwnerToken` to null.
 
-**OBX-045**: `ReapExpiredAsync` MUST make reaped messages available for claiming by subsequent `ClaimAsync` calls.
+**OBX-051**: `ReapExpiredAsync` MUST make reaped messages available for claiming by subsequent `ClaimAsync` calls.
 
-**OBX-046**: `ReapExpiredAsync` MUST NOT modify messages that have been acknowledged or permanently failed.
+**OBX-052**: `ReapExpiredAsync` MUST NOT modify messages that have been acknowledged or permanently failed.
 
-**OBX-047**: The Outbox polling service SHOULD call `ReapExpiredAsync` periodically to recover from worker crashes.
+**OBX-053**: The Outbox polling service SHOULD call `ReapExpiredAsync` periodically to recover from worker crashes.
 
 ### 6.7 Message Handlers
 
-**OBX-048**: The Outbox dispatcher MUST route each claimed message to the handler whose `Topic` property matches the message's topic.
+**OBX-054**: The Outbox dispatcher MUST route each claimed message to the handler whose `Topic` property matches the message's topic.
 
-**OBX-049**: If no handler is registered for a message's topic, the Outbox dispatcher MUST log a warning and SHOULD abandon the message for retry.
+**OBX-055**: If no handler is registered for a message's topic, the Outbox dispatcher MUST log a warning and SHOULD abandon the message for retry.
 
-**OBX-050**: If a handler throws an exception, the Outbox dispatcher MUST catch the exception and determine whether to abandon or fail the message based on a backoff policy.
+**OBX-056**: If a handler throws an exception, the Outbox dispatcher MUST catch the exception and determine whether to abandon or fail the message based on a backoff policy.
 
-**OBX-051**: Handlers MUST be invoked with the full `OutboxMessage` object and a `CancellationToken`.
+**OBX-057**: Handlers MUST be invoked with the full `OutboxMessage` object and a `CancellationToken`.
 
-**OBX-052**: Handlers SHOULD be idempotent, as messages may be delivered more than once due to retries or worker failures.
+**OBX-058**: Handlers SHOULD be idempotent, as messages may be delivered more than once due to retries or worker failures.
 
-**OBX-053**: The Outbox dispatcher MUST NOT call handlers concurrently for the same message.
+**OBX-059**: The Outbox dispatcher MUST NOT call handlers concurrently for the same message.
 
-**OBX-054**: The Outbox dispatcher MAY call handlers concurrently for different messages.
+**OBX-060**: The Outbox dispatcher MAY call handlers concurrently for different messages.
 
 ### 6.8 Retry and Backoff
 
-**OBX-055**: The Outbox MUST implement exponential backoff for retrying failed messages.
+**OBX-061**: The Outbox MUST implement exponential backoff for retrying failed messages.
 
-**OBX-056**: The default backoff policy SHOULD use the formula: `delay = min(2^retryCount seconds, 60 seconds)`.
+**OBX-062**: The default backoff policy SHOULD use the formula: `delay = min(2^retryCount seconds, 60 seconds)`.
 
-**OBX-057**: The backoff policy MAY be customizable via configuration or dependency injection.
+**OBX-063**: The backoff policy MAY be customizable via configuration or dependency injection.
 
-**OBX-058**: After the maximum retry count is reached, the Outbox SHOULD permanently fail the message by calling `FailAsync`.
+**OBX-064**: After the maximum retry count is reached, the Outbox SHOULD permanently fail the message by calling `FailAsync`.
 
-**OBX-059**: The maximum retry count SHOULD be configurable, with a sensible default (e.g., 10 attempts).
+**OBX-065**: The maximum retry count SHOULD be configurable, with a sensible default (e.g., 10 attempts).
 
 ### 6.9 Multi-Database Support
 
-**OBX-060**: When configured with multiple databases via `AddMultiSqlOutbox`, the Outbox MUST maintain separate stores for each database.
+**OBX-066**: When configured with multiple databases via `AddMultiSqlOutbox`, the Outbox MUST maintain separate stores for each database.
 
-**OBX-061**: The Outbox dispatcher MUST use an `IOutboxSelectionStrategy` to determine which store to poll on each iteration.
+**OBX-067**: The Outbox dispatcher MUST use an `IOutboxSelectionStrategy` to determine which store to poll on each iteration.
 
-**OBX-062**: The provided `RoundRobinOutboxSelectionStrategy` MUST cycle through all stores in order, processing one batch from each before moving to the next.
+**OBX-068**: The provided `RoundRobinOutboxSelectionStrategy` MUST cycle through all stores in order, processing one batch from each before moving to the next.
 
-**OBX-063**: The provided `DrainFirstOutboxSelectionStrategy` MUST continue processing from the same store until it returns no messages, then move to the next store.
+**OBX-069**: The provided `DrainFirstOutboxSelectionStrategy` MUST continue processing from the same store until it returns no messages, then move to the next store.
 
-**OBX-064**: The `IOutboxStoreProvider` MUST return a consistent identifier for each store via `GetStoreIdentifier`.
+**OBX-070**: The `IOutboxStoreProvider` MUST return a consistent identifier for each store via `GetStoreIdentifier`.
 
-**OBX-065**: The Outbox dispatcher MUST log the store identifier when processing messages to aid in troubleshooting.
+**OBX-071**: The Outbox dispatcher MUST log the store identifier when processing messages to aid in troubleshooting.
 
-**OBX-066**: The `IOutboxRouter.GetOutbox(key)` MUST return the `IOutbox` instance associated with the specified routing key.
+**OBX-072**: The `IOutboxRouter.GetOutbox(key)` MUST return the `IOutbox` instance associated with the specified routing key.
 
-**OBX-067**: The `IOutboxRouter` MUST throw an `InvalidOperationException` if no outbox exists for the specified routing key.
+**OBX-073**: The `IOutboxRouter` MUST throw an `InvalidOperationException` if no outbox exists for the specified routing key.
 
-**OBX-068**: The `IOutboxRouter` MUST accept both string and GUID routing keys.
+**OBX-074**: The `IOutboxRouter` MUST accept both string and GUID routing keys.
 
 ### 6.10 Dynamic Database Discovery
 
-**OBX-069**: When configured with `AddDynamicMultiSqlOutbox`, the Outbox MUST periodically invoke `IOutboxDatabaseDiscovery.DiscoverDatabasesAsync` to refresh the list of databases.
+**OBX-075**: When configured with `AddDynamicMultiSqlOutbox`, the Outbox MUST periodically invoke `IOutboxDatabaseDiscovery.DiscoverDatabasesAsync` to refresh the list of databases.
 
-**OBX-070**: The default refresh interval SHOULD be 5 minutes.
+**OBX-076**: The default refresh interval SHOULD be 5 minutes.
 
-**OBX-071**: When new databases are discovered, the dynamic provider MUST create new outbox stores for those databases.
+**OBX-077**: When new databases are discovered, the dynamic provider MUST create new outbox stores for those databases.
 
-**OBX-072**: When databases are removed from discovery results, the dynamic provider MUST remove the corresponding outbox stores.
+**OBX-078**: When databases are removed from discovery results, the dynamic provider MUST remove the corresponding outbox stores.
 
-**OBX-073**: The dynamic provider MUST NOT unnecessarily recreate stores if the database configuration has not changed.
+**OBX-079**: The dynamic provider MUST NOT unnecessarily recreate stores if the database configuration has not changed.
 
 ### 6.11 Join/Fan-In Coordination
 
-**OBX-074**: `StartJoinAsync` MUST create a new join record with the specified `groupingKey`, `expectedSteps`, and optional `metadata`.
+**OBX-080**: `StartJoinAsync` MUST create a new join record with the specified `groupingKey`, `expectedSteps`, and optional `metadata`.
 
-**OBX-075**: `StartJoinAsync` MUST return a unique `JoinIdentifier` for the created join.
+**OBX-081**: `StartJoinAsync` MUST return a unique `JoinIdentifier` for the created join.
 
-**OBX-076**: `StartJoinAsync` MUST initialize the join with `CompletedSteps` = 0 and `FailedSteps` = 0.
+**OBX-082**: `StartJoinAsync` MUST initialize the join with `CompletedSteps` = 0 and `FailedSteps` = 0.
 
-**OBX-077**: `AttachMessageToJoinAsync` MUST create a join member record associating the specified message with the specified join.
+**OBX-083**: `AttachMessageToJoinAsync` MUST create a join member record associating the specified message with the specified join.
 
-**OBX-078**: `AttachMessageToJoinAsync` MUST be idempotent; calling it multiple times with the same parameters MUST have no additional effect.
+**OBX-084**: `AttachMessageToJoinAsync` MUST be idempotent; calling it multiple times with the same parameters MUST have no additional effect.
 
-**OBX-079**: `ReportStepCompletedAsync` MUST increment the `CompletedSteps` counter for the specified join.
+**OBX-085**: `ReportStepCompletedAsync` MUST increment the `CompletedSteps` counter for the specified join.
 
-**OBX-080**: `ReportStepCompletedAsync` MUST be idempotent when called with the same `outboxMessageId`.
+**OBX-086**: `ReportStepCompletedAsync` MUST be idempotent when called with the same `outboxMessageId`.
 
-**OBX-081**: `ReportStepFailedAsync` MUST increment the `FailedSteps` counter for the specified join.
+**OBX-087**: `ReportStepFailedAsync` MUST increment the `FailedSteps` counter for the specified join.
 
-**OBX-082**: `ReportStepFailedAsync` MUST be idempotent when called with the same `outboxMessageId`.
+**OBX-088**: `ReportStepFailedAsync` MUST be idempotent when called with the same `outboxMessageId`.
 
-**OBX-083**: Join counters (`CompletedSteps` and `FailedSteps`) SHOULD be automatically updated by the database when messages are acknowledged or failed, eliminating the need for explicit calls to `ReportStepCompletedAsync` or `ReportStepFailedAsync` in most cases.
+**OBX-089**: Join counters (`CompletedSteps` and `FailedSteps`) SHOULD be automatically updated by the database when messages are acknowledged or failed, eliminating the need for explicit calls to `ReportStepCompletedAsync` or `ReportStepFailedAsync` in most cases.
 
-**OBX-084**: The `JoinWaitHandler` MUST check if a join is complete by verifying that `CompletedSteps + FailedSteps = ExpectedSteps`.
+**OBX-090**: The `JoinWaitHandler` MUST check if a join is complete by verifying that `CompletedSteps + FailedSteps = ExpectedSteps`.
 
-**OBX-085**: If the join is not complete, the `JoinWaitHandler` MUST abandon the `join.wait` message for retry later.
+**OBX-091**: If the join is not complete, the `JoinWaitHandler` MUST abandon the `join.wait` message for retry later.
 
-**OBX-086**: If the join is complete and `FailIfAnyStepFailed` is true, the join MUST be marked as failed if `FailedSteps > 0`.
+**OBX-092**: If the join is complete and `FailIfAnyStepFailed` is true, the join MUST be marked as failed if `FailedSteps > 0`.
 
-**OBX-087**: If the join is complete and succeeds, the `JoinWaitHandler` MUST enqueue the message specified by `OnCompleteTopic` and `OnCompletePayload`.
+**OBX-093**: If the join is complete and succeeds, the `JoinWaitHandler` MUST enqueue the message specified by `OnCompleteTopic` and `OnCompletePayload`.
 
-**OBX-088**: If the join is complete and fails, the `JoinWaitHandler` MUST enqueue the message specified by `OnFailTopic` and `OnFailPayload`.
+**OBX-094**: If the join is complete and fails, the `JoinWaitHandler` MUST enqueue the message specified by `OnFailTopic` and `OnFailPayload`.
 
-**OBX-089**: Joins MAY be scoped to a logical grouping using the optional `groupingKey` parameter. Joins with the same grouping key are logically related and can be used to isolate coordination within specific contexts (e.g., per customer, per tenant, per workflow).
+**OBX-095**: Joins MAY be scoped to a logical grouping using the optional `groupingKey` parameter. Joins with the same grouping key are logically related and can be used to isolate coordination within specific contexts (e.g., per customer, per tenant, per workflow).
 
-**OBX-090**: A single message MAY participate in multiple joins.
+**OBX-096**: A single message MAY participate in multiple joins.
 
 ### 6.12 Concurrency and Consistency
 
-**OBX-091**: All database operations within a single Outbox method call MUST execute within a single transaction to ensure atomicity.
+**OBX-097**: All database operations within a single Outbox method call MUST execute within a single transaction to ensure atomicity.
 
-**OBX-092**: The Outbox MUST use appropriate database isolation levels to prevent dirty reads, non-repeatable reads, and phantom reads during claim operations.
+**OBX-098**: The Outbox MUST use appropriate database isolation levels to prevent dirty reads, non-repeatable reads, and phantom reads during claim operations.
 
-**OBX-093**: The Outbox MUST handle database deadlocks gracefully by retrying the operation or propagating the exception to the caller.
+**OBX-099**: The Outbox MUST handle database deadlocks gracefully by retrying the operation or propagating the exception to the caller.
 
-**OBX-094**: Multiple worker processes MAY safely operate on the same Outbox table concurrently.
+**OBX-100**: Multiple worker processes MAY safely operate on the same Outbox table concurrently.
 
-**OBX-095**: The Outbox MUST ensure that a message is never claimed by more than one worker at the same time.
+**OBX-101**: The Outbox MUST ensure that a message is never claimed by more than one worker at the same time.
 
 ### 6.13 Observability
 
-**OBX-096**: The Outbox SHOULD log all enqueue operations at INFO level, including topic and correlation ID.
+**OBX-102**: The Outbox SHOULD log all enqueue operations at INFO level, including topic and correlation ID.
 
-**OBX-097**: The Outbox SHOULD log all claim operations at DEBUG level, including the number of messages claimed.
+**OBX-103**: The Outbox SHOULD log all claim operations at DEBUG level, including the number of messages claimed.
 
-**OBX-098**: The Outbox SHOULD log all handler invocations at INFO level, including topic and message ID.
+**OBX-104**: The Outbox SHOULD log all handler invocations at INFO level, including topic and message ID.
 
-**OBX-099**: The Outbox MUST log handler exceptions at ERROR level, including the exception details and message ID.
+**OBX-105**: The Outbox MUST log handler exceptions at ERROR level, including the exception details and message ID.
 
-**OBX-100**: The Outbox SHOULD log reap operations at INFO level, including the number of messages reaped.
+**OBX-106**: The Outbox SHOULD log reap operations at INFO level, including the number of messages reaped.
 
-**OBX-101**: For multi-database scenarios, all log messages SHOULD include the store identifier to aid in troubleshooting.
+**OBX-107**: For multi-database scenarios, all log messages SHOULD include the store identifier to aid in troubleshooting.
 
 ### 6.14 Schema Deployment
 
-**OBX-102**: When `EnableSchemaDeployment` is true, the Outbox MUST create the necessary database tables, indexes, and stored procedures if they do not already exist.
+**OBX-108**: When `EnableSchemaDeployment` is true, the Outbox MUST create the necessary database tables, indexes, and stored procedures if they do not already exist.
 
-**OBX-103**: When `EnableSchemaDeployment` is false, the Outbox MUST assume the schema exists and MUST NOT attempt to create it.
+**OBX-109**: When `EnableSchemaDeployment` is false, the Outbox MUST assume the schema exists and MUST NOT attempt to create it.
 
-**OBX-104**: Schema deployment operations SHOULD be idempotent; running them multiple times MUST NOT cause errors.
+**OBX-110**: Schema deployment operations SHOULD be idempotent; running them multiple times MUST NOT cause errors.
 
-**OBX-105**: The Outbox schema MUST include the following tables: `Outbox`, `OutboxJoin`, `OutboxJoinMember`.
+**OBX-111**: The Outbox schema MUST include the following tables: `Outbox`, `OutboxJoin`, `OutboxJoinMember`.
 
-**OBX-106**: The Outbox schema MUST include stored procedures for claim, ack, abandon, fail, and reap operations.
+**OBX-112**: The Outbox schema MUST include stored procedures for claim, ack, abandon, fail, and reap operations.
 
 ## 7. Configuration and Limits
 
@@ -487,37 +619,41 @@ IServiceCollection AddOutboxHandler<THandler>(this IServiceCollection services) 
 
 ### 7.2 Limits and Constraints
 
-**OBX-107**: The `topic` parameter MUST NOT exceed 255 characters.
+The following constraints are enforced by the Outbox component (also documented in section 6.1 behavioral requirements):
 
-**OBX-108**: The `payload` parameter MAY be arbitrarily large, subject to database column limits (NVARCHAR(MAX)).
+- **Topic**: Maximum 255 characters (OBX-007)
+- **Payload**: Maximum ~2GB (NVARCHAR(MAX) limit) (OBX-114)
+- **CorrelationId**: Maximum 255 characters when non-null (OBX-009)
+- **LeaseSeconds**: Recommended 10-300 seconds (OBX-116)
+- **BatchSize**: Recommended 1-100 (OBX-117)
 
-**OBX-109**: The `correlationId` parameter MUST NOT exceed 255 characters.
+**OBX-114**: The `payload` parameter MAY be arbitrarily large, subject to database column limits (NVARCHAR(MAX), approximately 2GB).
 
-**OBX-110**: The `leaseSeconds` parameter SHOULD be between 10 and 300 seconds for optimal performance.
+**OBX-116**: The `leaseSeconds` parameter SHOULD be between 10 and 300 seconds for optimal performance.
 
-**OBX-111**: The `batchSize` parameter SHOULD be between 1 and 100 for optimal performance.
+**OBX-117**: The `batchSize` parameter SHOULD be between 1 and 100 for optimal performance.
 
-**OBX-112**: A single Outbox instance MAY process thousands of messages per second, depending on handler complexity and database performance.
+**OBX-118**: A single Outbox instance MAY process thousands of messages per second, depending on handler complexity and database performance.
 
 ### 7.3 Performance Considerations
 
-**OBX-113**: The Outbox SHOULD use database indexes on the `Status` and `CreatedAt` columns to optimize claim queries.
+**OBX-119**: The Outbox SHOULD use database indexes on the `Status` and `CreatedAt` columns to optimize claim queries.
 
-**OBX-114**: The Outbox SHOULD use stored procedures for claim, ack, abandon, and fail operations to minimize round trips.
+**OBX-120**: The Outbox SHOULD use stored procedures for claim, ack, abandon, and fail operations to minimize round trips.
 
-**OBX-115**: For multi-database scenarios, the Outbox SHOULD cache `IOutbox` instances to avoid recreating them on every operation.
+**OBX-121**: For multi-database scenarios, the Outbox SHOULD cache `IOutbox` instances to avoid recreating them on every operation.
 
-**OBX-116**: The polling service SHOULD implement a backoff mechanism when no messages are available to reduce database load.
+**OBX-122**: The polling service SHOULD implement a backoff mechanism when no messages are available to reduce database load.
 
 ### 7.4 Security Considerations
 
-**OBX-117**: The database user configured in `ConnectionString` MUST have SELECT, INSERT, UPDATE, and DELETE permissions on the Outbox tables.
+**OBX-123**: The database user configured in `ConnectionString` MUST have SELECT, INSERT, UPDATE, and DELETE permissions on the Outbox tables.
 
-**OBX-118**: The database user MUST have EXECUTE permissions on all Outbox stored procedures.
+**OBX-124**: The database user MUST have EXECUTE permissions on all Outbox stored procedures.
 
-**OBX-119**: The Outbox MUST NOT log sensitive information from message payloads.
+**OBX-125**: The Outbox MUST NOT log sensitive information from message payloads.
 
-**OBX-120**: The Outbox SHOULD support encrypted connections to the database via the connection string.
+**OBX-126**: The Outbox SHOULD support encrypted connections to the database via the connection string.
 
 ## 8. Open Questions / Inconsistencies
 
