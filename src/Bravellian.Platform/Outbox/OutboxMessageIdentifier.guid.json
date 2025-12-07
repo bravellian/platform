@@ -1,0 +1,4 @@
+{
+  "name": "OutboxMessageIdentifier",
+  "namespace": "Bravellian.Platform.Outbox"
+}

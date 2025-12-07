@@ -25,6 +25,16 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <AdditionalFiles Include="Inbox\InboxMessageIdentifier.guid.json" />
+	  <AdditionalFiles Include="Outbox\OutboxWorkItemIdentifier.guid.json" />
+	  <AdditionalFiles Include="OwnerToken.guid.json" />
+	  <AdditionalFiles Include="Metrics\InstanceIdentifier.guid.json" />
+	  <AdditionalFiles Include="Metrics\DatabaseIdentifier.guid.json" />
+	  <AdditionalFiles Include="Outbox\OutboxMessageIdentifier.guid.json" />
+	  <AdditionalFiles Include="Outbox\JoinIdentifier.guid.json" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
 			<_Parameter1>Bravellian.Platform.Tests</_Parameter1>
 		</AssemblyAttribute>
@@ -38,7 +48,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Bravellian.Generators" Version="2025.12.4.1177" PrivateAssets="all" />
+		<PackageReference Include="Bravellian.Generators" Version="2025.12.6.1169" PrivateAssets="all" />
 		<PackageReference Include="Cronos" Version="0.11.1" />
 		<PackageReference Include="Dapper" Version="2.1.66" />
 		<PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.3" />

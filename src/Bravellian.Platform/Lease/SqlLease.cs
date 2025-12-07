@@ -56,7 +56,7 @@ internal sealed class SqlLease : ISystemLease
         string connectionString,
         string schemaName,
         string resourceName,
-        Guid ownerToken,
+        Bravellian.Platform.OwnerToken ownerToken,
         long fencingToken,
         TimeSpan leaseDuration,
         double renewPercent,
@@ -94,7 +94,7 @@ internal sealed class SqlLease : ISystemLease
     public string ResourceName { get; }
 
     /// <inheritdoc/>
-    public Guid OwnerToken { get; }
+    public Bravellian.Platform.OwnerToken OwnerToken { get; }
 
     /// <inheritdoc/>
     public long FencingToken { get; private set; }
@@ -126,11 +126,11 @@ internal sealed class SqlLease : ISystemLease
         bool useGate,
         int gateTimeoutMs,
         string? contextJson,
-        Guid? ownerToken,
+        OwnerToken? ownerToken,
         CancellationToken cancellationToken,
         ILogger logger)
     {
-        var token = ownerToken ?? Guid.NewGuid();
+        var token = ownerToken ?? OwnerToken.GenerateNew();
         var leaseSeconds = (int)Math.Ceiling(leaseDuration.TotalSeconds);
 
         using var connection = new SqlConnection(connectionString);
@@ -142,7 +142,7 @@ internal sealed class SqlLease : ISystemLease
         };
 
         command.Parameters.AddWithValue("@ResourceName", resourceName);
-        command.Parameters.AddWithValue("@OwnerToken", token);
+        command.Parameters.AddWithValue("@OwnerToken", token.Value);
         command.Parameters.AddWithValue("@LeaseSeconds", leaseSeconds);
         command.Parameters.AddWithValue("@ContextJson", contextJson ?? (object)DBNull.Value);
         command.Parameters.AddWithValue("@UseGate", useGate);
@@ -278,7 +278,7 @@ internal sealed class SqlLease : ISystemLease
             };
 
             command.Parameters.AddWithValue("@ResourceName", ResourceName);
-            command.Parameters.AddWithValue("@OwnerToken", OwnerToken);
+            command.Parameters.AddWithValue("@OwnerToken", OwnerToken.Value);
             command.Parameters.AddWithValue("@LeaseSeconds", leaseSeconds);
 
             var renewedParam = new SqlParameter("@Renewed", SqlDbType.Bit) { Direction = ParameterDirection.Output };
@@ -327,7 +327,7 @@ internal sealed class SqlLease : ISystemLease
         };
 
         command.Parameters.AddWithValue("@ResourceName", ResourceName);
-        command.Parameters.AddWithValue("@OwnerToken", OwnerToken);
+        command.Parameters.AddWithValue("@OwnerToken", OwnerToken.Value);
 
         await command.ExecuteNonQueryAsync().ConfigureAwait(false);
 

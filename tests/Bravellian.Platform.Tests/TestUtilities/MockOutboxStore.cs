@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Bravellian.Platform.Outbox;
+
 namespace Bravellian.Platform.Tests.TestUtilities;
 
 /// <summary>
@@ -36,15 +38,15 @@ public class MockOutboxStore : IOutboxStore
         => Task.FromResult<IReadOnlyList<OutboxMessage>>(new List<OutboxMessage>());
 
     /// <inheritdoc/>
-    public Task MarkDispatchedAsync(Guid id, CancellationToken cancellationToken)
+    public Task MarkDispatchedAsync(OutboxWorkItemIdentifier id, CancellationToken cancellationToken)
         => Task.CompletedTask;
 
     /// <inheritdoc/>
-    public Task RescheduleAsync(Guid id, TimeSpan delay, string lastError, CancellationToken cancellationToken)
+    public Task RescheduleAsync(OutboxWorkItemIdentifier id, TimeSpan delay, string lastError, CancellationToken cancellationToken)
         => Task.CompletedTask;
 
     /// <inheritdoc/>
-    public Task FailAsync(Guid id, string lastError, CancellationToken cancellationToken)
+    public Task FailAsync(OutboxWorkItemIdentifier id, string lastError, CancellationToken cancellationToken)
         => Task.CompletedTask;
 
     /// <inheritdoc/>

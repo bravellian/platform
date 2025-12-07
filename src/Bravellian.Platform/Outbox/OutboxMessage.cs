@@ -1,4 +1,4 @@
-﻿// Copyright (c) Bravellian
+// Copyright (c) Bravellian
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,11 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Bravellian.Platform.Outbox;
+
 namespace Bravellian.Platform;
 
 public sealed record OutboxMessage
 {
-    public Guid Id { get; internal init; }
+    public OutboxWorkItemIdentifier Id { get; internal init; }
 
     public required string Payload { get; init; }
 
@@ -34,7 +36,7 @@ public sealed record OutboxMessage
 
     public string? LastError { get; internal init; }
 
-    public Guid MessageId { get; internal init; }
+    public OutboxMessageIdentifier MessageId { get; internal init; }
 
     public string? CorrelationId { get; internal init; }
 

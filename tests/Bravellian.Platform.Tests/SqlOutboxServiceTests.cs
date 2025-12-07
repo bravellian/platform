@@ -190,7 +190,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
             reader.GetBoolean(0).ShouldBe(false); // IsProcessed
             reader.IsDBNull(1).ShouldBeTrue(); // ProcessedAt
             reader.GetInt32(2).ShouldBe(0); // RetryCount
-            reader.GetDateTimeOffset(3).ShouldBeGreaterThan(DateTimeOffset.Now.AddMinutes(-1)); // CreatedAt
+            reader.GetDateTimeOffset(3).ShouldBeGreaterThan(DateTimeOffset.UtcNow.AddMinutes(-1)); // CreatedAt
             reader.GetGuid(4).ShouldNotBe(Guid.Empty); // MessageId
         }
         finally

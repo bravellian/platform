@@ -26,7 +26,7 @@ public class LostLeaseException : InvalidOperationException
     /// </summary>
     /// <param name="resourceName">The name of the resource whose lease was lost.</param>
     /// <param name="ownerToken">The owner token of the lost lease.</param>
-    public LostLeaseException(string resourceName, Guid ownerToken)
+    public LostLeaseException(string resourceName, Bravellian.Platform.OwnerToken ownerToken)
         : base($"Lease for resource '{resourceName}' with owner token '{ownerToken}' has been lost.")
     {
         ResourceName = resourceName;
@@ -53,7 +53,7 @@ public class LostLeaseException : InvalidOperationException
     /// <summary>
     /// Gets the owner token of the lost lease.
     /// </summary>
-    public Guid OwnerToken { get; }
+    public Bravellian.Platform.OwnerToken OwnerToken { get; }
 
     /// <summary>
     /// Gets the owner identifier of the lost lease.

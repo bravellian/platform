@@ -1,0 +1,45 @@
+{
+  "name": "JoinWaitPayload",
+  "namespace": "Bravellian.Platform",
+  "properties": [
+    {
+      "name": "JoinId",
+      "type": "Bravellian.Platform.Outbox.JoinIdentifier",
+      "settable": true
+    },
+    {
+      "name": "FailIfAnyStepFailed",
+      "type": "bool",
+      "settable": true,
+      "defaultValue": true
+    },
+    {
+      "name": "OnCompleteTopic",
+      "type": "string",
+      "required": false,
+      "nullable": true,
+      "settable": true
+    },
+    {
+      "name": "OnCompletePayload",
+      "type": "string",
+      "required": false,
+      "nullable": true,
+      "settable": true
+    },
+    {
+      "name": "OnFailTopic",
+      "type": "string",
+      "required": false,
+      "nullable": true,
+      "settable": true
+    },
+    {
+      "name": "OnFailPayload",
+      "type": "string",
+      "required": false,
+      "nullable": true,
+      "settable": true
+    }
+  ]
+}

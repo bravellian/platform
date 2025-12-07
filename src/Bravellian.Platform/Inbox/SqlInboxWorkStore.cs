@@ -44,7 +44,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
     }
 
     public async Task<IReadOnlyList<string>> ClaimAsync(
-        Guid ownerToken,
+        Bravellian.Platform.OwnerToken ownerToken,
         int leaseSeconds,
         int batchSize,
         CancellationToken cancellationToken)
@@ -64,7 +64,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
                 $"[{schemaName}].[{tableName}_Claim]",
                 new
                 {
-                    OwnerToken = ownerToken,
+                    OwnerToken = ownerToken.Value,
                     LeaseSeconds = leaseSeconds,
                     BatchSize = batchSize,
                 },
@@ -93,7 +93,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
     }
 
     public async Task AckAsync(
-        Guid ownerToken,
+        Bravellian.Platform.OwnerToken ownerToken,
         IEnumerable<string> messageIds,
         CancellationToken cancellationToken)
     {
@@ -118,7 +118,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
             {
                 CommandType = System.Data.CommandType.StoredProcedure,
             };
-            command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+            command.Parameters.AddWithValue("@OwnerToken", ownerToken.Value);
             var parameter = command.Parameters.AddWithValue("@Ids", idsTable);
             parameter.SqlDbType = System.Data.SqlDbType.Structured;
             parameter.TypeName = $"[{schemaName}].[StringIdList]";
@@ -145,7 +145,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
     }
 
     public async Task AbandonAsync(
-        Guid ownerToken,
+        Bravellian.Platform.OwnerToken ownerToken,
         IEnumerable<string> messageIds,
         string? lastError = null,
         TimeSpan? delay = null,
@@ -173,7 +173,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
             {
                 CommandType = System.Data.CommandType.StoredProcedure,
             };
-            command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+            command.Parameters.AddWithValue("@OwnerToken", ownerToken.Value);
             var parameter = command.Parameters.AddWithValue("@Ids", idsTable);
             parameter.SqlDbType = System.Data.SqlDbType.Structured;
             parameter.TypeName = $"[{schemaName}].[StringIdList]";
@@ -212,7 +212,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
     }
 
     public async Task FailAsync(
-        Guid ownerToken,
+        Bravellian.Platform.OwnerToken ownerToken,
         IEnumerable<string> messageIds,
         string error,
         CancellationToken cancellationToken)
@@ -239,7 +239,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
             {
                 CommandType = System.Data.CommandType.StoredProcedure,
             };
-            command.Parameters.AddWithValue("@OwnerToken", ownerToken);
+            command.Parameters.AddWithValue("@OwnerToken", ownerToken.Value);
             var parameter = command.Parameters.AddWithValue("@Ids", idsTable);
             parameter.SqlDbType = System.Data.SqlDbType.Structured;
             parameter.TypeName = $"[{schemaName}].[StringIdList]";

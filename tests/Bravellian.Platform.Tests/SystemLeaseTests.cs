@@ -64,7 +64,7 @@ public class SystemLeaseTests : SqlServerTestBase
         // Assert
         lease.ShouldNotBeNull();
         lease.ResourceName.ShouldBe(resourceName);
-        lease.OwnerToken.ShouldNotBe(Guid.Empty);
+        lease.OwnerToken.ShouldNotBe(OwnerToken.Empty);
         lease.FencingToken.ShouldBeGreaterThan(0);
         lease.CancellationToken.IsCancellationRequested.ShouldBeFalse();
 
@@ -186,7 +186,7 @@ public class SystemLeaseTests : SqlServerTestBase
         // Arrange
         var resourceName = $"test-resource-{Guid.NewGuid():N}";
         var leaseDuration = TimeSpan.FromSeconds(30);
-        var customOwnerToken = Guid.NewGuid();
+        var customOwnerToken = OwnerToken.GenerateNew();
 
         // Act
         var lease = await leaseFactory!.AcquireAsync(resourceName,
@@ -207,7 +207,7 @@ public class SystemLeaseTests : SqlServerTestBase
         // Arrange
         var resourceName = $"test-resource-{Guid.NewGuid():N}";
         var leaseDuration = TimeSpan.FromSeconds(30);
-        var ownerToken = Guid.NewGuid();
+        Bravellian.Platform.OwnerToken ownerToken = Bravellian.Platform.OwnerToken.GenerateNew();
 
         // Act
         var firstLease = await leaseFactory!.AcquireAsync(resourceName,

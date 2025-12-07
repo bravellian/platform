@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System.Text.Json;
-
 namespace Bravellian.Platform;
 
 /// <summary>
@@ -36,7 +34,7 @@ public static class OutboxExtensions
     /// <returns>A task representing the asynchronous operation.</returns>
     public static async Task EnqueueJoinWaitAsync(
         this IOutbox outbox,
-        Guid joinId,
+        Bravellian.Platform.Outbox.JoinIdentifier joinId,
         bool failIfAnyStepFailed = true,
         string? onCompleteTopic = null,
         string? onCompletePayload = null,
