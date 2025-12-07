@@ -28,7 +28,7 @@ Comprehensive summary of changes made to separate join concerns and normalize pa
 
 ### Future Join Specification
 
-**[join-coordination-spec-outline.md](join-coordination-spec-outline.md)**  
+**[join-coordination-specification.md](join-coordination-specification.md)**  
 Outline and content for the separate Join Coordination Component specification.
 
 **Purpose**: Ready-to-use template for creating the independent Join spec with all content extracted from Outbox.
@@ -36,7 +36,7 @@ Outline and content for the separate Join Coordination Component specification.
 **Contains**:
 - All join concepts (JoinIdentifier, Join, Join Member, etc.)
 - Join API methods (StartJoinAsync, AttachMessageToJoinAsync, etc.)
-- Join requirements (JOIN-001 through JOIN-021, renumbered from OBX-xxx)
+- Join requirements (JOIN-001 through JOIN-092, renumbered from OBX-xxx)
 - Join database schema (OutboxJoin, OutboxJoinMember tables)
 - Join usage examples
 - Join-specific open questions
@@ -79,7 +79,7 @@ Complete instructions for normalizing method signatures and adding comprehensive
 ### By Use Case
 
 - **Understanding what changed**: See [SPEC_UPDATE_SUMMARY.md](SPEC_UPDATE_SUMMARY.md)
-- **Creating Join spec**: Use [join-coordination-spec-outline.md](join-coordination-spec-outline.md) and [prompt-extract-join-spec.md](prompt-extract-join-spec.md)
+- **Creating Join spec**: Use [join-coordination-specification.md](join-coordination-specification.md) and [prompt-extract-join-spec.md](prompt-extract-join-spec.md)
 - **Implementing the Outbox**: See [outbox-specification.md](outbox-specification.md) §5-6
 - **Deploying the schema**: See [outbox-specification.md](outbox-specification.md) Appendix A
 - **Writing handlers**: See [outbox-specification.md](outbox-specification.md) Appendix B

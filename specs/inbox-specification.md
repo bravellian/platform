@@ -616,7 +616,7 @@ IServiceCollection AddInboxHandler<THandler>(this IServiceCollection services) w
 
 **IBX-042**: `ClaimAsync` MUST only claim messages where the next attempt time (accounting for backoff) is less than or equal to the current UTC time.
 
-**IBX-043a**: `ClaimAsync` MUST throw an `ArgumentException` if `ownerToken` is the default/empty GUID value.
+**IBX-043**: `ClaimAsync` MUST throw an `ArgumentException` if `ownerToken` is the default/empty GUID value.
 
 ### 6.4 Message Acknowledgment
 
@@ -838,15 +838,15 @@ The following constraints are enforced by the Inbox component:
 
 ### 7.4 Security Considerations
 
-**IBX-125**: The database user configured in `ConnectionString` MUST have SELECT, INSERT, UPDATE, and DELETE permissions on the Inbox tables.
+**IBX-126**: The database user configured in `ConnectionString` MUST have SELECT, INSERT, UPDATE, and DELETE permissions on the Inbox tables.
 
-**IBX-126**: The Inbox MUST NOT log sensitive information from message payloads.
+**IBX-127**: The Inbox MUST NOT log sensitive information from message payloads.
 
-**IBX-127**: The Inbox SHOULD support encrypted connections to the database via the connection string.
+**IBX-128**: The Inbox SHOULD support encrypted connections to the database via the connection string.
 
-**IBX-128**: Content hashes SHOULD use cryptographic hash functions (e.g., SHA256) to prevent collision attacks.
+**IBX-129**: Content hashes SHOULD use cryptographic hash functions (e.g., SHA256) to prevent collision attacks.
 
-**IBX-129**: If `ownerToken` is the default/empty GUID value, methods that accept it MUST throw an `ArgumentException`.
+**IBX-130**: If `ownerToken` is the default/empty GUID value, methods that accept it MUST throw an `ArgumentException`.
 
 ## 8. Open Questions / Inconsistencies
 
@@ -984,17 +984,38 @@ public class StripeWebhookController : ControllerBase
 {
     private readonly IInbox _inbox;
     private readonly ILogger<StripeWebhookController> _logger;
+    private readonly IConfiguration _configuration;
 
-    public StripeWebhookController(IInbox inbox, ILogger<StripeWebhookController> logger)
+    public StripeWebhookController(
+        IInbox inbox, 
+        ILogger<StripeWebhookController> logger,
+        IConfiguration configuration)
     {
         _inbox = inbox;
         _logger = logger;
+        _configuration = configuration;
     }
 
     [HttpPost]
     public async Task<IActionResult> HandleWebhook()
     {
         var json = await new StreamReader(Request.Body).ReadToEndAsync();
+        
+        // IMPORTANT: Verify webhook signature before processing
+        var signature = Request.Headers["Stripe-Signature"].FirstOrDefault();
+        if (string.IsNullOrEmpty(signature))
+        {
+            _logger.LogWarning("Webhook received without Stripe-Signature header");
+            return Unauthorized("Missing signature");
+        }
+        
+        var webhookSecret = _configuration["Stripe:WebhookSecret"];
+        if (!VerifyStripeSignature(json, signature, webhookSecret))
+        {
+            _logger.LogWarning("Webhook signature verification failed");
+            return Unauthorized("Invalid signature");
+        }
+        
         var stripeEvent = JsonSerializer.Deserialize<StripeEvent>(json);
         
         // Calculate content hash for deduplication
@@ -1030,6 +1051,37 @@ public class StripeWebhookController : ControllerBase
             stripeEvent.Id);
         
         return Ok();
+    }
+    
+    private bool VerifyStripeSignature(string payload, string signature, string secret)
+    {
+        // Stripe signature format: t=timestamp,v1=signature
+        // This is a simplified example - use Stripe SDK in production
+        var parts = signature.Split(',');
+        var timestamp = parts.FirstOrDefault(p => p.StartsWith("t="))?.Substring(2);
+        var sig = parts.FirstOrDefault(p => p.StartsWith("v1="))?.Substring(3);
+        
+        if (string.IsNullOrEmpty(timestamp) || string.IsNullOrEmpty(sig))
+            return false;
+        
+        // Verify timestamp is recent (within 5 minutes) to prevent replay attacks
+        if (long.TryParse(timestamp, out var ts))
+        {
+            var webhookTime = DateTimeOffset.FromUnixTimeSeconds(ts);
+            if (DateTimeOffset.UtcNow - webhookTime > TimeSpan.FromMinutes(5))
+            {
+                _logger.LogWarning("Webhook timestamp too old: {Timestamp}", webhookTime);
+                return false;
+            }
+        }
+        
+        // Compute expected signature: HMAC-SHA256 of "timestamp.payload" with secret
+        var signedPayload = $"{timestamp}.{payload}";
+        using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(secret));
+        var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(signedPayload));
+        var expectedSig = Convert.ToHexString(hash).ToLowerInvariant();
+        
+        return sig == expectedSig;
     }
 }
 ```
