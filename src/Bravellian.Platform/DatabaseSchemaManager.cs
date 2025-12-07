@@ -333,8 +333,8 @@ internal static class DatabaseSchemaManager
     {
         const string sql = """
 
-                        SELECT COUNT(1) 
-                        FROM INFORMATION_SCHEMA.TABLES 
+                        SELECT COUNT(1)
+                        FROM INFORMATION_SCHEMA.TABLES
                         WHERE TABLE_SCHEMA = @SchemaName AND TABLE_NAME = @TableName
             """;
 
@@ -394,11 +394,11 @@ internal static class DatabaseSchemaManager
                 CorrelationId NVARCHAR(255) NULL, -- To trace a message through multiple systems
 
                 -- For Delayed Processing
-                DueTimeUtc DATETIME2(3) NULL, -- Optional timestamp indicating when the message should become eligible for processing
+                DueTimeUtc DATETIMEOFFSET(3) NULL, -- Optional timestamp indicating when the message should become eligible for processing
 
                 -- Work Queue Pattern Columns
                 Status TINYINT NOT NULL DEFAULT 0, -- 0=Ready, 1=InProgress, 2=Done, 3=Failed
-                LockedUntil DATETIME2(3) NULL,
+                LockedUntil DATETIMEOFFSET(3) NULL,
                 OwnerToken UNIQUEIDENTIFIER NULL
             );
 
@@ -426,11 +426,11 @@ internal static class DatabaseSchemaManager
                 CompletedSteps INT NOT NULL DEFAULT 0,
                 FailedSteps INT NOT NULL DEFAULT 0,
                 Status TINYINT NOT NULL DEFAULT 0, -- 0=Pending, 1=Completed, 2=Failed, 3=Cancelled
-                
+
                 -- Timestamps
-                CreatedUtc DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
-                LastUpdatedUtc DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
-                
+                CreatedUtc DATETIMEOFFSET(3) NOT NULL DEFAULT SYSDATETIMEOFFSET(),
+                LastUpdatedUtc DATETIMEOFFSET(3) NOT NULL DEFAULT SYSDATETIMEOFFSET(),
+
                 -- Optional metadata (JSON)
                 Metadata NVARCHAR(MAX) NULL
             );
@@ -452,17 +452,17 @@ internal static class DatabaseSchemaManager
             CREATE TABLE [{schemaName}].[OutboxJoinMember] (
                 JoinId UNIQUEIDENTIFIER NOT NULL,
                 OutboxMessageId UNIQUEIDENTIFIER NOT NULL,
-                CreatedUtc DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
-                CompletedAt DATETIME2(3) NULL,
-                FailedAt DATETIME2(3) NULL,
-                
+                CreatedUtc DATETIMEOFFSET(3) NOT NULL DEFAULT SYSDATETIMEOFFSET(),
+                CompletedAt DATETIMEOFFSET(3) NULL,
+                FailedAt DATETIMEOFFSET(3) NULL,
+
                 -- Composite primary key
                 CONSTRAINT PK_OutboxJoinMember PRIMARY KEY (JoinId, OutboxMessageId),
-                
+
                 -- Foreign key to OutboxJoin (cascades deletes)
-                CONSTRAINT FK_OutboxJoinMember_Join FOREIGN KEY (JoinId) 
+                CONSTRAINT FK_OutboxJoinMember_Join FOREIGN KEY (JoinId)
                     REFERENCES [{schemaName}].[OutboxJoin](JoinId) ON DELETE CASCADE,
-                
+
                 -- Foreign key to Outbox (enforces referential integrity and cascades deletes)
                 CONSTRAINT FK_OutboxJoinMember_Outbox FOREIGN KEY (OutboxMessageId)
                     REFERENCES [{schemaName}].[Outbox](Id) ON DELETE CASCADE
@@ -589,7 +589,7 @@ internal static class DatabaseSchemaManager
             CREATE TABLE [{schemaName}].[{tableName}](
                 [ResourceName] SYSNAME NOT NULL CONSTRAINT PK_{tableName} PRIMARY KEY,
                 [OwnerToken] UNIQUEIDENTIFIER NULL,
-                [LeaseUntil] DATETIME2(3) NULL,
+                [LeaseUntil] DATETIMEOFFSET(3) NULL,
                 [FencingToken] BIGINT NOT NULL CONSTRAINT DF_{tableName}_Fence DEFAULT(0),
                 [ContextJson] NVARCHAR(MAX) NULL,
                 [Version] ROWVERSION NOT NULL
@@ -613,8 +613,8 @@ internal static class DatabaseSchemaManager
             CREATE TABLE [{schemaName}].[{tableName}](
                 [Name] SYSNAME NOT NULL CONSTRAINT PK_{tableName} PRIMARY KEY,
                 [Owner] SYSNAME NULL,
-                [LeaseUntilUtc] DATETIME2(3) NULL,
-                [LastGrantedUtc] DATETIME2(3) NULL,
+                [LeaseUntilUtc] DATETIMEOFFSET(3) NULL,
+                [LastGrantedUtc] DATETIMEOFFSET(3) NULL,
                 [Version] ROWVERSION NOT NULL
             );
             """;
@@ -665,7 +665,7 @@ internal static class DatabaseSchemaManager
     {
         // Create work queue stored procedures
         await CreateOutboxWorkQueueProceduresAsync(connection, schemaName, tableName).ConfigureAwait(false);
-        
+
         // Create cleanup stored procedure
         var cleanupProc = GetOutboxCleanupStoredProcedure(schemaName, tableName);
         await ExecuteScriptAsync(connection, cleanupProc).ConfigureAwait(false);
@@ -682,7 +682,7 @@ internal static class DatabaseSchemaManager
     {
         // Create work queue stored procedures
         await CreateInboxWorkQueueProceduresAsync(connection, schemaName, tableName).ConfigureAwait(false);
-        
+
         // Create cleanup stored procedure
         var cleanupProc = GetInboxCleanupStoredProcedure(schemaName, tableName);
         await ExecuteScriptAsync(connection, cleanupProc).ConfigureAwait(false);
@@ -710,8 +710,8 @@ internal static class DatabaseSchemaManager
             BEGIN
                 SET NOCOUNT ON; SET XACT_ABORT ON;
 
-                DECLARE @now DATETIME2(3) = SYSUTCDATETIME();
-                DECLARE @newLease DATETIME2(3) = DATEADD(SECOND, @LeaseSeconds, @now);
+                DECLARE @now DATETIMEOFFSET(3) = SYSDATETIMEOFFSET();
+                DECLARE @newLease DATETIMEOFFSET(3) = DATEADD(SECOND, @LeaseSeconds, @now);
                 DECLARE @rc INT;
                 DECLARE @LockResourceName NVARCHAR(255) = CONCAT('lease:', @ResourceName);
 
@@ -797,8 +797,8 @@ internal static class DatabaseSchemaManager
             BEGIN
                 SET NOCOUNT ON;
 
-                DECLARE @now DATETIME2(3) = SYSUTCDATETIME();
-                DECLARE @newLease DATETIME2(3) = DATEADD(SECOND, @LeaseSeconds, @now);
+                DECLARE @now DATETIMEOFFSET(3) = SYSDATETIMEOFFSET();
+                DECLARE @newLease DATETIMEOFFSET(3) = DATEADD(SECOND, @LeaseSeconds, @now);
 
                 UPDATE dl WITH (UPDLOCK, ROWLOCK)
                    SET LeaseUntil = @newLease,
@@ -864,7 +864,7 @@ internal static class DatabaseSchemaManager
                 SET NOCOUNT ON;
                 UPDATE [{schemaName}].[DistributedLock]
                    SET OwnerToken = NULL, LeaseUntil = NULL, ContextJson = NULL
-                 WHERE LeaseUntil IS NOT NULL AND LeaseUntil <= SYSUTCDATETIME();
+                 WHERE LeaseUntil IS NOT NULL AND LeaseUntil <= SYSDATETIMEOFFSET();
             END
             """;
     }
@@ -883,14 +883,14 @@ internal static class DatabaseSchemaManager
                 @Owner SYSNAME,
                 @LeaseSeconds INT,
                 @Acquired BIT OUTPUT,
-                @ServerUtcNow DATETIME2(3) OUTPUT,
-                @LeaseUntilUtc DATETIME2(3) OUTPUT
+                @ServerUtcNow DATETIMEOFFSET(3) OUTPUT,
+                @LeaseUntilUtc DATETIMEOFFSET(3) OUTPUT
             AS
             BEGIN
                 SET NOCOUNT ON; SET XACT_ABORT ON;
 
-                DECLARE @now DATETIME2(3) = SYSUTCDATETIME();
-                DECLARE @newLease DATETIME2(3) = DATEADD(SECOND, @LeaseSeconds, @now);
+                DECLARE @now DATETIMEOFFSET(3) = SYSDATETIMEOFFSET();
+                DECLARE @newLease DATETIMEOFFSET(3) = DATEADD(SECOND, @LeaseSeconds, @now);
 
                 SET @ServerUtcNow = @now;
                 SET @Acquired = 0;
@@ -940,14 +940,14 @@ internal static class DatabaseSchemaManager
                 @Owner SYSNAME,
                 @LeaseSeconds INT,
                 @Renewed BIT OUTPUT,
-                @ServerUtcNow DATETIME2(3) OUTPUT,
-                @LeaseUntilUtc DATETIME2(3) OUTPUT
+                @ServerUtcNow DATETIMEOFFSET(3) OUTPUT,
+                @LeaseUntilUtc DATETIMEOFFSET(3) OUTPUT
             AS
             BEGIN
                 SET NOCOUNT ON;
 
-                DECLARE @now DATETIME2(3) = SYSUTCDATETIME();
-                DECLARE @newLease DATETIME2(3) = DATEADD(SECOND, @LeaseSeconds, @now);
+                DECLARE @now DATETIMEOFFSET(3) = SYSDATETIMEOFFSET();
+                DECLARE @newLease DATETIMEOFFSET(3) = DATEADD(SECOND, @LeaseSeconds, @now);
 
                 SET @ServerUtcNow = @now;
                 SET @Renewed = 0;
@@ -986,12 +986,12 @@ internal static class DatabaseSchemaManager
             BEGIN
                 SET NOCOUNT ON;
                 DECLARE @cutoffTime DATETIMEOFFSET = DATEADD(SECOND, -@RetentionSeconds, SYSDATETIMEOFFSET());
-                
+
                 DELETE FROM [{schemaName}].[{tableName}]
                  WHERE IsProcessed = 1
                    AND ProcessedAt IS NOT NULL
                    AND ProcessedAt < @cutoffTime;
-                   
+
                 SELECT @@ROWCOUNT AS DeletedCount;
             END
             """;
@@ -1012,13 +1012,13 @@ internal static class DatabaseSchemaManager
             AS
             BEGIN
                 SET NOCOUNT ON;
-                DECLARE @cutoffTime DATETIME2(3) = DATEADD(SECOND, -@RetentionSeconds, SYSUTCDATETIME());
-                
+                DECLARE @cutoffTime DATETIMEOFFSET(3) = DATEADD(SECOND, -@RetentionSeconds, SYSDATETIMEOFFSET());
+
                 DELETE FROM [{schemaName}].[{tableName}]
                  WHERE Status = 'Done'
                    AND ProcessedUtc IS NOT NULL
                    AND ProcessedUtc < @cutoffTime;
-                   
+
                 SELECT @@ROWCOUNT AS DeletedCount;
             END
             """;
@@ -1041,10 +1041,10 @@ internal static class DatabaseSchemaManager
                 Hash BINARY(32) NULL,
 
                 -- Timing tracking
-                FirstSeenUtc DATETIME2(3) NOT NULL DEFAULT GETUTCDATE(),
-                LastSeenUtc DATETIME2(3) NOT NULL DEFAULT GETUTCDATE(),
-                ProcessedUtc DATETIME2(3) NULL,
-                DueTimeUtc DATETIME2(3) NULL,
+                FirstSeenUtc DATETIMEOFFSET(3) NOT NULL DEFAULT SYSDATETIMEOFFSET(),
+                LastSeenUtc DATETIMEOFFSET(3) NOT NULL DEFAULT SYSDATETIMEOFFSET(),
+                ProcessedUtc DATETIMEOFFSET(3) NULL,
+                DueTimeUtc DATETIMEOFFSET(3) NULL,
 
                 -- Processing status
                 Attempts INT NOT NULL DEFAULT 0,
@@ -1053,7 +1053,7 @@ internal static class DatabaseSchemaManager
                 LastError NVARCHAR(MAX) NULL,
 
                 -- Work Queue Pattern Columns
-                LockedUntil DATETIME2(3) NULL,
+                LockedUntil DATETIMEOFFSET(3) NULL,
                 OwnerToken UNIQUEIDENTIFIER NULL,
                 Topic VARCHAR(128) NULL,
                 Payload NVARCHAR(MAX) NULL
@@ -1089,11 +1089,11 @@ internal static class DatabaseSchemaManager
             CREATE TABLE [{schemaName}].[OutboxState] (
                 Id INT NOT NULL CONSTRAINT PK_OutboxState PRIMARY KEY,
                 CurrentFencingToken BIGINT NOT NULL DEFAULT(0),
-                LastDispatchAt DATETIME2(3) NULL
+                LastDispatchAt DATETIMEOFFSET(3) NULL
             );
 
             -- Insert initial state row
-            INSERT [{schemaName}].[OutboxState] (Id, CurrentFencingToken, LastDispatchAt) 
+            INSERT [{schemaName}].[OutboxState] (Id, CurrentFencingToken, LastDispatchAt)
             VALUES (1, 0, NULL);
             """;
     }
@@ -1110,11 +1110,11 @@ internal static class DatabaseSchemaManager
             CREATE TABLE [{schemaName}].[SchedulerState] (
                 Id INT NOT NULL CONSTRAINT PK_SchedulerState PRIMARY KEY,
                 CurrentFencingToken BIGINT NOT NULL DEFAULT(0),
-                LastRunAt DATETIME2(3) NULL
+                LastRunAt DATETIMEOFFSET(3) NULL
             );
 
             -- Insert initial state row
-            INSERT [{schemaName}].[SchedulerState] (Id, CurrentFencingToken, LastRunAt) 
+            INSERT [{schemaName}].[SchedulerState] (Id, CurrentFencingToken, LastRunAt)
             VALUES (1, 0, NULL);
             """;
     }
@@ -1152,13 +1152,13 @@ internal static class DatabaseSchemaManager
                           AS
                           BEGIN
                             SET NOCOUNT ON;
-                            DECLARE @now DATETIME2(3) = SYSUTCDATETIME();
-                            DECLARE @until DATETIME2(3) = DATEADD(SECOND, @LeaseSeconds, @now);
+                            DECLARE @now DATETIMEOFFSET(3) = SYSDATETIMEOFFSET();
+                            DECLARE @until DATETIMEOFFSET(3) = DATEADD(SECOND, @LeaseSeconds, @now);
 
                             WITH cte AS (
                                 SELECT TOP (@BatchSize) Id
                                 FROM [{schemaName}].[{tableName}] WITH (READPAST, UPDLOCK, ROWLOCK)
-                                WHERE Status = 0 
+                                WHERE Status = 0
                                     AND (LockedUntil IS NULL OR LockedUntil <= @now)
                                     AND (DueTimeUtc IS NULL OR DueTimeUtc <= @now)
                                 ORDER BY CreatedAt
@@ -1176,12 +1176,12 @@ internal static class DatabaseSchemaManager
                           AS
                           BEGIN
                             SET NOCOUNT ON;
-                            
+
                             -- Mark outbox messages as dispatched
-                            UPDATE o SET Status = 2, OwnerToken = NULL, LockedUntil = NULL, IsProcessed = 1, ProcessedAt = SYSUTCDATETIME()
+                            UPDATE o SET Status = 2, OwnerToken = NULL, LockedUntil = NULL, IsProcessed = 1, ProcessedAt = SYSDATETIMEOFFSET()
                             FROM [{schemaName}].[{tableName}] o JOIN @Ids i ON i.Id = o.Id
                             WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
-                            
+
                             -- Only proceed with join updates if any messages were actually acknowledged
                             -- and OutboxJoin tables exist (i.e., join feature is enabled)
                             IF @@ROWCOUNT > 0 AND OBJECT_ID(N'[{schemaName}].[OutboxJoinMember]', N'U') IS NOT NULL
@@ -1189,21 +1189,21 @@ internal static class DatabaseSchemaManager
                                 -- First, mark the join members as completed (idempotent via WHERE clause)
                                 -- This prevents race conditions by ensuring a member can only be marked once
                                 UPDATE m
-                                SET CompletedAt = SYSUTCDATETIME()
+                                SET CompletedAt = SYSDATETIMEOFFSET()
                                 FROM [{schemaName}].[OutboxJoinMember] m
                                 INNER JOIN @Ids i
                                     ON m.OutboxMessageId = i.Id
                                 WHERE m.CompletedAt IS NULL
                                     AND m.FailedAt IS NULL;
-                                
+
                                 -- Then, increment counter ONLY for joins with members that were just marked
                                 -- Using @@ROWCOUNT from previous UPDATE ensures we only count newly marked members
                                 IF @@ROWCOUNT > 0
                                 BEGIN
                                     UPDATE j
-                                    SET 
+                                    SET
                                         CompletedSteps = CompletedSteps + 1,
-                                        LastUpdatedUtc = SYSUTCDATETIME()
+                                        LastUpdatedUtc = SYSDATETIMEOFFSET()
                                     FROM [{schemaName}].[OutboxJoin] j
                                     INNER JOIN [{schemaName}].[OutboxJoinMember] m
                                         ON j.JoinId = m.JoinId
@@ -1211,7 +1211,7 @@ internal static class DatabaseSchemaManager
                                         ON m.OutboxMessageId = i.Id
                                     WHERE m.CompletedAt IS NOT NULL
                                         AND m.FailedAt IS NULL
-                                        AND m.CompletedAt >= DATEADD(SECOND, -1, SYSUTCDATETIME())
+                                        AND m.CompletedAt >= DATEADD(SECOND, -1, SYSDATETIMEOFFSET())
                                         AND (j.CompletedSteps + j.FailedSteps) < j.ExpectedSteps;
                                 END
                             END
@@ -1223,13 +1223,13 @@ internal static class DatabaseSchemaManager
                             @OwnerToken UNIQUEIDENTIFIER,
                             @Ids [{schemaName}].[GuidIdList] READONLY,
                             @LastError NVARCHAR(MAX) = NULL,
-                            @DueTimeUtc DATETIME2(3) = NULL
+                            @DueTimeUtc DATETIMEOFFSET(3) = NULL
                           AS
                           BEGIN
                             SET NOCOUNT ON;
-                            UPDATE o SET 
-                                Status = 0, 
-                                OwnerToken = NULL, 
+                            UPDATE o SET
+                                Status = 0,
+                                OwnerToken = NULL,
                                 LockedUntil = NULL,
                                 RetryCount = RetryCount + 1,
                                 LastError = ISNULL(@LastError, o.LastError),
@@ -1248,17 +1248,17 @@ internal static class DatabaseSchemaManager
                           AS
                           BEGIN
                             SET NOCOUNT ON;
-                            
+
                             -- Mark outbox messages as failed
-                            UPDATE o SET 
-                                Status = 3, 
-                                OwnerToken = NULL, 
+                            UPDATE o SET
+                                Status = 3,
+                                OwnerToken = NULL,
                                 LockedUntil = NULL,
                                 LastError = ISNULL(@LastError, o.LastError),
                                 ProcessedBy = ISNULL(@ProcessedBy, o.ProcessedBy)
                             FROM [{schemaName}].[{tableName}] o JOIN @Ids i ON i.Id = o.Id
                             WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
-                            
+
                             -- Only proceed with join updates if any messages were actually failed
                             -- and OutboxJoin tables exist (i.e., join feature is enabled)
                             IF @@ROWCOUNT > 0 AND OBJECT_ID(N'[{schemaName}].[OutboxJoinMember]', N'U') IS NOT NULL
@@ -1266,21 +1266,21 @@ internal static class DatabaseSchemaManager
                                 -- First, mark the join members as failed (idempotent via WHERE clause)
                                 -- This prevents race conditions by ensuring a member can only be marked once
                                 UPDATE m
-                                SET FailedAt = SYSUTCDATETIME()
+                                SET FailedAt = SYSDATETIMEOFFSET()
                                 FROM [{schemaName}].[OutboxJoinMember] m
                                 INNER JOIN @Ids i
                                     ON m.OutboxMessageId = i.Id
                                 WHERE m.CompletedAt IS NULL
                                     AND m.FailedAt IS NULL;
-                                
+
                                 -- Then, increment counter ONLY for joins with members that were just marked
                                 -- Using @@ROWCOUNT from previous UPDATE ensures we only count newly marked members
                                 IF @@ROWCOUNT > 0
                                 BEGIN
                                     UPDATE j
-                                    SET 
+                                    SET
                                         FailedSteps = FailedSteps + 1,
-                                        LastUpdatedUtc = SYSUTCDATETIME()
+                                        LastUpdatedUtc = SYSDATETIMEOFFSET()
                                     FROM [{schemaName}].[OutboxJoin] j
                                     INNER JOIN [{schemaName}].[OutboxJoinMember] m
                                         ON j.JoinId = m.JoinId
@@ -1288,7 +1288,7 @@ internal static class DatabaseSchemaManager
                                         ON m.OutboxMessageId = i.Id
                                     WHERE m.CompletedAt IS NULL
                                         AND m.FailedAt IS NOT NULL
-                                        AND m.FailedAt >= DATEADD(SECOND, -1, SYSUTCDATETIME())
+                                        AND m.FailedAt >= DATEADD(SECOND, -1, SYSDATETIMEOFFSET())
                                         AND (j.CompletedSteps + j.FailedSteps) < j.ExpectedSteps;
                                 END
                             END
@@ -1301,7 +1301,7 @@ internal static class DatabaseSchemaManager
                           BEGIN
                             SET NOCOUNT ON;
                             UPDATE [{schemaName}].[{tableName}] SET Status = 0, OwnerToken = NULL, LockedUntil = NULL
-                            WHERE Status = 1 AND LockedUntil IS NOT NULL AND LockedUntil <= SYSUTCDATETIME();
+                            WHERE Status = 1 AND LockedUntil IS NOT NULL AND LockedUntil <= SYSDATETIMEOFFSET();
                             SELECT @@ROWCOUNT AS ReapedCount;
                           END
             """,
@@ -1333,13 +1333,13 @@ internal static class DatabaseSchemaManager
                           AS
                           BEGIN
                             SET NOCOUNT ON;
-                            DECLARE @now DATETIME2(3) = SYSUTCDATETIME();
-                            DECLARE @until DATETIME2(3) = DATEADD(SECOND, @LeaseSeconds, @now);
+                            DECLARE @now DATETIMEOFFSET(3) = SYSDATETIMEOFFSET();
+                            DECLARE @until DATETIMEOFFSET(3) = DATEADD(SECOND, @LeaseSeconds, @now);
 
                             WITH cte AS (
                                 SELECT TOP (@BatchSize) MessageId
                                 FROM [{schemaName}].[{tableName}] WITH (READPAST, UPDLOCK, ROWLOCK)
-                                WHERE Status IN ('Seen', 'Processing') 
+                                WHERE Status IN ('Seen', 'Processing')
                                     AND (LockedUntil IS NULL OR LockedUntil <= @now)
                                     AND (DueTimeUtc IS NULL OR DueTimeUtc <= @now)
                                 ORDER BY LastSeenUtc
@@ -1357,7 +1357,7 @@ internal static class DatabaseSchemaManager
                           AS
                           BEGIN
                             SET NOCOUNT ON;
-                            UPDATE i SET Status = 'Done', OwnerToken = NULL, LockedUntil = NULL, ProcessedUtc = SYSUTCDATETIME(), LastSeenUtc = SYSUTCDATETIME()
+                            UPDATE i SET Status = 'Done', OwnerToken = NULL, LockedUntil = NULL, ProcessedUtc = SYSDATETIMEOFFSET(), LastSeenUtc = SYSDATETIMEOFFSET()
                             FROM [{schemaName}].[{tableName}] i JOIN @Ids ids ON ids.Id = i.MessageId
                             WHERE i.OwnerToken = @OwnerToken AND i.Status = 'Processing';
                           END
@@ -1368,15 +1368,15 @@ internal static class DatabaseSchemaManager
                             @OwnerToken UNIQUEIDENTIFIER,
                             @Ids [{schemaName}].[StringIdList] READONLY,
                             @LastError NVARCHAR(MAX) = NULL,
-                            @DueTimeUtc DATETIME2(3) = NULL
+                            @DueTimeUtc DATETIMEOFFSET(3) = NULL
                           AS
                           BEGIN
                             SET NOCOUNT ON;
-                            UPDATE i SET 
-                                Status = 'Seen', 
-                                OwnerToken = NULL, 
-                                LockedUntil = NULL, 
-                                LastSeenUtc = SYSUTCDATETIME(),
+                            UPDATE i SET
+                                Status = 'Seen',
+                                OwnerToken = NULL,
+                                LockedUntil = NULL,
+                                LastSeenUtc = SYSDATETIMEOFFSET(),
                                 Attempts = Attempts + 1,
                                 LastError = ISNULL(@LastError, i.LastError),
                                 DueTimeUtc = ISNULL(@DueTimeUtc, i.DueTimeUtc)
@@ -1393,11 +1393,11 @@ internal static class DatabaseSchemaManager
                           AS
                           BEGIN
                             SET NOCOUNT ON;
-                            UPDATE i SET 
-                                Status = 'Dead', 
-                                OwnerToken = NULL, 
-                                LockedUntil = NULL, 
-                                LastSeenUtc = SYSUTCDATETIME(),
+                            UPDATE i SET
+                                Status = 'Dead',
+                                OwnerToken = NULL,
+                                LockedUntil = NULL,
+                                LastSeenUtc = SYSDATETIMEOFFSET(),
                                 LastError = ISNULL(@Reason, i.LastError)
                             FROM [{schemaName}].[{tableName}] i JOIN @Ids ids ON ids.Id = i.MessageId
                             WHERE i.OwnerToken = @OwnerToken AND i.Status = 'Processing';
@@ -1409,8 +1409,8 @@ internal static class DatabaseSchemaManager
                           AS
                           BEGIN
                             SET NOCOUNT ON;
-                            UPDATE [{schemaName}].[{tableName}] SET Status = 'Seen', OwnerToken = NULL, LockedUntil = NULL, LastSeenUtc = SYSUTCDATETIME()
-                            WHERE Status = 'Processing' AND LockedUntil IS NOT NULL AND LockedUntil <= SYSUTCDATETIME();
+                            UPDATE [{schemaName}].[{tableName}] SET Status = 'Seen', OwnerToken = NULL, LockedUntil = NULL, LastSeenUtc = SYSDATETIMEOFFSET()
+                            WHERE Status = 'Processing' AND LockedUntil IS NOT NULL AND LockedUntil <= SYSDATETIMEOFFSET();
                             SELECT @@ROWCOUNT AS ReapedCount;
                           END
             """,
@@ -1548,7 +1548,7 @@ internal static class DatabaseSchemaManager
                 [Name] NVARCHAR(200) NOT NULL CONSTRAINT PK_Semaphore PRIMARY KEY,
                 [Limit] INT NOT NULL,
                 [NextFencingCounter] BIGINT NOT NULL DEFAULT 1,
-                [UpdatedUtc] DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME()
+                [UpdatedUtc] DATETIMEOFFSET(3) NOT NULL DEFAULT SYSDATETIMEOFFSET()
             );
             """;
     }
@@ -1567,20 +1567,20 @@ internal static class DatabaseSchemaManager
                 [Token] UNIQUEIDENTIFIER NOT NULL,
                 [Fencing] BIGINT NOT NULL,
                 [OwnerId] NVARCHAR(200) NOT NULL,
-                [LeaseUntilUtc] DATETIME2(3) NOT NULL,
-                [CreatedUtc] DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
-                [RenewedUtc] DATETIME2(3) NULL,
+                [LeaseUntilUtc] DATETIMEOFFSET(3) NOT NULL,
+                [CreatedUtc] DATETIMEOFFSET(3) NOT NULL DEFAULT SYSDATETIMEOFFSET(),
+                [RenewedUtc] DATETIMEOFFSET(3) NULL,
                 [ClientRequestId] NVARCHAR(100) NULL,
                 CONSTRAINT PK_SemaphoreLease PRIMARY KEY ([Name], [Token])
             );
 
             -- Index for efficient counting of active leases
-            CREATE INDEX IX_SemaphoreLease_Name_LeaseUntilUtc 
+            CREATE INDEX IX_SemaphoreLease_Name_LeaseUntilUtc
                 ON [{schemaName}].[SemaphoreLease]([Name], [LeaseUntilUtc])
                 INCLUDE([Token]);
 
             -- Index for reaping expired leases
-            CREATE INDEX IX_SemaphoreLease_LeaseUntilUtc 
+            CREATE INDEX IX_SemaphoreLease_LeaseUntilUtc
                 ON [{schemaName}].[SemaphoreLease]([LeaseUntilUtc]);
 
             -- Index for idempotent acquire lookups by client request ID
@@ -1626,13 +1626,13 @@ internal static class DatabaseSchemaManager
                 @Acquired BIT OUTPUT,
                 @Token UNIQUEIDENTIFIER OUTPUT,
                 @Fencing BIGINT OUTPUT,
-                @ExpiresAtUtc DATETIME2(3) OUTPUT
+                @ExpiresAtUtc DATETIMEOFFSET(3) OUTPUT
             AS
             BEGIN
                 SET NOCOUNT ON; SET XACT_ABORT ON;
 
-                DECLARE @now DATETIME2(3) = SYSUTCDATETIME();
-                DECLARE @until DATETIME2(3) = DATEADD(SECOND, @TtlSeconds, @now);
+                DECLARE @now DATETIMEOFFSET(3) = SYSDATETIMEOFFSET();
+                DECLARE @until DATETIMEOFFSET(3) = DATEADD(SECOND, @TtlSeconds, @now);
                 DECLARE @activeCount INT;
                 DECLARE @limit INT;
 
@@ -1659,7 +1659,7 @@ internal static class DatabaseSchemaManager
                 BEGIN
                     SELECT @Token = [Token], @Fencing = [Fencing], @ExpiresAtUtc = [LeaseUntilUtc]
                     FROM [{schemaName}].[SemaphoreLease]
-                    WHERE [Name] = @Name 
+                    WHERE [Name] = @Name
                         AND [ClientRequestId] = @ClientRequestId
                         AND [LeaseUntilUtc] > @now;
 
@@ -1729,14 +1729,14 @@ internal static class DatabaseSchemaManager
                 @Token UNIQUEIDENTIFIER,
                 @TtlSeconds INT,
                 @Renewed BIT OUTPUT,
-                @ExpiresAtUtc DATETIME2(3) OUTPUT
+                @ExpiresAtUtc DATETIMEOFFSET(3) OUTPUT
             AS
             BEGIN
                 SET NOCOUNT ON;
 
-                DECLARE @now DATETIME2(3) = SYSUTCDATETIME();
-                DECLARE @until DATETIME2(3) = DATEADD(SECOND, @TtlSeconds, @now);
-                DECLARE @currentExpiry DATETIME2(3);
+                DECLARE @now DATETIMEOFFSET(3) = SYSDATETIMEOFFSET();
+                DECLARE @until DATETIMEOFFSET(3) = DATEADD(SECOND, @TtlSeconds, @now);
+                DECLARE @currentExpiry DATETIMEOFFSET(3);
 
                 -- Check current expiry
                 SELECT @currentExpiry = [LeaseUntilUtc]
@@ -1821,7 +1821,7 @@ internal static class DatabaseSchemaManager
             BEGIN
                 SET NOCOUNT ON;
 
-                DECLARE @now DATETIME2(3) = SYSUTCDATETIME();
+                DECLARE @now DATETIMEOFFSET(3) = SYSDATETIMEOFFSET();
 
                 IF @Name IS NULL
                 BEGIN
@@ -1974,7 +1974,7 @@ internal static class DatabaseSchemaManager
               InstanceId    UNIQUEIDENTIFIER NOT NULL,
               TagsJson      NVARCHAR(1024) NOT NULL DEFAULT (N'{}'),
               TagHash       VARBINARY(32) NOT NULL,
-              CreatedUtc    DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
+              CreatedUtc    DATETIMEOFFSET(3) NOT NULL DEFAULT SYSDATETIMEOFFSET(),
               CONSTRAINT UQ_MetricSeries UNIQUE (MetricDefId, Service, InstanceId, TagHash)
             );
             """;
@@ -1985,7 +1985,7 @@ internal static class DatabaseSchemaManager
         return $"""
             CREATE TABLE [{schemaName}].[MetricPointMinute] (
               SeriesId        BIGINT       NOT NULL REFERENCES [{schemaName}].[MetricSeries](SeriesId),
-              BucketStartUtc  DATETIME2(0) NOT NULL,
+              BucketStartUtc  DATETIMEOFFSET(0) NOT NULL,
               BucketSecs      SMALLINT     NOT NULL,
               ValueSum        FLOAT        NULL,
               ValueCount      INT          NULL,
@@ -1995,11 +1995,11 @@ internal static class DatabaseSchemaManager
               P50             FLOAT        NULL,
               P95             FLOAT        NULL,
               P99             FLOAT        NULL,
-              InsertedUtc     DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
+              InsertedUtc     DATETIMEOFFSET(3) NOT NULL DEFAULT SYSDATETIMEOFFSET(),
               CONSTRAINT PK_MetricPointMinute PRIMARY KEY (SeriesId, BucketStartUtc, BucketSecs)
             );
 
-            CREATE INDEX IX_MetricPointMinute_ByTime ON [{schemaName}].[MetricPointMinute] (BucketStartUtc) 
+            CREATE INDEX IX_MetricPointMinute_ByTime ON [{schemaName}].[MetricPointMinute] (BucketStartUtc)
               INCLUDE (SeriesId, ValueSum, ValueCount, P95);
             """;
     }
@@ -2014,7 +2014,7 @@ internal static class DatabaseSchemaManager
               Service       NVARCHAR(64) NOT NULL,
               TagsJson      NVARCHAR(1024) NOT NULL DEFAULT N'{"{"}"{"}"}',
               TagHash       VARBINARY(32)  NOT NULL,
-              CreatedUtc    DATETIME2(3)   NOT NULL DEFAULT SYSUTCDATETIME(),
+              CreatedUtc    DATETIMEOFFSET(3)   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
               CONSTRAINT UQ_MetricSeries UNIQUE (MetricDefId, DatabaseId, Service, TagHash)
             );
             """;
@@ -2025,7 +2025,7 @@ internal static class DatabaseSchemaManager
         return $"""
             CREATE TABLE [{schemaName}].[MetricPointHourly] (
               SeriesId        BIGINT       NOT NULL REFERENCES [{schemaName}].[MetricSeries](SeriesId),
-              BucketStartUtc  DATETIME2(0) NOT NULL,
+              BucketStartUtc  DATETIMEOFFSET(0) NOT NULL,
               BucketSecs      INT          NOT NULL,
               ValueSum        FLOAT        NULL,
               ValueCount      INT          NULL,
@@ -2035,7 +2035,7 @@ internal static class DatabaseSchemaManager
               P50             FLOAT        NULL,
               P95             FLOAT        NULL,
               P99             FLOAT        NULL,
-              InsertedUtc     DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
+              InsertedUtc     DATETIMEOFFSET(3) NOT NULL DEFAULT SYSDATETIMEOFFSET(),
               CONSTRAINT PK_MetricPointHourly PRIMARY KEY NONCLUSTERED (SeriesId, BucketStartUtc, BucketSecs)
             );
 
@@ -2048,7 +2048,7 @@ internal static class DatabaseSchemaManager
         return $"""
             CREATE TABLE [{schemaName}].[ExporterHeartbeat] (
               InstanceId    NVARCHAR(100) NOT NULL PRIMARY KEY,
-              LastFlushUtc  DATETIME2(3)  NOT NULL,
+              LastFlushUtc  DATETIMEOFFSET(3)  NOT NULL,
               LastError     NVARCHAR(512) NULL
             );
             """;
@@ -2086,7 +2086,7 @@ internal static class DatabaseSchemaManager
               WHEN MATCHED THEN
                 UPDATE SET TagsJson = @TagsJson
               WHEN NOT MATCHED THEN
-                INSERT (MetricDefId, Service, InstanceId, TagsJson, TagHash) 
+                INSERT (MetricDefId, Service, InstanceId, TagsJson, TagHash)
                 VALUES(@MetricDefId, @Service, @InstanceId, @TagsJson, @TagHash);
 
               SELECT @SeriesId = SeriesId FROM [{schemaName}].[MetricSeries]
@@ -2100,7 +2100,7 @@ internal static class DatabaseSchemaManager
         return $"""
             CREATE OR ALTER PROCEDURE [{schemaName}].[SpUpsertMetricPointMinute]
               @SeriesId BIGINT,
-              @BucketStartUtc DATETIME2(0),
+              @BucketStartUtc DATETIMEOFFSET(0),
               @BucketSecs SMALLINT,
               @ValueSum FLOAT,
               @ValueCount INT,
@@ -2116,13 +2116,13 @@ internal static class DatabaseSchemaManager
 
               DECLARE @LockRes INT;
               DECLARE @ResourceName NVARCHAR(255) = CONCAT('infra:mpm:', @SeriesId, ':', CONVERT(VARCHAR(19), @BucketStartUtc, 126), ':', @BucketSecs);
-              
+
               EXEC @LockRes = sp_getapplock
                 @Resource = @ResourceName,
-                @LockMode = 'Exclusive', 
-                @LockTimeout = 5000, 
+                @LockMode = 'Exclusive',
+                @LockTimeout = 5000,
                 @DbPrincipal = 'public';
-              
+
               IF @LockRes < 0 RETURN;
 
               IF EXISTS (SELECT 1 FROM [{schemaName}].[MetricPointMinute] WITH (UPDLOCK, HOLDLOCK)
@@ -2135,7 +2135,7 @@ internal static class DatabaseSchemaManager
                       ValueMin   = CASE WHEN ValueMin IS NULL OR @ValueMin < ValueMin THEN @ValueMin ELSE ValueMin END,
                       ValueMax   = CASE WHEN ValueMax IS NULL OR @ValueMax > ValueMax THEN @ValueMax ELSE ValueMax END,
                       ValueLast  = @ValueLast,
-                      InsertedUtc = SYSUTCDATETIME()
+                      InsertedUtc = SYSDATETIMEOFFSET()
                 WHERE SeriesId = @SeriesId AND BucketStartUtc = @BucketStartUtc AND BucketSecs = @BucketSecs;
               END
               ELSE
@@ -2183,7 +2183,7 @@ internal static class DatabaseSchemaManager
               WHEN MATCHED THEN
                 UPDATE SET TagsJson = @TagsJson
               WHEN NOT MATCHED THEN
-                INSERT (MetricDefId, DatabaseId, Service, TagsJson, TagHash) 
+                INSERT (MetricDefId, DatabaseId, Service, TagsJson, TagHash)
                 VALUES(@MetricDefId, @DatabaseId, @Service, @TagsJson, @TagHash);
 
               SELECT @SeriesId = SeriesId FROM [{schemaName}].[MetricSeries]
@@ -2197,7 +2197,7 @@ internal static class DatabaseSchemaManager
         return $"""
             CREATE OR ALTER PROCEDURE [{schemaName}].[SpUpsertMetricPointHourly]
               @SeriesId BIGINT,
-              @BucketStartUtc DATETIME2(0),
+              @BucketStartUtc DATETIMEOFFSET(0),
               @BucketSecs INT,
               @ValueSum FLOAT,
               @ValueCount INT,
@@ -2213,13 +2213,13 @@ internal static class DatabaseSchemaManager
 
               DECLARE @LockRes INT;
               DECLARE @ResourceName NVARCHAR(255) = CONCAT('infra:mph:', @SeriesId, ':', CONVERT(VARCHAR(19), @BucketStartUtc, 126), ':', @BucketSecs);
-              
+
               EXEC @LockRes = sp_getapplock
                 @Resource = @ResourceName,
-                @LockMode = 'Exclusive', 
-                @LockTimeout = 5000, 
+                @LockMode = 'Exclusive',
+                @LockTimeout = 5000,
                 @DbPrincipal = 'public';
-              
+
               IF @LockRes < 0 RETURN;
 
               IF EXISTS (SELECT 1 FROM [{schemaName}].[MetricPointHourly] WITH (UPDLOCK, HOLDLOCK)
@@ -2232,7 +2232,7 @@ internal static class DatabaseSchemaManager
                       ValueMin   = CASE WHEN ValueMin IS NULL OR @ValueMin < ValueMin THEN @ValueMin ELSE ValueMin END,
                       ValueMax   = CASE WHEN ValueMax IS NULL OR @ValueMax > ValueMax THEN @ValueMax ELSE ValueMax END,
                       ValueLast  = @ValueLast,
-                      InsertedUtc = SYSUTCDATETIME()
+                      InsertedUtc = SYSDATETIMEOFFSET()
                 WHERE SeriesId = @SeriesId AND BucketStartUtc = @BucketStartUtc AND BucketSecs = @BucketSecs;
               END
               ELSE

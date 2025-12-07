@@ -154,7 +154,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         reader.IsDBNull(1).ShouldBeTrue(); // ClaimedBy
         reader.IsDBNull(2).ShouldBeTrue(); // ClaimedAt
         reader.GetInt32(3).ShouldBe(0); // RetryCount
-        reader.GetDateTimeOffset(4).ShouldBeGreaterThan(DateTimeOffset.Now.AddMinutes(-1)); // CreatedAt
+        reader.GetDateTimeOffset(4).ShouldBeGreaterThan(DateTimeOffset.UtcNow.AddMinutes(-1)); // CreatedAt
     }
 
     [Fact]
