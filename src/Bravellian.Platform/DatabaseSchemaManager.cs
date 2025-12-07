@@ -290,12 +290,15 @@ internal static class DatabaseSchemaManager
     /// <returns>A task representing the asynchronous operation.</returns>
     private static async Task EnsureGuidIdListTypeAsync(SqlConnection connection, string schemaName)
     {
+        // Load script from embedded resource and adapt schema name
+        var script = SqlResourceLoader.GetMultiDatabaseTypeScript("GuidIdList");
+        var adaptedScript = AdaptSchemaName(script, schemaName);
+
+        // Wrap in IF NOT EXISTS check
         var sql = $"""
             IF TYPE_ID('[{schemaName}].[GuidIdList]') IS NULL
             BEGIN
-                CREATE TYPE [{schemaName}].[GuidIdList] AS TABLE (
-                    Id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY
-                );
+                {adaptedScript}
             END
             """;
 
@@ -310,16 +313,31 @@ internal static class DatabaseSchemaManager
     /// <returns>A task representing the asynchronous operation.</returns>
     private static async Task EnsureStringIdListTypeAsync(SqlConnection connection, string schemaName)
     {
+        // Load script from embedded resource and adapt schema name
+        var script = SqlResourceLoader.GetMultiDatabaseTypeScript("StringIdList");
+        var adaptedScript = AdaptSchemaName(script, schemaName);
+
+        // Wrap in IF NOT EXISTS check
         var sql = $"""
             IF TYPE_ID('[{schemaName}].[StringIdList]') IS NULL
             BEGIN
-                CREATE TYPE [{schemaName}].[StringIdList] AS TABLE (
-                    Id VARCHAR(64) NOT NULL PRIMARY KEY
-                );
+                {adaptedScript}
             END
             """;
 
         await connection.ExecuteAsync(sql).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Adapts SQL script to use a different schema name by replacing [infra] with the specified schema.
+    /// </summary>
+    /// <param name="script">The original SQL script.</param>
+    /// <param name="schemaName">The target schema name.</param>
+    /// <returns>The adapted SQL script.</returns>
+    private static string AdaptSchemaName(string script, string schemaName)
+    {
+        // Replace [infra] with the target schema name
+        return script.Replace("[infra]", $"[{schemaName}]", StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -371,42 +389,18 @@ internal static class DatabaseSchemaManager
     /// <returns>The SQL create script.</returns>
     private static string GetOutboxCreateScript(string schemaName, string tableName)
     {
-        return $"""
-
-            CREATE TABLE [{schemaName}].[{tableName}] (
-                -- Core Fields
-                Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-                Payload NVARCHAR(MAX) NOT NULL,
-                Topic NVARCHAR(255) NOT NULL,
-                CreatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-
-                -- Processing Status & Auditing
-                IsProcessed BIT NOT NULL DEFAULT 0,
-                ProcessedAt DATETIMEOFFSET NULL,
-                ProcessedBy NVARCHAR(100) NULL, -- e.g., machine name or instance ID
-
-                -- For Robustness & Error Handling
-                RetryCount INT NOT NULL DEFAULT 0,
-                LastError NVARCHAR(MAX) NULL,
-
-                -- For Idempotency & Tracing
-                MessageId UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(), -- A stable ID for the message consumer
-                CorrelationId NVARCHAR(255) NULL, -- To trace a message through multiple systems
-
-                -- For Delayed Processing
-                DueTimeUtc DATETIMEOFFSET(3) NULL, -- Optional timestamp indicating when the message should become eligible for processing
-
-                -- Work Queue Pattern Columns
-                Status TINYINT NOT NULL DEFAULT 0, -- 0=Ready, 1=InProgress, 2=Done, 3=Failed
-                LockedUntil DATETIMEOFFSET(3) NULL,
-                OwnerToken UNIQUEIDENTIFIER NULL
-            );
-
-            -- An index to efficiently query for work queue claiming
-            CREATE INDEX IX_{tableName}_WorkQueue ON [{schemaName}].[{tableName}](Status, CreatedAt)
-                INCLUDE(Id, LockedUntil, DueTimeUtc)
-                WHERE Status = 0;
-            """;
+        // Load script from embedded resource and adapt schema name
+        var script = SqlResourceLoader.GetMultiDatabaseTableScript("Outbox");
+        var adaptedScript = AdaptSchemaName(script, schemaName);
+        
+        // If table name is not "Outbox", also replace the table name
+        if (!string.Equals(tableName, "Outbox", StringComparison.Ordinal))
+        {
+            adaptedScript = adaptedScript.Replace("[Outbox]", $"[{tableName}]", StringComparison.Ordinal);
+            adaptedScript = adaptedScript.Replace("IX_Outbox_", $"IX_{tableName}_", StringComparison.Ordinal);
+        }
+        
+        return adaptedScript;
     }
 
     /// <summary>
@@ -481,25 +475,18 @@ internal static class DatabaseSchemaManager
     /// <returns>The SQL create script.</returns>
     private static string GetJobsCreateScript(string schemaName, string tableName)
     {
-        return $"""
-
-            CREATE TABLE [{schemaName}].[{tableName}] (
-                Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-                JobName NVARCHAR(100) NOT NULL,
-                CronSchedule NVARCHAR(100) NOT NULL, -- e.g., "0 */5 * * * *" for every 5 minutes
-                Topic NVARCHAR(255) NOT NULL,
-                Payload NVARCHAR(MAX) NULL,
-                IsEnabled BIT NOT NULL DEFAULT 1,
-
-                -- State tracking for the scheduler
-                NextDueTime DATETIMEOFFSET NULL,
-                LastRunTime DATETIMEOFFSET NULL,
-                LastRunStatus NVARCHAR(20) NULL
-            );
-
-            -- Unique index to prevent duplicate job definitions
-            CREATE UNIQUE INDEX UQ_{tableName}_JobName ON [{schemaName}].[{tableName}](JobName);
-            """;
+        var script = SqlResourceLoader.GetMultiDatabaseTableScript("Jobs");
+        var adaptedScript = AdaptSchemaName(script, schemaName);
+        
+        // If table name is not "Jobs", also replace the table name
+        if (!string.Equals(tableName, "Jobs", StringComparison.Ordinal))
+        {
+            adaptedScript = adaptedScript.Replace("[Jobs]", $"[{tableName}]", StringComparison.Ordinal);
+            adaptedScript = adaptedScript.Replace("UQ_Jobs_", $"UQ_{tableName}_", StringComparison.Ordinal);
+            adaptedScript = adaptedScript.Replace("PK_Jobs", $"PK_{tableName}", StringComparison.Ordinal);
+        }
+        
+        return adaptedScript;
     }
 
     /// <summary>
@@ -510,35 +497,18 @@ internal static class DatabaseSchemaManager
     /// <returns>The SQL create script.</returns>
     private static string GetTimersCreateScript(string schemaName, string tableName)
     {
-        return $"""
-
-            CREATE TABLE [{schemaName}].[{tableName}] (
-                -- Core Fields
-                Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-                DueTime DATETIMEOFFSET NOT NULL,
-                Payload NVARCHAR(MAX) NOT NULL,
-                Topic NVARCHAR(255) NOT NULL,
-
-                -- For tracing back to business logic
-                CorrelationId NVARCHAR(255) NULL,
-
-                -- Processing State Management
-                Status NVARCHAR(20) NOT NULL DEFAULT 'Pending', -- Pending, Claimed, Processed, Failed
-                ClaimedBy NVARCHAR(100) NULL,
-                ClaimedAt DATETIMEOFFSET NULL,
-                RetryCount INT NOT NULL DEFAULT 0,
-
-                -- Auditing
-                CreatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-                ProcessedAt DATETIMEOFFSET NULL,
-                LastError NVARCHAR(MAX) NULL
-            );
-
-            -- A critical index to find the next due timers efficiently.
-            CREATE INDEX IX_{tableName}_GetNext ON [{schemaName}].[{tableName}](Status, DueTime)
-                INCLUDE(Id, Topic) -- Include columns needed to start processing
-                WHERE Status = 'Pending';
-            """;
+        var script = SqlResourceLoader.GetMultiDatabaseTableScript("Timers");
+        var adaptedScript = AdaptSchemaName(script, schemaName);
+        
+        // If table name is not "Timers", also replace the table name
+        if (!string.Equals(tableName, "Timers", StringComparison.Ordinal))
+        {
+            adaptedScript = adaptedScript.Replace("[Timers]", $"[{tableName}]", StringComparison.Ordinal);
+            adaptedScript = adaptedScript.Replace("IX_Timers_", $"IX_{tableName}_", StringComparison.Ordinal);
+            adaptedScript = adaptedScript.Replace("PK_Timers", $"PK_{tableName}", StringComparison.Ordinal);
+        }
+        
+        return adaptedScript;
     }
 
     /// <summary>
@@ -550,30 +520,25 @@ internal static class DatabaseSchemaManager
     /// <returns>The SQL create script.</returns>
     private static string GetJobRunsCreateScript(string schemaName, string tableName, string jobsTableName)
     {
-        return $"""
-
-            CREATE TABLE [{schemaName}].[{tableName}] (
-                Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-                JobId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES [{schemaName}].[{jobsTableName}](Id),
-                ScheduledTime DATETIMEOFFSET NOT NULL,
-
-                -- Processing State Management
-                Status NVARCHAR(20) NOT NULL DEFAULT 'Pending', -- Pending, Claimed, Running, Succeeded, Failed
-                ClaimedBy NVARCHAR(100) NULL,
-                ClaimedAt DATETIMEOFFSET NULL,
-                RetryCount INT NOT NULL DEFAULT 0,
-
-                -- Auditing and Results
-                StartTime DATETIMEOFFSET NULL,
-                EndTime DATETIMEOFFSET NULL,
-                Output NVARCHAR(MAX) NULL,
-                LastError NVARCHAR(MAX) NULL
-            );
-
-            -- Index to find pending job runs that are due
-            CREATE INDEX IX_{tableName}_GetNext ON [{schemaName}].[{tableName}](Status, ScheduledTime)
-                WHERE Status = 'Pending';
-            """;
+        var script = SqlResourceLoader.GetMultiDatabaseTableScript("JobRuns");
+        var adaptedScript = AdaptSchemaName(script, schemaName);
+        
+        // If table name is not "JobRuns", also replace the table name
+        if (!string.Equals(tableName, "JobRuns", StringComparison.Ordinal))
+        {
+            adaptedScript = adaptedScript.Replace("[JobRuns]", $"[{tableName}]", StringComparison.Ordinal);
+            adaptedScript = adaptedScript.Replace("IX_JobRuns_", $"IX_{tableName}_", StringComparison.Ordinal);
+            adaptedScript = adaptedScript.Replace("PK_JobRuns", $"PK_{tableName}", StringComparison.Ordinal);
+            adaptedScript = adaptedScript.Replace("FK_JobRuns_", $"FK_{tableName}_", StringComparison.Ordinal);
+        }
+        
+        // If jobs table name is not "Jobs", also replace the foreign key reference
+        if (!string.Equals(jobsTableName, "Jobs", StringComparison.Ordinal))
+        {
+            adaptedScript = adaptedScript.Replace("[Jobs]", $"[{jobsTableName}]", StringComparison.Ordinal);
+        }
+        
+        return adaptedScript;
     }
 
     /// <summary>
@@ -584,20 +549,19 @@ internal static class DatabaseSchemaManager
     /// <returns>The SQL create script.</returns>
     private static string GetDistributedLockCreateScript(string schemaName, string tableName)
     {
-        return $"""
-
-            CREATE TABLE [{schemaName}].[{tableName}](
-                [ResourceName] SYSNAME NOT NULL CONSTRAINT PK_{tableName} PRIMARY KEY,
-                [OwnerToken] UNIQUEIDENTIFIER NULL,
-                [LeaseUntil] DATETIMEOFFSET(3) NULL,
-                [FencingToken] BIGINT NOT NULL CONSTRAINT DF_{tableName}_Fence DEFAULT(0),
-                [ContextJson] NVARCHAR(MAX) NULL,
-                [Version] ROWVERSION NOT NULL
-            );
-
-            CREATE INDEX IX_{tableName}_OwnerToken ON [{schemaName}].[{tableName}]([OwnerToken])
-                WHERE [OwnerToken] IS NOT NULL;
-            """;
+        var script = SqlResourceLoader.GetMultiDatabaseTableScript("DistributedLock");
+        var adaptedScript = AdaptSchemaName(script, schemaName);
+        
+        // If table name is not "DistributedLock", also replace the table name
+        if (!string.Equals(tableName, "DistributedLock", StringComparison.Ordinal))
+        {
+            adaptedScript = adaptedScript.Replace("[DistributedLock]", $"[{tableName}]", StringComparison.Ordinal);
+            adaptedScript = adaptedScript.Replace("IX_DistributedLock_", $"IX_{tableName}_", StringComparison.Ordinal);
+            adaptedScript = adaptedScript.Replace("PK_DistributedLock", $"PK_{tableName}", StringComparison.Ordinal);
+            adaptedScript = adaptedScript.Replace("DF_DistributedLock_", $"DF_{tableName}_", StringComparison.Ordinal);
+        }
+        
+        return adaptedScript;
     }
 
     /// <summary>
@@ -608,16 +572,17 @@ internal static class DatabaseSchemaManager
     /// <returns>The SQL create script.</returns>
     private static string GetLeaseCreateScript(string schemaName, string tableName)
     {
-        return $"""
-
-            CREATE TABLE [{schemaName}].[{tableName}](
-                [Name] SYSNAME NOT NULL CONSTRAINT PK_{tableName} PRIMARY KEY,
-                [Owner] SYSNAME NULL,
-                [LeaseUntilUtc] DATETIMEOFFSET(3) NULL,
-                [LastGrantedUtc] DATETIMEOFFSET(3) NULL,
-                [Version] ROWVERSION NOT NULL
-            );
-            """;
+        var script = SqlResourceLoader.GetMultiDatabaseTableScript("Lease");
+        var adaptedScript = AdaptSchemaName(script, schemaName);
+        
+        // If table name is not "Lease", also replace the table name
+        if (!string.Equals(tableName, "Lease", StringComparison.Ordinal))
+        {
+            adaptedScript = adaptedScript.Replace("[Lease]", $"[{tableName}]", StringComparison.Ordinal);
+            adaptedScript = adaptedScript.Replace("PK_Lease", $"PK_{tableName}", StringComparison.Ordinal);
+        }
+        
+        return adaptedScript;
     }
 
     /// <summary>
@@ -1032,49 +997,19 @@ internal static class DatabaseSchemaManager
     /// <returns>The SQL create script.</returns>
     private static string GetInboxCreateScript(string schemaName, string tableName)
     {
-        return $"""
-
-            CREATE TABLE [{schemaName}].[{tableName}] (
-                -- Core identification
-                MessageId VARCHAR(64) NOT NULL PRIMARY KEY,
-                Source VARCHAR(64) NOT NULL,
-                Hash BINARY(32) NULL,
-
-                -- Timing tracking
-                FirstSeenUtc DATETIMEOFFSET(3) NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-                LastSeenUtc DATETIMEOFFSET(3) NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-                ProcessedUtc DATETIMEOFFSET(3) NULL,
-                DueTimeUtc DATETIMEOFFSET(3) NULL,
-
-                -- Processing status
-                Attempts INT NOT NULL DEFAULT 0,
-                Status VARCHAR(16) NOT NULL DEFAULT 'Seen'
-                    CONSTRAINT CK_{tableName}_Status CHECK (Status IN ('Seen', 'Processing', 'Done', 'Dead')),
-                LastError NVARCHAR(MAX) NULL,
-
-                -- Work Queue Pattern Columns
-                LockedUntil DATETIMEOFFSET(3) NULL,
-                OwnerToken UNIQUEIDENTIFIER NULL,
-                Topic VARCHAR(128) NULL,
-                Payload NVARCHAR(MAX) NULL
-            );
-
-            -- Index for querying processed messages efficiently
-            CREATE INDEX IX_{tableName}_ProcessedUtc ON [{schemaName}].[{tableName}](ProcessedUtc)
-                WHERE ProcessedUtc IS NOT NULL;
-
-            -- Index for querying by status
-            CREATE INDEX IX_{tableName}_Status ON [{schemaName}].[{tableName}](Status);
-
-            -- Index for efficient cleanup of old processed messages
-            CREATE INDEX IX_{tableName}_Status_ProcessedUtc ON [{schemaName}].[{tableName}](Status, ProcessedUtc)
-                WHERE Status = 'Done' AND ProcessedUtc IS NOT NULL;
-
-            -- Work queue index for claiming messages
-            CREATE INDEX IX_{tableName}_WorkQueue ON [{schemaName}].[{tableName}](Status, LastSeenUtc)
-                INCLUDE(MessageId, OwnerToken)
-                WHERE Status IN ('Seen', 'Processing');
-            """;
+        var script = SqlResourceLoader.GetMultiDatabaseTableScript("Inbox");
+        var adaptedScript = AdaptSchemaName(script, schemaName);
+        
+        // If table name is not "Inbox", also replace the table name
+        if (!string.Equals(tableName, "Inbox", StringComparison.Ordinal))
+        {
+            adaptedScript = adaptedScript.Replace("[Inbox]", $"[{tableName}]", StringComparison.Ordinal);
+            adaptedScript = adaptedScript.Replace("IX_Inbox_", $"IX_{tableName}_", StringComparison.Ordinal);
+            adaptedScript = adaptedScript.Replace("CK_Inbox_", $"CK_{tableName}_", StringComparison.Ordinal);
+            adaptedScript = adaptedScript.Replace("PK_Inbox", $"PK_{tableName}", StringComparison.Ordinal);
+        }
+        
+        return adaptedScript;
     }
 
     /// <summary>
@@ -1084,18 +1019,8 @@ internal static class DatabaseSchemaManager
     /// <returns>The SQL create script.</returns>
     private static string GetOutboxStateCreateScript(string schemaName)
     {
-        return $"""
-
-            CREATE TABLE [{schemaName}].[OutboxState] (
-                Id INT NOT NULL CONSTRAINT PK_OutboxState PRIMARY KEY,
-                CurrentFencingToken BIGINT NOT NULL DEFAULT(0),
-                LastDispatchAt DATETIMEOFFSET(3) NULL
-            );
-
-            -- Insert initial state row
-            INSERT [{schemaName}].[OutboxState] (Id, CurrentFencingToken, LastDispatchAt)
-            VALUES (1, 0, NULL);
-            """;
+        var script = SqlResourceLoader.GetMultiDatabaseTableScript("OutboxState");
+        return AdaptSchemaName(script, schemaName);
     }
 
     /// <summary>
@@ -1105,18 +1030,8 @@ internal static class DatabaseSchemaManager
     /// <returns>The SQL create script.</returns>
     private static string GetSchedulerStateCreateScript(string schemaName)
     {
-        return $"""
-
-            CREATE TABLE [{schemaName}].[SchedulerState] (
-                Id INT NOT NULL CONSTRAINT PK_SchedulerState PRIMARY KEY,
-                CurrentFencingToken BIGINT NOT NULL DEFAULT(0),
-                LastRunAt DATETIMEOFFSET(3) NULL
-            );
-
-            -- Insert initial state row
-            INSERT [{schemaName}].[SchedulerState] (Id, CurrentFencingToken, LastRunAt)
-            VALUES (1, 0, NULL);
-            """;
+        var script = SqlResourceLoader.GetMultiDatabaseTableScript("SchedulerState");
+        return AdaptSchemaName(script, schemaName);
     }
 
     /// <summary>

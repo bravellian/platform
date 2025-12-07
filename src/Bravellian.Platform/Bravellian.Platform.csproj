@@ -66,4 +66,18 @@
 	  <PackageReference Update="Roslynator.Formatting.Analyzers" Version="4.14.1" />
 	</ItemGroup>
 
+	<!-- Embed SQL files from database projects as resources -->
+	<ItemGroup>
+		<!-- MultiDatabase SQL Files -->
+		<EmbeddedResource Include="..\..\Bravellian.Platform.Database.MultiDatabase\infra\Tables\*.sql" Link="Schema\MultiDatabase\Tables\%(Filename)%(Extension)" />
+		<EmbeddedResource Include="..\..\Bravellian.Platform.Database.MultiDatabase\infra\Stored Procedures\*.sql" Link="Schema\MultiDatabase\StoredProcedures\%(Filename)%(Extension)" />
+		<EmbeddedResource Include="..\..\Bravellian.Platform.Database.MultiDatabase\infra\User Defined Types\*.sql" Link="Schema\MultiDatabase\Types\%(Filename)%(Extension)" />
+		<EmbeddedResource Include="..\..\Bravellian.Platform.Database.MultiDatabase\Security\*.sql" Link="Schema\MultiDatabase\Security\%(Filename)%(Extension)" />
+
+		<!-- ControlPlane SQL Files -->
+		<EmbeddedResource Include="..\..\Bravellian.Platform.Database.ControlPlane\infra\Tables\*.sql" Link="Schema\ControlPlane\Tables\%(Filename)%(Extension)" />
+		<EmbeddedResource Include="..\..\Bravellian.Platform.Database.ControlPlane\infra\Stored Procedures\*.sql" Link="Schema\ControlPlane\StoredProcedures\%(Filename)%(Extension)" />
+		<EmbeddedResource Include="..\..\Bravellian.Platform.Database.ControlPlane\Security\*.sql" Link="Schema\ControlPlane\Security\%(Filename)%(Extension)" />
+	</ItemGroup>
+
 </Project>
