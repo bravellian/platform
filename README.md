@@ -101,6 +101,7 @@ src/Bravellian.Platform.Database/
 - [Inbox API Reference](docs/inbox-api-reference.md) - Complete IInbox documentation
 
 **Core Concepts:**
+- [Platform Primitives Overview](docs/platform-primitives-overview.md) - Inbox, outbox, fanout, and fan-in lifecycle
 - [Time Abstractions](docs/time-abstractions.md) - TimeProvider vs IMonotonicClock
 - [Work Queue Pattern](docs/work-queue-pattern.md) - Claim-ack-abandon semantics
 
