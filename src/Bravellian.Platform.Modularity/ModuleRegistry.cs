@@ -24,7 +24,7 @@ namespace Bravellian.Platform.Modularity;
 /// </summary>
 public static class ModuleRegistry
 {
-    private static readonly Lock Sync = new();
+    private static readonly System.Threading.Lock Sync = new();
     private static readonly HashSet<Type> BackgroundModuleTypes = new();
     private static readonly HashSet<Type> ApiModuleTypes = new();
     private static readonly HashSet<Type> FullStackModuleTypes = new();
@@ -98,6 +98,14 @@ public static class ModuleRegistry
         }
     }
 
+    /// <summary>
+    /// Clears all registered module types and instances.
+    /// </summary>
+    /// <remarks>
+    /// This method is intended for testing purposes only. It should not be used in production code
+    /// as it affects global state that may be shared across different parts of the application.
+    /// Tests using this method should not be run in parallel to avoid race conditions.
+    /// </remarks>
     internal static void Reset()
     {
         lock (Sync)
@@ -129,18 +137,32 @@ public static class ModuleRegistry
         ILoggerFactory? loggerFactory)
         where TModule : class, IModuleDefinition
     {
+        // Take a snapshot of types under lock to avoid enumeration issues
+        Type[] typeSnapshot;
+        lock (Sync)
+        {
+            typeSnapshot = types.ToArray();
+        }
+
         var initialized = new List<TModule>();
-        foreach (var type in types)
+        foreach (var type in typeSnapshot)
         {
             var module = (TModule)CreateInstance(type, loggerFactory);
             LoadConfiguration(configuration, module, loggerFactory);
-            module.AddModuleServices(services);
-            RegisterHealthChecks(services, module, loggerFactory);
             RegisterInstance(module);
             initialized.Add(module);
         }
 
+        // Validate module keys before mutating the service collection
         EnsureUniqueKeys();
+
+        // Only after successful validation, register services and health checks
+        foreach (var module in initialized)
+        {
+            module.AddModuleServices(services);
+            RegisterHealthChecks(services, module, loggerFactory);
+        }
+
         return initialized;
     }
 
@@ -178,7 +200,7 @@ public static class ModuleRegistry
             var value = configuration[key];
             if (!string.IsNullOrWhiteSpace(value))
             {
-                optional[key] = value!;
+                optional[key] = value;
             }
         }
 
@@ -227,7 +249,7 @@ public static class ModuleRegistry
             {
                 if (!seen.TryAdd(instance.Key, instance.GetType()))
                 {
-                    throw new InvalidOperationException($"Duplicate module key detected: '{instance.Key}'.");
+                    throw new InvalidOperationException($"Duplicate module key detected (comparison is case-insensitive): '{instance.Key}'.");
                 }
             }
         }

@@ -97,7 +97,7 @@ public static class ModuleServiceCollectionExtensions
     /// <summary>
     /// Maps endpoints for API and full stack modules.
     /// </summary>
-    public static IApplicationBuilder MapModuleEndpoints(this WebApplication app)
+    public static WebApplication MapModuleEndpoints(this WebApplication app)
     {
         foreach (var module in app.Services.GetServices<IApiModule>())
         {

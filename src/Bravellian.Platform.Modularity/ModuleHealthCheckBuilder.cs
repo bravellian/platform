@@ -44,6 +44,11 @@ public sealed class ModuleHealthCheckBuilder
             throw new ArgumentException("A health check name is required.", nameof(name));
         }
 
+        if (check is null)
+        {
+            throw new ArgumentNullException(nameof(check));
+        }
+
         var registration = new ModuleHealthCheckRegistration(name, check, tags?.ToArray() ?? Array.Empty<string>());
         Registrations.Add(registration);
 
