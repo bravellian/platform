@@ -1227,13 +1227,14 @@ internal static class DatabaseSchemaManager
                           AS
                           BEGIN
                             SET NOCOUNT ON;
+                            DECLARE @now DATETIMEOFFSET(3) = SYSUTCDATETIME();
                             UPDATE o SET
                                 Status = 0,
                                 OwnerToken = NULL,
                                 LockedUntil = NULL,
                                 RetryCount = RetryCount + 1,
                                 LastError = ISNULL(@LastError, o.LastError),
-                                DueTimeUtc = ISNULL(@DueTimeUtc, o.DueTimeUtc)
+                                DueTimeUtc = COALESCE(@DueTimeUtc, o.DueTimeUtc, @now)
                             FROM [{schemaName}].[{tableName}] o JOIN @Ids i ON i.Id = o.Id
                             WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
                           END
