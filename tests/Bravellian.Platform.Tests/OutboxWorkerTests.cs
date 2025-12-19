@@ -195,7 +195,7 @@ public class OutboxWorkerTests : SqlServerTestBase
     public async Task WorkQueue_RestartUsesNewOwnerTokenAfterReap()
     {
         // Arrange
-        await CreateTestOutboxItemsAsync(1);
+        var _ = await CreateTestOutboxItemsAsync(1);
         var firstOwner = OwnerToken.GenerateNew();
         var secondOwner = OwnerToken.GenerateNew();
 
