@@ -43,7 +43,7 @@ public sealed class ModuleNavigationService
             {
                 entries.Add(new ModuleNavigationEntry(
                     module.Key,
-                    ModuleNavLink.NormalizePath(link.Path),
+                    link.Path,
                     link.Title,
                     link.Order,
                     metadata?.NavigationGroup ?? "Primary",

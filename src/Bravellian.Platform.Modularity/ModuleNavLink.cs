@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Text;
+
 namespace Bravellian.Platform.Modularity;
 
 /// <summary>
@@ -45,22 +47,39 @@ public sealed record ModuleNavLink(string Title, string Path, int Order = 0, str
 
         var trimmed = path.Trim();
         
-        // Collapse consecutive slashes
-        while (trimmed.Contains("//", StringComparison.Ordinal))
+        // Collapse consecutive slashes using a single-pass algorithm
+        var builder = new StringBuilder(trimmed.Length);
+        var lastWasSlash = false;
+        
+        foreach (var c in trimmed)
         {
-            trimmed = trimmed.Replace("//", "/", StringComparison.Ordinal);
+            if (c == '/')
+            {
+                if (!lastWasSlash)
+                {
+                    builder.Append(c);
+                    lastWasSlash = true;
+                }
+            }
+            else
+            {
+                builder.Append(c);
+                lastWasSlash = false;
+            }
         }
         
-        if (!trimmed.StartsWith("/", StringComparison.Ordinal))
+        var normalized = builder.ToString();
+        
+        if (!normalized.StartsWith("/", StringComparison.Ordinal))
         {
-            trimmed = $"/{trimmed}";
+            normalized = $"/{normalized}";
         }
 
-        if (trimmed.Length > 1 && trimmed.EndsWith("/", StringComparison.Ordinal))
+        if (normalized.Length > 1 && normalized.EndsWith("/", StringComparison.Ordinal))
         {
-            trimmed = trimmed.TrimEnd('/');
+            normalized = normalized.TrimEnd('/');
         }
 
-        return trimmed;
+        return normalized;
     }
 }
