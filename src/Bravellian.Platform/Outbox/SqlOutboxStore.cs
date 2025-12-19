@@ -146,7 +146,18 @@ internal class SqlOutboxStore : IOutboxStore
 
     public async Task RescheduleAsync(OutboxWorkItemIdentifier id, TimeSpan delay, string lastError, CancellationToken cancellationToken)
     {
-        var nextAttempt = timeProvider.GetUtcNow().Add(delay);
+        if (delay < TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(delay), delay, "Delay must be non-negative when rescheduling outbox messages.");
+        }
+
+        var now = timeProvider.GetUtcNow();
+        if (now.Offset != TimeSpan.Zero)
+        {
+            logger.LogWarning("Time provider returned non-UTC timestamp {Timestamp}; reschedule times will be normalized to UTC.", now);
+        }
+
+        var nextAttempt = now.Add(delay);
 
         logger.LogDebug(
             "Rescheduling outbox message {MessageId} for next attempt at {NextAttempt} due to error: {Error}",

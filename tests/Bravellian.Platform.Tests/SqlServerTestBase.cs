@@ -249,11 +249,11 @@ CREATE TABLE dbo.Inbox (
     ProcessedUtc DATETIME2(3) NULL,
     Attempts INT NOT NULL DEFAULT 0,
     Status VARCHAR(16) NOT NULL DEFAULT 'Seen', -- Seen, Processing, Done, Dead
-    
+
     -- Optional work queue columns (for advanced scenarios)
     Topic VARCHAR(128) NULL,
     Payload NVARCHAR(MAX) NULL,
-    
+
     -- For Delayed Processing
     DueTimeUtc DATETIME2(3) NULL, -- Optional timestamp indicating when the message should become eligible for processing
 
@@ -281,7 +281,7 @@ CREATE TABLE dbo.OutboxState (
 GO
 
 -- Insert initial state row
-INSERT dbo.OutboxState (Id, CurrentFencingToken, LastDispatchAt) 
+INSERT dbo.OutboxState (Id, CurrentFencingToken, LastDispatchAt)
 VALUES (1, 0, NULL);
 GO";
     }
@@ -297,7 +297,7 @@ CREATE TABLE dbo.SchedulerState (
 GO
 
 -- Insert initial state row
-INSERT dbo.SchedulerState (Id, CurrentFencingToken, LastRunAt) 
+INSERT dbo.SchedulerState (Id, CurrentFencingToken, LastRunAt)
 VALUES (1, 0, NULL);
 GO";
     }
@@ -339,12 +339,12 @@ AS
 BEGIN
     SET NOCOUNT ON;
     DECLARE @cutoffTime DATETIMEOFFSET = DATEADD(SECOND, -@RetentionSeconds, SYSDATETIMEOFFSET());
-    
+
     DELETE FROM dbo.Outbox
      WHERE IsProcessed = 1
        AND ProcessedAt IS NOT NULL
        AND ProcessedAt < @cutoffTime;
-       
+
     SELECT @@ROWCOUNT AS DeletedCount;
 END
 GO";
@@ -359,12 +359,12 @@ AS
 BEGIN
     SET NOCOUNT ON;
     DECLARE @cutoffTime DATETIME2(3) = DATEADD(SECOND, -@RetentionSeconds, SYSUTCDATETIME());
-    
+
     DELETE FROM dbo.Inbox
      WHERE Status = 'Done'
        AND ProcessedUtc IS NOT NULL
        AND ProcessedUtc < @cutoffTime;
-       
+
     SELECT @@ROWCOUNT AS DeletedCount;
 END
 GO";
@@ -408,7 +408,7 @@ BEGIN
     WITH cte AS (
         SELECT TOP (@BatchSize) Id
         FROM dbo.Outbox WITH (READPAST, UPDLOCK, ROWLOCK)
-        WHERE Status = 0 
+        WHERE Status = 0
             AND (LockedUntil IS NULL OR LockedUntil <= @now)
             AND (DueTimeUtc IS NULL OR DueTimeUtc <= @now)
         ORDER BY CreatedAt
@@ -439,13 +439,14 @@ CREATE OR ALTER PROCEDURE dbo.Outbox_Abandon
 AS
 BEGIN
     SET NOCOUNT ON;
-    UPDATE o SET 
-        Status = 0, 
-        OwnerToken = NULL, 
+    DECLARE @now DATETIME2(3) = SYSUTCDATETIME();
+    UPDATE o SET
+        Status = 0,
+        OwnerToken = NULL,
         LockedUntil = NULL,
         RetryCount = RetryCount + 1,
         LastError = ISNULL(@LastError, o.LastError),
-        DueTimeUtc = ISNULL(@DueTimeUtc, o.DueTimeUtc)
+        DueTimeUtc = COALESCE(@DueTimeUtc, o.DueTimeUtc, @now)
     FROM dbo.Outbox o JOIN @Ids i ON i.Id = o.Id
     WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
 END
@@ -459,9 +460,9 @@ CREATE OR ALTER PROCEDURE dbo.Outbox_Fail
 AS
 BEGIN
     SET NOCOUNT ON;
-    UPDATE o SET 
-        Status = 3, 
-        OwnerToken = NULL, 
+    UPDATE o SET
+        Status = 3,
+        OwnerToken = NULL,
         LockedUntil = NULL,
         LastError = ISNULL(@LastError, o.LastError),
         ProcessedBy = ISNULL(@ProcessedBy, o.ProcessedBy)
@@ -497,7 +498,7 @@ BEGIN
     WITH cte AS (
         SELECT TOP (@BatchSize) MessageId
         FROM dbo.Inbox WITH (READPAST, UPDLOCK, ROWLOCK)
-        WHERE Status IN ('Seen', 'Processing') 
+        WHERE Status IN ('Seen', 'Processing')
             AND (LockedUntil IS NULL OR LockedUntil <= @now)
             AND (DueTimeUtc IS NULL OR DueTimeUtc <= @now)
         ORDER BY LastSeenUtc

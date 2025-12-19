@@ -298,6 +298,49 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
         typeExists.ShouldBeGreaterThan(0, "Work queue type dbo.GuidIdList should exist");
     }
 
+    [Fact]
+    public async Task WorkQueueProcedures_UseDatabaseUtcTime()
+    {
+        await using var connection = new SqlConnection(ConnectionString);
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
+
+        // Check ReapExpired procedures
+        var outboxReaper = await connection.ExecuteScalarAsync<string>(
+            "SELECT OBJECT_DEFINITION(OBJECT_ID('dbo.Outbox_ReapExpired'))");
+        var inboxReaper = await connection.ExecuteScalarAsync<string>(
+            "SELECT OBJECT_DEFINITION(OBJECT_ID('dbo.Inbox_ReapExpired'))");
+
+        outboxReaper.ShouldContain("SYSUTCDATETIME", Case.Sensitive);
+        inboxReaper.ShouldContain("SYSUTCDATETIME", Case.Sensitive);
+
+        // Check Claim procedures
+        var outboxClaim = await connection.ExecuteScalarAsync<string>(
+            "SELECT OBJECT_DEFINITION(OBJECT_ID('dbo.Outbox_Claim'))");
+        var inboxClaim = await connection.ExecuteScalarAsync<string>(
+            "SELECT OBJECT_DEFINITION(OBJECT_ID('dbo.Inbox_Claim'))");
+
+        outboxClaim.ShouldContain("SYSUTCDATETIME", Case.Sensitive);
+        inboxClaim.ShouldContain("SYSUTCDATETIME", Case.Sensitive);
+
+        // Check Ack procedures
+        var outboxAck = await connection.ExecuteScalarAsync<string>(
+            "SELECT OBJECT_DEFINITION(OBJECT_ID('dbo.Outbox_Ack'))");
+        var inboxAck = await connection.ExecuteScalarAsync<string>(
+            "SELECT OBJECT_DEFINITION(OBJECT_ID('dbo.Inbox_Ack'))");
+
+        outboxAck.ShouldContain("SYSUTCDATETIME", Case.Sensitive);
+        inboxAck.ShouldContain("SYSUTCDATETIME", Case.Sensitive);
+
+        // Check Abandon procedures
+        var outboxAbandon = await connection.ExecuteScalarAsync<string>(
+            "SELECT OBJECT_DEFINITION(OBJECT_ID('dbo.Outbox_Abandon'))");
+        var inboxAbandon = await connection.ExecuteScalarAsync<string>(
+            "SELECT OBJECT_DEFINITION(OBJECT_ID('dbo.Inbox_Abandon'))");
+
+        outboxAbandon.ShouldContain("SYSUTCDATETIME", Case.Sensitive);
+        inboxAbandon.ShouldContain("SYSUTCDATETIME", Case.Sensitive);
+    }
+
     /// <summary>
     /// Helper method to check if a table exists in a specific schema.
     /// </summary>

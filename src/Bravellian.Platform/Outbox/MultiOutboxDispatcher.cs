@@ -30,6 +30,7 @@ internal sealed class MultiOutboxDispatcher
     private readonly Func<int, TimeSpan> backoffPolicy;
     private readonly ILogger<MultiOutboxDispatcher> logger;
     private readonly TimeSpan leaseDuration;
+    private readonly int maxAttempts;
 
     private IOutboxStore? lastProcessedStore;
     private int lastProcessedCount;
@@ -41,7 +42,8 @@ internal sealed class MultiOutboxDispatcher
         ILogger<MultiOutboxDispatcher> logger,
         ILeaseRouter? leaseRouter = null,
         Func<int, TimeSpan>? backoffPolicy = null,
-        TimeSpan? leaseDuration = null)
+        TimeSpan? leaseDuration = null,
+        int maxAttempts = 5)
     {
         this.storeProvider = storeProvider;
         this.selectionStrategy = selectionStrategy;
@@ -50,6 +52,7 @@ internal sealed class MultiOutboxDispatcher
         this.leaseRouter = leaseRouter;
         this.backoffPolicy = backoffPolicy ?? DefaultBackoff;
         this.leaseDuration = leaseDuration ?? TimeSpan.FromSeconds(30);
+        this.maxAttempts = maxAttempts;
     }
 
     /// <summary>
@@ -274,8 +277,24 @@ internal sealed class MultiOutboxDispatcher
         }
         catch (Exception ex)
         {
-            // Handler threw an exception - reschedule with backoff
             var nextAttempt = message.RetryCount + 1;
+
+            if (nextAttempt >= maxAttempts)
+            {
+                logger.LogWarning(
+                    ex,
+                    "Handler failed for message {MessageId} with topic '{Topic}' from store '{StoreIdentifier}' (attempt {AttemptCount}). Marking as permanently failed",
+                    message.Id,
+                    message.Topic,
+                    storeIdentifier,
+                    nextAttempt);
+
+                await store.FailAsync(message.Id, ex.Message, cancellationToken).ConfigureAwait(false);
+                SchedulerMetrics.OutboxMessagesFailed.Add(1);
+                return;
+            }
+
+            // Handler threw an exception - reschedule with backoff
             var delay = backoffPolicy(nextAttempt);
 
             logger.LogWarning(

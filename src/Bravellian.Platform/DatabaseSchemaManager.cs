@@ -1152,7 +1152,7 @@ internal static class DatabaseSchemaManager
                           AS
                           BEGIN
                             SET NOCOUNT ON;
-                            DECLARE @now DATETIMEOFFSET(3) = SYSDATETIMEOFFSET();
+                            DECLARE @now DATETIMEOFFSET(3) = SYSUTCDATETIME();
                             DECLARE @until DATETIMEOFFSET(3) = DATEADD(SECOND, @LeaseSeconds, @now);
 
                             WITH cte AS (
@@ -1178,7 +1178,7 @@ internal static class DatabaseSchemaManager
                             SET NOCOUNT ON;
 
                             -- Mark outbox messages as dispatched
-                            UPDATE o SET Status = 2, OwnerToken = NULL, LockedUntil = NULL, IsProcessed = 1, ProcessedAt = SYSDATETIMEOFFSET()
+                            UPDATE o SET Status = 2, OwnerToken = NULL, LockedUntil = NULL, IsProcessed = 1, ProcessedAt = SYSUTCDATETIME()
                             FROM [{schemaName}].[{tableName}] o JOIN @Ids i ON i.Id = o.Id
                             WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
 
@@ -1189,7 +1189,7 @@ internal static class DatabaseSchemaManager
                                 -- First, mark the join members as completed (idempotent via WHERE clause)
                                 -- This prevents race conditions by ensuring a member can only be marked once
                                 UPDATE m
-                                SET CompletedAt = SYSDATETIMEOFFSET()
+                                SET CompletedAt = SYSUTCDATETIME()
                                 FROM [{schemaName}].[OutboxJoinMember] m
                                 INNER JOIN @Ids i
                                     ON m.OutboxMessageId = i.Id
@@ -1203,7 +1203,7 @@ internal static class DatabaseSchemaManager
                                     UPDATE j
                                     SET
                                         CompletedSteps = CompletedSteps + 1,
-                                        LastUpdatedUtc = SYSDATETIMEOFFSET()
+                                        LastUpdatedUtc = SYSUTCDATETIME()
                                     FROM [{schemaName}].[OutboxJoin] j
                                     INNER JOIN [{schemaName}].[OutboxJoinMember] m
                                         ON j.JoinId = m.JoinId
@@ -1227,13 +1227,14 @@ internal static class DatabaseSchemaManager
                           AS
                           BEGIN
                             SET NOCOUNT ON;
+                            DECLARE @now DATETIMEOFFSET(3) = SYSUTCDATETIME();
                             UPDATE o SET
                                 Status = 0,
                                 OwnerToken = NULL,
                                 LockedUntil = NULL,
                                 RetryCount = RetryCount + 1,
                                 LastError = ISNULL(@LastError, o.LastError),
-                                DueTimeUtc = ISNULL(@DueTimeUtc, o.DueTimeUtc)
+                                DueTimeUtc = COALESCE(@DueTimeUtc, o.DueTimeUtc, @now)
                             FROM [{schemaName}].[{tableName}] o JOIN @Ids i ON i.Id = o.Id
                             WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
                           END
@@ -1266,7 +1267,7 @@ internal static class DatabaseSchemaManager
                                 -- First, mark the join members as failed (idempotent via WHERE clause)
                                 -- This prevents race conditions by ensuring a member can only be marked once
                                 UPDATE m
-                                SET FailedAt = SYSDATETIMEOFFSET()
+                                SET FailedAt = SYSUTCDATETIME()
                                 FROM [{schemaName}].[OutboxJoinMember] m
                                 INNER JOIN @Ids i
                                     ON m.OutboxMessageId = i.Id
@@ -1280,7 +1281,7 @@ internal static class DatabaseSchemaManager
                                     UPDATE j
                                     SET
                                         FailedSteps = FailedSteps + 1,
-                                        LastUpdatedUtc = SYSDATETIMEOFFSET()
+                                        LastUpdatedUtc = SYSUTCDATETIME()
                                     FROM [{schemaName}].[OutboxJoin] j
                                     INNER JOIN [{schemaName}].[OutboxJoinMember] m
                                         ON j.JoinId = m.JoinId
@@ -1301,7 +1302,7 @@ internal static class DatabaseSchemaManager
                           BEGIN
                             SET NOCOUNT ON;
                             UPDATE [{schemaName}].[{tableName}] SET Status = 0, OwnerToken = NULL, LockedUntil = NULL
-                            WHERE Status = 1 AND LockedUntil IS NOT NULL AND LockedUntil <= SYSDATETIMEOFFSET();
+                            WHERE Status = 1 AND LockedUntil IS NOT NULL AND LockedUntil <= SYSUTCDATETIME();
                             SELECT @@ROWCOUNT AS ReapedCount;
                           END
             """,
@@ -1333,7 +1334,7 @@ internal static class DatabaseSchemaManager
                           AS
                           BEGIN
                             SET NOCOUNT ON;
-                            DECLARE @now DATETIMEOFFSET(3) = SYSDATETIMEOFFSET();
+                            DECLARE @now DATETIMEOFFSET(3) = SYSUTCDATETIME();
                             DECLARE @until DATETIMEOFFSET(3) = DATEADD(SECOND, @LeaseSeconds, @now);
 
                             WITH cte AS (
@@ -1357,7 +1358,7 @@ internal static class DatabaseSchemaManager
                           AS
                           BEGIN
                             SET NOCOUNT ON;
-                            UPDATE i SET Status = 'Done', OwnerToken = NULL, LockedUntil = NULL, ProcessedUtc = SYSDATETIMEOFFSET(), LastSeenUtc = SYSDATETIMEOFFSET()
+                            UPDATE i SET Status = 'Done', OwnerToken = NULL, LockedUntil = NULL, ProcessedUtc = SYSUTCDATETIME(), LastSeenUtc = SYSUTCDATETIME()
                             FROM [{schemaName}].[{tableName}] i JOIN @Ids ids ON ids.Id = i.MessageId
                             WHERE i.OwnerToken = @OwnerToken AND i.Status = 'Processing';
                           END
@@ -1376,7 +1377,7 @@ internal static class DatabaseSchemaManager
                                 Status = 'Seen',
                                 OwnerToken = NULL,
                                 LockedUntil = NULL,
-                                LastSeenUtc = SYSDATETIMEOFFSET(),
+                                LastSeenUtc = SYSUTCDATETIME(),
                                 Attempts = Attempts + 1,
                                 LastError = ISNULL(@LastError, i.LastError),
                                 DueTimeUtc = ISNULL(@DueTimeUtc, i.DueTimeUtc)
@@ -1397,7 +1398,7 @@ internal static class DatabaseSchemaManager
                                 Status = 'Dead',
                                 OwnerToken = NULL,
                                 LockedUntil = NULL,
-                                LastSeenUtc = SYSDATETIMEOFFSET(),
+                                LastSeenUtc = SYSUTCDATETIME(),
                                 LastError = ISNULL(@Reason, i.LastError)
                             FROM [{schemaName}].[{tableName}] i JOIN @Ids ids ON ids.Id = i.MessageId
                             WHERE i.OwnerToken = @OwnerToken AND i.Status = 'Processing';
@@ -1409,8 +1410,8 @@ internal static class DatabaseSchemaManager
                           AS
                           BEGIN
                             SET NOCOUNT ON;
-                            UPDATE [{schemaName}].[{tableName}] SET Status = 'Seen', OwnerToken = NULL, LockedUntil = NULL, LastSeenUtc = SYSDATETIMEOFFSET()
-                            WHERE Status = 'Processing' AND LockedUntil IS NOT NULL AND LockedUntil <= SYSDATETIMEOFFSET();
+                            UPDATE [{schemaName}].[{tableName}] SET Status = 'Seen', OwnerToken = NULL, LockedUntil = NULL, LastSeenUtc = SYSUTCDATETIME()
+                            WHERE Status = 'Processing' AND LockedUntil IS NOT NULL AND LockedUntil <= SYSUTCDATETIME();
                             SELECT @@ROWCOUNT AS ReapedCount;
                           END
             """,
