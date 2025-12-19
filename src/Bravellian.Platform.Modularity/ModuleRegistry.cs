@@ -263,13 +263,15 @@ public static class ModuleRegistry
     {
         lock (Sync)
         {
-            var seen = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
-            foreach (var instance in Instances.Values)
+            var duplicates = Instances.Values
+                .GroupBy(instance => instance.Key, StringComparer.OrdinalIgnoreCase)
+                .Where(g => g.Count() > 1)
+                .Select(g => g.Key)
+                .ToList();
+
+            if (duplicates.Count > 0)
             {
-                if (!seen.TryAdd(instance.Key, instance.GetType()))
-                {
-                    throw new InvalidOperationException($"Duplicate module key detected (comparison is case-insensitive): '{instance.Key}'.");
-                }
+                throw new InvalidOperationException($"Duplicate module key detected (comparison is case-insensitive): '{duplicates[0]}'.");
             }
         }
     }
