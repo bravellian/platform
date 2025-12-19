@@ -19,7 +19,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0 
+        fetch-depth: 0
 
     - name: Set-up dotnet
       uses: actions/setup-dotnet@v4
@@ -64,19 +64,19 @@ jobs:
         echo "semVer=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
     - name: Restore dependencies
-      run: dotnet restore Bravellian.Platform.CI.sln
+      run: dotnet restore Bravellian.Platform.CI.slnx
 
     - name: Restore tools
       run: dotnet tool restore
-          
+
     - name: Build solution
-      run: dotnet build Bravellian.Platform.CI.sln --no-restore --configuration Release -p:Version=${{ steps.git_version.outputs.semVer }}
+      run: dotnet build Bravellian.Platform.CI.slnx --no-restore --configuration Release -p:Version=${{ steps.git_version.outputs.semVer }}
 
     - name: Run Tests
-      run: dotnet test Bravellian.Platform.CI.sln --no-build --configuration Release
-  
+      run: dotnet test Bravellian.Platform.CI.slnx --no-build --configuration Release
+
     - name: Pack NuGet packages
-      run: dotnet pack Bravellian.Platform.CI.sln --configuration Release --output ./nupkgs -p:PackageVersion=${{ steps.git_version.outputs.semVer }}
+      run: dotnet pack Bravellian.Platform.CI.slnx --configuration Release --output ./nupkgs -p:PackageVersion=${{ steps.git_version.outputs.semVer }}
 
     - name: Upload package artifact
       uses: actions/upload-artifact@v4

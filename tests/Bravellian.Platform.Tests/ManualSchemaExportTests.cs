@@ -277,7 +277,7 @@ public class ManualSchemaExportTests : IAsyncLifetime
     private static string GetProjectRoot()
     {
         var directory = Directory.GetCurrentDirectory();
-        while (directory != null && !File.Exists(Path.Combine(directory, "Bravellian.Platform.sln")))
+        while (directory != null && !File.Exists(Path.Combine(directory, "Bravellian.Platform.slnx")))
         {
             directory = Directory.GetParent(directory)?.FullName;
         }
