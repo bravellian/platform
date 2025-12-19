@@ -63,6 +63,10 @@ public class FanoutCoordinatorIntegrationTests : SqlServerTestBase
             fanoutOptions.PolicyTableName,
             fanoutOptions.CursorTableName).ConfigureAwait(false);
 
+        await DatabaseSchemaManager.EnsureOutboxJoinSchemaAsync(
+            ConnectionString,
+            outboxOptions.SchemaName).ConfigureAwait(false);
+
         joinStore = new SqlOutboxJoinStore(
             Options.Create(outboxOptions),
             NullLogger<SqlOutboxJoinStore>.Instance);
@@ -127,7 +131,7 @@ public class FanoutCoordinatorIntegrationTests : SqlServerTestBase
         var policyRepo = new SqlFanoutPolicyRepository(Options.Create(fanoutOptions!));
         var cursorRepo = new SqlFanoutCursorRepository(Options.Create(fanoutOptions!));
 
-        await policyRepo.SetCadenceAsync("reports", "daily", everySeconds: 30, jitterSeconds: 0, TestContext.Current.CancellationToken);
+        await policyRepo.SetCadenceAsync("reports", "default", everySeconds: 30, jitterSeconds: 0, TestContext.Current.CancellationToken);
 
         var planner = new ShardedPlanner(policyRepo, cursorRepo, TimeProvider.System, ["shard-a", "shard-b"]);
         var dispatcher = new FanoutDispatcher(outboxService!);
@@ -138,8 +142,8 @@ public class FanoutCoordinatorIntegrationTests : SqlServerTestBase
 
         var completionTime = DateTimeOffset.UtcNow;
         await Task.WhenAll(
-            cursorRepo.MarkCompletedAsync("reports", "daily", "shard-a", completionTime, TestContext.Current.CancellationToken),
-            cursorRepo.MarkCompletedAsync("reports", "daily", "shard-b", completionTime, TestContext.Current.CancellationToken));
+            cursorRepo.MarkCompletedAsync("reports", "default", "shard-a", completionTime, TestContext.Current.CancellationToken),
+            cursorRepo.MarkCompletedAsync("reports", "default", "shard-b", completionTime, TestContext.Current.CancellationToken));
 
         var afterCompletion = await coordinator.RunAsync("reports", null, TestContext.Current.CancellationToken);
         afterCompletion.ShouldBe(0);
@@ -282,22 +286,37 @@ public class FanoutCoordinatorIntegrationTests : SqlServerTestBase
         {
             var effectiveDuration = overrideDuration ?? duration;
 
-            while (leases.TryGetValue(resourceName, out var existing))
+            while (true)
             {
-                if (existing.IsExpired)
+                var nextToken = Interlocked.Increment(ref fencingToken);
+                var newLease = new InMemoryLease(
+                    resourceName,
+                    nextToken,
+                    effectiveDuration,
+                    ownerToken ?? OwnerToken.GenerateNew(),
+                    RemoveLease);
+
+                var resultingLease = leases.AddOrUpdate(
+                    resourceName,
+                    _ => newLease,
+                    (_, existing) => existing.IsExpired ? newLease : existing);
+
+                if (ReferenceEquals(resultingLease, newLease))
                 {
-                    leases.TryRemove(resourceName, out _);
+                    // We successfully installed our lease.
+                    return Task.FromResult<ISystemLease?>(newLease);
                 }
-                else
+
+                if (!resultingLease.IsExpired)
                 {
+                    // Another thread holds a non-expired lease.
+                    newLease.DisposeAsync().AsTask().Wait();
                     return Task.FromResult<ISystemLease?>(null);
                 }
-            }
 
-            var nextToken = Interlocked.Increment(ref fencingToken);
-            var lease = new InMemoryLease(resourceName, nextToken, effectiveDuration, ownerToken ?? OwnerToken.GenerateNew(), RemoveLease);
-            leases[resourceName] = lease;
-            return Task.FromResult<ISystemLease?>(lease);
+                // If the resulting lease is expired, dispose the unused lease and loop to try again.
+                newLease.DisposeAsync().AsTask().Wait();
+            }
         }
 
         private void RemoveLease(string resourceName)
@@ -311,26 +330,29 @@ public class FanoutCoordinatorIntegrationTests : SqlServerTestBase
             private readonly Action<string> onDispose;
             private readonly TimeSpan duration;
             private readonly DateTimeOffset acquired;
+            private readonly Task expirationTask;
+            private long fencingToken;
 
-            public InMemoryLease(string resourceName, long fencingToken, TimeSpan duration, OwnerToken ownerToken, Action<string> onDispose)
+            public InMemoryLease(string resourceName, long initialFencingToken, TimeSpan duration, OwnerToken ownerToken, Action<string> onDispose)
             {
                 ResourceName = resourceName;
-                FencingToken = fencingToken;
+                fencingToken = initialFencingToken;
                 OwnerToken = ownerToken;
                 this.duration = duration;
                 this.onDispose = onDispose;
                 acquired = DateTimeOffset.UtcNow;
                 cts = new CancellationTokenSource();
-                _ = Task.Run(async () =>
+                expirationTask = Task.Run(async () =>
                 {
                     try
                     {
-                        await Task.Delay(duration, CancellationToken.None).ConfigureAwait(false);
-                        cts.Cancel();
+                        await Task.Delay(duration, cts.Token).ConfigureAwait(false);
+                        // If we reach here, the delay completed without cancellation, so the lease expired
                         onDispose(resourceName);
                     }
-                    catch
+                    catch (OperationCanceledException)
                     {
+                        // Expected when lease is disposed before expiration
                     }
                 });
             }
@@ -339,7 +361,7 @@ public class FanoutCoordinatorIntegrationTests : SqlServerTestBase
 
             public OwnerToken OwnerToken { get; }
 
-            public long FencingToken { get; private set; }
+            public long FencingToken => Interlocked.Read(ref fencingToken);
 
             public CancellationToken CancellationToken => cts.Token;
 
@@ -360,16 +382,24 @@ public class FanoutCoordinatorIntegrationTests : SqlServerTestBase
                     return Task.FromResult(false);
                 }
 
-                FencingToken++;
+                Interlocked.Increment(ref fencingToken);
                 return Task.FromResult(true);
             }
 
-            public ValueTask DisposeAsync()
+            public async ValueTask DisposeAsync()
             {
                 cts.Cancel();
+                try
+                {
+                    await expirationTask.ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    // Expected when disposing before expiration
+                }
+
                 cts.Dispose();
                 onDispose(ResourceName);
-                return ValueTask.CompletedTask;
             }
         }
     }
