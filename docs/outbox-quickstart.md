@@ -2,6 +2,8 @@
 
 The Outbox pattern ensures reliable message publishing by storing outbound messages in the same database transaction as your business operations. This guide will get you started quickly.
 
+If you need the big-picture view of how inbox, outbox, fanout, and fan-in fit together, start with the [Platform Primitives Overview](platform-primitives-overview.md).
+
 ## What is the Outbox Pattern?
 
 The Outbox pattern solves the dual-write problem: ensuring that database changes and message publishing happen atomically. Instead of directly publishing to a message broker, you:
