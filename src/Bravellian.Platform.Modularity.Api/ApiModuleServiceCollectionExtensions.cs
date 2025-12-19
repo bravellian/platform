@@ -32,14 +32,7 @@ public static class ApiModuleServiceCollectionExtensions
         IConfiguration configuration,
         ILoggerFactory? loggerFactory = null)
     {
-        var modules = ApiModuleRegistry.InitializeApiModules(configuration, services, loggerFactory)
-            .ToArray();
-
-        if (modules.Length == 0)
-        {
-            throw new InvalidOperationException(
-                "No API modules have been registered. Call ApiModuleRegistry.RegisterApiModule<TModule>() before adding services.");
-        }
+        var modules = ApiModuleRegistry.InitializeApiModules(configuration, services, loggerFactory);
         foreach (var module in modules)
         {
             services.AddSingleton(module.GetType(), module);
