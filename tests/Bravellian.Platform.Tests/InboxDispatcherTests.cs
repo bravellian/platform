@@ -176,6 +176,8 @@ public class InboxDispatcherTests : SqlServerTestBase
         var failingHandler = new FailingInboxHandler("failing-topic", shouldFail: true);
         var resolver = CreateHandlerResolver(failingHandler);
         var store = new StubInboxWorkStore();
+        // Attempt is the number of previous processing attempts. With attempt = 5 and maxAttempts = 5,
+        // the condition (attempt >= maxAttempts) is true, so this message should be marked as failed.
         store.AddMessage("msg-stub-2", attempt: 5, topic: "failing-topic");
 
         var dispatcher = new MultiInboxDispatcher(

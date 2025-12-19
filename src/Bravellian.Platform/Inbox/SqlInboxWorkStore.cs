@@ -157,6 +157,11 @@ internal class SqlInboxWorkStore : IInboxWorkStore
             return;
         }
 
+        if (delay.HasValue && delay.Value < TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(delay), delay, "Delay must be non-negative when abandoning inbox messages.");
+        }
+
         logger.LogDebug(
             "Abandoning {MessageCount} inbox messages for owner {OwnerToken} with delay {DelayMs}ms",
             messageIdList.Count,
@@ -182,7 +187,13 @@ internal class SqlInboxWorkStore : IInboxWorkStore
             // Calculate due time if delay is specified
             if (delay.HasValue)
             {
-                var dueTime = timeProvider.GetUtcNow().Add(delay.Value);
+                var now = timeProvider.GetUtcNow();
+                if (now.Offset != TimeSpan.Zero)
+                {
+                    logger.LogWarning("Time provider returned non-UTC timestamp {Timestamp}; abandon times will be normalized to UTC.", now);
+                }
+                
+                var dueTime = now.Add(delay.Value);
                 command.Parameters.AddWithValue("@DueTimeUtc", dueTime.UtcDateTime);
             }
             else

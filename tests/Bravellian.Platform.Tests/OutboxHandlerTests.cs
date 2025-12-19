@@ -199,6 +199,8 @@ public class OutboxHandlerTests : SqlServerTestBase
         var logger = new TestLogger<MultiOutboxDispatcher>(TestOutputHelper);
         var dispatcher = CreateDispatcher(store, resolver, logger, maxAttempts: 3);
 
+        // RetryCount represents the number of previous attempts. The current processing is attempt RetryCount + 1.
+        // With RetryCount = 2 and maxAttempts = 3, this run is the 3rd attempt and should be marked as failed.
         var message = new OutboxMessage
         {
             Id = OutboxWorkItemIdentifier.GenerateNew(),
