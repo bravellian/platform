@@ -178,7 +178,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
             parameter.SqlDbType = System.Data.SqlDbType.Structured;
             parameter.TypeName = $"[{schemaName}].[StringIdList]";
             command.Parameters.AddWithValue("@LastError", lastError ?? (object)DBNull.Value);
-            
+
             // Calculate due time if delay is specified
             if (delay.HasValue)
             {

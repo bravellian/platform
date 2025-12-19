@@ -90,21 +90,21 @@ public class ManualSchemaExportTests : IAsyncLifetime
         Console.WriteLine("\n=== Extracting Control Plane DACPAC ===");
         var controlPlaneDacpacPath = Path.Combine(sqlProjectPath, "Bravellian.Platform.ControlPlane.dacpac");
         Console.WriteLine($"Extracting Control Plane schema to: {controlPlaneDacpacPath}");
-        await ExtractDacpac(controlPlaneConnectionString, controlPlaneDacpacPath).ConfigureAwait(false);
+        await ExtractDacpac(controlPlaneConnectionString, controlPlaneDacpacPath);
         Console.WriteLine($"Control Plane DACPAC file created at: {controlPlaneDacpacPath}");
 
         // Extract Multi-Database dacpac
         Console.WriteLine("\n=== Extracting Multi-Database DACPAC ===");
         var multiDatabaseDacpacPath = Path.Combine(sqlProjectPath, "Bravellian.Platform.MultiDatabase.dacpac");
         Console.WriteLine($"Extracting Multi-Database schema to: {multiDatabaseDacpacPath}");
-        await ExtractDacpac(multiDatabaseConnectionString, multiDatabaseDacpacPath).ConfigureAwait(false);
+        await ExtractDacpac(multiDatabaseConnectionString, multiDatabaseDacpacPath);
         Console.WriteLine($"Multi-Database DACPAC file created at: {multiDatabaseDacpacPath}");
 
         // Now update the SQL project from the databases
         Console.WriteLine("\n=== Updating SQL Server Project ===");
         Console.WriteLine("Updating SQL Server project from deployed databases...");
-        await UpdateSqlProjectFromDatabase(controlPlaneConnectionString, sqlProjectPath).ConfigureAwait(false);
-        await UpdateSqlProjectFromDatabase(multiDatabaseConnectionString, sqlProjectPath).ConfigureAwait(false);
+        await UpdateSqlProjectFromDatabase(controlPlaneConnectionString, sqlProjectPath);
+        await UpdateSqlProjectFromDatabase(multiDatabaseConnectionString, sqlProjectPath);
 
         Console.WriteLine("\n=== Summary ===");
         Console.WriteLine("SQL Server project updated successfully.");
@@ -124,13 +124,14 @@ public class ManualSchemaExportTests : IAsyncLifetime
         string databaseName = "BravellianPlatform_ControlPlane";
         builder.InitialCatalog = "master";
 
-        await using (var connection = new Microsoft.Data.SqlClient.SqlConnection(builder.ConnectionString))
+        var connection = new Microsoft.Data.SqlClient.SqlConnection(builder.ConnectionString);
+        await using (connection.ConfigureAwait(false))
         {
-            await connection.OpenAsync(Xunit.TestContext.Current.CancellationToken);
+            await connection.OpenAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
             var createDbCommand = connection.CreateCommand();
             createDbCommand.CommandText = $"IF DB_ID(N'{databaseName}') IS NULL CREATE DATABASE [{databaseName}];";
-            await createDbCommand.ExecuteNonQueryAsync(Xunit.TestContext.Current.CancellationToken);
-            await connection.CloseAsync();
+            await createDbCommand.ExecuteNonQueryAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
+            await connection.CloseAsync().ConfigureAwait(false);
         }
 
         builder.InitialCatalog = databaseName;
@@ -140,8 +141,8 @@ public class ManualSchemaExportTests : IAsyncLifetime
         Console.WriteLine($"Connection string: {controlPlaneConnectionString}");
 
         // Deploy Control Plane schemas
-        await DatabaseSchemaManager.EnsureSemaphoreSchemaAsync(controlPlaneConnectionString, "infra");
-        await DatabaseSchemaManager.EnsureCentralMetricsSchemaAsync(controlPlaneConnectionString, "infra");
+        await DatabaseSchemaManager.EnsureSemaphoreSchemaAsync(controlPlaneConnectionString, "infra").ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureCentralMetricsSchemaAsync(controlPlaneConnectionString, "infra").ConfigureAwait(false);
 
         Console.WriteLine("Control Plane schema deployment completed successfully.");
 
@@ -157,13 +158,14 @@ public class ManualSchemaExportTests : IAsyncLifetime
         string databaseName = "BravellianPlatform_MultiDatabase";
         builder.InitialCatalog = "master";
 
-        await using (var connection = new Microsoft.Data.SqlClient.SqlConnection(builder.ConnectionString))
+        var connection = new Microsoft.Data.SqlClient.SqlConnection(builder.ConnectionString);
+        await using (connection.ConfigureAwait(false))
         {
-            await connection.OpenAsync(Xunit.TestContext.Current.CancellationToken);
+            await connection.OpenAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
             var createDbCommand = connection.CreateCommand();
             createDbCommand.CommandText = $"IF DB_ID(N'{databaseName}') IS NULL CREATE DATABASE [{databaseName}];";
-            await createDbCommand.ExecuteNonQueryAsync(Xunit.TestContext.Current.CancellationToken);
-            await connection.CloseAsync();
+            await createDbCommand.ExecuteNonQueryAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
+            await connection.CloseAsync().ConfigureAwait(false);
         }
 
         builder.InitialCatalog = databaseName;
@@ -173,15 +175,15 @@ public class ManualSchemaExportTests : IAsyncLifetime
         Console.WriteLine($"Connection string: {multiDatabaseConnectionString}");
 
         // Deploy Multi-Database schemas
-        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(multiDatabaseConnectionString, "infra", "Outbox");
-        await DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(multiDatabaseConnectionString, "infra");
-        await DatabaseSchemaManager.EnsureInboxSchemaAsync(multiDatabaseConnectionString, "infra", "Inbox");
-        await DatabaseSchemaManager.EnsureInboxWorkQueueSchemaAsync(multiDatabaseConnectionString, "infra");
-        await DatabaseSchemaManager.EnsureSchedulerSchemaAsync(multiDatabaseConnectionString, "infra", "Jobs", "JobRuns", "Timers");
-        await DatabaseSchemaManager.EnsureLeaseSchemaAsync(multiDatabaseConnectionString, "infra", "Lease");
-        await DatabaseSchemaManager.EnsureDistributedLockSchemaAsync(multiDatabaseConnectionString, "infra", "DistributedLock");
-        await DatabaseSchemaManager.EnsureFanoutSchemaAsync(multiDatabaseConnectionString, "infra", "FanoutPolicy", "FanoutCursor");
-        await DatabaseSchemaManager.EnsureMetricsSchemaAsync(multiDatabaseConnectionString, "infra");
+        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(multiDatabaseConnectionString, "infra", "Outbox").ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(multiDatabaseConnectionString, "infra").ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureInboxSchemaAsync(multiDatabaseConnectionString, "infra", "Inbox").ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureInboxWorkQueueSchemaAsync(multiDatabaseConnectionString, "infra").ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureSchedulerSchemaAsync(multiDatabaseConnectionString, "infra", "Jobs", "JobRuns", "Timers").ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureLeaseSchemaAsync(multiDatabaseConnectionString, "infra", "Lease").ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureDistributedLockSchemaAsync(multiDatabaseConnectionString, "infra", "DistributedLock").ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureFanoutSchemaAsync(multiDatabaseConnectionString, "infra", "FanoutPolicy", "FanoutCursor").ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureMetricsSchemaAsync(multiDatabaseConnectionString, "infra").ConfigureAwait(false);
 
         Console.WriteLine("Multi-Database schema deployment completed successfully.");
 
@@ -209,10 +211,10 @@ public class ManualSchemaExportTests : IAsyncLifetime
             throw new InvalidOperationException("Failed to start SqlPackage process");
         }
 
-        var output = await process.StandardOutput.ReadToEndAsync(Xunit.TestContext.Current.CancellationToken).ConfigureAwait(false);
-        var error = await process.StandardError.ReadToEndAsync(Xunit.TestContext.Current.CancellationToken).ConfigureAwait(false);
+        var output = await process.StandardOutput.ReadToEndAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
+        var error = await process.StandardError.ReadToEndAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
 
-        await process.WaitForExitAsync(Xunit.TestContext.Current.CancellationToken).ConfigureAwait(false);
+        await process.WaitForExitAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
 
         if (process.ExitCode != 0)
         {
@@ -254,10 +256,10 @@ public class ManualSchemaExportTests : IAsyncLifetime
             throw new InvalidOperationException("Failed to start SqlPackage process");
         }
 
-        var output = await process.StandardOutput.ReadToEndAsync(Xunit.TestContext.Current.CancellationToken).ConfigureAwait(false);
-        var error = await process.StandardError.ReadToEndAsync(Xunit.TestContext.Current.CancellationToken).ConfigureAwait(false);
+        var output = await process.StandardOutput.ReadToEndAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
+        var error = await process.StandardError.ReadToEndAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
 
-        await process.WaitForExitAsync(Xunit.TestContext.Current.CancellationToken).ConfigureAwait(false);
+        await process.WaitForExitAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
 
         if (process.ExitCode != 0)
         {

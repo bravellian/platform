@@ -458,7 +458,7 @@ public static class PlatformServiceCollectionExtensions
 
         // Register outbox join store (uses same connection strings as outbox)
         services.TryAddSingleton<IOutboxJoinStore, SqlOutboxJoinStore>();
-        
+
         // Register JoinWaitHandler for fan-in orchestration
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IOutboxHandler, JoinWaitHandler>());
 

@@ -45,8 +45,8 @@ public class OutboxJoinTests : SqlServerTestBase
         defaultOptions.ConnectionString = ConnectionString;
 
         // Ensure schemas exist
-        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(ConnectionString, "dbo", "Outbox");
-        await DatabaseSchemaManager.EnsureOutboxJoinSchemaAsync(ConnectionString, "dbo");
+        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(ConnectionString, "dbo", "Outbox").ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureOutboxJoinSchemaAsync(ConnectionString, "dbo").ConfigureAwait(false);
 
         joinStore = new SqlOutboxJoinStore(
             Options.Create(defaultOptions),
@@ -61,15 +61,18 @@ public class OutboxJoinTests : SqlServerTestBase
     // Helper method to create an outbox message and return its ID
     private async Task<OutboxMessageIdentifier> CreateOutboxMessageAsync()
     {
-        await using var connection = new SqlConnection(ConnectionString);
-        await connection.OpenAsync(CancellationToken.None);
+        var connection = new SqlConnection(ConnectionString);
+        await using (connection.ConfigureAwait(false))
+        {
+            await connection.OpenAsync(CancellationToken.None).ConfigureAwait(false);
 
         var id = Guid.NewGuid();
         await connection.ExecuteAsync(
             "INSERT INTO dbo.Outbox (Id, Topic, Payload, MessageId) VALUES (@Id, @Topic, @Payload, @MessageId)",
-            new { Id = id, Topic = "test.topic", Payload = "{}", MessageId = Guid.NewGuid() });
+            new { Id = id, Topic = "test.topic", Payload = "{}", MessageId = Guid.NewGuid() }).ConfigureAwait(false);
 
         return OutboxMessageIdentifier.From(id);
+        }
     }
 
     [Fact]
@@ -587,19 +590,24 @@ public class OutboxJoinTests : SqlServerTestBase
     // Helper methods for test cleanup
     private async Task ClaimMessagesAsync(Bravellian.Platform.OwnerToken ownerToken)
     {
-        await using var connection = new SqlConnection(ConnectionString);
-        await connection.OpenAsync(CancellationToken.None);
+        var connection = new SqlConnection(ConnectionString);
+        await using (connection.ConfigureAwait(false))
+        {
+            await connection.OpenAsync(CancellationToken.None).ConfigureAwait(false);
 
         await connection.ExecuteAsync(
             "[dbo].[Outbox_Claim]",
             new { OwnerToken = ownerToken.Value, LeaseSeconds = 30, BatchSize = 10 },
-            commandType: System.Data.CommandType.StoredProcedure);
+            commandType: System.Data.CommandType.StoredProcedure).ConfigureAwait(false);
+        }
     }
 
     private async Task AckMessageAsync(Bravellian.Platform.OwnerToken ownerToken, OutboxMessageIdentifier messageId)
     {
-        await using var connection = new SqlConnection(ConnectionString);
-        await connection.OpenAsync(CancellationToken.None);
+        var connection = new SqlConnection(ConnectionString);
+        await using (connection.ConfigureAwait(false))
+        {
+            await connection.OpenAsync(CancellationToken.None).ConfigureAwait(false);
 
         var idsTable = CreateGuidIdTable(new[] { messageId.Value });
         using var command = new SqlCommand("[dbo].[Outbox_Ack]", connection)
@@ -610,13 +618,16 @@ public class OutboxJoinTests : SqlServerTestBase
         var parameter = command.Parameters.AddWithValue("@Ids", idsTable);
         parameter.SqlDbType = System.Data.SqlDbType.Structured;
         parameter.TypeName = "[dbo].[GuidIdList]";
-        await command.ExecuteNonQueryAsync(CancellationToken.None);
+        await command.ExecuteNonQueryAsync(CancellationToken.None).ConfigureAwait(false);
+        }
     }
 
     private async Task FailMessageAsync(Bravellian.Platform.OwnerToken ownerToken, OutboxMessageIdentifier messageId, string error)
     {
-        await using var connection = new SqlConnection(ConnectionString);
-        await connection.OpenAsync(CancellationToken.None);
+        var connection = new SqlConnection(ConnectionString);
+        await using (connection.ConfigureAwait(false))
+        {
+            await connection.OpenAsync(CancellationToken.None).ConfigureAwait(false);
 
         var idsTable = CreateGuidIdTable(new[] { messageId.Value });
         using var command = new SqlCommand("[dbo].[Outbox_Fail]", connection)
@@ -629,7 +640,8 @@ public class OutboxJoinTests : SqlServerTestBase
         var parameter = command.Parameters.AddWithValue("@Ids", idsTable);
         parameter.SqlDbType = System.Data.SqlDbType.Structured;
         parameter.TypeName = "[dbo].[GuidIdList]";
-        await command.ExecuteNonQueryAsync(CancellationToken.None);
+        await command.ExecuteNonQueryAsync(CancellationToken.None).ConfigureAwait(false);
+        }
     }
 
     private static System.Data.DataTable CreateGuidIdTable(IEnumerable<Guid> ids)

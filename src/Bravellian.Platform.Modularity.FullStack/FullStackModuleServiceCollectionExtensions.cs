@@ -38,8 +38,8 @@ public static class FullStackModuleServiceCollectionExtensions
         foreach (var module in modules)
         {
             services.AddSingleton(module.GetType(), module);
-            services.AddSingleton(typeof(IApiModule), module);
-            services.AddSingleton(typeof(IFullStackModule), module);
+            services.AddSingleton<IApiModule>(module);
+            services.AddSingleton(module);
         }
 
         services.AddSingleton<ModuleNavigationService>();

@@ -92,9 +92,9 @@ public class ConfiguredLeaseFactoryProviderTests
         var provider = new ConfiguredLeaseFactoryProvider(configs, loggerFactory);
 
         // Act
-        var factory1 = await provider.GetFactoryByKeyAsync("Customer1");
-        var factory2 = await provider.GetFactoryByKeyAsync("Customer2");
-        var factoryUnknown = await provider.GetFactoryByKeyAsync("UnknownCustomer");
+        var factory1 = await provider.GetFactoryByKeyAsync("Customer1", Xunit.TestContext.Current.CancellationToken);
+        var factory2 = await provider.GetFactoryByKeyAsync("Customer2", Xunit.TestContext.Current.CancellationToken);
+        var factoryUnknown = await provider.GetFactoryByKeyAsync("UnknownCustomer", Xunit.TestContext.Current.CancellationToken);
 
         // Assert
         factory1.ShouldNotBeNull();

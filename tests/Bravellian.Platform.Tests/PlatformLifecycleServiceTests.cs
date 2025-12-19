@@ -59,7 +59,7 @@ public class PlatformLifecycleServiceTests
 
         // Act & Assert - Should throw
         var exception = await Should.ThrowAsync<InvalidOperationException>(
-            async () => await service.StartAsync(CancellationToken.None));
+            async () => await service.StartAsync(CancellationToken.None).ConfigureAwait(false));
 
         exception.Message.ShouldContain("At least one database is required");
     }
@@ -84,7 +84,7 @@ public class PlatformLifecycleServiceTests
         // Act & Assert - Should not throw (control plane validation will fail, but that's a different concern)
         // In a real scenario, the control plane would be available even if no app databases exist yet
         var exception = await Should.ThrowAsync<InvalidOperationException>(
-            async () => await service.StartAsync(CancellationToken.None));
+            async () => await service.StartAsync(CancellationToken.None).ConfigureAwait(false));
 
         // The exception should be from control plane validation, not database discovery
         exception.Message.ShouldContain("control plane");

@@ -36,7 +36,7 @@ public static class ApiModuleServiceCollectionExtensions
         foreach (var module in modules)
         {
             services.AddSingleton(module.GetType(), module);
-            services.AddSingleton(typeof(IApiModule), module);
+            services.AddSingleton(module);
         }
 
         return services;

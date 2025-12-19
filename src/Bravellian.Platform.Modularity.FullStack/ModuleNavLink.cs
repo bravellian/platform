@@ -46,11 +46,11 @@ public sealed record ModuleNavLink(string Title, string Path, int Order = 0, str
         }
 
         var trimmed = path.Trim();
-        
+
         // Collapse consecutive slashes using a single-pass algorithm
         var builder = new StringBuilder(trimmed.Length);
         var lastWasSlash = false;
-        
+
         foreach (var c in trimmed)
         {
             if (c == '/')
@@ -67,15 +67,15 @@ public sealed record ModuleNavLink(string Title, string Path, int Order = 0, str
                 lastWasSlash = false;
             }
         }
-        
+
         var normalized = builder.ToString();
-        
-        if (!normalized.StartsWith("/", StringComparison.Ordinal))
+
+        if (!normalized.StartsWith('/'))
         {
             normalized = $"/{normalized}";
         }
 
-        if (normalized.Length > 1 && normalized.EndsWith("/", StringComparison.Ordinal))
+        if (normalized.Length > 1 && normalized.EndsWith('/'))
         {
             normalized = normalized.TrimEnd('/');
         }

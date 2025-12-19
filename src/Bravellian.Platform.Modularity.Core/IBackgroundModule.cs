@@ -17,6 +17,4 @@ namespace Bravellian.Platform.Modularity;
 /// <summary>
 /// Module usable in any .NET host without HTTP endpoints.
 /// </summary>
-public interface IBackgroundModule : IModuleDefinition
-{
-}
+public interface IBackgroundModule : IModuleDefinition;

@@ -192,35 +192,44 @@ public class FanoutCoordinatorIntegrationTests : SqlServerTestBase
         var replayed = await joinStore.GetJoinAsync(join.JoinId, TestContext.Current.CancellationToken);
         replayed!.CompletedSteps.ShouldBe(3);
 
-        var correlationIds = outboxMessages.Select(m => m.CorrelationId).Distinct().ToList();
+        var correlationIds = outboxMessages.Select(m => m.CorrelationId).Distinct(StringComparer.Ordinal).ToList();
         correlationIds.Count.ShouldBe(1);
     }
 
     private async Task<int> CountOutboxMessagesAsync()
     {
-        await using var connection = new SqlConnection(ConnectionString);
-        await connection.OpenAsync(TestContext.Current.CancellationToken);
+        var connection = new SqlConnection(ConnectionString);
+        await using (connection.ConfigureAwait(false))
+        {
+            await connection.OpenAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
         var count = await connection.ExecuteScalarAsync<int>(
-            new CommandDefinition("SELECT COUNT(*) FROM dbo.Outbox", cancellationToken: TestContext.Current.CancellationToken));
+            new CommandDefinition("SELECT COUNT(*) FROM dbo.Outbox", cancellationToken: TestContext.Current.CancellationToken)).ConfigureAwait(false);
         return count;
+        }
     }
 
     private async Task<IReadOnlyList<string>> GetOutboxPayloadsAsync()
     {
-        await using var connection = new SqlConnection(ConnectionString);
-        await connection.OpenAsync(TestContext.Current.CancellationToken);
+        var connection = new SqlConnection(ConnectionString);
+        await using (connection.ConfigureAwait(false))
+        {
+            await connection.OpenAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
         var payloads = await connection.QueryAsync<string>(
-            new CommandDefinition("SELECT Payload FROM dbo.Outbox ORDER BY CreatedAt", cancellationToken: TestContext.Current.CancellationToken));
+            new CommandDefinition("SELECT Payload FROM dbo.Outbox ORDER BY CreatedAt", cancellationToken: TestContext.Current.CancellationToken)).ConfigureAwait(false);
         return payloads.ToList();
+        }
     }
 
     private async Task<IReadOnlyList<(Guid Id, string CorrelationId)>> GetOutboxMessagesAsync()
     {
-        await using var connection = new SqlConnection(ConnectionString);
-        await connection.OpenAsync(TestContext.Current.CancellationToken);
+        var connection = new SqlConnection(ConnectionString);
+        await using (connection.ConfigureAwait(false))
+        {
+            await connection.OpenAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
         var messages = await connection.QueryAsync<(Guid Id, string CorrelationId)>(
-            new CommandDefinition("SELECT Id, CorrelationId FROM dbo.Outbox ORDER BY CreatedAt", cancellationToken: TestContext.Current.CancellationToken));
+            new CommandDefinition("SELECT Id, CorrelationId FROM dbo.Outbox ORDER BY CreatedAt", cancellationToken: TestContext.Current.CancellationToken)).ConfigureAwait(false);
         return messages.ToList();
+        }
     }
 
     private sealed class StaticPlanner : IFanoutPlanner

@@ -37,6 +37,7 @@ public sealed class ModuleSystemTests
 
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
+(StringComparer.Ordinal)
             {
                 [SampleBackgroundModule.RequiredKey] = "value",
             })
@@ -60,17 +61,18 @@ public sealed class ModuleSystemTests
 
         var builder = WebApplication.CreateBuilder();
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+(StringComparer.Ordinal)
         {
             [SampleApiModule.RequiredKey] = "abc",
         });
 
         builder.Services.AddApiModuleServices(builder.Configuration, NullLoggerFactory.Instance);
         var app = builder.Build();
-        
+
         // Verify that MapModuleEndpoints executes without error and returns the app
         var result = app.MapModuleEndpoints();
         result.ShouldBe(app);
-        
+
         // Verify module instance is registered
         var module = app.Services.GetService<IApiModule>();
         module.ShouldNotBeNull();
@@ -85,6 +87,7 @@ public sealed class ModuleSystemTests
 
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
+(StringComparer.Ordinal)
             {
                 [SampleFullStackModule.RequiredKey] = "xyz",
             })
@@ -109,6 +112,7 @@ public sealed class ModuleSystemTests
 
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
+(StringComparer.Ordinal)
             {
                 [SampleApiModule.RequiredKey] = "abc",
                 [ConflictingModule.RequiredKey] = "xyz",
@@ -129,13 +133,14 @@ public sealed class ModuleSystemTests
 
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
+(StringComparer.Ordinal)
             {
                 [ModuleWithInvalidKey.RequiredKey] = "test",
             })
             .Build();
 
         var services = new ServiceCollection();
-        
+
         var ex = Should.Throw<InvalidOperationException>(() => services.AddApiModuleServices(configuration, NullLoggerFactory.Instance));
         ex.Message.ShouldContain("invalid characters");
         ex.Message.ShouldContain("cannot contain slashes");
@@ -146,7 +151,7 @@ public sealed class ModuleSystemTests
     {
         ModuleRegistry.Reset();
         ApiModuleRegistry.RegisterApiModule<SampleApiModule>();
-        
+
         // Second registration should be a no-op, not an error
         Should.NotThrow(() => ApiModuleRegistry.RegisterApiModule<SampleApiModule>());
     }

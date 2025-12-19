@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
@@ -20,7 +20,7 @@
     <NoWarn>NU5123</NoWarn>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.0">
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.1">
       <NoWarn>NU1510</NoWarn>
     </PackageReference>
   </ItemGroup>
@@ -40,5 +40,11 @@
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
       <_Parameter1>Bravellian.Platform.Modularity.FullStack</_Parameter1>
     </AssemblyAttribute>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Update="Meziantou.Analyzer" Version="2.0.264" />
+    <PackageReference Update="Roslynator.Analyzers" Version="4.15.0" />
+    <PackageReference Update="Roslynator.CodeAnalysis.Analyzers" Version="4.15.0" />
+    <PackageReference Update="Roslynator.Formatting.Analyzers" Version="4.15.0" />
   </ItemGroup>
 </Project>

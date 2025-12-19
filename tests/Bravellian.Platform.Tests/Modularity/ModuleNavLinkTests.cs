@@ -43,7 +43,7 @@ public sealed class ModuleNavLinkTests
     public void Create_preserves_all_properties()
     {
         var link = ModuleNavLink.Create("Dashboard", "/home", 5, "dashboard-icon");
-        
+
         link.Title.ShouldBe("Dashboard");
         link.Path.ShouldBe("/home");
         link.Order.ShouldBe(5);
@@ -54,7 +54,7 @@ public sealed class ModuleNavLinkTests
     public void Create_uses_default_values_when_not_specified()
     {
         var link = ModuleNavLink.Create("Settings", "/settings");
-        
+
         link.Order.ShouldBe(0);
         link.Icon.ShouldBeNull();
     }

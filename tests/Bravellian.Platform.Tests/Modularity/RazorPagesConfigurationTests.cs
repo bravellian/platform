@@ -34,6 +34,7 @@ public sealed class RazorPagesConfigurationTests
 
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
+(StringComparer.Ordinal)
             {
                 [TestFullStackModule.RequiredKey] = "test-value",
             })
@@ -61,6 +62,7 @@ public sealed class RazorPagesConfigurationTests
 
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
+(StringComparer.Ordinal)
             {
                 [TestFullStackModule.RequiredKey] = "test-value",
             })

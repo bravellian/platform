@@ -66,58 +66,6 @@ namespace Bravellian.Platform.Tests
         }
 
         [Fact]
-        [Obsolete]
-        public void AddSqlScheduler_WithSchemaDeploymentEnabled_RegistersSchemaService()
-        {
-            // Arrange
-            var services = new ServiceCollection();
-            var options = new SqlSchedulerOptions
-            {
-                ConnectionString = "Server=.;Database=TestDb;Integrated Security=true;",
-                EnableSchemaDeployment = true,
-            };
-
-            // Act
-            services.AddSqlScheduler(options);
-
-            // Assert
-            var schemaCompletionDescriptor = services.FirstOrDefault(s => s.ServiceType == typeof(IDatabaseSchemaCompletion));
-            var hostedServiceDescriptor = services.FirstOrDefault(s => s.ServiceType == typeof(IHostedService) && s.ImplementationType == typeof(DatabaseSchemaBackgroundService));
-
-            Assert.NotNull(schemaCompletionDescriptor);
-            Assert.NotNull(hostedServiceDescriptor);
-        }
-
-        [Fact]
-        [Obsolete]
-        public void MultipleServices_WithSchemaDeploymentEnabled_RegistersSingleSchemaService()
-        {
-            // Arrange
-            var services = new ServiceCollection();
-            var outboxOptions = new SqlOutboxOptions
-            {
-                ConnectionString = "Server=.;Database=TestDb;Integrated Security=true;",
-                EnableSchemaDeployment = true,
-            };
-            var schedulerOptions = new SqlSchedulerOptions
-            {
-                ConnectionString = "Server=.;Database=TestDb;Integrated Security=true;",
-                EnableSchemaDeployment = true,
-            };
-
-            // Act
-            services.AddSqlOutbox(outboxOptions);
-            services.AddSqlScheduler(schedulerOptions);
-
-            // Assert
-            var schemaCompletionDescriptors = services.Where(s => s.ServiceType == typeof(IDatabaseSchemaCompletion));
-            var hostedServiceDescriptors = services.Where(s => s.ServiceType == typeof(IHostedService) && s.ImplementationType == typeof(DatabaseSchemaBackgroundService));
-
-            Assert.Single(schemaCompletionDescriptors); // Only one instance should be registered
-            Assert.Single(hostedServiceDescriptors); // Only one hosted service should be registered
-        }
-
-        [Fact]
         public void SchemaCompletion_RegisteredSeparatelyFromBackgroundService()
         {
             // Arrange

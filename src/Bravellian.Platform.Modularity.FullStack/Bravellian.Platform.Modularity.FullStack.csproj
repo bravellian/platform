@@ -31,4 +31,10 @@
       <PackagePath>\</PackagePath>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Update="Meziantou.Analyzer" Version="2.0.264" />
+    <PackageReference Update="Roslynator.Analyzers" Version="4.15.0" />
+    <PackageReference Update="Roslynator.CodeAnalysis.Analyzers" Version="4.15.0" />
+    <PackageReference Update="Roslynator.Formatting.Analyzers" Version="4.15.0" />
+  </ItemGroup>
 </Project>

@@ -1,6 +1,10 @@
 <Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Sdk Name="DotNet.ReproducibleBuilds.Isolated" />
 
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);MA0051</NoWarn>
+  </PropertyGroup>
+  
   <!-- Keep global Using directives -->
   <ItemGroup Condition="'$(MSBuildProjectExtension)' != '.dcproj' AND '$(MSBuildProjectExtension)' != '.sqlproj' AND $(MSBuildProjectName.StartsWith('Bravellian.Generators')) == false AND $(MSBuildProjectName.StartsWith('Bravellian.Database')) == false">
     <Using Include="System" />

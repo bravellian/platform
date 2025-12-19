@@ -29,7 +29,7 @@ public class WatchdogServiceTests
         // Arrange
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddSingleton<TimeProvider>(new FakeTimeProvider(DateTimeOffset.Parse("2024-01-01T00:00:00Z")));
+        services.AddSingleton<TimeProvider>(new FakeTimeProvider(DateTimeOffset.Parse("2024-01-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture)));
         services.Configure<ObservabilityOptions>(o => { });
         var serviceProvider = services.BuildServiceProvider();
 
@@ -50,15 +50,15 @@ public class WatchdogServiceTests
         // Assert
         snapshot.ShouldNotBeNull();
         snapshot.ActiveAlerts.ShouldBeEmpty();
-        snapshot.LastScanAt.ShouldBe(DateTimeOffset.Parse("2024-01-01T00:00:00Z"));
-        snapshot.LastHeartbeatAt.ShouldBe(DateTimeOffset.Parse("2024-01-01T00:00:00Z"));
+        snapshot.LastScanAt.ShouldBe(DateTimeOffset.Parse("2024-01-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture));
+        snapshot.LastHeartbeatAt.ShouldBe(DateTimeOffset.Parse("2024-01-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture));
     }
 
     [Fact]
     public async Task WatchdogService_EmitsHeartbeat()
     {
         // Arrange
-        var fakeTime = new FakeTimeProvider(DateTimeOffset.Parse("2024-01-01T00:00:00Z"));
+        var fakeTime = new FakeTimeProvider(DateTimeOffset.Parse("2024-01-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture));
         var heartbeatReceived = false;
         long sequenceNumber = 0;
 
@@ -100,10 +100,10 @@ public class WatchdogServiceTests
         fakeTime.Advance(TimeSpan.FromSeconds(11));
 
         // Give the service a moment to process (minimal real time needed)
-        await Task.Delay(50);
+        await Task.Delay(50, cts.Token);
 
         cts.Cancel();
-        await watchdog.StopAsync(default);
+        await watchdog.StopAsync(TestContext.Current.CancellationToken);
         await watchdogTask; // Ensure background service has fully stopped
 
         // Assert
@@ -115,11 +115,11 @@ public class WatchdogServiceTests
     public async Task WatchdogService_DetectsOverdueJobs()
     {
         // Arrange
-        var fakeTime = new FakeTimeProvider(DateTimeOffset.Parse("2024-01-01T00:00:00Z"));
+        var fakeTime = new FakeTimeProvider(DateTimeOffset.Parse("2024-01-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture));
         WatchdogAlertContext? receivedAlert = null;
 
         var schedulerState = new FakeSchedulerState();
-        schedulerState.OverdueJobs.Add(("job-123", DateTimeOffset.Parse("2023-12-31T23:59:00Z")));
+        schedulerState.OverdueJobs.Add(("job-123", DateTimeOffset.Parse("2023-12-31T23:59:00Z", System.Globalization.CultureInfo.InvariantCulture)));
 
         var services = new ServiceCollection();
         services.AddLogging();
@@ -157,10 +157,10 @@ public class WatchdogServiceTests
 
         // Advance time to trigger scan
         fakeTime.Advance(TimeSpan.FromSeconds(6));
-        await Task.Delay(100); // Give the service time to process
+        await Task.Delay(100, cts.Token); // Give the service time to process
 
         cts.Cancel();
-        await watchdog.StopAsync(default);
+        await watchdog.StopAsync(TestContext.Current.CancellationToken);
         await watchdogTask; // Ensure background service has fully stopped
 
         // Assert
@@ -171,10 +171,10 @@ public class WatchdogServiceTests
     }
 
     [Fact]
-    public void WatchdogHealthCheck_ReturnsHealthy_WhenNoAlerts()
+    public async Task WatchdogHealthCheck_ReturnsHealthy_WhenNoAlertsAsync()
     {
         // Arrange
-        var fakeTime = new FakeTimeProvider(DateTimeOffset.Parse("2024-01-01T00:00:00Z"));
+        var fakeTime = new FakeTimeProvider(DateTimeOffset.Parse("2024-01-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture));
 
         var services = new ServiceCollection();
         services.AddLogging();
@@ -195,7 +195,7 @@ public class WatchdogServiceTests
         var healthCheck = new WatchdogHealthCheck(watchdog, fakeTime, options);
 
         // Act
-        var result = healthCheck.CheckHealthAsync(new Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckContext()).Result;
+        var result = await healthCheck.CheckHealthAsync(new Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckContext(), Xunit.TestContext.Current.CancellationToken);
 
         // Assert
         result.Status.ShouldBe(Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy);

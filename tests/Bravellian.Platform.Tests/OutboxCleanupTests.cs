@@ -234,7 +234,7 @@ public class OutboxCleanupTests : SqlServerTestBase
         var startTask = service.StartAsync(cts.Token);
 
         // Wait for at least one cleanup attempt
-        await Task.Delay(TimeSpan.FromMilliseconds(500));
+        await Task.Delay(TimeSpan.FromMilliseconds(500), cts.Token);
 
         // Stop the service
         await service.StopAsync(CancellationToken.None);

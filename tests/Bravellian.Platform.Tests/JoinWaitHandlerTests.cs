@@ -46,8 +46,8 @@ public class JoinWaitHandlerTests : SqlServerTestBase
         defaultOptions.ConnectionString = ConnectionString;
 
         // Ensure schemas exist
-        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(ConnectionString, "dbo", "Outbox");
-        await DatabaseSchemaManager.EnsureOutboxJoinSchemaAsync(ConnectionString, "dbo");
+        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(ConnectionString, "dbo", "Outbox").ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureOutboxJoinSchemaAsync(ConnectionString, "dbo").ConfigureAwait(false);
 
         joinStore = new SqlOutboxJoinStore(
             Options.Create(defaultOptions),
@@ -67,15 +67,18 @@ public class JoinWaitHandlerTests : SqlServerTestBase
     // Helper method to create an outbox message and return its ID
     private async Task<OutboxMessageIdentifier> CreateOutboxMessageAsync()
     {
-        await using var connection = new SqlConnection(ConnectionString);
-        await connection.OpenAsync(CancellationToken.None);
+        var connection = new SqlConnection(ConnectionString);
+        await using (connection.ConfigureAwait(false))
+        {
+            await connection.OpenAsync(CancellationToken.None).ConfigureAwait(false);
 
         var id = Guid.NewGuid();
         await connection.ExecuteAsync(
             "INSERT INTO dbo.Outbox (Id, Topic, Payload, MessageId) VALUES (@Id, @Topic, @Payload, @MessageId)",
-            new { Id = id, Topic = "test.topic", Payload = "{}", MessageId = Guid.NewGuid() });
+            new { Id = id, Topic = "test.topic", Payload = "{}", MessageId = Guid.NewGuid() }).ConfigureAwait(false);
 
         return OutboxMessageIdentifier.From(id);
+        }
     }
 
     [Fact]
@@ -110,7 +113,7 @@ public class JoinWaitHandlerTests : SqlServerTestBase
 
         // Act & Assert
         await Should.ThrowAsync<JoinNotReadyException>(async () =>
-            await handler!.HandleAsync(message, CancellationToken.None));
+            await handler!.HandleAsync(message, CancellationToken.None).ConfigureAwait(false));
     }
 
     [Fact]
