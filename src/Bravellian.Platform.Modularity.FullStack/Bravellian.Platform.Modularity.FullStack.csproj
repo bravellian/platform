@@ -17,6 +17,7 @@
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <NoWarn>NU5123</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Bravellian.Platform.Modularity.Api\Bravellian.Platform.Modularity.Api.csproj" />
