@@ -5,11 +5,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Deterministic>true</Deterministic>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <PackageId>Bravellian.Platform.Modularity</PackageId>
+    <PackageId>Bravellian.Platform.Modularity.Core</PackageId>
     <Version>1.0.0</Version>
     <Authors>Bravellian</Authors>
     <Owners>Bravellian</Owners>
-    <Description>Composable module infrastructure for ASP.NET Core and generic hosts.</Description>
+    <Description>Core module infrastructure without ASP.NET dependencies.</Description>
     <PackageProjectUrl>https://github.com/bravellian/platform</PackageProjectUrl>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/bravellian/platform</RepositoryUrl>
@@ -19,9 +19,9 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Bravellian.Platform.Modularity.Api\Bravellian.Platform.Modularity.Api.csproj" />
-    <ProjectReference Include="..\Bravellian.Platform.Modularity.Core\Bravellian.Platform.Modularity.Core.csproj" />
-    <ProjectReference Include="..\Bravellian.Platform.Modularity.FullStack\Bravellian.Platform.Modularity.FullStack.csproj" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.0">
+      <NoWarn>NU1510</NoWarn>
+    </PackageReference>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\assets\nuget_logo.png">
@@ -32,6 +32,12 @@
   <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
       <_Parameter1>Bravellian.Platform.Tests</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>Bravellian.Platform.Modularity.Api</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>Bravellian.Platform.Modularity.FullStack</_Parameter1>
     </AssemblyAttribute>
   </ItemGroup>
 </Project>

@@ -9,13 +9,14 @@ using Shouldly;
 
 namespace Bravellian.Platform.Tests.Modularity;
 
+[Collection("ModuleRegistryTests")]
 public sealed class RazorPagesConfigurationTests
 {
     [Fact]
     public void ConfigureFullStackModuleRazorPages_registers_application_parts()
     {
         ModuleRegistry.Reset();
-        ModuleRegistry.RegisterFullStackModule<TestFullStackModule>();
+        FullStackModuleRegistry.RegisterFullStackModule<TestFullStackModule>();
 
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -42,7 +43,7 @@ public sealed class RazorPagesConfigurationTests
     public void ConfigureFullStackModuleRazorPages_invokes_module_configuration()
     {
         ModuleRegistry.Reset();
-        ModuleRegistry.RegisterFullStackModule<TestFullStackModule>();
+        FullStackModuleRegistry.RegisterFullStackModule<TestFullStackModule>();
 
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
