@@ -121,6 +121,19 @@ public static class ModuleRegistry
     {
         lock (Sync)
         {
+            // Check if this type is already registered in a different collection
+            var alreadyInBackground = BackgroundModuleTypes.Contains(type);
+            var alreadyInApi = ApiModuleTypes.Contains(type);
+            var alreadyInFullStack = FullStackModuleTypes.Contains(type);
+
+            if ((alreadyInBackground && target != BackgroundModuleTypes) ||
+                (alreadyInApi && target != ApiModuleTypes) ||
+                (alreadyInFullStack && target != FullStackModuleTypes))
+            {
+                throw new InvalidOperationException($"Module type '{type.FullName}' is already registered in a different category. A module cannot be registered in multiple categories.");
+            }
+
+            // If already in the target collection, this is a no-op
             if (target.Contains(type))
             {
                 return;

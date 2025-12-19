@@ -126,6 +126,26 @@ public sealed class ModuleSystemTests
         ex.Message.ShouldContain("cannot contain slashes");
     }
 
+    [Fact]
+    public void Duplicate_module_type_registrations_in_same_category_are_idempotent()
+    {
+        ModuleRegistry.Reset();
+        ModuleRegistry.RegisterApiModule<SampleApiModule>();
+        
+        // Second registration should be a no-op, not an error
+        Should.NotThrow(() => ModuleRegistry.RegisterApiModule<SampleApiModule>());
+    }
+
+    [Fact]
+    public void Module_cannot_be_registered_in_multiple_categories()
+    {
+        ModuleRegistry.Reset();
+        ModuleRegistry.RegisterApiModule<DualInterfaceModule>();
+
+        var ex = Should.Throw<InvalidOperationException>(() => ModuleRegistry.RegisterFullStackModule<DualInterfaceModule>());
+        ex.Message.ShouldContain("already registered in a different category");
+    }
+
     private sealed class SampleBackgroundModule : IBackgroundModule
     {
         internal const string RequiredKey = "sample:required";
@@ -320,6 +340,47 @@ public sealed class ModuleSystemTests
 
         public void MapApiEndpoints(RouteGroupBuilder group)
         {
+        }
+    }
+
+    private sealed class DualInterfaceModule : IApiModule, IFullStackModule
+    {
+        internal const string RequiredKey = "dual:required";
+
+        public string Key => "dual-module";
+        public string DisplayName => "Dual Module";
+        public string AreaName => "Dual";
+
+        public IEnumerable<string> GetRequiredConfigurationKeys()
+        {
+            yield return RequiredKey;
+        }
+
+        public IEnumerable<string> GetOptionalConfigurationKeys() => Array.Empty<string>();
+
+        public void LoadConfiguration(IReadOnlyDictionary<string, string> required, IReadOnlyDictionary<string, string> optional)
+        {
+        }
+
+        public void AddModuleServices(IServiceCollection services)
+        {
+        }
+
+        public void RegisterHealthChecks(ModuleHealthCheckBuilder builder)
+        {
+        }
+
+        public void MapApiEndpoints(RouteGroupBuilder group)
+        {
+        }
+
+        public void ConfigureRazorPages(RazorPagesOptions options)
+        {
+        }
+
+        public IEnumerable<ModuleNavLink> GetNavLinks()
+        {
+            yield break;
         }
     }
 
