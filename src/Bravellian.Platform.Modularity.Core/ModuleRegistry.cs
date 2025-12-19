@@ -25,9 +25,12 @@ namespace Bravellian.Platform.Modularity;
 public static class ModuleRegistry
 {
     private static readonly System.Threading.Lock Sync = new();
-    private static readonly HashSet<Type> BackgroundModuleTypes = new();
-    private static readonly HashSet<Type> ApiModuleTypes = new();
-    private static readonly HashSet<Type> FullStackModuleTypes = new();
+    private static readonly Dictionary<ModuleCategory, HashSet<Type>> RegisteredTypes = new()
+    {
+        [ModuleCategory.Background] = new HashSet<Type>(),
+        [ModuleCategory.Api] = new HashSet<Type>(),
+        [ModuleCategory.FullStack] = new HashSet<Type>(),
+    };
 
     private static readonly Dictionary<Type, IModuleDefinition> Instances = new();
 
@@ -37,64 +40,68 @@ public static class ModuleRegistry
     /// <typeparam name="T">The module type.</typeparam>
     public static void RegisterBackgroundModule<T>() where T : class, IBackgroundModule, new()
     {
-        RegisterType(typeof(T), BackgroundModuleTypes);
+        RegisterModuleType(typeof(T), ModuleCategory.Background);
     }
 
-    /// <summary>
-    /// Registers an API module type.
-    /// </summary>
-    /// <typeparam name="T">The module type.</typeparam>
-    public static void RegisterApiModule<T>() where T : class, IApiModule, new()
-    {
-        RegisterType(typeof(T), ApiModuleTypes);
-    }
-
-    /// <summary>
-    /// Registers a full stack module type.
-    /// </summary>
-    /// <typeparam name="T">The module type.</typeparam>
-    public static void RegisterFullStackModule<T>() where T : class, IFullStackModule, new()
-    {
-        RegisterType(typeof(T), FullStackModuleTypes);
-    }
-
-    internal static IReadOnlyCollection<IBackgroundModule> InitializeBackgroundModules(
-        IConfiguration configuration,
-        IServiceCollection services,
-        ILoggerFactory? loggerFactory)
-    {
-        return InitializeModules<IBackgroundModule>(BackgroundModuleTypes, configuration, services, loggerFactory);
-    }
-
-    internal static IReadOnlyCollection<IApiModule> InitializeApiModules(
-        IConfiguration configuration,
-        IServiceCollection services,
-        ILoggerFactory? loggerFactory)
-    {
-        return InitializeModules<IApiModule>(ApiModuleTypes, configuration, services, loggerFactory);
-    }
-
-    internal static IReadOnlyCollection<IFullStackModule> InitializeFullStackModules(
-        IConfiguration configuration,
-        IServiceCollection services,
-        ILoggerFactory? loggerFactory)
-    {
-        return InitializeModules<IFullStackModule>(FullStackModuleTypes, configuration, services, loggerFactory);
-    }
-
-    internal static IReadOnlyCollection<IApiModule> GetApiModules()
+    internal static void RegisterModuleType(Type type, ModuleCategory category)
     {
         lock (Sync)
         {
-            return Instances.Values.OfType<IApiModule>().ToArray();
+            var alreadyRegistered = RegisteredTypes
+                .Where(pair => pair.Value.Contains(type))
+                .Select(pair => pair.Key)
+                .ToArray();
+
+            if (alreadyRegistered.Length > 0 && !alreadyRegistered.Contains(category))
+            {
+                throw new InvalidOperationException($"Module type '{type.FullName}' is already registered in a different category. A module cannot be registered in multiple categories.");
+            }
+
+            var targetSet = RegisteredTypes[category];
+            if (targetSet.Contains(type))
+            {
+                return;
+            }
+
+            targetSet.Add(type);
         }
     }
 
-    internal static IReadOnlyCollection<IFullStackModule> GetFullStackModules()
+    internal static IReadOnlyCollection<TModule> InitializeModules<TModule>(
+        ModuleCategory category,
+        IConfiguration configuration,
+        IServiceCollection services,
+        ILoggerFactory? loggerFactory)
+        where TModule : class, IModuleDefinition
+    {
+        var types = SnapshotTypes(category);
+        var initialized = new List<TModule>();
+
+        foreach (var type in types)
+        {
+            var module = (TModule)CreateInstance(type, loggerFactory);
+            LoadConfiguration(configuration, module, loggerFactory);
+            RegisterInstance(module);
+            initialized.Add(module);
+        }
+
+        EnsureUniqueKeys();
+
+        foreach (var module in initialized)
+        {
+            module.AddModuleServices(services);
+            RegisterHealthChecks(services, module, loggerFactory);
+        }
+
+        return initialized;
+    }
+
+    internal static IReadOnlyCollection<TModule> GetModules<TModule>()
+        where TModule : class, IModuleDefinition
     {
         lock (Sync)
         {
-            return Instances.Values.OfType<IFullStackModule>().ToArray();
+            return Instances.Values.OfType<TModule>().ToArray();
         }
     }
 
@@ -110,73 +117,21 @@ public static class ModuleRegistry
     {
         lock (Sync)
         {
-            BackgroundModuleTypes.Clear();
-            ApiModuleTypes.Clear();
-            FullStackModuleTypes.Clear();
+            foreach (var entry in RegisteredTypes.Values)
+            {
+                entry.Clear();
+            }
+
             Instances.Clear();
         }
     }
 
-    private static void RegisterType(Type type, ISet<Type> target)
+    private static Type[] SnapshotTypes(ModuleCategory category)
     {
         lock (Sync)
         {
-            // Check if this type is already registered in a different collection
-            var alreadyInBackground = BackgroundModuleTypes.Contains(type);
-            var alreadyInApi = ApiModuleTypes.Contains(type);
-            var alreadyInFullStack = FullStackModuleTypes.Contains(type);
-
-            if ((alreadyInBackground && target != BackgroundModuleTypes) ||
-                (alreadyInApi && target != ApiModuleTypes) ||
-                (alreadyInFullStack && target != FullStackModuleTypes))
-            {
-                throw new InvalidOperationException($"Module type '{type.FullName}' is already registered in a different category. A module cannot be registered in multiple categories.");
-            }
-
-            // If already in the target collection, this is a no-op
-            if (target.Contains(type))
-            {
-                return;
-            }
-
-            target.Add(type);
+            return RegisteredTypes[category].ToArray();
         }
-    }
-
-    private static IReadOnlyCollection<TModule> InitializeModules<TModule>(
-        IEnumerable<Type> types,
-        IConfiguration configuration,
-        IServiceCollection services,
-        ILoggerFactory? loggerFactory)
-        where TModule : class, IModuleDefinition
-    {
-        // Take a snapshot of types under lock to avoid enumeration issues
-        Type[] typeSnapshot;
-        lock (Sync)
-        {
-            typeSnapshot = types.ToArray();
-        }
-
-        var initialized = new List<TModule>();
-        foreach (var type in typeSnapshot)
-        {
-            var module = (TModule)CreateInstance(type, loggerFactory);
-            LoadConfiguration(configuration, module, loggerFactory);
-            RegisterInstance(module);
-            initialized.Add(module);
-        }
-
-        // Validate module keys before mutating the service collection
-        EnsureUniqueKeys();
-
-        // Only after successful validation, register services and health checks
-        foreach (var module in initialized)
-        {
-            module.AddModuleServices(services);
-            RegisterHealthChecks(services, module, loggerFactory);
-        }
-
-        return initialized;
     }
 
     private static IModuleDefinition CreateInstance(Type type, ILoggerFactory? loggerFactory)
@@ -247,7 +202,6 @@ public static class ModuleRegistry
 
     private static void RegisterInstance(IModuleDefinition module)
     {
-        // Validate module key is URL-safe (no slashes)
         if (module.Key.Contains('/', StringComparison.Ordinal))
         {
             throw new InvalidOperationException($"Module key '{module.Key}' contains invalid characters. Module keys must be URL-safe and cannot contain slashes.");

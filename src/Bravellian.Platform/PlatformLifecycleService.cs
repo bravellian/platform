@@ -122,7 +122,7 @@ internal sealed class PlatformLifecycleService : IHostedService
             {
                 await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-            logger.LogInformation("Control plane connectivity validated successfully.");
+                logger.LogInformation("Control plane connectivity validated successfully.");
             }
         }
         catch (Exception ex)
@@ -141,7 +141,7 @@ internal sealed class PlatformLifecycleService : IHostedService
             {
                 await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-            logger.LogDebug("Database connectivity test passed for: {DatabaseName}", database.Name);
+                logger.LogDebug("Database connectivity test passed for: {DatabaseName}", database.Name);
             }
         }
         catch (Exception ex)

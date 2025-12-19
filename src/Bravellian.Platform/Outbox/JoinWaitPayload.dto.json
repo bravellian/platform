@@ -11,7 +11,7 @@
       "name": "FailIfAnyStepFailed",
       "type": "bool",
       "settable": true,
-      "defaultValue": true
+      "defaultValue": "true"
     },
     {
       "name": "OnCompleteTopic",

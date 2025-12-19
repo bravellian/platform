@@ -78,7 +78,7 @@ public class TimeAbstractionTests
     public void FakeTimeProvider_CanBeUsedForTesting()
     {
         // Arrange
-        var fakeTime = new FakeTimeProvider(DateTimeOffset.Parse("2024-01-01T00:00:00Z"));
+        var fakeTime = new FakeTimeProvider(DateTimeOffset.Parse("2024-01-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture));
 
         // Act
         var initialTime = fakeTime.GetUtcNow();
@@ -86,8 +86,8 @@ public class TimeAbstractionTests
         var advancedTime = fakeTime.GetUtcNow();
 
         // Assert
-        initialTime.ShouldBe(DateTimeOffset.Parse("2024-01-01T00:00:00Z"));
-        advancedTime.ShouldBe(DateTimeOffset.Parse("2024-01-01T01:00:00Z"));
+        initialTime.ShouldBe(DateTimeOffset.Parse("2024-01-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture));
+        advancedTime.ShouldBe(DateTimeOffset.Parse("2024-01-01T01:00:00Z", System.Globalization.CultureInfo.InvariantCulture));
     }
 
     [Fact]

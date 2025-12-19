@@ -138,8 +138,8 @@ public class ObservabilityRegistrationTests
             "scheduler",
             "job-123",
             "Test message",
-            DateTimeOffset.Parse("2024-01-01T00:00:00Z"),
-            DateTimeOffset.Parse("2024-01-01T00:01:00Z"),
+            DateTimeOffset.Parse("2024-01-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture),
+            DateTimeOffset.Parse("2024-01-01T00:01:00Z", System.Globalization.CultureInfo.InvariantCulture),
             attributes);
 
         // Assert
@@ -147,8 +147,8 @@ public class ObservabilityRegistrationTests
         context.Component.ShouldBe("scheduler");
         context.Key.ShouldBe("job-123");
         context.Message.ShouldBe("Test message");
-        context.FirstSeenAt.ShouldBe(DateTimeOffset.Parse("2024-01-01T00:00:00Z"));
-        context.LastSeenAt.ShouldBe(DateTimeOffset.Parse("2024-01-01T00:01:00Z"));
+        context.FirstSeenAt.ShouldBe(DateTimeOffset.Parse("2024-01-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture));
+        context.LastSeenAt.ShouldBe(DateTimeOffset.Parse("2024-01-01T00:01:00Z", System.Globalization.CultureInfo.InvariantCulture));
         context.Attributes["test_key"].ShouldBe("test_value");
     }
 
@@ -163,20 +163,20 @@ public class ObservabilityRegistrationTests
                 "inbox",
                 "msg-123",
                 "Message stuck",
-                DateTimeOffset.Parse("2024-01-01T00:00:00Z"),
-                DateTimeOffset.Parse("2024-01-01T00:05:00Z"),
+                DateTimeOffset.Parse("2024-01-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture),
+                DateTimeOffset.Parse("2024-01-01T00:05:00Z", System.Globalization.CultureInfo.InvariantCulture),
                 new System.Collections.Generic.Dictionary<string, object?>(StringComparer.Ordinal)),
         };
 
         // Act
         var snapshot = new WatchdogSnapshot(
-            DateTimeOffset.Parse("2024-01-01T00:10:00Z"),
-            DateTimeOffset.Parse("2024-01-01T00:09:00Z"),
+            DateTimeOffset.Parse("2024-01-01T00:10:00Z", System.Globalization.CultureInfo.InvariantCulture),
+            DateTimeOffset.Parse("2024-01-01T00:09:00Z", System.Globalization.CultureInfo.InvariantCulture),
             alerts);
 
         // Assert
-        snapshot.LastScanAt.ShouldBe(DateTimeOffset.Parse("2024-01-01T00:10:00Z"));
-        snapshot.LastHeartbeatAt.ShouldBe(DateTimeOffset.Parse("2024-01-01T00:09:00Z"));
+        snapshot.LastScanAt.ShouldBe(DateTimeOffset.Parse("2024-01-01T00:10:00Z", System.Globalization.CultureInfo.InvariantCulture));
+        snapshot.LastHeartbeatAt.ShouldBe(DateTimeOffset.Parse("2024-01-01T00:09:00Z", System.Globalization.CultureInfo.InvariantCulture));
         snapshot.ActiveAlerts.Count.ShouldBe(1);
         snapshot.ActiveAlerts[0].Kind.ShouldBe(WatchdogAlertKind.StuckInbox);
     }

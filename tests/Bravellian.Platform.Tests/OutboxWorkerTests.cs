@@ -68,9 +68,12 @@ public class OutboxWorkerTests : SqlServerTestBase
                 var connection = new SqlConnection(connectionString);
                 await using (connection.ConfigureAwait(false))
                 {
-                    await connection.OpenAsync(TestContext.Current.CancellationToken);
-                    await using var command = new SqlCommand("SELECT 1", connection);
-                    await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
+                    await connection.OpenAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
+                    var command = new SqlCommand("SELECT 1", connection);
+                    await using (command.ConfigureAwait(false))
+                    {
+                        await command.ExecuteScalarAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
+                    }
                     return; // Success
                 }
             }
@@ -288,7 +291,7 @@ public class OutboxWorkerTests : SqlServerTestBase
         var connection = new SqlConnection(ConnectionString);
         await using (connection.ConfigureAwait(false))
         {
-            await connection.OpenAsync(TestContext.Current.CancellationToken);
+            await connection.OpenAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
 
             for (int i = 0; i < count; i++)
             {
@@ -299,7 +302,7 @@ public class OutboxWorkerTests : SqlServerTestBase
                     @"
                 INSERT INTO dbo.Outbox (Id, Topic, Payload, Status, CreatedAt)
                 VALUES (@Id, @Topic, @Payload, 0, SYSUTCDATETIME())",
-                    new { Id = id, Topic = "test", Payload = $"payload{i}" });
+                    new { Id = id, Topic = "test", Payload = $"payload{i}" }).ConfigureAwait(false);
             }
 
             return ids;
@@ -311,12 +314,12 @@ public class OutboxWorkerTests : SqlServerTestBase
         var connection = new SqlConnection(ConnectionString);
         await using (connection.ConfigureAwait(false))
         {
-            await connection.OpenAsync(TestContext.Current.CancellationToken);
+            await connection.OpenAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
 
             foreach (var id in ids)
             {
                 var status = await connection.ExecuteScalarAsync<int>(
-                    "SELECT Status FROM dbo.Outbox WHERE Id = @Id", new { Id = id.Value });
+                    "SELECT Status FROM dbo.Outbox WHERE Id = @Id", new { Id = id.Value }).ConfigureAwait(false);
                 status.ShouldBe(expectedStatus);
             }
         }

@@ -12,11 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Modularity;
+namespace Bravellian.Platform.Tests;
 
 /// <summary>
-/// Module usable in any .NET host without HTTP endpoints.
+/// Defines the SQL Server collection that all database integration tests belong to.
+/// Tests in this collection will share the same SQL Server container but get individual databases.
 /// </summary>
-public interface IBackgroundModule : IModuleDefinition
+[CollectionDefinition(Name)]
+public class SqlServerCollection : ICollectionFixture<SqlServerCollectionFixture>
 {
+    public const string Name = "SQL Server Collection";
 }

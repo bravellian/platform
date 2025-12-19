@@ -250,35 +250,6 @@ public class CustomSchemaIntegrationTests : SqlServerTestBase
         Assert.True(cursorExists, $"FanoutCursor table should exist in {CustomSchema} schema");
     }
 
-    [Fact]
-    [Obsolete]
-    public void AddSqlScheduler_WithCustomSchema_RegistersLeaseFactory()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-        var options = new SqlSchedulerOptions
-        {
-            ConnectionString = ConnectionString,
-            SchemaName = CustomSchema,
-            EnableSchemaDeployment = false, // Prevent actual deployment during test
-        };
-
-        // Act
-        services.AddSqlScheduler(options);
-
-        // Assert - Verify that ISystemLeaseFactory is registered (which means AddSystemLeases was called)
-        var leaseFactoryDescriptor = services.FirstOrDefault(s =>
-            s.ServiceType == typeof(ISystemLeaseFactory));
-
-        Assert.NotNull(leaseFactoryDescriptor);
-
-        // Verify that SystemLeaseOptions configuration was registered
-        var optionsDescriptor = services.FirstOrDefault(s =>
-            s.ServiceType == typeof(IConfigureOptions<SystemLeaseOptions>));
-
-        Assert.NotNull(optionsDescriptor);
-    }
-
     private async Task<bool> TableExistsAsync(SqlConnection connection, string schemaName, string tableName)
     {
         const string sql = """
@@ -291,7 +262,7 @@ public class CustomSchemaIntegrationTests : SqlServerTestBase
         command.Parameters.AddWithValue("@SchemaName", schemaName);
         command.Parameters.AddWithValue("@TableName", tableName);
 
-        var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
+        var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
         return count > 0;
     }
 
@@ -307,7 +278,7 @@ public class CustomSchemaIntegrationTests : SqlServerTestBase
         command.Parameters.AddWithValue("@SchemaName", schemaName);
         command.Parameters.AddWithValue("@ProcedureName", procedureName);
 
-        var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
+        var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
         return count > 0;
     }
 
@@ -324,7 +295,7 @@ public class CustomSchemaIntegrationTests : SqlServerTestBase
         command.Parameters.AddWithValue("@SchemaName", schemaName);
         command.Parameters.AddWithValue("@TypeName", typeName);
 
-        var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
+        var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
         return count > 0;
     }
 }

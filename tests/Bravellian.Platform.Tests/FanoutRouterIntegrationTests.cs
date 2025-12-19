@@ -65,11 +65,11 @@ public class FanoutRouterIntegrationTests
         var router = new FanoutRouter(repositoryProvider, loggerFactory.CreateLogger<FanoutRouter>());
 
         // Assert - Verify the provider was created correctly
-        var policyRepos = await repositoryProvider.GetAllPolicyRepositoriesAsync();
+        var policyRepos = await repositoryProvider.GetAllPolicyRepositoriesAsync(Xunit.TestContext.Current.CancellationToken);
         policyRepos.ShouldNotBeNull();
         policyRepos.Count.ShouldBe(2);
 
-        var cursorRepos = await repositoryProvider.GetAllCursorRepositoriesAsync();
+        var cursorRepos = await repositoryProvider.GetAllCursorRepositoriesAsync(Xunit.TestContext.Current.CancellationToken);
         cursorRepos.ShouldNotBeNull();
         cursorRepos.Count.ShouldBe(2);
 
@@ -115,8 +115,8 @@ public class FanoutRouterIntegrationTests
 
         // Act
         var repositoryProvider = new ConfiguredFanoutRepositoryProvider(fanoutOptions, loggerFactory);
-        var policyRepositories = await repositoryProvider.GetAllPolicyRepositoriesAsync();
-        var cursorRepositories = await repositoryProvider.GetAllCursorRepositoriesAsync();
+        var policyRepositories = await repositoryProvider.GetAllPolicyRepositoriesAsync(Xunit.TestContext.Current.CancellationToken);
+        var cursorRepositories = await repositoryProvider.GetAllCursorRepositoriesAsync(Xunit.TestContext.Current.CancellationToken);
 
         // Assert
         policyRepositories.Count.ShouldBe(2);
@@ -206,11 +206,11 @@ public class FanoutRouterIntegrationTests
         repositoryProvider.ShouldNotBeNull();
 
         // Trigger a refresh to load databases
-        var policyRepos = await repositoryProvider.GetAllPolicyRepositoriesAsync();
+        var policyRepos = await repositoryProvider.GetAllPolicyRepositoriesAsync(Xunit.TestContext.Current.CancellationToken);
         policyRepos.ShouldNotBeNull();
         policyRepos.Count.ShouldBe(2);
 
-        var cursorRepos = await repositoryProvider.GetAllCursorRepositoriesAsync();
+        var cursorRepos = await repositoryProvider.GetAllCursorRepositoriesAsync(Xunit.TestContext.Current.CancellationToken);
         cursorRepos.ShouldNotBeNull();
         cursorRepos.Count.ShouldBe(2);
 

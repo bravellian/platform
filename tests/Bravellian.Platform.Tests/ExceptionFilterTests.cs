@@ -298,7 +298,9 @@ public class ExceptionFilterTests
         {
             try
             {
+#pragma warning disable MA0012 // Do not raise reserved exception type
                 throw new OutOfMemoryException("Critical");
+#pragma warning restore MA0012 // Do not raise reserved exception type
             }
             catch (Exception ex) when (ExceptionFilter.IsCatchable(ex))
             {

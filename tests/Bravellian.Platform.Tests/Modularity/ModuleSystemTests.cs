@@ -1,3 +1,17 @@
+// Copyright (c) Bravellian
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 using Bravellian.Platform.Modularity;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -12,6 +26,7 @@ using Shouldly;
 
 namespace Bravellian.Platform.Tests.Modularity;
 
+[Collection("ModuleRegistryTests")]
 public sealed class ModuleSystemTests
 {
     [Fact]
@@ -22,6 +37,7 @@ public sealed class ModuleSystemTests
 
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
+(StringComparer.Ordinal)
             {
                 [SampleBackgroundModule.RequiredKey] = "value",
             })
@@ -41,21 +57,22 @@ public sealed class ModuleSystemTests
     public void Api_modules_map_routes_using_registered_instances()
     {
         ModuleRegistry.Reset();
-        ModuleRegistry.RegisterApiModule<SampleApiModule>();
+        ApiModuleRegistry.RegisterApiModule<SampleApiModule>();
 
         var builder = WebApplication.CreateBuilder();
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+(StringComparer.Ordinal)
         {
             [SampleApiModule.RequiredKey] = "abc",
         });
 
         builder.Services.AddApiModuleServices(builder.Configuration, NullLoggerFactory.Instance);
         var app = builder.Build();
-        
+
         // Verify that MapModuleEndpoints executes without error and returns the app
         var result = app.MapModuleEndpoints();
         result.ShouldBe(app);
-        
+
         // Verify module instance is registered
         var module = app.Services.GetService<IApiModule>();
         module.ShouldNotBeNull();
@@ -66,10 +83,11 @@ public sealed class ModuleSystemTests
     public void Full_stack_navigation_is_built_and_sorted()
     {
         ModuleRegistry.Reset();
-        ModuleRegistry.RegisterFullStackModule<SampleFullStackModule>();
+        FullStackModuleRegistry.RegisterFullStackModule<SampleFullStackModule>();
 
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
+(StringComparer.Ordinal)
             {
                 [SampleFullStackModule.RequiredKey] = "xyz",
             })
@@ -89,11 +107,12 @@ public sealed class ModuleSystemTests
     public void Duplicate_keys_are_rejected()
     {
         ModuleRegistry.Reset();
-        ModuleRegistry.RegisterApiModule<SampleApiModule>();
-        ModuleRegistry.RegisterFullStackModule<ConflictingModule>();
+        ApiModuleRegistry.RegisterApiModule<SampleApiModule>();
+        FullStackModuleRegistry.RegisterFullStackModule<ConflictingModule>();
 
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
+(StringComparer.Ordinal)
             {
                 [SampleApiModule.RequiredKey] = "abc",
                 [ConflictingModule.RequiredKey] = "xyz",
@@ -110,17 +129,18 @@ public sealed class ModuleSystemTests
     public void Module_keys_with_slashes_are_rejected()
     {
         ModuleRegistry.Reset();
-        ModuleRegistry.RegisterApiModule<ModuleWithInvalidKey>();
+        ApiModuleRegistry.RegisterApiModule<ModuleWithInvalidKey>();
 
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
+(StringComparer.Ordinal)
             {
                 [ModuleWithInvalidKey.RequiredKey] = "test",
             })
             .Build();
 
         var services = new ServiceCollection();
-        
+
         var ex = Should.Throw<InvalidOperationException>(() => services.AddApiModuleServices(configuration, NullLoggerFactory.Instance));
         ex.Message.ShouldContain("invalid characters");
         ex.Message.ShouldContain("cannot contain slashes");
@@ -130,19 +150,19 @@ public sealed class ModuleSystemTests
     public void Duplicate_module_type_registrations_in_same_category_are_idempotent()
     {
         ModuleRegistry.Reset();
-        ModuleRegistry.RegisterApiModule<SampleApiModule>();
-        
+        ApiModuleRegistry.RegisterApiModule<SampleApiModule>();
+
         // Second registration should be a no-op, not an error
-        Should.NotThrow(() => ModuleRegistry.RegisterApiModule<SampleApiModule>());
+        Should.NotThrow(() => ApiModuleRegistry.RegisterApiModule<SampleApiModule>());
     }
 
     [Fact]
     public void Module_cannot_be_registered_in_multiple_categories()
     {
         ModuleRegistry.Reset();
-        ModuleRegistry.RegisterApiModule<DualInterfaceModule>();
+        ApiModuleRegistry.RegisterApiModule<DualInterfaceModule>();
 
-        var ex = Should.Throw<InvalidOperationException>(() => ModuleRegistry.RegisterFullStackModule<DualInterfaceModule>());
+        var ex = Should.Throw<InvalidOperationException>(() => FullStackModuleRegistry.RegisterFullStackModule<DualInterfaceModule>());
         ex.Message.ShouldContain("already registered in a different category");
     }
 

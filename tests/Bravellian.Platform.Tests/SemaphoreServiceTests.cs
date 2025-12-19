@@ -550,7 +550,7 @@ public class SemaphoreServiceTests : SqlServerTestBase
                 invalidName,
                 ttlSeconds: 30,
                 ownerId: "owner1",
-                cancellationToken: TestContext.Current.CancellationToken);
+                cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(false);
         });
     }
 
@@ -565,7 +565,7 @@ public class SemaphoreServiceTests : SqlServerTestBase
                 longName,
                 ttlSeconds: 30,
                 ownerId: "owner1",
-                cancellationToken: TestContext.Current.CancellationToken);
+                cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(false);
         });
     }
 
@@ -604,7 +604,7 @@ public class SemaphoreServiceTests : SqlServerTestBase
                 invalidName,
                 ttlSeconds: 30,
                 ownerId: "owner1",
-                cancellationToken: TestContext.Current.CancellationToken);
+                cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(false);
         });
     }
 
@@ -620,7 +620,7 @@ public class SemaphoreServiceTests : SqlServerTestBase
                 name,
                 ttlSeconds: 0, // Below min of 1
                 ownerId: "owner1",
-                cancellationToken: TestContext.Current.CancellationToken);
+                cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(false);
         });
     }
 
@@ -636,7 +636,7 @@ public class SemaphoreServiceTests : SqlServerTestBase
                 name,
                 ttlSeconds: 3601, // Above max of 3600
                 ownerId: "owner1",
-                cancellationToken: TestContext.Current.CancellationToken);
+                cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(false);
         });
     }
 
@@ -650,7 +650,7 @@ public class SemaphoreServiceTests : SqlServerTestBase
             await semaphoreService!.EnsureExistsAsync(
                 name,
                 limit: 0, // Below min of 1
-                cancellationToken: TestContext.Current.CancellationToken);
+                cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(false);
         });
     }
 
@@ -664,7 +664,7 @@ public class SemaphoreServiceTests : SqlServerTestBase
             await semaphoreService!.EnsureExistsAsync(
                 name,
                 limit: 10001, // Above max of 10000
-                cancellationToken: TestContext.Current.CancellationToken);
+                cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(false);
         });
     }
 

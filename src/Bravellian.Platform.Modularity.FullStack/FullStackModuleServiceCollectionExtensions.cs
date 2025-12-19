@@ -22,40 +22,10 @@ using Microsoft.Extensions.Logging;
 namespace Bravellian.Platform.Modularity;
 
 /// <summary>
-/// Registration helpers for module systems.
+/// Registration helpers for full stack modules.
 /// </summary>
-public static class ModuleServiceCollectionExtensions
+public static class FullStackModuleServiceCollectionExtensions
 {
-    /// <summary>
-    /// Registers services for background modules.
-    /// </summary>
-    public static IServiceCollection AddBackgroundModuleServices(
-        this IServiceCollection services,
-        IConfiguration configuration,
-        ILoggerFactory? loggerFactory = null)
-    {
-        ModuleRegistry.InitializeBackgroundModules(configuration, services, loggerFactory);
-        return services;
-    }
-
-    /// <summary>
-    /// Registers services for API modules.
-    /// </summary>
-    public static IServiceCollection AddApiModuleServices(
-        this IServiceCollection services,
-        IConfiguration configuration,
-        ILoggerFactory? loggerFactory = null)
-    {
-        var modules = ModuleRegistry.InitializeApiModules(configuration, services, loggerFactory);
-        foreach (var module in modules)
-        {
-            services.AddSingleton(module.GetType(), module);
-            services.AddSingleton(typeof(IApiModule), module);
-        }
-
-        return services;
-    }
-
     /// <summary>
     /// Registers services for full stack modules.
     /// </summary>
@@ -64,12 +34,12 @@ public static class ModuleServiceCollectionExtensions
         IConfiguration configuration,
         ILoggerFactory? loggerFactory = null)
     {
-        var modules = ModuleRegistry.InitializeFullStackModules(configuration, services, loggerFactory);
+        var modules = FullStackModuleRegistry.InitializeFullStackModules(configuration, services, loggerFactory);
         foreach (var module in modules)
         {
             services.AddSingleton(module.GetType(), module);
-            services.AddSingleton(typeof(IApiModule), module);
-            services.AddSingleton(typeof(IFullStackModule), module);
+            services.AddSingleton<IApiModule>(module);
+            services.AddSingleton(module);
         }
 
         services.AddSingleton<ModuleNavigationService>();
@@ -83,28 +53,20 @@ public static class ModuleServiceCollectionExtensions
         this IMvcBuilder builder,
         ILoggerFactory? loggerFactory = null)
     {
-        foreach (var module in ModuleRegistry.GetFullStackModules())
+        var modules = builder.Services
+            .Where(descriptor => descriptor.ServiceType == typeof(IFullStackModule))
+            .Select(descriptor => descriptor.ImplementationInstance)
+            .OfType<IFullStackModule>()
+            .ToArray();
+
+        foreach (var module in modules)
         {
             builder.Services.Configure<RazorPagesOptions>(module.ConfigureRazorPages);
             builder.PartManager.ApplicationParts.Add(new AssemblyPart(module.GetType().Assembly));
-            loggerFactory?.CreateLogger(typeof(ModuleServiceCollectionExtensions))
+            loggerFactory?.CreateLogger(typeof(FullStackModuleServiceCollectionExtensions))
                 .LogInformation("Registered Razor Pages for module {ModuleKey}", module.Key);
         }
 
         return builder;
-    }
-
-    /// <summary>
-    /// Maps endpoints for API and full stack modules.
-    /// </summary>
-    public static WebApplication MapModuleEndpoints(this WebApplication app)
-    {
-        foreach (var module in app.Services.GetServices<IApiModule>())
-        {
-            var group = app.MapGroup($"/{module.Key}");
-            module.MapApiEndpoints(group);
-        }
-
-        return app;
     }
 }

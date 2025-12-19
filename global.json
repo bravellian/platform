@@ -7,6 +7,7 @@
   "msbuild-sdks": {
     "Microsoft.Build.Sql": "1.0.0",
     "MSBuild.Sdk.SqlProj": "3.1.2",
-    "Aspire.AppHost.Sdk": "9.2.0"
+    "Aspire.AppHost.Sdk": "9.2.0",
+    "DotNet.ReproducibleBuilds.Isolated": "1.2.39"
   }
 }

@@ -27,7 +27,7 @@ public class FanoutSystemTests
             fanoutTopic: "etl",
             shardKey: "tenant:123",
             workKey: "payments",
-            windowStart: DateTimeOffset.Parse("2024-01-01T00:00:00Z"),
+            windowStart: DateTimeOffset.Parse("2024-01-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture),
             correlationId: "corr-123");
 
         // Act
@@ -39,7 +39,7 @@ public class FanoutSystemTests
         deserialized.fanoutTopic.ShouldBe("etl");
         deserialized.shardKey.ShouldBe("tenant:123");
         deserialized.workKey.ShouldBe("payments");
-        deserialized.windowStart.ShouldBe(DateTimeOffset.Parse("2024-01-01T00:00:00Z"));
+        deserialized.windowStart.ShouldBe(DateTimeOffset.Parse("2024-01-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture));
         deserialized.correlationId.ShouldBe("corr-123");
     }
 

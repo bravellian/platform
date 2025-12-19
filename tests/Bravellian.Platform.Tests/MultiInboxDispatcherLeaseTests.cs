@@ -122,10 +122,10 @@ public class MultiInboxDispatcherLeaseTests : SqlServerTestBase
             leaseDuration: TimeSpan.FromSeconds(5));
 
         // Act - Run both dispatchers concurrently
-        var task1 = Task.Run(async () => await dispatcher1.RunOnceAsync(10, CancellationToken.None));
-        var task2 = Task.Run(async () => await dispatcher2.RunOnceAsync(10, CancellationToken.None));
+        var task1 = Task.Run(async () => await dispatcher1.RunOnceAsync(10, CancellationToken.None).ConfigureAwait(false));
+        var task2 = Task.Run(async () => await dispatcher2.RunOnceAsync(10, CancellationToken.None).ConfigureAwait(false));
 
-        var results = await Task.WhenAll(task1, task2);
+        var results = await Task.WhenAll(task1, task2).ConfigureAwait(true);
 
         // Assert - Only one dispatcher should have processed messages
         // The other should have been blocked by the lease
