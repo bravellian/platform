@@ -14,6 +14,7 @@ Welcome to the comprehensive documentation for the Bravellian Platform. This gui
 - [Monotonic Clock Usage](monotonic-clock-guide.md) - Stable timing for timeouts and measurements
 
 ### Work Queue Pattern
+- [Platform Primitives Overview](platform-primitives-overview.md) - Inbox, outbox, fanout, and fan-in end-to-end
 - [Work Queue Pattern](work-queue-pattern.md) - Claim-ack-abandon semantics
 - [Work Queue Implementation](work-queue-implementation.md) - Technical details
 

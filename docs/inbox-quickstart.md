@@ -2,6 +2,8 @@
 
 The Inbox pattern ensures at-most-once message processing by tracking which messages have been processed. This prevents duplicate processing when messages are delivered multiple times.
 
+For an end-to-end mental model that includes outbox, fanout, and fan-in, see the [Platform Primitives Overview](platform-primitives-overview.md).
+
 ## What is the Inbox Pattern?
 
 The Inbox pattern solves the duplicate message problem. Message systems typically provide at-least-once delivery guarantees, meaning the same message may be delivered multiple times. The Inbox pattern:
