@@ -206,6 +206,8 @@ public class OutboxHandlerTests : SqlServerTestBase
             Id = OutboxWorkItemIdentifier.GenerateNew(),
             Topic = "Test.Topic",
             Payload = "test payload",
+            // RetryCount is the number of previous attempts; the current processing is attempt RetryCount + 1.
+            // With RetryCount = 2 and maxAttempts = 3, this run is the 3rd attempt and should be marked as failed.
             RetryCount = 2,
         };
 
