@@ -40,7 +40,7 @@ public sealed class DapperTypeHandlerTests : SqlServerTestBase
         {
             await connection.OpenAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
 
-        await connection.ExecuteAsync(@"
+            await connection.ExecuteAsync(@"
             IF OBJECT_ID('TestTable', 'U') IS NOT NULL
                 DROP TABLE TestTable;
             

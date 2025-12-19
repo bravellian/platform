@@ -23,17 +23,7 @@
 		<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
 		<WarningsNotAsErrors>$(WarningsNotAsErrors);MA0051;MA0015</WarningsNotAsErrors>
 	</PropertyGroup>
-
-	<ItemGroup>
-	  <AdditionalFiles Include="Inbox\InboxMessageIdentifier.guid.json" />
-	  <AdditionalFiles Include="Outbox\OutboxWorkItemIdentifier.guid.json" />
-	  <AdditionalFiles Include="OwnerToken.guid.json" />
-	  <AdditionalFiles Include="Metrics\InstanceIdentifier.guid.json" />
-	  <AdditionalFiles Include="Metrics\DatabaseIdentifier.guid.json" />
-	  <AdditionalFiles Include="Outbox\OutboxMessageIdentifier.guid.json" />
-	  <AdditionalFiles Include="Outbox\JoinIdentifier.guid.json" />
-	</ItemGroup>
-
+  
 	<ItemGroup>
 		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
 			<_Parameter1>Bravellian.Platform.Tests</_Parameter1>

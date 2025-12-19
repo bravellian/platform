@@ -66,12 +66,12 @@ public class OutboxJoinTests : SqlServerTestBase
         {
             await connection.OpenAsync(CancellationToken.None).ConfigureAwait(false);
 
-        var id = Guid.NewGuid();
-        await connection.ExecuteAsync(
-            "INSERT INTO dbo.Outbox (Id, Topic, Payload, MessageId) VALUES (@Id, @Topic, @Payload, @MessageId)",
-            new { Id = id, Topic = "test.topic", Payload = "{}", MessageId = Guid.NewGuid() }).ConfigureAwait(false);
+            var id = Guid.NewGuid();
+            await connection.ExecuteAsync(
+                "INSERT INTO dbo.Outbox (Id, Topic, Payload, MessageId) VALUES (@Id, @Topic, @Payload, @MessageId)",
+                new { Id = id, Topic = "test.topic", Payload = "{}", MessageId = Guid.NewGuid() }).ConfigureAwait(false);
 
-        return OutboxMessageIdentifier.From(id);
+            return OutboxMessageIdentifier.From(id);
         }
     }
 
@@ -595,10 +595,10 @@ public class OutboxJoinTests : SqlServerTestBase
         {
             await connection.OpenAsync(CancellationToken.None).ConfigureAwait(false);
 
-        await connection.ExecuteAsync(
-            "[dbo].[Outbox_Claim]",
-            new { OwnerToken = ownerToken.Value, LeaseSeconds = 30, BatchSize = 10 },
-            commandType: System.Data.CommandType.StoredProcedure).ConfigureAwait(false);
+            await connection.ExecuteAsync(
+                "[dbo].[Outbox_Claim]",
+                new { OwnerToken = ownerToken.Value, LeaseSeconds = 30, BatchSize = 10 },
+                commandType: System.Data.CommandType.StoredProcedure).ConfigureAwait(false);
         }
     }
 
@@ -609,16 +609,16 @@ public class OutboxJoinTests : SqlServerTestBase
         {
             await connection.OpenAsync(CancellationToken.None).ConfigureAwait(false);
 
-        var idsTable = CreateGuidIdTable(new[] { messageId.Value });
-        using var command = new SqlCommand("[dbo].[Outbox_Ack]", connection)
-        {
-            CommandType = System.Data.CommandType.StoredProcedure,
-        };
-        command.Parameters.AddWithValue("@OwnerToken", ownerToken.Value);
-        var parameter = command.Parameters.AddWithValue("@Ids", idsTable);
-        parameter.SqlDbType = System.Data.SqlDbType.Structured;
-        parameter.TypeName = "[dbo].[GuidIdList]";
-        await command.ExecuteNonQueryAsync(CancellationToken.None).ConfigureAwait(false);
+            var idsTable = CreateGuidIdTable(new[] { messageId.Value });
+            using var command = new SqlCommand("[dbo].[Outbox_Ack]", connection)
+            {
+                CommandType = System.Data.CommandType.StoredProcedure,
+            };
+            command.Parameters.AddWithValue("@OwnerToken", ownerToken.Value);
+            var parameter = command.Parameters.AddWithValue("@Ids", idsTable);
+            parameter.SqlDbType = System.Data.SqlDbType.Structured;
+            parameter.TypeName = "[dbo].[GuidIdList]";
+            await command.ExecuteNonQueryAsync(CancellationToken.None).ConfigureAwait(false);
         }
     }
 
@@ -629,18 +629,18 @@ public class OutboxJoinTests : SqlServerTestBase
         {
             await connection.OpenAsync(CancellationToken.None).ConfigureAwait(false);
 
-        var idsTable = CreateGuidIdTable(new[] { messageId.Value });
-        using var command = new SqlCommand("[dbo].[Outbox_Fail]", connection)
-        {
-            CommandType = System.Data.CommandType.StoredProcedure,
-        };
-        command.Parameters.AddWithValue("@OwnerToken", ownerToken.Value);
-        command.Parameters.AddWithValue("@LastError", error);
-        command.Parameters.AddWithValue("@ProcessedBy", "TestMachine");
-        var parameter = command.Parameters.AddWithValue("@Ids", idsTable);
-        parameter.SqlDbType = System.Data.SqlDbType.Structured;
-        parameter.TypeName = "[dbo].[GuidIdList]";
-        await command.ExecuteNonQueryAsync(CancellationToken.None).ConfigureAwait(false);
+            var idsTable = CreateGuidIdTable(new[] { messageId.Value });
+            using var command = new SqlCommand("[dbo].[Outbox_Fail]", connection)
+            {
+                CommandType = System.Data.CommandType.StoredProcedure,
+            };
+            command.Parameters.AddWithValue("@OwnerToken", ownerToken.Value);
+            command.Parameters.AddWithValue("@LastError", error);
+            command.Parameters.AddWithValue("@ProcessedBy", "TestMachine");
+            var parameter = command.Parameters.AddWithValue("@Ids", idsTable);
+            parameter.SqlDbType = System.Data.SqlDbType.Structured;
+            parameter.TypeName = "[dbo].[GuidIdList]";
+            await command.ExecuteNonQueryAsync(CancellationToken.None).ConfigureAwait(false);
         }
     }
 

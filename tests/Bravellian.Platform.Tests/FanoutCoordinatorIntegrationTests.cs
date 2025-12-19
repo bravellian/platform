@@ -202,9 +202,9 @@ public class FanoutCoordinatorIntegrationTests : SqlServerTestBase
         await using (connection.ConfigureAwait(false))
         {
             await connection.OpenAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
-        var count = await connection.ExecuteScalarAsync<int>(
-            new CommandDefinition("SELECT COUNT(*) FROM dbo.Outbox", cancellationToken: TestContext.Current.CancellationToken)).ConfigureAwait(false);
-        return count;
+            var count = await connection.ExecuteScalarAsync<int>(
+                new CommandDefinition("SELECT COUNT(*) FROM dbo.Outbox", cancellationToken: TestContext.Current.CancellationToken)).ConfigureAwait(false);
+            return count;
         }
     }
 
@@ -214,9 +214,9 @@ public class FanoutCoordinatorIntegrationTests : SqlServerTestBase
         await using (connection.ConfigureAwait(false))
         {
             await connection.OpenAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
-        var payloads = await connection.QueryAsync<string>(
-            new CommandDefinition("SELECT Payload FROM dbo.Outbox ORDER BY CreatedAt", cancellationToken: TestContext.Current.CancellationToken)).ConfigureAwait(false);
-        return payloads.ToList();
+            var payloads = await connection.QueryAsync<string>(
+                new CommandDefinition("SELECT Payload FROM dbo.Outbox ORDER BY CreatedAt", cancellationToken: TestContext.Current.CancellationToken)).ConfigureAwait(false);
+            return payloads.ToList();
         }
     }
 
@@ -226,9 +226,9 @@ public class FanoutCoordinatorIntegrationTests : SqlServerTestBase
         await using (connection.ConfigureAwait(false))
         {
             await connection.OpenAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
-        var messages = await connection.QueryAsync<(Guid Id, string CorrelationId)>(
-            new CommandDefinition("SELECT Id, CorrelationId FROM dbo.Outbox ORDER BY CreatedAt", cancellationToken: TestContext.Current.CancellationToken)).ConfigureAwait(false);
-        return messages.ToList();
+            var messages = await connection.QueryAsync<(Guid Id, string CorrelationId)>(
+                new CommandDefinition("SELECT Id, CorrelationId FROM dbo.Outbox ORDER BY CreatedAt", cancellationToken: TestContext.Current.CancellationToken)).ConfigureAwait(false);
+            return messages.ToList();
         }
     }
 
