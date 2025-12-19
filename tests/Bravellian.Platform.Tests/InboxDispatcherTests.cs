@@ -16,6 +16,7 @@
 using Bravellian.Platform.Tests.TestUtilities;
 using Dapper;
 using Microsoft.Extensions.Options;
+using Shouldly;
 
 namespace Bravellian.Platform.Tests;
 
@@ -140,6 +141,84 @@ public class InboxDispatcherTests : SqlServerTestBase
         Assert.Equal("Seen", status);
     }
 
+    [Fact]
+    public async Task RunOnceAsync_WithFailingHandler_AbandonsWithBackoffPolicy()
+    {
+        // Arrange
+        var backoffDelay = TimeSpan.FromSeconds(5);
+        var failingHandler = new FailingInboxHandler("failing-topic", shouldFail: true);
+        var resolver = CreateHandlerResolver(failingHandler);
+        var store = new StubInboxWorkStore();
+        store.AddMessage("msg-stub-1", attempt: 0, topic: "failing-topic");
+
+        var dispatcher = new MultiInboxDispatcher(
+            new StubInboxWorkStoreProvider(store),
+            new RoundRobinInboxSelectionStrategy(),
+            resolver,
+            new TestLogger<MultiInboxDispatcher>(TestOutputHelper),
+            backoffPolicy: _ => backoffDelay,
+            maxAttempts: 3);
+
+        // Act
+        var processed = await dispatcher.RunOnceAsync(10, CancellationToken.None);
+
+        // Assert
+        processed.ShouldBe(1);
+        store.AbandonedMessages.ShouldHaveSingleItem();
+        store.AbandonedMessages[0].Delay.ShouldBe(backoffDelay);
+        store.FailedMessages.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task RunOnceAsync_WithPoisonMessage_FailsInsteadOfRetrying()
+    {
+        // Arrange
+        var failingHandler = new FailingInboxHandler("failing-topic", shouldFail: true);
+        var resolver = CreateHandlerResolver(failingHandler);
+        var store = new StubInboxWorkStore();
+        store.AddMessage("msg-stub-2", attempt: 5, topic: "failing-topic");
+
+        var dispatcher = new MultiInboxDispatcher(
+            new StubInboxWorkStoreProvider(store),
+            new RoundRobinInboxSelectionStrategy(),
+            resolver,
+            new TestLogger<MultiInboxDispatcher>(TestOutputHelper),
+            maxAttempts: 5);
+
+        // Act
+        var processed = await dispatcher.RunOnceAsync(10, CancellationToken.None);
+
+        // Assert
+        processed.ShouldBe(1);
+        store.FailedMessages.ShouldContain("msg-stub-2");
+        store.AbandonedMessages.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task RunOnceAsync_RotatesOwnerTokensAcrossRuns()
+    {
+        // Arrange
+        var handler = new TestInboxHandler("test-topic");
+        var resolver = CreateHandlerResolver(handler);
+        var store = new StubInboxWorkStore();
+        store.AddMessage("msg-stub-3", attempt: 0, topic: "test-topic");
+        store.AddMessage("msg-stub-4", attempt: 0, topic: "test-topic");
+
+        var dispatcher = new MultiInboxDispatcher(
+            new StubInboxWorkStoreProvider(store),
+            new RoundRobinInboxSelectionStrategy(),
+            resolver,
+            new TestLogger<MultiInboxDispatcher>(TestOutputHelper));
+
+        // Act
+        await dispatcher.RunOnceAsync(10, CancellationToken.None);
+        await dispatcher.RunOnceAsync(10, CancellationToken.None);
+
+        // Assert
+        store.OwnerTokens.Count.ShouldBe(2);
+        store.OwnerTokens.Distinct().Count().ShouldBe(2);
+    }
+
     private SqlInboxService CreateInboxService()
     {
         var options = Options.Create(new SqlInboxOptions
@@ -241,5 +320,100 @@ public class InboxDispatcherTests : SqlServerTestBase
 
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class StubInboxWorkStore : IInboxWorkStore
+    {
+        private readonly Dictionary<string, (int Attempt, string Topic)> messages = new(StringComparer.Ordinal);
+        private readonly Queue<string> claimQueue = new();
+
+        public List<string> FailedMessages { get; } = new();
+
+        public List<(IEnumerable<string> MessageIds, string? Error, TimeSpan? Delay)> AbandonedMessages { get; } = new();
+
+        public List<Guid> OwnerTokens { get; } = new();
+
+        public void AddMessage(string id, int attempt, string topic)
+        {
+            messages[id] = (attempt, topic);
+            claimQueue.Enqueue(id);
+        }
+
+        public Task AckAsync(OwnerToken ownerToken, IEnumerable<string> messageIds, CancellationToken cancellationToken)
+        {
+            foreach (var id in messageIds)
+            {
+                messages.Remove(id);
+            }
+
+            return Task.CompletedTask;
+        }
+
+        public Task AbandonAsync(
+            OwnerToken ownerToken,
+            IEnumerable<string> messageIds,
+            string? lastError = null,
+            TimeSpan? delay = null,
+            CancellationToken cancellationToken = default)
+        {
+            AbandonedMessages.Add((messageIds.ToList(), lastError, delay));
+            return Task.CompletedTask;
+        }
+
+        public Task<IReadOnlyList<string>> ClaimAsync(OwnerToken ownerToken, int leaseSeconds, int batchSize, CancellationToken cancellationToken)
+        {
+            OwnerTokens.Add(ownerToken.Value);
+            var claimed = new List<string>();
+            while (claimed.Count < batchSize && claimQueue.Count > 0)
+            {
+                claimed.Add(claimQueue.Dequeue());
+            }
+
+            return Task.FromResult<IReadOnlyList<string>>(claimed);
+        }
+
+        public Task FailAsync(OwnerToken ownerToken, IEnumerable<string> messageIds, string error, CancellationToken cancellationToken)
+        {
+            foreach (var id in messageIds)
+            {
+                FailedMessages.Add(id);
+                messages.Remove(id);
+            }
+
+            return Task.CompletedTask;
+        }
+
+        public Task<InboxMessage> GetAsync(string messageId, CancellationToken cancellationToken)
+        {
+            var (attempt, topic) = messages[messageId];
+            return Task.FromResult(new InboxMessage
+            {
+                MessageId = messageId,
+                Topic = topic,
+                Attempt = attempt,
+                Payload = string.Empty,
+                Source = string.Empty,
+            });
+        }
+
+        public Task ReapExpiredAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    }
+
+    private sealed class StubInboxWorkStoreProvider : IInboxWorkStoreProvider
+    {
+        private readonly IInboxWorkStore store;
+
+        public StubInboxWorkStoreProvider(IInboxWorkStore store)
+        {
+            this.store = store;
+        }
+
+        public Task<IReadOnlyList<IInboxWorkStore>> GetAllStoresAsync() => Task.FromResult<IReadOnlyList<IInboxWorkStore>>(new[] { store });
+
+        public string GetStoreIdentifier(IInboxWorkStore store) => "stub";
+
+        public IInboxWorkStore? GetStoreByKey(string key) => store;
+
+        public IInbox? GetInboxByKey(string key) => null;
     }
 }

@@ -42,7 +42,8 @@ public class OutboxHandlerTests : SqlServerTestBase
     private MultiOutboxDispatcher CreateDispatcher(
         IOutboxStore store,
         IOutboxHandlerResolver resolver,
-        ILogger<MultiOutboxDispatcher>? logger = null)
+        ILogger<MultiOutboxDispatcher>? logger = null,
+        int maxAttempts = 5)
     {
         var provider = new SingleOutboxStoreProvider(store);
         var strategy = new RoundRobinOutboxSelectionStrategy();
@@ -50,7 +51,8 @@ public class OutboxHandlerTests : SqlServerTestBase
             provider,
             strategy,
             resolver,
-            logger ?? new TestLogger<MultiOutboxDispatcher>(TestOutputHelper));
+            logger ?? new TestLogger<MultiOutboxDispatcher>(TestOutputHelper),
+            maxAttempts: maxAttempts);
     }
 
     [Fact]
@@ -184,6 +186,37 @@ public class OutboxHandlerTests : SqlServerTestBase
         rescheduled.Key.ShouldBe(message.Id);
         rescheduled.Value.Delay.ShouldBeGreaterThan(TimeSpan.Zero);
         rescheduled.Value.Error.ShouldBe("Test exception");
+    }
+
+    [Fact]
+    public async Task MultiOutboxDispatcher_WithPoisonMessage_FailsWhenMaxAttemptsReached()
+    {
+        // Arrange
+        var testHandler = new TestHandler("Test.Topic");
+        testHandler.ShouldThrow = true;
+        var resolver = new OutboxHandlerResolver(new[] { testHandler });
+        var store = new TestOutboxStore();
+        var logger = new TestLogger<MultiOutboxDispatcher>(TestOutputHelper);
+        var dispatcher = CreateDispatcher(store, resolver, logger, maxAttempts: 3);
+
+        var message = new OutboxMessage
+        {
+            Id = OutboxWorkItemIdentifier.GenerateNew(),
+            Topic = "Test.Topic",
+            Payload = "test payload",
+            RetryCount = 2,
+        };
+
+        store.AddMessage(message);
+
+        // Act
+        var processed = await dispatcher.RunOnceAsync(10, CancellationToken.None);
+
+        // Assert
+        processed.ShouldBe(1);
+        store.FailedMessages.ShouldHaveSingleItem();
+        store.FailedMessages[0].Key.ShouldBe(message.Id);
+        store.RescheduledMessages.ShouldBeEmpty();
     }
 
     [Fact]

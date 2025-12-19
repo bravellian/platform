@@ -298,6 +298,21 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
         typeExists.ShouldBeGreaterThan(0, "Work queue type dbo.GuidIdList should exist");
     }
 
+    [Fact]
+    public async Task WorkQueueProcedures_UseDatabaseUtcTime()
+    {
+        await using var connection = new SqlConnection(ConnectionString);
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
+
+        var outboxReaper = await connection.ExecuteScalarAsync<string>(
+            "SELECT OBJECT_DEFINITION(OBJECT_ID('dbo.Outbox_ReapExpired'))");
+        var inboxReaper = await connection.ExecuteScalarAsync<string>(
+            "SELECT OBJECT_DEFINITION(OBJECT_ID('dbo.Inbox_ReapExpired'))");
+
+        outboxReaper.ShouldContain("SYSUTCDATETIME", Case.Sensitive);
+        inboxReaper.ShouldContain("SYSUTCDATETIME", Case.Sensitive);
+    }
+
     /// <summary>
     /// Helper method to check if a table exists in a specific schema.
     /// </summary>
