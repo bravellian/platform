@@ -410,7 +410,7 @@ public class InboxDispatcherTests : SqlServerTestBase
 
         public Task<IReadOnlyList<IInboxWorkStore>> GetAllStoresAsync() => Task.FromResult<IReadOnlyList<IInboxWorkStore>>(new[] { store });
 
-        public string GetStoreIdentifier(IInboxWorkStore store) => "stub";
+        public string GetStoreIdentifier(IInboxWorkStore inboxWorkStore) => "stub";
 
         public IInboxWorkStore? GetStoreByKey(string key) => store;
 

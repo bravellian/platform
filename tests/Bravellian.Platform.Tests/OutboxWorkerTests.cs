@@ -195,7 +195,7 @@ public class OutboxWorkerTests : SqlServerTestBase
     public async Task WorkQueue_RestartUsesNewOwnerTokenAfterReap()
     {
         // Arrange
-        var testIds = await CreateTestOutboxItemsAsync(1);
+        var _ = await CreateTestOutboxItemsAsync(1);
         var firstOwner = OwnerToken.GenerateNew();
         var secondOwner = OwnerToken.GenerateNew();
 
@@ -210,7 +210,7 @@ public class OutboxWorkerTests : SqlServerTestBase
 
         // Assert
         claimed2.ShouldHaveSingleItem();
-        await VerifyOwnerTokenAsync(claimed1[0], firstOwner.Value);
+        await VerifyOwnerTokenAsync(claimed1[0], secondOwner.Value);
         await VerifyOwnerTokenAsync(claimed2[0], secondOwner.Value);
         claimed1[0].ShouldBe(claimed2[0]);
     }
@@ -348,13 +348,10 @@ public class OutboxWorkerTests : SqlServerTestBase
 
     private async Task VerifyOwnerTokenAsync(OutboxWorkItemIdentifier id, Guid expectedOwner)
     {
-        var connection = new SqlConnection(ConnectionString);
-        await using (connection.ConfigureAwait(false))
-        {
-            await connection.OpenAsync(TestContext.Current.CancellationToken);
-            var ownerToken = await connection.ExecuteScalarAsync<Guid?>("SELECT OwnerToken FROM dbo.Outbox WHERE Id = @Id", new { Id = id.Value });
-            ownerToken.ShouldBe(expectedOwner);
-        }
+        await using var connection = new SqlConnection(ConnectionString);
+        await connection.OpenAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
+        var ownerToken = await connection.ExecuteScalarAsync<Guid?>("SELECT OwnerToken FROM dbo.Outbox WHERE Id = @Id", new { Id = id.Value }).ConfigureAwait(false);
+        ownerToken.ShouldBe(expectedOwner);
     }
 
     private class TestOutboxWorker : BackgroundService
