@@ -219,21 +219,27 @@ public static class ModuleRegistry
     private static void RegisterHealthChecks(IServiceCollection services, IModuleDefinition module, ILoggerFactory? loggerFactory)
     {
         var builder = services.AddHealthChecks();
-        var moduleBuilder = new ModuleHealthCheckBuilder(builder);
+        var logger = loggerFactory?.CreateLogger(typeof(ModuleRegistry));
+        var moduleBuilder = new ModuleHealthCheckBuilder(builder, logger);
         try
         {
             module.RegisterHealthChecks(moduleBuilder);
         }
         catch (Exception ex)
         {
-            loggerFactory?.CreateLogger(typeof(ModuleRegistry))
-                .LogError(ex, "Failed to register health checks for module {ModuleKey}", module.Key);
+            logger?.LogError(ex, "Failed to register health checks for module {ModuleKey}", module.Key);
             throw;
         }
     }
 
     private static void RegisterInstance(IModuleDefinition module)
     {
+        // Validate module key is URL-safe (no slashes)
+        if (module.Key.Contains('/', StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException($"Module key '{module.Key}' contains invalid characters. Module keys must be URL-safe and cannot contain slashes.");
+        }
+
         lock (Sync)
         {
             Instances[module.GetType()] = module;

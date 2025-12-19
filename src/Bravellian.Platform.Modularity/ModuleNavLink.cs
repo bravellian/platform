@@ -44,6 +44,13 @@ public sealed record ModuleNavLink(string Title, string Path, int Order = 0, str
         }
 
         var trimmed = path.Trim();
+        
+        // Collapse consecutive slashes
+        while (trimmed.Contains("//", StringComparison.Ordinal))
+        {
+            trimmed = trimmed.Replace("//", "/", StringComparison.Ordinal);
+        }
+        
         if (!trimmed.StartsWith("/", StringComparison.Ordinal))
         {
             trimmed = $"/{trimmed}";

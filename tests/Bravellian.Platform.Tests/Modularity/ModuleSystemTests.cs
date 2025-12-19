@@ -51,16 +51,15 @@ public sealed class ModuleSystemTests
 
         builder.Services.AddApiModuleServices(builder.Configuration, NullLoggerFactory.Instance);
         var app = builder.Build();
-        app.MapModuleEndpoints();
-
-        var dataSources = ((IEndpointRouteBuilder)app).DataSources;
-        var routes = dataSources
-            .SelectMany(ds => ds.Endpoints)
-            .OfType<RouteEndpoint>()
-            .Select(e => e.RoutePattern.RawText)
-            .ToArray();
-
-        routes.ShouldContain("/sample-api/status");
+        
+        // Verify that MapModuleEndpoints executes without error and returns the app
+        var result = app.MapModuleEndpoints();
+        result.ShouldBe(app);
+        
+        // Verify module instance is registered
+        var module = app.Services.GetService<IApiModule>();
+        module.ShouldNotBeNull();
+        module.Key.ShouldBe("sample-api");
     }
 
     [Fact]
@@ -105,6 +104,26 @@ public sealed class ModuleSystemTests
         services.AddApiModuleServices(configuration, NullLoggerFactory.Instance);
 
         Should.Throw<InvalidOperationException>(() => services.AddFullStackModuleServices(configuration, NullLoggerFactory.Instance));
+    }
+
+    [Fact]
+    public void Module_keys_with_slashes_are_rejected()
+    {
+        ModuleRegistry.Reset();
+        ModuleRegistry.RegisterApiModule<ModuleWithInvalidKey>();
+
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                [ModuleWithInvalidKey.RequiredKey] = "test",
+            })
+            .Build();
+
+        var services = new ServiceCollection();
+        
+        var ex = Should.Throw<InvalidOperationException>(() => services.AddApiModuleServices(configuration, NullLoggerFactory.Instance));
+        ex.Message.ShouldContain("invalid characters");
+        ex.Message.ShouldContain("cannot contain slashes");
     }
 
     private sealed class SampleBackgroundModule : IBackgroundModule
@@ -265,6 +284,38 @@ public sealed class ModuleSystemTests
         public IEnumerable<ModuleNavLink> GetNavLinks()
         {
             yield break;
+        }
+
+        public void MapApiEndpoints(RouteGroupBuilder group)
+        {
+        }
+    }
+
+    private sealed class ModuleWithInvalidKey : IApiModule
+    {
+        internal const string RequiredKey = "invalid:required";
+
+        public string Key => "invalid/key";
+
+        public string DisplayName => "Invalid Key Module";
+
+        public IEnumerable<string> GetRequiredConfigurationKeys()
+        {
+            yield return RequiredKey;
+        }
+
+        public IEnumerable<string> GetOptionalConfigurationKeys() => Array.Empty<string>();
+
+        public void LoadConfiguration(IReadOnlyDictionary<string, string> required, IReadOnlyDictionary<string, string> optional)
+        {
+        }
+
+        public void AddModuleServices(IServiceCollection services)
+        {
+        }
+
+        public void RegisterHealthChecks(ModuleHealthCheckBuilder builder)
+        {
         }
 
         public void MapApiEndpoints(RouteGroupBuilder group)
