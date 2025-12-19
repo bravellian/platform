@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.RegularExpressions;
 using Dapper;
 using Microsoft.Data.SqlClient;
 
@@ -22,6 +24,8 @@ namespace Bravellian.Platform;
 /// </summary>
 internal static class DatabaseSchemaManager
 {
+    private static readonly Regex WhitespaceRegex = new(@"\s+", RegexOptions.Compiled);
+
     /// <summary>
     /// Ensures that the required database schema exists for the outbox functionality.
     /// </summary>
@@ -290,14 +294,7 @@ internal static class DatabaseSchemaManager
     /// <returns>A task representing the asynchronous operation.</returns>
     private static async Task EnsureGuidIdListTypeAsync(SqlConnection connection, string schemaName)
     {
-        var sql = $"""
-            IF TYPE_ID('[{schemaName}].[GuidIdList]') IS NULL
-            BEGIN
-                CREATE TYPE [{schemaName}].[GuidIdList] AS TABLE (
-                    Id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY
-                );
-            END
-            """;
+        var sql = GetGuidIdListTypeScript(schemaName);
 
         await connection.ExecuteAsync(sql).ConfigureAwait(false);
     }
@@ -310,7 +307,26 @@ internal static class DatabaseSchemaManager
     /// <returns>A task representing the asynchronous operation.</returns>
     private static async Task EnsureStringIdListTypeAsync(SqlConnection connection, string schemaName)
     {
-        var sql = $"""
+        var sql = GetStringIdListTypeScript(schemaName);
+
+        await connection.ExecuteAsync(sql).ConfigureAwait(false);
+    }
+
+    private static string GetGuidIdListTypeScript(string schemaName)
+    {
+        return $"""
+            IF TYPE_ID('[{schemaName}].[GuidIdList]') IS NULL
+            BEGIN
+                CREATE TYPE [{schemaName}].[GuidIdList] AS TABLE (
+                    Id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY
+                );
+            END
+            """;
+    }
+
+    private static string GetStringIdListTypeScript(string schemaName)
+    {
+        return $"""
             IF TYPE_ID('[{schemaName}].[StringIdList]') IS NULL
             BEGIN
                 CREATE TYPE [{schemaName}].[StringIdList] AS TABLE (
@@ -318,8 +334,6 @@ internal static class DatabaseSchemaManager
                 );
             END
             """;
-
-        await connection.ExecuteAsync(sql).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -361,6 +375,71 @@ internal static class DatabaseSchemaManager
                 await connection.ExecuteAsync(trimmedBatch).ConfigureAwait(false);
             }
         }
+    }
+
+    internal static IReadOnlyDictionary<string, string> GetSchemaVersionsForSnapshot()
+    {
+        return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["outbox"] = ComputeSchemaHash(GetOutboxSchemaScripts()),
+            ["inbox"] = ComputeSchemaHash(GetInboxSchemaScripts()),
+            ["scheduler"] = ComputeSchemaHash(GetSchedulerSchemaScripts()),
+            ["fanout"] = ComputeSchemaHash(GetFanoutSchemaScripts()),
+        };
+    }
+
+    private static string ComputeSchemaHash(IEnumerable<string> scripts)
+    {
+        var builder = new StringBuilder();
+
+        foreach (var script in scripts)
+        {
+            builder.AppendLine(script);
+        }
+
+        var normalized = WhitespaceRegex.Replace(builder.ToString(), " ").Trim();
+        using var sha = SHA256.Create();
+        return Convert.ToHexString(sha.ComputeHash(Encoding.UTF8.GetBytes(normalized)));
+    }
+
+    private static IEnumerable<string> GetOutboxSchemaScripts()
+    {
+        yield return GetOutboxCreateScript("dbo", "Outbox");
+        yield return GetOutboxStateCreateScript("dbo");
+        yield return GetGuidIdListTypeScript("dbo");
+        yield return GetOutboxCleanupStoredProcedure("dbo", "Outbox");
+
+        foreach (var procedure in GetOutboxWorkQueueProcedures("dbo", "Outbox"))
+        {
+            yield return procedure;
+        }
+    }
+
+    private static IEnumerable<string> GetInboxSchemaScripts()
+    {
+        yield return GetInboxCreateScript("dbo", "Inbox");
+        yield return GetStringIdListTypeScript("dbo");
+        yield return GetInboxCleanupStoredProcedure("dbo", "Inbox");
+
+        foreach (var procedure in GetInboxWorkQueueProcedures("dbo", "Inbox"))
+        {
+            yield return procedure;
+        }
+    }
+
+    private static IEnumerable<string> GetSchedulerSchemaScripts()
+    {
+        yield return GetJobsCreateScript("dbo", "Jobs");
+        yield return GetJobRunsCreateScript("dbo", "JobRuns", "Jobs");
+        yield return GetTimersCreateScript("dbo", "Timers");
+        yield return GetSchedulerStateCreateScript("dbo");
+        yield return GetGuidIdListTypeScript("dbo");
+    }
+
+    private static IEnumerable<string> GetFanoutSchemaScripts()
+    {
+        yield return GetFanoutPolicyCreateScript("dbo", "FanoutPolicy");
+        yield return GetFanoutCursorCreateScript("dbo", "FanoutCursor");
     }
 
     /// <summary>
@@ -1141,8 +1220,30 @@ internal static class DatabaseSchemaManager
     /// <returns>A task representing the asynchronous operation.</returns>
     private static async Task CreateOutboxWorkQueueProceduresAsync(SqlConnection connection, string schemaName, string tableName)
     {
-        // Create procedures one by one to avoid batch execution issues
-        var procedures = new[]
+        foreach (var procedure in GetOutboxWorkQueueProcedures(schemaName, tableName))
+        {
+            await connection.ExecuteAsync(procedure).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// Creates the Inbox work queue stored procedures individually.
+    /// </summary>
+    /// <param name="connection">The SQL connection.</param>
+    /// <param name="schemaName">The schema name.</param>
+    /// <param name="tableName">The table name.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    private static async Task CreateInboxWorkQueueProceduresAsync(SqlConnection connection, string schemaName, string tableName)
+    {
+        foreach (var procedure in GetInboxWorkQueueProcedures(schemaName, tableName))
+        {
+            await connection.ExecuteAsync(procedure).ConfigureAwait(false);
+        }
+    }
+
+    private static IEnumerable<string> GetOutboxWorkQueueProcedures(string schemaName, string tableName)
+    {
+        return new[]
         {
             $"""
             CREATE OR ALTER PROCEDURE [{schemaName}].[{tableName}_Claim]
@@ -1307,24 +1408,11 @@ internal static class DatabaseSchemaManager
                           END
             """,
         };
-
-        foreach (var procedure in procedures)
-        {
-            await connection.ExecuteAsync(procedure).ConfigureAwait(false);
-        }
     }
 
-    /// <summary>
-    /// Creates the Inbox work queue stored procedures individually.
-    /// </summary>
-    /// <param name="connection">The SQL connection.</param>
-    /// <param name="schemaName">The schema name.</param>
-    /// <param name="tableName">The table name.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    private static async Task CreateInboxWorkQueueProceduresAsync(SqlConnection connection, string schemaName, string tableName)
+    private static IEnumerable<string> GetInboxWorkQueueProcedures(string schemaName, string tableName)
     {
-        // Create procedures one by one to avoid batch execution issues
-        var procedures = new[]
+        return new[]
         {
             $"""
             CREATE OR ALTER PROCEDURE [{schemaName}].[{tableName}_Claim]
@@ -1416,11 +1504,6 @@ internal static class DatabaseSchemaManager
                           END
             """,
         };
-
-        foreach (var procedure in procedures)
-        {
-            await connection.ExecuteAsync(procedure).ConfigureAwait(false);
-        }
     }
 
     /// <summary>

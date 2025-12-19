@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.IO;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -206,6 +207,15 @@ namespace Bravellian.Platform.Tests
 
             Assert.Null(schemaCompletionDescriptor);
             Assert.Null(hostedServiceDescriptor);
+        }
+
+        [Fact]
+        public void SchemaSnapshotManifest_IsTracked()
+        {
+            Assert.True(
+                File.Exists(SchemaVersionSnapshot.SnapshotFilePath),
+                $"Expected schema snapshot manifest at {SchemaVersionSnapshot.SnapshotFilePath}. " +
+                "Generate it by running UPDATE_SCHEMA_SNAPSHOT=1 dotnet test --filter SchemaVersions_MatchSnapshot.");
         }
     }
 }
