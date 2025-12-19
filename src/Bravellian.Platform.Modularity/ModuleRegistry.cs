@@ -265,7 +265,7 @@ public static class ModuleRegistry
         {
             var duplicates = Instances.Values
                 .GroupBy(instance => instance.Key, StringComparer.OrdinalIgnoreCase)
-                .Where(g => g.Count() > 1)
+                .Where(g => g.Skip(1).Any())
                 .Select(g => g.Key)
                 .ToList();
 

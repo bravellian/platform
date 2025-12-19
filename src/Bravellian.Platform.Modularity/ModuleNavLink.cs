@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Text;
+
 namespace Bravellian.Platform.Modularity;
 
 /// <summary>
@@ -46,7 +48,7 @@ public sealed record ModuleNavLink(string Title, string Path, int Order = 0, str
         var trimmed = path.Trim();
         
         // Collapse consecutive slashes using a single-pass algorithm
-        var builder = new System.Text.StringBuilder(trimmed.Length);
+        var builder = new StringBuilder(trimmed.Length);
         var lastWasSlash = false;
         
         foreach (var c in trimmed)
