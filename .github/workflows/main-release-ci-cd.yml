@@ -73,7 +73,7 @@ jobs:
       run: dotnet test Bravellian.Platform.CI.slnx --no-build --configuration Release
 
     - name: Pack NuGet packages
-      run: dotnet pack src/Bravellian.Platform/Bravellian.Platform.csproj --configuration Release --output ./nupkgs -p:PackageVersion=${{ steps.git_version.outputs.semVer }}
+      run: dotnet pack Bravellian.Platform.CI.slnx --configuration Release --output ./nupkgs -p:PackageVersion=${{ steps.git_version.outputs.semVer }}
 
     - name: Upload package artifact
       uses: actions/upload-artifact@v4
