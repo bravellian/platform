@@ -1,0 +1,68 @@
+// Copyright (c) Bravellian
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Logging;
+
+namespace Bravellian.Platform.Modularity;
+
+/// <summary>
+/// Provides a bridge between module health checks and host builders.
+/// </summary>
+public sealed class ModuleHealthCheckBuilder
+{
+    private readonly ILogger? logger;
+
+    internal ModuleHealthCheckBuilder(IHealthChecksBuilder? builder, ILogger? logger = null)
+    {
+        Builder = builder;
+        this.logger = logger;
+    }
+
+    internal IHealthChecksBuilder? Builder { get; }
+
+    internal IList<ModuleHealthCheckRegistration> Registrations { get; } = new List<ModuleHealthCheckRegistration>();
+
+    /// <summary>
+    /// Adds a health check for the module.
+    /// </summary>
+    /// <param name="name">The check name.</param>
+    /// <param name="check">The check function.</param>
+    /// <param name="tags">Tags to apply.</param>
+    public void AddCheck(string name, Func<HealthCheckResult> check, IEnumerable<string>? tags = null)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new ArgumentException("A health check name is required.", nameof(name));
+        }
+
+        if (check is null)
+        {
+            throw new ArgumentNullException(nameof(check));
+        }
+
+        var registration = new ModuleHealthCheckRegistration(name, check, tags?.ToArray() ?? Array.Empty<string>());
+        Registrations.Add(registration);
+
+        if (Builder is not null)
+        {
+            Builder.AddCheck(name, check, tags: registration.Tags);
+        }
+        else
+        {
+            logger?.LogWarning("Health check '{HealthCheckName}' was registered but no IHealthChecksBuilder is available. Health check will not be active in non-ASP.NET hosts.", name);
+        }
+    }
+}
