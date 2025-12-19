@@ -14,6 +14,7 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Logging;
 
 namespace Bravellian.Platform.Modularity;
 
@@ -22,9 +23,12 @@ namespace Bravellian.Platform.Modularity;
 /// </summary>
 public sealed class ModuleHealthCheckBuilder
 {
-    internal ModuleHealthCheckBuilder(IHealthChecksBuilder? builder)
+    private readonly ILogger? logger;
+
+    internal ModuleHealthCheckBuilder(IHealthChecksBuilder? builder, ILogger? logger = null)
     {
         Builder = builder;
+        this.logger = logger;
     }
 
     internal IHealthChecksBuilder? Builder { get; }
@@ -44,9 +48,21 @@ public sealed class ModuleHealthCheckBuilder
             throw new ArgumentException("A health check name is required.", nameof(name));
         }
 
+        if (check is null)
+        {
+            throw new ArgumentNullException(nameof(check));
+        }
+
         var registration = new ModuleHealthCheckRegistration(name, check, tags?.ToArray() ?? Array.Empty<string>());
         Registrations.Add(registration);
 
-        Builder?.AddCheck(name, check, tags: registration.Tags);
+        if (Builder is not null)
+        {
+            Builder.AddCheck(name, check, tags: registration.Tags);
+        }
+        else
+        {
+            logger?.LogWarning("Health check '{HealthCheckName}' was registered but no IHealthChecksBuilder is available. Health check will not be active in non-ASP.NET hosts.", name);
+        }
     }
 }

@@ -24,7 +24,7 @@ namespace Bravellian.Platform.Modularity;
 /// </summary>
 public static class ModuleRegistry
 {
-    private static readonly Lock Sync = new();
+    private static readonly System.Threading.Lock Sync = new();
     private static readonly HashSet<Type> BackgroundModuleTypes = new();
     private static readonly HashSet<Type> ApiModuleTypes = new();
     private static readonly HashSet<Type> FullStackModuleTypes = new();
@@ -98,6 +98,14 @@ public static class ModuleRegistry
         }
     }
 
+    /// <summary>
+    /// Clears all registered module types and instances.
+    /// </summary>
+    /// <remarks>
+    /// This method is intended for testing purposes only. It should not be used in production code
+    /// as it affects global state that may be shared across different parts of the application.
+    /// Tests using this method should not be run in parallel to avoid race conditions.
+    /// </remarks>
     internal static void Reset()
     {
         lock (Sync)
@@ -113,6 +121,19 @@ public static class ModuleRegistry
     {
         lock (Sync)
         {
+            // Check if this type is already registered in a different collection
+            var alreadyInBackground = BackgroundModuleTypes.Contains(type);
+            var alreadyInApi = ApiModuleTypes.Contains(type);
+            var alreadyInFullStack = FullStackModuleTypes.Contains(type);
+
+            if ((alreadyInBackground && target != BackgroundModuleTypes) ||
+                (alreadyInApi && target != ApiModuleTypes) ||
+                (alreadyInFullStack && target != FullStackModuleTypes))
+            {
+                throw new InvalidOperationException($"Module type '{type.FullName}' is already registered in a different category. A module cannot be registered in multiple categories.");
+            }
+
+            // If already in the target collection, this is a no-op
             if (target.Contains(type))
             {
                 return;
@@ -129,18 +150,32 @@ public static class ModuleRegistry
         ILoggerFactory? loggerFactory)
         where TModule : class, IModuleDefinition
     {
+        // Take a snapshot of types under lock to avoid enumeration issues
+        Type[] typeSnapshot;
+        lock (Sync)
+        {
+            typeSnapshot = types.ToArray();
+        }
+
         var initialized = new List<TModule>();
-        foreach (var type in types)
+        foreach (var type in typeSnapshot)
         {
             var module = (TModule)CreateInstance(type, loggerFactory);
             LoadConfiguration(configuration, module, loggerFactory);
-            module.AddModuleServices(services);
-            RegisterHealthChecks(services, module, loggerFactory);
             RegisterInstance(module);
             initialized.Add(module);
         }
 
+        // Validate module keys before mutating the service collection
         EnsureUniqueKeys();
+
+        // Only after successful validation, register services and health checks
+        foreach (var module in initialized)
+        {
+            module.AddModuleServices(services);
+            RegisterHealthChecks(services, module, loggerFactory);
+        }
+
         return initialized;
     }
 
@@ -178,7 +213,7 @@ public static class ModuleRegistry
             var value = configuration[key];
             if (!string.IsNullOrWhiteSpace(value))
             {
-                optional[key] = value!;
+                optional[key] = value;
             }
         }
 
@@ -197,21 +232,27 @@ public static class ModuleRegistry
     private static void RegisterHealthChecks(IServiceCollection services, IModuleDefinition module, ILoggerFactory? loggerFactory)
     {
         var builder = services.AddHealthChecks();
-        var moduleBuilder = new ModuleHealthCheckBuilder(builder);
+        var logger = loggerFactory?.CreateLogger(typeof(ModuleRegistry));
+        var moduleBuilder = new ModuleHealthCheckBuilder(builder, logger);
         try
         {
             module.RegisterHealthChecks(moduleBuilder);
         }
         catch (Exception ex)
         {
-            loggerFactory?.CreateLogger(typeof(ModuleRegistry))
-                .LogError(ex, "Failed to register health checks for module {ModuleKey}", module.Key);
+            logger?.LogError(ex, "Failed to register health checks for module {ModuleKey}", module.Key);
             throw;
         }
     }
 
     private static void RegisterInstance(IModuleDefinition module)
     {
+        // Validate module key is URL-safe (no slashes)
+        if (module.Key.Contains('/', StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException($"Module key '{module.Key}' contains invalid characters. Module keys must be URL-safe and cannot contain slashes.");
+        }
+
         lock (Sync)
         {
             Instances[module.GetType()] = module;
@@ -227,7 +268,7 @@ public static class ModuleRegistry
             {
                 if (!seen.TryAdd(instance.Key, instance.GetType()))
                 {
-                    throw new InvalidOperationException($"Duplicate module key detected: '{instance.Key}'.");
+                    throw new InvalidOperationException($"Duplicate module key detected (comparison is case-insensitive): '{instance.Key}'.");
                 }
             }
         }
