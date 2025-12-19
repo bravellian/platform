@@ -34,10 +34,13 @@ public sealed class DapperTypeHandlerTests : SqlServerTestBase
     private async Task CreateTestTableAsync()
     {
         // Create a simple test table with various Guid columns
-        await using var connection = new SqlConnection(ConnectionString);
-        await connection.OpenAsync(TestContext.Current.CancellationToken);
+        var connection = new SqlConnection(ConnectionString);
+        // Create a simple test table with various Guid columns
+        await using (connection.ConfigureAwait(false))
+        {
+            await connection.OpenAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
 
-        await connection.ExecuteAsync(@"
+            await connection.ExecuteAsync(@"
             IF OBJECT_ID('TestTable', 'U') IS NOT NULL
                 DROP TABLE TestTable;
             
@@ -52,7 +55,8 @@ public sealed class DapperTypeHandlerTests : SqlServerTestBase
                 DatabaseIdColumn UNIQUEIDENTIFIER,
                 NullableOwnerTokenColumn UNIQUEIDENTIFIER NULL
             )
-        ", commandTimeout: 30);
+        ", commandTimeout: 30).ConfigureAwait(false);
+        }
     }
 
     [Fact]

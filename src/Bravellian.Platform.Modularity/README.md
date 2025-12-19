@@ -4,11 +4,13 @@ Composable module infrastructure for ASP.NET Core and generic hosts.
 
 ## Overview
 
-This library provides a plugin-style architecture that enables building modular ASP.NET Core applications. It supports three types of modules:
+The modularity tooling is now offered as three focused packages so you only take the dependencies you need:
 
-- **Background Modules** - Headless services that run in the background
-- **API Modules** - REST API endpoints with no UI
-- **Full Stack Modules** - Complete modules with both API endpoints and Razor Pages UI
+- **Bravellian.Platform.Modularity.Core** – background/headless modules for generic hosts, no ASP.NET Core dependency
+- **Bravellian.Platform.Modularity.Api** – API-first modules that expose endpoints, depends on `Microsoft.AspNetCore.App`
+- **Bravellian.Platform.Modularity.FullStack** – UI-enabled modules that include navigation and Razor Pages wiring
+
+The existing `Bravellian.Platform.Modularity` package remains as a convenience meta-package that references all of the above and re-exports the familiar extension methods.
 
 ## Requirements
 
@@ -32,8 +34,8 @@ If you need support for earlier .NET versions, please file an issue to discuss c
 ```csharp
 // In your Program.cs or Startup.cs
 ModuleRegistry.RegisterBackgroundModule<MyBackgroundModule>();
-ModuleRegistry.RegisterApiModule<MyApiModule>();
-ModuleRegistry.RegisterFullStackModule<MyFullStackModule>();
+ApiModuleRegistry.RegisterApiModule<MyApiModule>();
+FullStackModuleRegistry.RegisterFullStackModule<MyFullStackModule>();
 ```
 
 ### 2. Configure Services

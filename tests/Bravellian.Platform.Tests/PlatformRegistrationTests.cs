@@ -146,30 +146,7 @@ public class PlatformRegistrationTests
     }
 
     [Fact]
-    [Obsolete]
-    public void AddPlatformMultiDatabaseWithControlPlaneAndList_RegistersControlPlane()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-        var databases = new[]
-        {
-            new PlatformDatabase { Name = "db1", ConnectionString = "Server=localhost;Database=Db1;" },
-        };
-
-        // Act
-        services.AddPlatformMultiDatabaseWithControlPlaneAndList(
-            databases,
-            "Server=localhost;Database=ControlPlane;");
-
-        // Assert
-        var config = GetRequiredService<PlatformConfiguration>(services);
-        Assert.NotNull(config);
-        Assert.Equal(PlatformEnvironmentStyle.MultiDatabaseWithControl, config.EnvironmentStyle);
-        Assert.NotNull(config.ControlPlaneConnectionString);
-    }
-
-    [Fact]
-    public void ListBasedDatabaseDiscovery_ReturnsConfiguredDatabases()
+    public async Task ListBasedDatabaseDiscovery_ReturnsConfiguredDatabasesAsync()
     {
         // Arrange
         var databases = new[]
@@ -181,7 +158,7 @@ public class PlatformRegistrationTests
         var discovery = new ListBasedDatabaseDiscovery(databases);
 
         // Act
-        var result = discovery.DiscoverDatabasesAsync().GetAwaiter().GetResult();
+        var result = await discovery.DiscoverDatabasesAsync(Xunit.TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(2, result.Count);
@@ -274,55 +251,55 @@ public class PlatformRegistrationTests
     private sealed class DummyOutboxStore : IOutboxStore
     {
         public Task<IReadOnlyList<OutboxMessage>> ClaimDueAsync(int limit, CancellationToken cancellationToken) =>
-            throw new NotImplementedException();
+            throw new NotSupportedException();
 
         public Task MarkDispatchedAsync(OutboxWorkItemIdentifier id, CancellationToken cancellationToken) =>
-            throw new NotImplementedException();
+            throw new NotSupportedException();
 
         public Task RescheduleAsync(OutboxWorkItemIdentifier id, TimeSpan delay, string lastError, CancellationToken cancellationToken) =>
-            throw new NotImplementedException();
+            throw new NotSupportedException();
 
         public Task FailAsync(OutboxWorkItemIdentifier id, string lastError, CancellationToken cancellationToken) =>
-            throw new NotImplementedException();
+            throw new NotSupportedException();
     }
 
     private sealed class DummyInboxWorkStore : IInboxWorkStore
     {
         public Task<IReadOnlyList<string>> ClaimAsync(Bravellian.Platform.OwnerToken ownerToken, int leaseSeconds, int batchSize, CancellationToken cancellationToken) =>
-            throw new NotImplementedException();
+            throw new NotSupportedException();
 
         public Task AckAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<string> messageIds, CancellationToken cancellationToken) =>
-            throw new NotImplementedException();
+            throw new NotSupportedException();
 
         public Task AbandonAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<string> messageIds, string? lastError = null, TimeSpan? delay = null, CancellationToken cancellationToken = default) =>
-            throw new NotImplementedException();
+            throw new NotSupportedException();
 
         public Task FailAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<string> messageIds, string error, CancellationToken cancellationToken) =>
-            throw new NotImplementedException();
+            throw new NotSupportedException();
 
         public Task ReapExpiredAsync(CancellationToken cancellationToken) =>
-            throw new NotImplementedException();
+            throw new NotSupportedException();
 
         public Task<InboxMessage> GetAsync(string messageId, CancellationToken cancellationToken) =>
-            throw new NotImplementedException();
+            throw new NotSupportedException();
     }
 
     private sealed class DummyOutbox : IOutbox
     {
-        public Task EnqueueAsync(string topic, string payload, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task EnqueueAsync(string topic, string payload, string? correlationId, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task EnqueueAsync(string topic, string payload, string? correlationId, DateTimeOffset? dueTimeUtc, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task EnqueueAsync(string topic, string payload, IDbTransaction transaction, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task EnqueueAsync(string topic, string payload, IDbTransaction transaction, string? correlationId, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task EnqueueAsync(string topic, string payload, IDbTransaction transaction, string? correlationId, DateTimeOffset? dueTimeUtc, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task<IReadOnlyList<OutboxWorkItemIdentifier>> ClaimAsync(Bravellian.Platform.OwnerToken ownerToken, int leaseSeconds, int batchSize, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task AckAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<OutboxWorkItemIdentifier> ids, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task AbandonAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<OutboxWorkItemIdentifier> ids, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task FailAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<OutboxWorkItemIdentifier> ids, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task ReapExpiredAsync(CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task<JoinIdentifier> StartJoinAsync(long tenantId, int expectedSteps, string? metadata, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task AttachMessageToJoinAsync(Bravellian.Platform.Outbox.JoinIdentifier joinId, OutboxMessageIdentifier outboxMessageId, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task ReportStepCompletedAsync(Bravellian.Platform.Outbox.JoinIdentifier joinId, OutboxMessageIdentifier outboxMessageId, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task ReportStepFailedAsync(Bravellian.Platform.Outbox.JoinIdentifier joinId, OutboxMessageIdentifier outboxMessageId, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task EnqueueAsync(string topic, string payload, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task EnqueueAsync(string topic, string payload, string? correlationId, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task EnqueueAsync(string topic, string payload, string? correlationId, DateTimeOffset? dueTimeUtc, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task EnqueueAsync(string topic, string payload, IDbTransaction transaction, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task EnqueueAsync(string topic, string payload, IDbTransaction transaction, string? correlationId, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task EnqueueAsync(string topic, string payload, IDbTransaction transaction, string? correlationId, DateTimeOffset? dueTimeUtc, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<IReadOnlyList<OutboxWorkItemIdentifier>> ClaimAsync(Bravellian.Platform.OwnerToken ownerToken, int leaseSeconds, int batchSize, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task AckAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<OutboxWorkItemIdentifier> ids, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task AbandonAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<OutboxWorkItemIdentifier> ids, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task FailAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<OutboxWorkItemIdentifier> ids, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task ReapExpiredAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<JoinIdentifier> StartJoinAsync(long tenantId, int expectedSteps, string? metadata, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task AttachMessageToJoinAsync(Bravellian.Platform.Outbox.JoinIdentifier joinId, OutboxMessageIdentifier outboxMessageId, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task ReportStepCompletedAsync(Bravellian.Platform.Outbox.JoinIdentifier joinId, OutboxMessageIdentifier outboxMessageId, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task ReportStepFailedAsync(Bravellian.Platform.Outbox.JoinIdentifier joinId, OutboxMessageIdentifier outboxMessageId, CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 }

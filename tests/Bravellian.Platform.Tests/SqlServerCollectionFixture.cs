@@ -67,28 +67,23 @@ public sealed class SqlServerCollectionFixture : IAsyncLifetime
         var dbNumber = Interlocked.Increment(ref databaseCounter);
         var dbName = $"TestDb_{dbNumber}_{name}_{Guid.NewGuid():N}";
 
-        await using var connection = new SqlConnection(connectionString);
-        await connection.OpenAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
-
-        await using var command = new SqlCommand($"CREATE DATABASE [{dbName}]", connection);
-        await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
-
-        // Build connection string for the new database
-        var builder = new SqlConnectionStringBuilder(connectionString)
+        var connection = new SqlConnection(connectionString);
+        await using (connection.ConfigureAwait(false))
         {
-            InitialCatalog = dbName
-        };
+            await connection.OpenAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
+            var command = new SqlCommand($"CREATE DATABASE [{dbName}]", connection);
+            await using (command.ConfigureAwait(false))
+            {
+                await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
 
-        return builder.ConnectionString;
+                // Build connection string for the new database
+                var builder = new SqlConnectionStringBuilder(connectionString)
+                {
+                    InitialCatalog = dbName
+                };
+
+                return builder.ConnectionString;
+            }
+        }
     }
-}
-
-/// <summary>
-/// Defines the SQL Server collection that all database integration tests belong to.
-/// Tests in this collection will share the same SQL Server container but get individual databases.
-/// </summary>
-[CollectionDefinition(Name)]
-public class SqlServerCollection : ICollectionFixture<SqlServerCollectionFixture>
-{
-    public const string Name = "SQL Server Collection";
 }

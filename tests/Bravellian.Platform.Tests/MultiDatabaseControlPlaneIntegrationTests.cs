@@ -43,10 +43,10 @@ public class MultiDatabaseControlPlaneIntegrationTests
     [Fact]
     public async Task ListRegistration_WiresControlPlaneAndDiscoversDatabases()
     {
-        var tenants = await CreateTenantDatabasesAsync(2).ConfigureAwait(false);
-        var controlPlaneConnection = await fixture.CreateTestDatabaseAsync("controlplane").ConfigureAwait(false);
+        var tenants = await CreateTenantDatabasesAsync(2);
+        var controlPlaneConnection = await fixture.CreateTestDatabaseAsync("controlplane");
 
-        await PrecreateSchemasAsync(tenants, controlPlaneConnection).ConfigureAwait(false);
+        await PrecreateSchemasAsync(tenants, controlPlaneConnection);
 
         using var provider = BuildServiceProvider(
             tenants,
@@ -60,7 +60,7 @@ public class MultiDatabaseControlPlaneIntegrationTests
         config.ControlPlaneSchemaName.ShouldBe("control");
 
         var discovery = provider.GetRequiredService<IPlatformDatabaseDiscovery>();
-        var discovered = await discovery.DiscoverDatabasesAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
+        var discovered = await discovery.DiscoverDatabasesAsync(TestContext.Current.CancellationToken);
         discovered.Count.ShouldBe(tenants.Count);
         foreach (var db in tenants)
         {
@@ -68,107 +68,107 @@ public class MultiDatabaseControlPlaneIntegrationTests
         }
 
         var storeProvider = provider.GetRequiredService<IOutboxStoreProvider>();
-        var stores = await storeProvider.GetAllStoresAsync().ConfigureAwait(false);
+        var stores = await storeProvider.GetAllStoresAsync();
         stores.Count.ShouldBe(tenants.Count);
     }
 
     [Fact]
     public async Task OutboxDispatch_List_MultipleTenants()
     {
-        var tenants = await CreateTenantDatabasesAsync(2).ConfigureAwait(false);
-        var controlPlaneConnection = await fixture.CreateTestDatabaseAsync("controlplane").ConfigureAwait(false);
-        await PrecreateSchemasAsync(tenants, controlPlaneConnection).ConfigureAwait(false);
+        var tenants = await CreateTenantDatabasesAsync(2);
+        var controlPlaneConnection = await fixture.CreateTestDatabaseAsync("controlplane");
+        await PrecreateSchemasAsync(tenants, controlPlaneConnection);
 
         var processed = new ConcurrentBag<string>();
         using var host = await StartHostAsync(
             tenants,
             controlPlaneConnection,
             useDiscovery: false,
-            handlerSink: processed).ConfigureAwait(false);
+            handlerSink: processed);
 
-        await EnqueueTestMessagesAsync(host.Services, tenants, processed).ConfigureAwait(false);
-        await WaitForDispatchAsync(processed, tenants.Count, timeoutSeconds: 10).ConfigureAwait(false);
+        await EnqueueTestMessagesAsync(host.Services, tenants, processed);
+        await WaitForDispatchAsync(processed, tenants.Count, timeoutSeconds: 10);
 
         foreach (var db in tenants)
         {
             processed.ShouldContain($"payload-from-{db.Name}");
-            var dispatchedCount = await GetIsProcessedCountAsync(db).ConfigureAwait(false);
+            var dispatchedCount = await GetIsProcessedCountAsync(db);
             dispatchedCount.ShouldBe(1, $"Expected one processed row in {db.Name}");
         }
 
-        await host.StopAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
+        await host.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
     public async Task OutboxDispatch_List_SingleTenant()
     {
-        var tenants = await CreateTenantDatabasesAsync(1).ConfigureAwait(false);
-        var controlPlaneConnection = await fixture.CreateTestDatabaseAsync("controlplane").ConfigureAwait(false);
-        await PrecreateSchemasAsync(tenants, controlPlaneConnection).ConfigureAwait(false);
+        var tenants = await CreateTenantDatabasesAsync(1);
+        var controlPlaneConnection = await fixture.CreateTestDatabaseAsync("controlplane");
+        await PrecreateSchemasAsync(tenants, controlPlaneConnection);
 
         var processed = new ConcurrentBag<string>();
         using var host = await StartHostAsync(
             tenants,
             controlPlaneConnection,
             useDiscovery: false,
-            handlerSink: processed).ConfigureAwait(false);
+            handlerSink: processed);
 
-        await EnqueueTestMessagesAsync(host.Services, tenants, processed).ConfigureAwait(false);
-        await WaitForDispatchAsync(processed, tenants.Count, timeoutSeconds: 10).ConfigureAwait(false);
+        await EnqueueTestMessagesAsync(host.Services, tenants, processed);
+        await WaitForDispatchAsync(processed, tenants.Count, timeoutSeconds: 10);
 
-        var dispatchedCount = await GetIsProcessedCountAsync(tenants[0]).ConfigureAwait(false);
+        var dispatchedCount = await GetIsProcessedCountAsync(tenants[0]);
         dispatchedCount.ShouldBe(1);
 
-        await host.StopAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
+        await host.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
     public async Task OutboxDispatch_Discovery_MultipleTenants()
     {
-        var tenants = await CreateTenantDatabasesAsync(2).ConfigureAwait(false);
-        var controlPlaneConnection = await fixture.CreateTestDatabaseAsync("controlplane").ConfigureAwait(false);
-        await PrecreateSchemasAsync(tenants, controlPlaneConnection).ConfigureAwait(false);
+        var tenants = await CreateTenantDatabasesAsync(2);
+        var controlPlaneConnection = await fixture.CreateTestDatabaseAsync("controlplane");
+        await PrecreateSchemasAsync(tenants, controlPlaneConnection);
 
         var processed = new ConcurrentBag<string>();
         using var host = await StartHostAsync(
             tenants,
             controlPlaneConnection,
             useDiscovery: true,
-            handlerSink: processed).ConfigureAwait(false);
+            handlerSink: processed);
 
-        await EnqueueTestMessagesAsync(host.Services, tenants, processed).ConfigureAwait(false);
-        await WaitForDispatchAsync(processed, tenants.Count, timeoutSeconds: 10).ConfigureAwait(false);
+        await EnqueueTestMessagesAsync(host.Services, tenants, processed);
+        await WaitForDispatchAsync(processed, tenants.Count, timeoutSeconds: 10);
 
         foreach (var db in tenants)
         {
-            var dispatchedCount = await GetIsProcessedCountAsync(db).ConfigureAwait(false);
+            var dispatchedCount = await GetIsProcessedCountAsync(db);
             dispatchedCount.ShouldBe(1, $"Expected one processed row in {db.Name}");
         }
 
-        await host.StopAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
+        await host.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
     public async Task OutboxDispatch_Discovery_SingleTenant()
     {
-        var tenants = await CreateTenantDatabasesAsync(1).ConfigureAwait(false);
-        var controlPlaneConnection = await fixture.CreateTestDatabaseAsync("controlplane").ConfigureAwait(false);
-        await PrecreateSchemasAsync(tenants, controlPlaneConnection).ConfigureAwait(false);
+        var tenants = await CreateTenantDatabasesAsync(1);
+        var controlPlaneConnection = await fixture.CreateTestDatabaseAsync("controlplane");
+        await PrecreateSchemasAsync(tenants, controlPlaneConnection);
 
         var processed = new ConcurrentBag<string>();
         using var host = await StartHostAsync(
             tenants,
             controlPlaneConnection,
             useDiscovery: true,
-            handlerSink: processed).ConfigureAwait(false);
+            handlerSink: processed);
 
-        await EnqueueTestMessagesAsync(host.Services, tenants, processed).ConfigureAwait(false);
-        await WaitForDispatchAsync(processed, tenants.Count, timeoutSeconds: 10).ConfigureAwait(false);
+        await EnqueueTestMessagesAsync(host.Services, tenants, processed);
+        await WaitForDispatchAsync(processed, tenants.Count, timeoutSeconds: 10);
 
-        var dispatchedCount = await GetIsProcessedCountAsync(tenants[0]).ConfigureAwait(false);
+        var dispatchedCount = await GetIsProcessedCountAsync(tenants[0]);
         dispatchedCount.ShouldBe(1);
 
-        await host.StopAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
+        await host.StopAsync(TestContext.Current.CancellationToken);
     }
 
     private async Task<List<PlatformDatabase>> CreateTenantDatabasesAsync(int count)
@@ -195,15 +195,15 @@ public class MultiDatabaseControlPlaneIntegrationTests
         foreach (var db in tenants)
         {
             await DatabaseSchemaManager.EnsureOutboxSchemaAsync(db.ConnectionString, db.SchemaName, "Outbox")
-                .ConfigureAwait(false);
+.ConfigureAwait(false);
             await DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(db.ConnectionString, db.SchemaName)
-                .ConfigureAwait(false);
+.ConfigureAwait(false);
         }
 
         await DatabaseSchemaManager.EnsureSemaphoreSchemaAsync(controlPlaneConnection, "control")
-            .ConfigureAwait(false);
+.ConfigureAwait(false);
         await DatabaseSchemaManager.EnsureCentralMetricsSchemaAsync(controlPlaneConnection, "control")
-            .ConfigureAwait(false);
+.ConfigureAwait(false);
     }
 
     private ServiceProvider BuildServiceProvider(
@@ -321,16 +321,22 @@ public class MultiDatabaseControlPlaneIntegrationTests
 
     private async Task<int> GetIsProcessedCountAsync(PlatformDatabase database)
     {
-        await using var connection = new SqlConnection(database.ConnectionString);
-        await connection.OpenAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
+        var connection = new SqlConnection(database.ConnectionString);
+        await using (connection.ConfigureAwait(false))
+        {
+            await connection.OpenAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
 
-        await using var command = connection.CreateCommand();
-        command.CommandText = $"""
+            var command = connection.CreateCommand();
+            await using (command.ConfigureAwait(false))
+            {
+                command.CommandText = $"""
 SELECT COUNT(*) FROM [{database.SchemaName}].[Outbox] WHERE IsProcessed = 1
 """;
 
-        var result = await command.ExecuteScalarAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
-        return Convert.ToInt32(result, System.Globalization.CultureInfo.InvariantCulture);
+                var result = await command.ExecuteScalarAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
+                return Convert.ToInt32(result, System.Globalization.CultureInfo.InvariantCulture);
+            }
+        }
     }
 
     private async Task WaitForDispatchAsync(

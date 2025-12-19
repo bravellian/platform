@@ -23,17 +23,7 @@
 		<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
 		<WarningsNotAsErrors>$(WarningsNotAsErrors);MA0051;MA0015</WarningsNotAsErrors>
 	</PropertyGroup>
-
-	<ItemGroup>
-	  <AdditionalFiles Include="Inbox\InboxMessageIdentifier.guid.json" />
-	  <AdditionalFiles Include="Outbox\OutboxWorkItemIdentifier.guid.json" />
-	  <AdditionalFiles Include="OwnerToken.guid.json" />
-	  <AdditionalFiles Include="Metrics\InstanceIdentifier.guid.json" />
-	  <AdditionalFiles Include="Metrics\DatabaseIdentifier.guid.json" />
-	  <AdditionalFiles Include="Outbox\OutboxMessageIdentifier.guid.json" />
-	  <AdditionalFiles Include="Outbox\JoinIdentifier.guid.json" />
-	</ItemGroup>
-
+  
 	<ItemGroup>
 		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
 			<_Parameter1>Bravellian.Platform.Tests</_Parameter1>
@@ -48,22 +38,22 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Bravellian.Generators" Version="2025.12.6.1169" PrivateAssets="all" />
+		<PackageReference Include="Bravellian.Generators" Version="2025.12.15.1154" PrivateAssets="all" />
 		<PackageReference Include="Cronos" Version="0.11.1" />
 		<PackageReference Include="Dapper" Version="2.1.66" />
 		<PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.3" />
-		<PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions" Version="10.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Options" Version="10.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.1" />
+		<PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions" Version="10.0.1" />
+		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.1" />
+		<PackageReference Include="Microsoft.Extensions.Options" Version="10.0.1" />
 	</ItemGroup>
 
 	<ItemGroup>
 	  <PackageReference Update="DotNet.ReproducibleBuilds.Isolated" Version="1.2.39" />
-	  <PackageReference Update="Meziantou.Analyzer" Version="2.0.257" />
-	  <PackageReference Update="Roslynator.Analyzers" Version="4.14.1" />
-	  <PackageReference Update="Roslynator.CodeAnalysis.Analyzers" Version="4.14.1" />
-	  <PackageReference Update="Roslynator.Formatting.Analyzers" Version="4.14.1" />
+	  <PackageReference Update="Meziantou.Analyzer" Version="2.0.264" />
+	  <PackageReference Update="Roslynator.Analyzers" Version="4.15.0" />
+	  <PackageReference Update="Roslynator.CodeAnalysis.Analyzers" Version="4.15.0" />
+	  <PackageReference Update="Roslynator.Formatting.Analyzers" Version="4.15.0" />
 	</ItemGroup>
 
 </Project>

@@ -146,11 +146,11 @@ public class InboxIntegrationTests : SqlServerTestBase
         var connection = new Microsoft.Data.SqlClient.SqlConnection(ConnectionString);
         await using (connection.ConfigureAwait(false))
         {
-            await connection.OpenAsync(TestContext.Current.CancellationToken);
+            await connection.OpenAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
 
             var result = await connection.QuerySingleAsync<(string Status, DateTime? ProcessedUtc)>(
                 "SELECT Status, ProcessedUtc FROM dbo.Inbox WHERE MessageId = @MessageId",
-                new { MessageId = messageId });
+                new { MessageId = messageId }).ConfigureAwait(false);
 
             Assert.Equal(expectedStatus, result.Status);
 

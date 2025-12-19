@@ -191,9 +191,9 @@ public sealed class DynamicDiscoveryEnforcementTests
         var outboxStores = await outboxProvider.GetAllStoresAsync();
         var inboxStores = await inboxProvider.GetAllStoresAsync();
         var schedulerStores = await schedulerProvider.GetAllStoresAsync();
-        var leaseFactories = await leaseProvider.GetAllFactoriesAsync();
-        var fanoutPolicyRepos = await fanoutProvider.GetAllPolicyRepositoriesAsync();
-        var fanoutCursorRepos = await fanoutProvider.GetAllCursorRepositoriesAsync();
+        var leaseFactories = await leaseProvider.GetAllFactoriesAsync(Xunit.TestContext.Current.CancellationToken);
+        var fanoutPolicyRepos = await fanoutProvider.GetAllPolicyRepositoriesAsync(Xunit.TestContext.Current.CancellationToken);
+        var fanoutCursorRepos = await fanoutProvider.GetAllCursorRepositoriesAsync(Xunit.TestContext.Current.CancellationToken);
 
         // Assert - Each provider should have discovered both databases
         Assert.Equal(2, outboxStores.Count);

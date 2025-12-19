@@ -1,0 +1,28 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/modularity/">
+    <Project Path="src/Bravellian.Platform.Modularity.Api/Bravellian.Platform.Modularity.Api.csproj" />
+    <Project Path="src/Bravellian.Platform.Modularity.Core/Bravellian.Platform.Modularity.Core.csproj" />
+    <Project Path="src/Bravellian.Platform.Modularity.FullStack/Bravellian.Platform.Modularity.FullStack.csproj" />
+    <Project Path="src/Bravellian.Platform.Modularity/Bravellian.Platform.Modularity.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Bravellian.Platform.Tests/Bravellian.Platform.Tests.csproj" />
+  </Folder>
+  <Folder Name="/_src/">
+    <File Path=".editorconfig" />
+    <File Path=".gitattributes" />
+    <File Path=".gitignore" />
+    <File Path="Directory.Build.props" />
+    <File Path="global.json" />
+    <File Path="LICENSE" />
+    <File Path="NOTICE" />
+    <File Path="README.md" />
+    <File Path="stylecop.json" />
+  </Folder>
+  <Project Path="src/Bravellian.Platform/Bravellian.Platform.csproj" />
+</Solution>

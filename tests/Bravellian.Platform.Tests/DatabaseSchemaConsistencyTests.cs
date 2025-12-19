@@ -363,7 +363,7 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
         var connection = new SqlConnection(ConnectionString);
         await using (connection.ConfigureAwait(false))
         {
-            await connection.OpenAsync(TestContext.Current.CancellationToken);
+            await connection.OpenAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
 
             const string sql = @"
             SELECT COLUMN_NAME, DATA_TYPE 
@@ -371,7 +371,7 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
             WHERE TABLE_SCHEMA = @SchemaName AND TABLE_NAME = @TableName";
 
             var columns = await connection.QueryAsync<(string ColumnName, string DataType)>(
-                sql, new { SchemaName = schemaName, TableName = tableName });
+                sql, new { SchemaName = schemaName, TableName = tableName }).ConfigureAwait(false);
 
             return columns.ToDictionary(c => c.ColumnName, c => c.DataType, StringComparer.Ordinal);
         }

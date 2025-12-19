@@ -45,8 +45,8 @@ public class OutboxExtensionsTests : SqlServerTestBase
         defaultOptions.ConnectionString = ConnectionString;
 
         // Ensure schemas exist
-        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(ConnectionString, "dbo", "Outbox");
-        await DatabaseSchemaManager.EnsureOutboxJoinSchemaAsync(ConnectionString, "dbo");
+        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(ConnectionString, "dbo", "Outbox").ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureOutboxJoinSchemaAsync(ConnectionString, "dbo").ConfigureAwait(false);
 
         joinStore = new SqlOutboxJoinStore(
             Options.Create(defaultOptions),

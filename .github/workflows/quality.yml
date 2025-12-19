@@ -1,0 +1,185 @@
+name: Quality Gate
+
+on:
+  workflow_dispatch:
+#  pull_request:
+#  push:
+#    branches:
+#      - main
+#      - release/**
+#      - feature/**
+#      - features/**
+#      - user/**
+#      - users/**
+#      - hotfix/**
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore Bravellian.Platform.CI.slnx
+
+      - name: Verify formatting and analyzers
+        run: dotnet format --verify-no-changes Bravellian.Platform.CI.slnx
+
+      - name: Build (deterministic)
+        run: dotnet build Bravellian.Platform.CI.slnx --no-restore --configuration Release -warnaserror -p:ContinuousIntegrationBuild=true
+
+      - name: Test
+        run: dotnet test Bravellian.Platform.CI.slnx --no-build --configuration Release
+
+      - name: Pack (repro 1)
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf artifacts/repro1 artifacts/repro2
+          mkdir -p artifacts/repro1 artifacts/repro2
+
+          dotnet pack ./Bravellian.Platform.CI.slnx \
+            -c Release \
+            -p:ContinuousIntegrationBuild=true \
+            -p:Deterministic=true \
+            -p:EmbedUntrackedSources=true \
+            -p:PackageVersion=0.0.1-ci \
+            -o artifacts/repro1 \
+            --no-restore
+
+      - name: Pack (repro 2)
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet pack ./Bravellian.Platform.CI.slnx \
+            -c Release \
+            -p:ContinuousIntegrationBuild=true \
+            -p:Deterministic=true \
+            -p:EmbedUntrackedSources=true \
+            -p:PackageVersion=0.0.1-ci \
+            -o artifacts/repro2 \
+            --no-restore
+
+
+      - name: Compare nupkg contents (normalized, multi-package)
+        id: compare
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Creates a deterministic "manifest" for a .nupkg by hashing the extracted contents,
+          # excluding known non-deterministic OPC metadata produced by NuGet pack.
+          normalize_manifest() {
+            local nupkg="$1"
+            local out="$2"
+            local dir
+            dir="$(mktemp -d)"
+
+            unzip -q "$nupkg" -d "$dir"
+
+            # Remove known non-deterministic pack metadata:
+            # - OPC core-properties part name is GUID-based
+            # - _rels/.rels references that GUID-based part name
+            rm -f "$dir/_rels/.rels" || true
+            rm -f "$dir/package/services/metadata/core-properties/"*.psmdcp || true
+
+            # Hash remaining files deterministically (stable ordering)
+            (
+              cd "$dir"
+              find . -type f -print0 | sort -z | xargs -0 sha256sum
+            ) > "$out"
+
+            rm -rf "$dir"
+          }
+
+          # Compare two packages and print a useful diff (file list + per-file hash diff)
+          compare_packages() {
+            local p1="$1"
+            local p2="$2"
+            local name="$3"
+
+            local m1="/tmp/${name}.repro1.manifest"
+            local m2="/tmp/${name}.repro2.manifest"
+
+            normalize_manifest "$p1" "$m1"
+            normalize_manifest "$p2" "$m2"
+
+            if ! diff -u "$m1" "$m2" >/tmp/${name}.diff; then
+              echo "::group::❌ Package differs (normalized): $name"
+              echo "repro1: $p1"
+              echo "repro2: $p2"
+              echo ""
+              echo "Diff (sha256sum lines):"
+              cat "/tmp/${name}.diff"
+              echo "::endgroup::"
+              return 1
+            else
+              echo "✅ Deterministic (normalized): $name"
+            fi
+          }
+
+          mkdir -p /tmp/nupkg-diff
+
+          # Collect all nupkgs in each folder
+          mapfile -t P1 < <(ls -1 artifacts/repro1/*.nupkg 2>/dev/null | sort)
+          mapfile -t P2 < <(ls -1 artifacts/repro2/*.nupkg 2>/dev/null | sort)
+
+          if [[ "${#P1[@]}" -eq 0 || "${#P2[@]}" -eq 0 ]]; then
+            echo "No .nupkg files found in one or both directories."
+            echo "repro1 count: ${#P1[@]}"
+            echo "repro2 count: ${#P2[@]}"
+            exit 1
+          fi
+
+          # Compare sets by filename (basename)
+          printf "%s\n" "${P1[@]##*/}" | sort > /tmp/repro1.names
+          printf "%s\n" "${P2[@]##*/}" | sort > /tmp/repro2.names
+
+          if ! diff -u /tmp/repro1.names /tmp/repro2.names >/tmp/nupkg-names.diff; then
+            echo "::group::❌ Package sets differ between repro1 and repro2"
+            cat /tmp/nupkg-names.diff
+            echo "::endgroup::"
+            exit 1
+          fi
+
+          # Build lookup maps basename -> full path
+          declare -A MAP1 MAP2
+          for p in "${P1[@]}"; do MAP1["$(basename "$p")"]="$p"; done
+          for p in "${P2[@]}"; do MAP2["$(basename "$p")"]="$p"; done
+
+          # Compare each package
+          failed=0
+          while IFS= read -r name; do
+            if ! compare_packages "${MAP1[$name]}" "${MAP2[$name]}" "$name"; then
+              failed=1
+            fi
+          done < /tmp/repro1.names
+
+          if [[ "$failed" -ne 0 ]]; then
+            echo ""
+            echo "One or more packages were not deterministic (normalized)."
+            exit 1
+          fi
+
+      - name: Upload normalized package diffs
+        if: failure() && steps.compare.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nupkg-normalized-diffs
+          path: |
+            /tmp/*.manifest
+            /tmp/*.diff
+            /tmp/repro1.names
+            /tmp/repro2.names
+            /tmp/nupkg-names.diff

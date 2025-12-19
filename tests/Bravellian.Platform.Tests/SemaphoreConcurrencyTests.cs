@@ -82,13 +82,13 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
                     name,
                     ttlSeconds: 30,
                     ownerId: ownerId,
-                    cancellationToken: TestContext.Current.CancellationToken);
+                    cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(false);
 
                 if (result.Status == SemaphoreAcquireStatus.Acquired)
                 {
                     successfulTokens.Add(result.Token!.Value);
                 }
-            }));
+            }, Xunit.TestContext.Current.CancellationToken));
         }
 
         await Task.WhenAll(tasks);
@@ -125,27 +125,27 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
                     name,
                     ttlSeconds: 30,
                     ownerId: ownerId,
-                    cancellationToken: TestContext.Current.CancellationToken);
+                    cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(false);
 
                 if (result.Status == SemaphoreAcquireStatus.Acquired)
                 {
                     Interlocked.Increment(ref successfulAcquires);
 
                     // Hold briefly
-                    await Task.Delay(TimeSpan.FromMilliseconds(50), TestContext.Current.CancellationToken);
+                    await Task.Delay(TimeSpan.FromMilliseconds(50), TestContext.Current.CancellationToken).ConfigureAwait(false);
 
                     // Release
                     var releaseResult = await semaphoreService.ReleaseAsync(
                         name,
                         result.Token!.Value,
-                        TestContext.Current.CancellationToken);
+                        TestContext.Current.CancellationToken).ConfigureAwait(false);
 
                     if (releaseResult.Status == SemaphoreReleaseStatus.Released)
                     {
                         Interlocked.Increment(ref successfulReleases);
                     }
                 }
-            }));
+            }, Xunit.TestContext.Current.CancellationToken));
         }
 
         await Task.WhenAll(tasks);
@@ -179,14 +179,14 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
                         name,
                         ttlSeconds: 1, // Short TTL so others can acquire
                         ownerId: ownerId,
-                        cancellationToken: TestContext.Current.CancellationToken);
+                        cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(false);
 
                     if (result.Status == SemaphoreAcquireStatus.Acquired)
                     {
                         return true;
                     }
 
-                    await Task.Delay(TimeSpan.FromMilliseconds(200), TestContext.Current.CancellationToken);
+                    await Task.Delay(TimeSpan.FromMilliseconds(200), TestContext.Current.CancellationToken).ConfigureAwait(false);
                 }
 
                 return false;
@@ -220,8 +220,8 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
                     name,
                     newLimit,
                     ensureIfMissing: false,
-                    cancellationToken: TestContext.Current.CancellationToken);
-            }));
+                    cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(false);
+            }, Xunit.TestContext.Current.CancellationToken));
         }
 
         await Task.WhenAll(tasks);
@@ -262,7 +262,7 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
             return await semaphoreService.ReapExpiredAsync(
                 name,
                 maxRows: 100,
-                cancellationToken: TestContext.Current.CancellationToken);
+                cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(false);
         });
 
         var acquireTasks = new List<Task<SemaphoreAcquireResult>>();
@@ -274,7 +274,7 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
                     name,
                     ttlSeconds: 30,
                     ownerId: $"new-owner{i}",
-                    cancellationToken: TestContext.Current.CancellationToken);
+                    cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(false);
             }));
         }
 
@@ -307,7 +307,7 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
                     name,
                     ttlSeconds: 30,
                     ownerId: $"owner{i}",
-                    cancellationToken: TestContext.Current.CancellationToken);
+                    cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(false);
 
                 return result.Fencing;
             }));

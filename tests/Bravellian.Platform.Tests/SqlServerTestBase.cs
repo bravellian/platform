@@ -95,25 +95,25 @@ public abstract class SqlServerTestBase : IAsyncLifetime
         var connection = new SqlConnection(connectionString);
         await using (connection.ConfigureAwait(false))
         {
-            await connection.OpenAsync(TestContext.Current.CancellationToken);
+            await connection.OpenAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
 
             // Create table types for work queue stored procedures
-            await ExecuteSqlScript(connection, GetTableTypesScript());
+            await ExecuteSqlScript(connection, GetTableTypesScript()).ConfigureAwait(false);
 
             // Create the database schema in the correct order (due to foreign key dependencies)
-            await ExecuteSqlScript(connection, GetOutboxTableScript());
-            await ExecuteSqlScript(connection, GetOutboxStateTableScript());
-            await ExecuteSqlScript(connection, GetInboxTableScript());
-            await ExecuteSqlScript(connection, GetTimersTableScript());
-            await ExecuteSqlScript(connection, GetJobsTableScript());
-            await ExecuteSqlScript(connection, GetJobRunsTableScript());
-            await ExecuteSqlScript(connection, GetSchedulerStateTableScript());
+            await ExecuteSqlScript(connection, GetOutboxTableScript()).ConfigureAwait(false);
+            await ExecuteSqlScript(connection, GetOutboxStateTableScript()).ConfigureAwait(false);
+            await ExecuteSqlScript(connection, GetInboxTableScript()).ConfigureAwait(false);
+            await ExecuteSqlScript(connection, GetTimersTableScript()).ConfigureAwait(false);
+            await ExecuteSqlScript(connection, GetJobsTableScript()).ConfigureAwait(false);
+            await ExecuteSqlScript(connection, GetJobRunsTableScript()).ConfigureAwait(false);
+            await ExecuteSqlScript(connection, GetSchedulerStateTableScript()).ConfigureAwait(false);
 
             // Create stored procedures
-            await ExecuteSqlScript(connection, GetOutboxCleanupProcedure());
-            await ExecuteSqlScript(connection, GetInboxCleanupProcedure());
-            await ExecuteSqlScript(connection, GetOutboxWorkQueueProcedures());
-            await ExecuteSqlScript(connection, GetInboxWorkQueueProcedures());
+            await ExecuteSqlScript(connection, GetOutboxCleanupProcedure()).ConfigureAwait(false);
+            await ExecuteSqlScript(connection, GetInboxCleanupProcedure()).ConfigureAwait(false);
+            await ExecuteSqlScript(connection, GetOutboxWorkQueueProcedures()).ConfigureAwait(false);
+            await ExecuteSqlScript(connection, GetInboxWorkQueueProcedures()).ConfigureAwait(false);
 
             TestOutputHelper.WriteLine($"Database schema created successfully on {connection.DataSource}");
         }
@@ -134,7 +134,7 @@ public abstract class SqlServerTestBase : IAsyncLifetime
                 var command = new SqlCommand(trimmedBatch, connection);
                 await using (command.ConfigureAwait(false))
                 {
-                    await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+                    await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
                 }
             }
         }
