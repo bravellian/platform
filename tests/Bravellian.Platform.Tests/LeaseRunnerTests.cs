@@ -13,6 +13,8 @@
 // limitations under the License.
 
 
+using System.Diagnostics;
+using System.Reflection;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Bravellian.Platform.Tests;
@@ -234,5 +236,78 @@ public class LeaseRunnerTests : SqlServerTestBase
         // Assert - TryRenewNowAsync should return false after disposal
         var renewed = await runner.TryRenewNowAsync(TestContext.Current.CancellationToken);
         renewed.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task RenewTimer_UsesMonotonicClockAcrossClockSkewAndGcPauses()
+    {
+        // Arrange
+        var leaseName = $"test-runner-{Guid.NewGuid():N}";
+        var owner = "monotonic-owner";
+        var leaseDuration = TimeSpan.FromSeconds(20);
+        var renewPercent = 0.6;
+        var monotonicClock = new TestMonotonicClock(startSeconds: 10_000);
+        var timeProvider = TimeProvider.System; // Wall clock skew should not affect scheduling
+        var logger = NullLogger.Instance;
+
+        var runner = await LeaseRunner.AcquireAsync(
+            leaseApi!,
+            monotonicClock,
+            timeProvider,
+            leaseName,
+            owner,
+            leaseDuration,
+            renewPercent,
+            logger: logger,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        runner.ShouldNotBeNull();
+
+        var nextRenewField = typeof(LeaseRunner).GetField("nextRenewMonotonicTime", BindingFlags.NonPublic | BindingFlags.Instance)!;
+
+        var scheduledBeforePause = (double)nextRenewField.GetValue(runner)!;
+        scheduledBeforePause.ShouldBeGreaterThan(monotonicClock.Seconds);
+
+        // Act - Simulate a GC pause and a wall clock skew (monotonic clock jumps forward)
+        monotonicClock.Advance(TimeSpan.FromSeconds(30));
+
+        var renewTimerCallback = typeof(LeaseRunner)
+            .GetMethod("RenewTimerCallback", BindingFlags.NonPublic | BindingFlags.Instance)!;
+
+        // Invoke the renewal callback manually to validate monotonic scheduling after the pause
+        renewTimerCallback.Invoke(runner, new object?[] { null });
+
+        var scheduledAfterPause = (double)nextRenewField.GetValue(runner)!;
+
+        // Assert - Renewal reschedules based on monotonic time, not wall clock
+        runner.IsLost.ShouldBeFalse();
+        scheduledAfterPause.ShouldBeGreaterThan(monotonicClock.Seconds);
+        scheduledAfterPause.ShouldBeGreaterThan(scheduledBeforePause);
+
+        // Invoke again without advancing monotonic clock to verify jitter/periodic ticks do not over-renew
+        renewTimerCallback.Invoke(runner, new object?[] { null });
+        var scheduledAfterImmediateRetry = (double)nextRenewField.GetValue(runner)!;
+        scheduledAfterImmediateRetry.ShouldBe(scheduledAfterPause);
+
+        await runner.DisposeAsync();
+    }
+
+    private sealed class TestMonotonicClock : IMonotonicClock
+    {
+        private double currentSeconds;
+
+        public TestMonotonicClock(double startSeconds)
+        {
+            currentSeconds = startSeconds;
+        }
+
+        public long Ticks => (long)(currentSeconds * Stopwatch.Frequency);
+
+        public double Seconds => currentSeconds;
+
+        public void Advance(TimeSpan timeSpan)
+        {
+            currentSeconds += timeSpan.TotalSeconds;
+        }
     }
 }

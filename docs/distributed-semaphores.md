@@ -220,6 +220,13 @@ Watch for:
 - **Many expired leases**: Workers may be crashing or TTL too short
 - **Low acquisition success**: Consider backoff/retry strategies
 
+### Starvation and backpressure
+
+- Repeated `NotAcquired` responses act as **built-in backpressure**, not dead-lettering. Requests are rejected while the limit is saturated and immediately succeed once capacity returns.
+- If callers are perennially starved, tune **limit** and **TTL** together: longer TTL reduces renewal chatter but keeps capacity occupied longer; shorter TTL speeds recovery but increases renew load.
+- Ensure the **reaper cadence** (`ReaperCadenceSeconds`/`ReaperBatchSize`) is sized to clear leaked leases quickly enough for your workload.
+- Track `NotAcquired` and renewal failures in metrics; use exponential backoff to avoid thundering herds during contention.
+
 ### Limit Changes
 
 You can change limits dynamically:

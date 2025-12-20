@@ -13,6 +13,7 @@
 // limitations under the License.
 
 
+using System.Collections.Concurrent;
 using Bravellian.Platform.Semaphore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -328,5 +329,120 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
         {
             fencingCounters[i].ShouldBeGreaterThan(fencingCounters[i - 1]);
         }
+    }
+
+    [Fact]
+    public async Task Renewals_WithIntermittentGcPausesMaintainLeases()
+    {
+        // Arrange
+        var name = $"test-semaphore-{Guid.NewGuid():N}";
+        var limit = 3;
+        var ttlSeconds = 8;
+        await semaphoreService!.EnsureExistsAsync(name, limit, TestContext.Current.CancellationToken);
+
+        var acquisitions = new List<SemaphoreAcquireResult>();
+        for (var i = 0; i < limit; i++)
+        {
+            var acquired = await semaphoreService.TryAcquireAsync(
+                name,
+                ttlSeconds: ttlSeconds,
+                ownerId: $"owner{i}",
+                cancellationToken: TestContext.Current.CancellationToken);
+
+            acquired.Status.ShouldBe(SemaphoreAcquireStatus.Acquired);
+            acquisitions.Add(acquired);
+        }
+
+        var random = new Random(42);
+        var renewResults = new ConcurrentBag<SemaphoreRenewResult>();
+
+        // Act - Renew each lease several times with jitter and occasional long pauses to mimic GC
+        var renewalTasks = acquisitions.Select(acquired => Task.Run(async () =>
+        {
+            for (var iteration = 0; iteration < 6; iteration++)
+            {
+                // Short jitter between renewals
+                await Task.Delay(TimeSpan.FromMilliseconds(random.Next(50, 250)), TestContext.Current.CancellationToken);
+
+                // Simulate a rare GC pause
+                if (iteration == 2)
+                {
+                    await Task.Delay(TimeSpan.FromMilliseconds(random.Next(1500, 2000)), TestContext.Current.CancellationToken);
+                }
+
+                var renewed = await semaphoreService.RenewAsync(
+                    name,
+                    acquired.Token!.Value,
+                    ttlSeconds: ttlSeconds,
+                    cancellationToken: TestContext.Current.CancellationToken);
+
+                renewResults.Add(renewed);
+                renewed.Status.ShouldBe(SemaphoreRenewStatus.Renewed);
+            }
+        }, Xunit.TestContext.Current.CancellationToken)).ToList();
+
+        await Task.WhenAll(renewalTasks);
+
+        // Assert - Every renewal succeeded despite jitter and pauses
+        renewResults.ShouldNotBeEmpty();
+        renewResults.ShouldAllBe(r => r.Status == SemaphoreRenewStatus.Renewed);
+
+        // Cleanup
+        foreach (var acquired in acquisitions)
+        {
+            await semaphoreService.ReleaseAsync(name, acquired.Token!.Value, TestContext.Current.CancellationToken);
+        }
+    }
+
+    [Fact]
+    public async Task StarvedAcquisition_AppliesBackpressureUntilCapacityReturns()
+    {
+        // Arrange
+        var name = $"test-semaphore-{Guid.NewGuid():N}";
+        await semaphoreService!.EnsureExistsAsync(name, 1, TestContext.Current.CancellationToken);
+
+        var holder = await semaphoreService.TryAcquireAsync(
+            name,
+            ttlSeconds: 5,
+            ownerId: "holder",
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        holder.Status.ShouldBe(SemaphoreAcquireStatus.Acquired);
+
+        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(4));
+        var notAcquiredCount = 0;
+
+        // Act - Saturate the semaphore and verify contenders are backpressured, not lost
+        await Task.WhenAll(Enumerable.Range(0, 4).Select(_ => Task.Run(async () =>
+        {
+            while (!cts.IsCancellationRequested)
+            {
+                var attempt = await semaphoreService.TryAcquireAsync(
+                    name,
+                    ttlSeconds: 1,
+                    ownerId: Guid.NewGuid().ToString(),
+                    cancellationToken: TestContext.Current.CancellationToken);
+
+                if (attempt.Status == SemaphoreAcquireStatus.NotAcquired)
+                {
+                    Interlocked.Increment(ref notAcquiredCount);
+                }
+
+                await Task.Delay(TimeSpan.FromMilliseconds(100), TestContext.Current.CancellationToken);
+            }
+        }, Xunit.TestContext.Current.CancellationToken)));
+
+        // Release capacity and confirm acquisition immediately resumes
+        await semaphoreService.ReleaseAsync(name, holder.Token!.Value, TestContext.Current.CancellationToken);
+
+        var recovered = await semaphoreService.TryAcquireAsync(
+            name,
+            ttlSeconds: 5,
+            ownerId: "recovered",
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        notAcquiredCount.ShouldBeGreaterThan(0); // Prolonged backpressure observed
+        recovered.Status.ShouldBe(SemaphoreAcquireStatus.Acquired);
     }
 }
