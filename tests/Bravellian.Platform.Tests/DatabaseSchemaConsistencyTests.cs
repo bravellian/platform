@@ -41,9 +41,6 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
         await base.InitializeAsync().ConfigureAwait(false);
 
         // Apply work queue migrations to add Status, LockedUntil, OwnerToken columns
-        await DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(ConnectionString).ConfigureAwait(false);
-        await DatabaseSchemaManager.EnsureInboxWorkQueueSchemaAsync(ConnectionString).ConfigureAwait(false);
-
         // Ensure schemas for all modules use the production deployment paths
         await DatabaseSchemaManager.EnsureOutboxSchemaAsync(ConnectionString).ConfigureAwait(false);
         await DatabaseSchemaManager.EnsureInboxSchemaAsync(ConnectionString).ConfigureAwait(false);
