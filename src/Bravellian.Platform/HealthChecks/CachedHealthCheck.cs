@@ -20,7 +20,7 @@ namespace Bravellian.Platform.HealthChecks;
 /// <summary>
 /// Wraps an existing health check with caching behavior that respects status-specific durations.
 /// </summary>
-public sealed class CachedHealthCheck : IHealthCheck
+public sealed class CachedHealthCheck : IHealthCheck, IDisposable
 {
     private readonly IHealthCheck innerHealthCheck;
     private readonly CachedHealthCheckOptions options;
@@ -50,20 +50,9 @@ public sealed class CachedHealthCheck : IHealthCheck
     {
         var now = timeProvider.GetUtcNow();
 
-        // First check without holding lock
-        HealthCheckResult? currentCachedResult;
-        DateTimeOffset currentLastCheckTime;
-
-        await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
-        try
-        {
-            currentCachedResult = cachedResult;
-            currentLastCheckTime = lastCheckTime;
-        }
-        finally
-        {
-            semaphore.Release();
-        }
+        // First check without holding lock (optimistic read)
+        var currentCachedResult = cachedResult;
+        var currentLastCheckTime = lastCheckTime;
 
         if (ShouldUseCache(currentCachedResult, currentLastCheckTime, now))
         {
@@ -92,6 +81,12 @@ public sealed class CachedHealthCheck : IHealthCheck
         {
             semaphore.Release();
         }
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        semaphore.Dispose();
     }
 
     private bool ShouldUseCache(HealthCheckResult? result, DateTimeOffset lastCheck, DateTimeOffset now)
