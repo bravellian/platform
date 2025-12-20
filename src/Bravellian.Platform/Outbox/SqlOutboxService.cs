@@ -192,7 +192,10 @@ internal class SqlOutboxService : IOutbox
                     }
 
                     logger.LogDebug("Claimed {Count} outbox items with owner {OwnerToken}", result.Count, ownerToken);
-                    SchedulerMetrics.OutboxItemsClaimed.Add(result.Count);
+                    SchedulerMetrics.OutboxItemsClaimed.Add(
+                        result.Count,
+                        new KeyValuePair<string, object?>("queue", options.TableName),
+                        new KeyValuePair<string, object?>("store", options.SchemaName));
                     SchedulerMetrics.WorkQueueBatchSize.Record(
                         result.Count,
                         new KeyValuePair<string, object?>("queue", "outbox"),
@@ -234,7 +237,10 @@ internal class SqlOutboxService : IOutbox
         {
             await ExecuteWithIdsAsync($"[{options.SchemaName}].[Outbox_Ack]", ownerToken, idList, cancellationToken).ConfigureAwait(false);
             logger.LogDebug("Acknowledged {Count} outbox items with owner {OwnerToken}", idList.Count, ownerToken);
-            SchedulerMetrics.OutboxItemsAcknowledged.Add(idList.Count);
+            SchedulerMetrics.OutboxItemsAcknowledged.Add(
+                idList.Count,
+                new KeyValuePair<string, object?>("queue", options.TableName),
+                new KeyValuePair<string, object?>("store", options.SchemaName));
         }
         catch (Exception ex)
         {
@@ -273,7 +279,10 @@ internal class SqlOutboxService : IOutbox
         {
             await ExecuteWithIdsAsync($"[{options.SchemaName}].[Outbox_Abandon]", ownerToken, idList, cancellationToken).ConfigureAwait(false);
             logger.LogDebug("Abandoned {Count} outbox items with owner {OwnerToken}", idList.Count, ownerToken);
-            SchedulerMetrics.OutboxItemsAbandoned.Add(idList.Count);
+            SchedulerMetrics.OutboxItemsAbandoned.Add(
+                idList.Count,
+                new KeyValuePair<string, object?>("queue", options.TableName),
+                new KeyValuePair<string, object?>("store", options.SchemaName));
         }
         catch (Exception ex)
         {
@@ -312,7 +321,10 @@ internal class SqlOutboxService : IOutbox
         {
             await ExecuteWithIdsAsync($"[{options.SchemaName}].[Outbox_Fail]", ownerToken, idList, cancellationToken).ConfigureAwait(false);
             logger.LogDebug("Failed {Count} outbox items with owner {OwnerToken}", idList.Count, ownerToken);
-            SchedulerMetrics.OutboxItemsFailed.Add(idList.Count);
+            SchedulerMetrics.OutboxItemsFailed.Add(
+                idList.Count,
+                new KeyValuePair<string, object?>("queue", options.TableName),
+                new KeyValuePair<string, object?>("store", options.SchemaName));
         }
         catch (Exception ex)
         {
@@ -355,7 +367,10 @@ internal class SqlOutboxService : IOutbox
                     var count = Convert.ToInt32(reapedCount ?? 0, CultureInfo.InvariantCulture);
 
                     logger.LogDebug("Reaped {Count} expired outbox items", count);
-                    SchedulerMetrics.OutboxItemsReaped.Add(count);
+                    SchedulerMetrics.OutboxItemsReaped.Add(
+                        count,
+                        new KeyValuePair<string, object?>("queue", options.TableName),
+                        new KeyValuePair<string, object?>("store", options.SchemaName));
                 }
             }
         }

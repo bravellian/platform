@@ -25,6 +25,12 @@ public sealed class SchedulerMetricsTests
         SchedulerMetrics.InboxItemsFailed.ShouldNotBeNull();
         SchedulerMetrics.InboxItemsReaped.ShouldNotBeNull();
 
+        SchedulerMetrics.OutboxItemsClaimed.ShouldNotBeNull();
+        SchedulerMetrics.OutboxItemsAcknowledged.ShouldNotBeNull();
+        SchedulerMetrics.OutboxItemsAbandoned.ShouldNotBeNull();
+        SchedulerMetrics.OutboxItemsFailed.ShouldNotBeNull();
+        SchedulerMetrics.OutboxItemsReaped.ShouldNotBeNull();
+
         SchedulerMetrics.WorkQueueClaimDuration.ShouldNotBeNull();
         SchedulerMetrics.WorkQueueAckDuration.ShouldNotBeNull();
         SchedulerMetrics.WorkQueueAbandonDuration.ShouldNotBeNull();
