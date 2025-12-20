@@ -24,6 +24,10 @@ namespace Bravellian.Platform.Tests;
 internal static class SchemaVersionSnapshot
 {
     private const string UpdateSnapshotEnvironmentVariable = "UPDATE_SCHEMA_SNAPSHOT";
+    private static readonly JsonSerializerOptions jsonOptions = new JsonSerializerOptions
+    {
+        WriteIndented = true
+    };
 
     public static string SnapshotFilePath => GetSnapshotFilePath();
 
@@ -82,8 +86,10 @@ internal static class SchemaVersionSnapshot
             return null;
         }
 
-        await using var stream = File.OpenRead(SnapshotFilePath);
-        Dictionary<string, string>? snapshot;
+        var stream = File.OpenRead(SnapshotFilePath);
+        await using (stream.ConfigureAwait(false))
+        {
+            Dictionary<string, string>? snapshot;
         try
         {
             snapshot = await JsonSerializer
@@ -104,6 +110,7 @@ internal static class SchemaVersionSnapshot
                 $"Schema version snapshot file '{SnapshotFilePath}' is empty or does not contain a valid JSON object.");
         }
         return snapshot;
+        }
     }
 
     public static async Task WriteSnapshotAsync(
@@ -116,7 +123,10 @@ internal static class SchemaVersionSnapshot
             Directory.CreateDirectory(directory);
         }
 
-        await using var stream = File.Open(SnapshotFilePath, FileMode.Create, FileAccess.Write, FileShare.None);
-        await JsonSerializer.SerializeAsync(stream, snapshot, cancellationToken: cancellationToken).ConfigureAwait(false);
+        var stream = File.Open(SnapshotFilePath, FileMode.Create, FileAccess.Write, FileShare.None);
+        await using (stream.ConfigureAwait(false))
+        {
+            await JsonSerializer.SerializeAsync(stream, snapshot, jsonOptions, cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
     }
 }

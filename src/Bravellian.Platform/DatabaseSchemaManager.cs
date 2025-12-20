@@ -201,6 +201,9 @@ internal static class DatabaseSchemaManager
         // Ensure schema exists
         await EnsureSchemaExistsAsync(connection, schemaName).ConfigureAwait(false);
 
+        // Ensure GuidIdList type exists
+        await EnsureGuidIdListTypeAsync(connection, schemaName).ConfigureAwait(false);
+
         // Create Jobs table first (referenced by JobRuns)
         var jobsExists = await TableExistsAsync(connection, schemaName, jobsTableName).ConfigureAwait(false);
         if (!jobsExists)
