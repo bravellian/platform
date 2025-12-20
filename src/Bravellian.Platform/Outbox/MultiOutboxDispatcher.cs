@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
+using System;
+using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 
 namespace Bravellian.Platform;
@@ -163,6 +164,11 @@ internal sealed class MultiOutboxDispatcher
             storeIdentifier,
             batchSize);
 
+        using var batchScope = logger.BeginScope(new Dictionary<string, object?>(StringComparer.Ordinal)
+        {
+            ["store"] = storeIdentifier,
+        });
+
         var messages = await selectedStore.ClaimDueAsync(batchSize, cancellationToken).ConfigureAwait(false);
 
         if (messages.Count == 0)
@@ -233,6 +239,12 @@ internal sealed class MultiOutboxDispatcher
         CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
+
+        using var messageScope = logger.BeginScope(new Dictionary<string, object?>(StringComparer.Ordinal)
+        {
+            ["workItemId"] = message.Id,
+            ["store"] = storeIdentifier,
+        });
 
         try
         {

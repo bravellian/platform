@@ -126,6 +126,31 @@ builder.Services
     });
 ```
 
+### Structured Logging Correlation
+
+Dispatchers and coordinators automatically attach scopes for `ownerToken`, `store`, and `workItemId` so correlated events are easy to trace across retries. To forward those scoped properties to an OpenTelemetry-compatible log exporter:
+
+```csharp
+builder.Logging.AddOpenTelemetry(logging =>
+{
+    logging.IncludeScopes = true;
+    logging.IncludeFormattedMessage = true;
+    logging.AddOtlpExporter(options =>
+    {
+        options.Endpoint = new Uri("http://otel-collector:4317");
+    });
+});
+
+builder.Services.AddOpenTelemetry().WithTracing(tracing =>
+{
+    tracing.AddSource("Bravellian.Platform");
+    tracing.AddAspNetCoreInstrumentation();
+    tracing.AddOtlpExporter();
+});
+```
+
+The exported log records will contain the structured correlation fields, allowing dashboards to pivot by owner token or work item across inbox/outbox dispatchers.
+
 ## Alert Types
 
 The watchdog can detect and raise the following alert types:

@@ -11,8 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
-
+using System.Collections.Generic;
+using System;
 using Microsoft.Extensions.Logging;
 
 namespace Bravellian.Platform;
@@ -162,6 +162,12 @@ internal sealed class MultiInboxDispatcher
     {
         Bravellian.Platform.OwnerToken ownerToken = Bravellian.Platform.OwnerToken.GenerateNew();
 
+        using var batchScope = logger.BeginScope(new Dictionary<string, object?>(StringComparer.Ordinal)
+        {
+            ["ownerToken"] = ownerToken.ToString(),
+            ["store"] = storeIdentifier,
+        });
+
         logger.LogDebug(
             "Processing inbox messages from store '{StoreIdentifier}' with batch size {BatchSize} and owner {OwnerToken}",
             storeIdentifier,
@@ -267,6 +273,13 @@ internal sealed class MultiInboxDispatcher
         CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
+
+        using var messageScope = logger.BeginScope(new Dictionary<string, object?>(StringComparer.Ordinal)
+        {
+            ["ownerToken"] = ownerToken.ToString(),
+            ["workItemId"] = messageId,
+            ["store"] = storeIdentifier,
+        });
 
         try
         {
