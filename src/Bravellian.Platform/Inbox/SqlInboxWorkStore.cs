@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
+using System.Collections.Generic;
+using System.Diagnostics;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
@@ -55,6 +56,8 @@ internal class SqlInboxWorkStore : IInboxWorkStore
             leaseSeconds,
             ownerToken);
 
+        var stopwatch = Stopwatch.StartNew();
+
         try
         {
             using var connection = new SqlConnection(connectionString);
@@ -76,6 +79,15 @@ internal class SqlInboxWorkStore : IInboxWorkStore
                 result.Count,
                 ownerToken);
 
+            SchedulerMetrics.InboxItemsClaimed.Add(
+                result.Count,
+                new KeyValuePair<string, object?>("queue", tableName),
+                new KeyValuePair<string, object?>("store", schemaName));
+            SchedulerMetrics.WorkQueueBatchSize.Record(
+                result.Count,
+                new KeyValuePair<string, object?>("queue", "inbox"),
+                new KeyValuePair<string, object?>("store", schemaName));
+
             return result;
         }
         catch (Exception ex)
@@ -89,6 +101,14 @@ internal class SqlInboxWorkStore : IInboxWorkStore
                 serverName,
                 databaseName);
             throw;
+        }
+        finally
+        {
+            stopwatch.Stop();
+            SchedulerMetrics.WorkQueueClaimDuration.Record(
+                stopwatch.Elapsed.TotalMilliseconds,
+                new KeyValuePair<string, object?>("queue", "inbox"),
+                new KeyValuePair<string, object?>("store", schemaName));
         }
     }
 
@@ -107,6 +127,8 @@ internal class SqlInboxWorkStore : IInboxWorkStore
             "Acknowledging {MessageCount} inbox messages for owner {OwnerToken}",
             messageIdList.Count,
             ownerToken);
+
+        var stopwatch = Stopwatch.StartNew();
 
         try
         {
@@ -129,6 +151,11 @@ internal class SqlInboxWorkStore : IInboxWorkStore
                 "Successfully acknowledged {MessageCount} inbox messages for owner {OwnerToken}",
                 messageIdList.Count,
                 ownerToken);
+
+            SchedulerMetrics.InboxItemsAcknowledged.Add(
+                messageIdList.Count,
+                new KeyValuePair<string, object?>("queue", tableName),
+                new KeyValuePair<string, object?>("store", schemaName));
         }
         catch (Exception ex)
         {
@@ -141,6 +168,18 @@ internal class SqlInboxWorkStore : IInboxWorkStore
                 serverName,
                 databaseName);
             throw;
+        }
+        finally
+        {
+            stopwatch.Stop();
+            SchedulerMetrics.WorkQueueAckDuration.Record(
+                stopwatch.Elapsed.TotalMilliseconds,
+                new KeyValuePair<string, object?>("queue", "inbox"),
+                new KeyValuePair<string, object?>("store", schemaName));
+            SchedulerMetrics.WorkQueueBatchSize.Record(
+                messageIdList.Count,
+                new KeyValuePair<string, object?>("queue", "inbox"),
+                new KeyValuePair<string, object?>("store", schemaName));
         }
     }
 
@@ -167,6 +206,8 @@ internal class SqlInboxWorkStore : IInboxWorkStore
             messageIdList.Count,
             ownerToken,
             delay?.TotalMilliseconds ?? 0);
+
+        var stopwatch = Stopwatch.StartNew();
 
         try
         {
@@ -207,6 +248,11 @@ internal class SqlInboxWorkStore : IInboxWorkStore
                 "Successfully abandoned {MessageCount} inbox messages for owner {OwnerToken}",
                 messageIdList.Count,
                 ownerToken);
+
+            SchedulerMetrics.InboxItemsAbandoned.Add(
+                messageIdList.Count,
+                new KeyValuePair<string, object?>("queue", tableName),
+                new KeyValuePair<string, object?>("store", schemaName));
         }
         catch (Exception ex)
         {
@@ -219,6 +265,18 @@ internal class SqlInboxWorkStore : IInboxWorkStore
                 serverName,
                 databaseName);
             throw;
+        }
+        finally
+        {
+            stopwatch.Stop();
+            SchedulerMetrics.WorkQueueAbandonDuration.Record(
+                stopwatch.Elapsed.TotalMilliseconds,
+                new KeyValuePair<string, object?>("queue", "inbox"),
+                new KeyValuePair<string, object?>("store", schemaName));
+            SchedulerMetrics.WorkQueueBatchSize.Record(
+                messageIdList.Count,
+                new KeyValuePair<string, object?>("queue", "inbox"),
+                new KeyValuePair<string, object?>("store", schemaName));
         }
     }
 
@@ -239,6 +297,8 @@ internal class SqlInboxWorkStore : IInboxWorkStore
             messageIdList.Count,
             ownerToken,
             error);
+
+        var stopwatch = Stopwatch.StartNew();
 
         try
         {
@@ -263,6 +323,11 @@ internal class SqlInboxWorkStore : IInboxWorkStore
                 messageIdList.Count,
                 ownerToken,
                 error);
+
+            SchedulerMetrics.InboxItemsFailed.Add(
+                messageIdList.Count,
+                new KeyValuePair<string, object?>("queue", tableName),
+                new KeyValuePair<string, object?>("store", schemaName));
         }
         catch (Exception ex)
         {
@@ -276,11 +341,25 @@ internal class SqlInboxWorkStore : IInboxWorkStore
                 databaseName);
             throw;
         }
+        finally
+        {
+            stopwatch.Stop();
+            SchedulerMetrics.WorkQueueFailDuration.Record(
+                stopwatch.Elapsed.TotalMilliseconds,
+                new KeyValuePair<string, object?>("queue", "inbox"),
+                new KeyValuePair<string, object?>("store", schemaName));
+            SchedulerMetrics.WorkQueueBatchSize.Record(
+                messageIdList.Count,
+                new KeyValuePair<string, object?>("queue", "inbox"),
+                new KeyValuePair<string, object?>("store", schemaName));
+        }
     }
 
     public async Task ReapExpiredAsync(CancellationToken cancellationToken)
     {
         logger.LogDebug("Reaping expired inbox leases");
+
+        var stopwatch = Stopwatch.StartNew();
 
         try
         {
@@ -296,6 +375,11 @@ internal class SqlInboxWorkStore : IInboxWorkStore
                 logger.LogInformation(
                     "Reaped {ReapedCount} expired inbox leases",
                     result);
+
+                SchedulerMetrics.InboxItemsReaped.Add(
+                    result,
+                    new KeyValuePair<string, object?>("queue", tableName),
+                    new KeyValuePair<string, object?>("store", schemaName));
             }
             else
             {
@@ -312,6 +396,14 @@ internal class SqlInboxWorkStore : IInboxWorkStore
                 serverName,
                 databaseName);
             throw;
+        }
+        finally
+        {
+            stopwatch.Stop();
+            SchedulerMetrics.WorkQueueReapDuration.Record(
+                stopwatch.Elapsed.TotalMilliseconds,
+                new KeyValuePair<string, object?>("queue", "inbox"),
+                new KeyValuePair<string, object?>("store", schemaName));
         }
     }
 
