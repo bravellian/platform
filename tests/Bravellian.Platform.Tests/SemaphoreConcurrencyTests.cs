@@ -433,19 +433,14 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
             }
         }, Xunit.TestContext.Current.CancellationToken)).ToList();
 
-        await Task.WhenAll(contenderTasks);
-
-        // Cancel contender tasks before releasing to avoid race condition
-        await cts.CancelAsync();
-        
-        // Wait for contender tasks to complete
+        // Wait for contender tasks to complete (they will timeout after 4 seconds)
         try
         {
             await Task.WhenAll(contenderTasks);
         }
         catch (OperationCanceledException)
         {
-            // Expected when tasks are cancelled
+            // Expected when tasks are cancelled due to timeout
         }
 
         // Release capacity and confirm acquisition immediately resumes

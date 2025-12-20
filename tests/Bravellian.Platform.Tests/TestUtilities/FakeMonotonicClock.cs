@@ -13,6 +13,8 @@
 // limitations under the License.
 
 
+using System.Diagnostics;
+
 namespace Bravellian.Platform.Tests.TestUtilities;
 
 /// <summary>
