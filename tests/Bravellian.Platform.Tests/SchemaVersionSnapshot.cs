@@ -65,6 +65,7 @@ internal static class SchemaVersionSnapshot
             "Bravellian.Platform.Database",
             "schema-versions.json"));
     }
+
     public static bool ShouldRefreshFromEnvironment()
     {
         return string.Equals(
@@ -90,26 +91,26 @@ internal static class SchemaVersionSnapshot
         await using (stream.ConfigureAwait(false))
         {
             Dictionary<string, string>? snapshot;
-        try
-        {
-            snapshot = await JsonSerializer
-                .DeserializeAsync<Dictionary<string, string>>(stream, cancellationToken: cancellationToken)
-                .ConfigureAwait(false);
-        }
-        catch (JsonException ex)
-        {
-            throw new InvalidOperationException(
-                $"Failed to deserialize schema version snapshot from '{SnapshotFilePath}'. " +
-                "The file exists but contains invalid JSON.",
-                ex);
-        }
+            try
+            {
+                snapshot = await JsonSerializer
+                    .DeserializeAsync<Dictionary<string, string>>(stream, cancellationToken: cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch (JsonException ex)
+            {
+                throw new InvalidOperationException(
+                    $"Failed to deserialize schema version snapshot from '{SnapshotFilePath}'. " +
+                    "The file exists but contains invalid JSON.",
+                    ex);
+            }
 
-        if (snapshot is null)
-        {
-            throw new InvalidOperationException(
-                $"Schema version snapshot file '{SnapshotFilePath}' is empty or does not contain a valid JSON object.");
-        }
-        return snapshot;
+            if (snapshot is null)
+            {
+                throw new InvalidOperationException(
+                    $"Schema version snapshot file '{SnapshotFilePath}' is empty or does not contain a valid JSON object.");
+            }
+            return snapshot;
         }
     }
 
