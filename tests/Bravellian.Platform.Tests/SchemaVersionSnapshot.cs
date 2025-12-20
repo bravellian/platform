@@ -117,16 +117,6 @@ internal static class SchemaVersionSnapshot
         IDictionary<string, string> snapshot,
         CancellationToken cancellationToken)
     {
-        await JsonSerializer.SerializeAsync(
-            stream,
-            snapshot,
-            new JsonSerializerOptions { WriteIndented = true },
-            cancellationToken).ConfigureAwait(false);
-        if (!string.IsNullOrEmpty(directory))
-        {
-            Directory.CreateDirectory(directory);
-        }
-
         var stream = File.Open(SnapshotFilePath, FileMode.Create, FileAccess.Write, FileShare.None);
         await using (stream.ConfigureAwait(false))
         {

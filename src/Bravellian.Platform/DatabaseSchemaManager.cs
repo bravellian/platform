@@ -397,6 +397,9 @@ internal static class DatabaseSchemaManager
 
         foreach (var script in scripts)
         {
+            builder.AppendLine(script);
+        }
+
         var normalized = NormalizeScriptsForHash(builder.ToString());
         using var sha = SHA256.Create();
         return Convert.ToHexString(sha.ComputeHash(Encoding.UTF8.GetBytes(normalized)));
@@ -436,8 +439,6 @@ internal static class DatabaseSchemaManager
         }
 
         return resultBuilder.ToString();
-    }
-        return Convert.ToHexString(sha.ComputeHash(Encoding.UTF8.GetBytes(normalized)));
     }
 
     private static IEnumerable<string> GetOutboxSchemaScripts()
