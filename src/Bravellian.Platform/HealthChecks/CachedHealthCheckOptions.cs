@@ -39,6 +39,11 @@ public sealed class CachedHealthCheckOptions
     /// </summary>
     public TimeSpan UnhealthyCacheDuration { get; set; } = TimeSpan.Zero;
 
+    /// <summary>
+    /// Gets the cache duration for a given health status.
+    /// </summary>
+    /// <param name="status">The health check status.</param>
+    /// <returns>The cache duration for the specified status.</returns>
     internal TimeSpan GetCacheDuration(HealthStatus status)
     {
         return status switch

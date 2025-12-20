@@ -35,6 +35,10 @@ public static class HealthChecksBuilderExtensions
     /// <param name="failureStatus">Failure status override.</param>
     /// <param name="tags">Tags applied to the registration.</param>
     /// <returns>The builder for chaining.</returns>
+    /// <remarks>
+    /// When the same health check name is registered multiple times, the last configuration will override previous ones
+    /// due to how named options work in the Microsoft.Extensions.Options system.
+    /// </remarks>
     public static IHealthChecksBuilder AddCachedCheck<THealthCheck>(
         this IHealthChecksBuilder builder,
         string name,
@@ -48,32 +52,20 @@ public static class HealthChecksBuilderExtensions
 
         RegisterCachingOptions(builder, name, configure);
 
-        var cachedHealthCheck = default(Lazy<CachedHealthCheck>);
+        // Register the cached health check as a keyed singleton to ensure single instance
+        var serviceKey = $"CachedHealthCheck_{name}";
+        builder.Services.AddKeyedSingleton<IHealthCheck>(serviceKey, (sp, key) =>
+        {
+            var inner = ActivatorUtilities.GetServiceOrCreateInstance<THealthCheck>(sp);
+            var optionsMonitor = sp.GetRequiredService<IOptionsMonitor<CachedHealthCheckOptions>>();
+            var timeProvider = sp.GetService<TimeProvider>() ?? TimeProvider.System;
+            var options = optionsMonitor.Get(name);
+            return new CachedHealthCheck(inner, options, timeProvider);
+        });
 
         return builder.Add(new HealthCheckRegistration(
             name,
-            sp =>
-            {
-                var instance = cachedHealthCheck;
-                if (instance is null)
-                {
-                    var created = new Lazy<CachedHealthCheck>(
-                        () =>
-                        {
-                            var inner = ActivatorUtilities.GetServiceOrCreateInstance<THealthCheck>(sp);
-                            var optionsMonitor = sp.GetRequiredService<IOptionsMonitor<CachedHealthCheckOptions>>();
-                            var timeProvider = sp.GetService<TimeProvider>() ?? TimeProvider.System;
-                            var options = optionsMonitor.Get(name);
-                            return new CachedHealthCheck(inner, options, timeProvider);
-                        },
-                        LazyThreadSafetyMode.ExecutionAndPublication);
-
-                    Interlocked.CompareExchange(ref cachedHealthCheck, created, null);
-                    instance = cachedHealthCheck;
-                }
-
-                return instance!.Value;
-            },
+            sp => sp.GetRequiredKeyedService<IHealthCheck>(serviceKey),
             failureStatus,
             tags));
     }
@@ -88,6 +80,10 @@ public static class HealthChecksBuilderExtensions
     /// <param name="failureStatus">Failure status override.</param>
     /// <param name="tags">Tags applied to the registration.</param>
     /// <returns>The builder for chaining.</returns>
+    /// <remarks>
+    /// When the same health check name is registered multiple times, the last configuration will override previous ones
+    /// due to how named options work in the Microsoft.Extensions.Options system.
+    /// </remarks>
     public static IHealthChecksBuilder AddCachedCheck(
         this IHealthChecksBuilder builder,
         string name,
@@ -102,31 +98,19 @@ public static class HealthChecksBuilderExtensions
 
         RegisterCachingOptions(builder, name, configure);
 
-        var cachedHealthCheck = default(Lazy<CachedHealthCheck>);
+        // Register the cached health check as a keyed singleton to ensure single instance
+        var serviceKey = $"CachedHealthCheck_{name}";
+        builder.Services.AddKeyedSingleton<IHealthCheck>(serviceKey, (sp, key) =>
+        {
+            var optionsMonitor = sp.GetRequiredService<IOptionsMonitor<CachedHealthCheckOptions>>();
+            var timeProvider = sp.GetService<TimeProvider>() ?? TimeProvider.System;
+            var options = optionsMonitor.Get(name);
+            return new CachedHealthCheck(new DelegateHealthCheck(ct => check(sp, ct)), options, timeProvider);
+        });
 
         return builder.Add(new HealthCheckRegistration(
             name,
-            sp =>
-            {
-                var instance = cachedHealthCheck;
-                if (instance is null)
-                {
-                    var created = new Lazy<CachedHealthCheck>(
-                        () =>
-                        {
-                            var optionsMonitor = sp.GetRequiredService<IOptionsMonitor<CachedHealthCheckOptions>>();
-                            var timeProvider = sp.GetService<TimeProvider>() ?? TimeProvider.System;
-                            var options = optionsMonitor.Get(name);
-                            return new CachedHealthCheck(new DelegateHealthCheck(ct => check(sp, ct)), options, timeProvider);
-                        },
-                        LazyThreadSafetyMode.ExecutionAndPublication);
-
-                    Interlocked.CompareExchange(ref cachedHealthCheck, created, null);
-                    instance = cachedHealthCheck;
-                }
-
-                return instance!.Value;
-            },
+            sp => sp.GetRequiredKeyedService<IHealthCheck>(serviceKey),
             failureStatus,
             tags));
     }
@@ -146,7 +130,6 @@ public static class HealthChecksBuilderExtensions
         }
 
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<CachedHealthCheckOptions>>(new CachedHealthCheckOptionsValidator()));
-        builder.Services.TryAddSingleton<IOptionsMonitorCache<CachedHealthCheckOptions>, OptionsCache<CachedHealthCheckOptions>>();
     }
 
     private sealed class DelegateHealthCheck : IHealthCheck

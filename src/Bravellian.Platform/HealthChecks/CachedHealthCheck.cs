@@ -20,12 +20,12 @@ namespace Bravellian.Platform.HealthChecks;
 /// <summary>
 /// Wraps an existing health check with caching behavior that respects status-specific durations.
 /// </summary>
-public sealed class CachedHealthCheck : IHealthCheck
+public sealed class CachedHealthCheck : IHealthCheck, IDisposable
 {
     private readonly IHealthCheck innerHealthCheck;
     private readonly CachedHealthCheckOptions options;
     private readonly TimeProvider timeProvider;
-    private readonly Lock lockObject = new();
+    private readonly SemaphoreSlim semaphore = new(1, 1);
 
     private HealthCheckResult? cachedResult;
     private DateTimeOffset lastCheckTime = DateTimeOffset.MinValue;
@@ -49,29 +49,44 @@ public sealed class CachedHealthCheck : IHealthCheck
         CancellationToken cancellationToken = default)
     {
         var now = timeProvider.GetUtcNow();
-        HealthCheckResult? currentCachedResult;
-        DateTimeOffset currentLastCheckTime;
 
-        using (lockObject.EnterScope())
-        {
-            currentCachedResult = cachedResult;
-            currentLastCheckTime = lastCheckTime;
-        }
+        // First check without holding lock (optimistic read)
+        var currentCachedResult = cachedResult;
+        var currentLastCheckTime = lastCheckTime;
 
         if (ShouldUseCache(currentCachedResult, currentLastCheckTime, now))
         {
             return currentCachedResult!.Value;
         }
 
-        var result = await innerHealthCheck.CheckHealthAsync(context, cancellationToken).ConfigureAwait(false);
-
-        using (lockObject.EnterScope())
+        // Cache miss - acquire lock for execution
+        await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            cachedResult = result;
-            lastCheckTime = now;
-        }
+            // Double-check pattern: verify cache is still stale after acquiring lock
+            if (ShouldUseCache(cachedResult, lastCheckTime, timeProvider.GetUtcNow()))
+            {
+                return cachedResult!.Value;
+            }
 
-        return result;
+            // Execute health check while holding lock to prevent concurrent execution
+            var result = await innerHealthCheck.CheckHealthAsync(context, cancellationToken).ConfigureAwait(false);
+
+            cachedResult = result;
+            lastCheckTime = timeProvider.GetUtcNow();
+
+            return result;
+        }
+        finally
+        {
+            semaphore.Release();
+        }
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        semaphore.Dispose();
     }
 
     private bool ShouldUseCache(HealthCheckResult? result, DateTimeOffset lastCheck, DateTimeOffset now)
