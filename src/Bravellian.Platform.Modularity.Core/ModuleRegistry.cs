@@ -20,9 +20,9 @@ using Microsoft.Extensions.Logging;
 namespace Bravellian.Platform.Modularity;
 
 /// <summary>
-/// Registry of module types and initialized instances.
+/// Internal registry of module types and initialized instances.
 /// </summary>
-public static class ModuleRegistry
+internal static class ModuleRegistry
 {
     private static readonly System.Threading.Lock Sync = new();
     private static readonly Dictionary<ModuleCategory, HashSet<Type>> RegisteredTypes = new()
@@ -33,15 +33,6 @@ public static class ModuleRegistry
     };
 
     private static readonly Dictionary<Type, IModuleDefinition> Instances = new();
-
-    /// <summary>
-    /// Registers a background module type.
-    /// </summary>
-    /// <typeparam name="T">The module type.</typeparam>
-    public static void RegisterBackgroundModule<T>() where T : class, IBackgroundModule, new()
-    {
-        RegisterModuleType(typeof(T), ModuleCategory.Background);
-    }
 
     internal static void RegisterModuleType(Type type, ModuleCategory category)
     {
@@ -64,6 +55,14 @@ public static class ModuleRegistry
             }
 
             targetSet.Add(type);
+        }
+    }
+
+    internal static IReadOnlyCollection<Type> GetRegisteredTypes(ModuleCategory category)
+    {
+        lock (Sync)
+        {
+            return RegisteredTypes[category].ToArray();
         }
     }
 

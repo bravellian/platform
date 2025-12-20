@@ -32,8 +32,8 @@ public sealed class ModuleSystemTests
     [Fact]
     public void Background_modules_register_services_and_health()
     {
-        ModuleRegistry.Reset();
-        ModuleRegistry.RegisterBackgroundModule<SampleBackgroundModule>();
+        BackgroundModuleRegistry.Reset();
+        BackgroundModuleRegistry.RegisterBackgroundModule<SampleBackgroundModule>();
 
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -56,7 +56,7 @@ public sealed class ModuleSystemTests
     [Fact]
     public void Api_modules_map_routes_using_registered_instances()
     {
-        ModuleRegistry.Reset();
+        BackgroundModuleRegistry.Reset();
         ApiModuleRegistry.RegisterApiModule<SampleApiModule>();
 
         var builder = WebApplication.CreateBuilder();
@@ -82,7 +82,7 @@ public sealed class ModuleSystemTests
     [Fact]
     public void Full_stack_navigation_is_built_and_sorted()
     {
-        ModuleRegistry.Reset();
+        BackgroundModuleRegistry.Reset();
         FullStackModuleRegistry.RegisterFullStackModule<SampleFullStackModule>();
 
         var configuration = new ConfigurationBuilder()
@@ -106,7 +106,7 @@ public sealed class ModuleSystemTests
     [Fact]
     public void Duplicate_keys_are_rejected()
     {
-        ModuleRegistry.Reset();
+        BackgroundModuleRegistry.Reset();
         ApiModuleRegistry.RegisterApiModule<SampleApiModule>();
         FullStackModuleRegistry.RegisterFullStackModule<ConflictingModule>();
 
@@ -128,7 +128,7 @@ public sealed class ModuleSystemTests
     [Fact]
     public void Module_keys_with_slashes_are_rejected()
     {
-        ModuleRegistry.Reset();
+        BackgroundModuleRegistry.Reset();
         ApiModuleRegistry.RegisterApiModule<ModuleWithInvalidKey>();
 
         var configuration = new ConfigurationBuilder()
@@ -149,7 +149,7 @@ public sealed class ModuleSystemTests
     [Fact]
     public void Duplicate_module_type_registrations_in_same_category_are_idempotent()
     {
-        ModuleRegistry.Reset();
+        BackgroundModuleRegistry.Reset();
         ApiModuleRegistry.RegisterApiModule<SampleApiModule>();
 
         // Second registration should be a no-op, not an error
@@ -159,7 +159,7 @@ public sealed class ModuleSystemTests
     [Fact]
     public void Module_cannot_be_registered_in_multiple_categories()
     {
-        ModuleRegistry.Reset();
+        BackgroundModuleRegistry.Reset();
         ApiModuleRegistry.RegisterApiModule<DualInterfaceModule>();
 
         var ex = Should.Throw<InvalidOperationException>(() => FullStackModuleRegistry.RegisterFullStackModule<DualInterfaceModule>());

@@ -31,6 +31,15 @@ public static class ApiModuleRegistry
         ModuleRegistry.RegisterModuleType(typeof(T), ModuleCategory.Api);
     }
 
+    /// <summary>
+    /// Gets a snapshot of all registered API module types.
+    /// </summary>
+    /// <returns>A read-only collection of registered API module types.</returns>
+    public static IReadOnlyCollection<Type> GetRegisteredModuleTypes()
+    {
+        return ModuleRegistry.GetRegisteredTypes(ModuleCategory.Api);
+    }
+
     internal static IReadOnlyCollection<IApiModule> InitializeApiModules(
         IConfiguration configuration,
         IServiceCollection services,
