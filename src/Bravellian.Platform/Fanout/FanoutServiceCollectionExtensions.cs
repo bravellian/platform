@@ -47,11 +47,7 @@ public static class FanoutServiceCollectionExtensions
         var validator = new SqlFanoutOptionsValidator();
         foreach (var option in optionsList)
         {
-            var validationResult = validator.Validate(Options.DefaultName, option);
-            if (validationResult.Failed)
-            {
-                throw new OptionsValidationException(Options.DefaultName, typeof(SqlFanoutOptions), validationResult.Failures);
-            }
+            OptionsValidationHelper.ValidateAndThrow(option, validator);
         }
 
         // Add time abstractions

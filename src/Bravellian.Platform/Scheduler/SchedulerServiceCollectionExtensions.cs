@@ -34,7 +34,7 @@ public static class SchedulerServiceCollectionExtensions
     public static IServiceCollection AddSqlOutbox(this IServiceCollection services, SqlOutboxOptions options)
     {
         var validator = new SqlOutboxOptionsValidator();
-        ValidateAndThrow(options, validator);
+        OptionsValidationHelper.ValidateAndThrow(options, validator);
 
         services.AddOptions<SqlOutboxOptions>().ValidateOnStart();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<SqlOutboxOptions>>(validator));
@@ -88,7 +88,7 @@ public static class SchedulerServiceCollectionExtensions
     public static IServiceCollection AddSqlScheduler(this IServiceCollection services, SqlSchedulerOptions options)
     {
         var validator = new SqlSchedulerOptionsValidator();
-        ValidateAndThrow(options, validator);
+        OptionsValidationHelper.ValidateAndThrow(options, validator);
 
         // Add time abstractions
         services.AddTimeAbstractions();
@@ -248,7 +248,7 @@ public static class SchedulerServiceCollectionExtensions
     public static IServiceCollection AddSqlFanout(this IServiceCollection services, SqlFanoutOptions options)
     {
         var validator = new SqlFanoutOptionsValidator();
-        ValidateAndThrow(options, validator);
+        OptionsValidationHelper.ValidateAndThrow(options, validator);
 
         services.AddOptions<SqlFanoutOptions>().ValidateOnStart();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<SqlFanoutOptions>>(validator));
@@ -360,7 +360,7 @@ public static class SchedulerServiceCollectionExtensions
     public static IServiceCollection AddSqlInbox(this IServiceCollection services, SqlInboxOptions options)
     {
         var validator = new SqlInboxOptionsValidator();
-        ValidateAndThrow(options, validator);
+        OptionsValidationHelper.ValidateAndThrow(options, validator);
 
         services.AddOptions<SqlInboxOptions>().ValidateOnStart();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<SqlInboxOptions>>(validator));
@@ -441,7 +441,7 @@ public static class SchedulerServiceCollectionExtensions
         var validator = new SqlInboxOptionsValidator();
         foreach (var option in inboxOptions)
         {
-            ValidateAndThrow(option, validator);
+            OptionsValidationHelper.ValidateAndThrow(option, validator);
         }
 
         // Add time abstractions
@@ -654,7 +654,7 @@ public static class SchedulerServiceCollectionExtensions
         var validator = new SqlOutboxOptionsValidator();
         foreach (var option in outboxOptions)
         {
-            ValidateAndThrow(option, validator);
+            OptionsValidationHelper.ValidateAndThrow(option, validator);
         }
 
         // Add time abstractions
@@ -810,18 +810,5 @@ public static class SchedulerServiceCollectionExtensions
         var router = provider.GetRequiredService<IInboxRouter>();
         var key = storeProvider.GetStoreIdentifier(stores[0]);
         return router.GetInbox(key);
-    }
-
-    private static void ValidateAndThrow<TOptions>(TOptions options, IValidateOptions<TOptions> validator)
-        where TOptions : class
-    {
-        ArgumentNullException.ThrowIfNull(options);
-        ArgumentNullException.ThrowIfNull(validator);
-
-        var validationResult = validator.Validate(Options.DefaultName, options);
-        if (validationResult.Failed)
-        {
-            throw new OptionsValidationException(Options.DefaultName, typeof(TOptions), validationResult.Failures);
-        }
     }
 }
