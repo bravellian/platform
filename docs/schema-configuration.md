@@ -121,12 +121,30 @@ Or use the `DatabaseSchemaManager` class directly:
 
 ```csharp
 await DatabaseSchemaManager.EnsureSchedulerSchemaAsync(
-    connectionString, 
+    connectionString,
     schemaName: "scheduler",
     jobsTableName: "Jobs",
     jobRunsTableName: "JobRuns",
     timersTableName: "Timers");
 ```
+
+## Schema Drift & Upgrade Guidance
+
+The repository tracks a lightweight manifest of the expected schema hashes for the core modules (outbox, inbox, scheduler, fanout) in `src/Bravellian.Platform.Database/schema-versions.json`. When schema-defining code changes, regenerate and review this manifest to ensure upgrades are intentional:
+
+1. Refresh the manifest and show the diff:
+   ```bash
+   ./scripts/schema-diff.sh
+   ```
+   This command hashes the current create scripts (no database required), rewrites `schema-versions.json`, and prints the git diff.
+2. Review the changes. If they reflect the expected upgrade path, commit the updated manifest along with the code changes.
+3. Downstream deployments can use the manifest to verify that all modules were upgraded together and to spot drift between environments.
+
+Tip: You can also regenerate the manifest in isolation with:
+```bash
+UPDATE_SCHEMA_SNAPSHOT=1 dotnet test tests/Bravellian.Platform.Tests/Bravellian.Platform.Tests.csproj --filter SchemaVersions_MatchSnapshot
+```
+
 
 ## Best Practices
 
