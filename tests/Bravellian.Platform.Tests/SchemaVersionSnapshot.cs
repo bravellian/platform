@@ -25,17 +25,42 @@ internal static class SchemaVersionSnapshot
 {
     private const string UpdateSnapshotEnvironmentVariable = "UPDATE_SCHEMA_SNAPSHOT";
 
-    public static string SnapshotFilePath => Path.GetFullPath(Path.Combine(
-        AppContext.BaseDirectory,
-        "..",
-        "..",
-        "..",
-        "..",
-        "..",
-        "src",
-        "Bravellian.Platform.Database",
-        "schema-versions.json"));
+    public static string SnapshotFilePath => GetSnapshotFilePath();
 
+    private static string GetSnapshotFilePath()
+    {
+        var baseDirectory = AppContext.BaseDirectory;
+        var currentDirectory = new DirectoryInfo(baseDirectory);
+
+        while (currentDirectory != null)
+        {
+            var candidate = Path.Combine(
+                currentDirectory.FullName,
+                "src",
+                "Bravellian.Platform.Database",
+                "schema-versions.json");
+
+            if (File.Exists(candidate))
+            {
+                return Path.GetFullPath(candidate);
+            }
+
+            currentDirectory = currentDirectory.Parent;
+        }
+
+        // Fallback to the original relative traversal in case discovery fails,
+        // to avoid changing behavior in existing environments.
+        return Path.GetFullPath(Path.Combine(
+            AppContext.BaseDirectory,
+            "..",
+            "..",
+            "..",
+            "..",
+            "..",
+            "src",
+            "Bravellian.Platform.Database",
+            "schema-versions.json"));
+    }
     public static bool ShouldRefreshFromEnvironment()
     {
         return string.Equals(
