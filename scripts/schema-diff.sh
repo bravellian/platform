@@ -12,7 +12,7 @@ if ! dotnet test "$ROOT_DIR/tests/Bravellian.Platform.Tests/Bravellian.Platform.
 fi
 
 echo "Schema snapshot test completed successfully. Checking for changes in schema-versions.json..."
-git -C "$ROOT_DIR" diff -- quiet -- src/Bravellian.Platform.Database/schema-versions.json >/dev/null 2>&1 || diff_exit=$?
+git -C "$ROOT_DIR" diff --quiet -- src/Bravellian.Platform.Database/schema-versions.json >/dev/null 2>&1 || diff_exit=$?
 diff_exit=${diff_exit:-0}
 
 if [ "$diff_exit" -eq 0 ]; then
