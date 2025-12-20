@@ -22,12 +22,12 @@ public class SchemaVersionSnapshotTests
     [Fact]
     public async Task SchemaVersions_MatchSnapshot()
     {
-        var captured = await SchemaVersionSnapshot.CaptureAsync(string.Empty, TestContext.Current.CancellationToken);
-        var existingSnapshot = await SchemaVersionSnapshot.TryLoadSnapshotAsync(TestContext.Current.CancellationToken);
+        var captured = await SchemaVersionSnapshot.CaptureAsync(string.Empty, Xunit.TestContext.Current.CancellationToken);
+        var existingSnapshot = await SchemaVersionSnapshot.TryLoadSnapshotAsync(Xunit.TestContext.Current.CancellationToken);
 
         if (SchemaVersionSnapshot.ShouldRefreshFromEnvironment())
         {
-            await SchemaVersionSnapshot.WriteSnapshotAsync(captured, TestContext.Current.CancellationToken);
+            await SchemaVersionSnapshot.WriteSnapshotAsync(captured, Xunit.TestContext.Current.CancellationToken);
             existingSnapshot = captured;
         }
 
