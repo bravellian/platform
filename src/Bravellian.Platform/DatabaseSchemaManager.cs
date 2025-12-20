@@ -397,11 +397,46 @@ internal static class DatabaseSchemaManager
 
         foreach (var script in scripts)
         {
-            builder.AppendLine(script);
+        var normalized = NormalizeScriptsForHash(builder.ToString());
+        using var sha = SHA256.Create();
+        return Convert.ToHexString(sha.ComputeHash(Encoding.UTF8.GetBytes(normalized)));
+    }
+
+    private static string NormalizeScriptsForHash(string scriptsText)
+    {
+        // Normalize line endings to '\n' for deterministic processing
+        var normalizedLineEndings = scriptsText
+            .Replace("\r\n", "\n")
+            .Replace("\r", "\n");
+
+        var resultBuilder = new StringBuilder();
+        var lines = normalizedLineEndings.Split('\n');
+
+        foreach (var line in lines)
+        {
+            // Trim leading/trailing whitespace and collapse internal whitespace to single spaces
+            var trimmedLine = line.Trim();
+            if (trimmedLine.Length == 0)
+            {
+                continue;
+            }
+
+            var normalizedLine = WhitespaceRegex.Replace(trimmedLine, " ").Trim();
+            if (normalizedLine.Length == 0)
+            {
+                continue;
+            }
+
+            if (resultBuilder.Length > 0)
+            {
+                resultBuilder.Append('\n');
+            }
+
+            resultBuilder.Append(normalizedLine);
         }
 
-        var normalized = WhitespaceRegex.Replace(builder.ToString(), " ").Trim();
-        using var sha = SHA256.Create();
+        return resultBuilder.ToString();
+    }
         return Convert.ToHexString(sha.ComputeHash(Encoding.UTF8.GetBytes(normalized)));
     }
 
