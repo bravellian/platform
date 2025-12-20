@@ -69,13 +69,8 @@ internal static class SchemaVersionSnapshot
             StringComparison.OrdinalIgnoreCase);
     }
 
-    public static Task<IDictionary<string, string>> CaptureAsync(
-        string connectionString,
-        CancellationToken cancellationToken)
+    public static Task<IDictionary<string, string>> CaptureAsync()
     {
-        _ = connectionString;
-        _ = cancellationToken;
-
         var snapshot = new Dictionary<string, string>(DatabaseSchemaManager.GetSchemaVersionsForSnapshot(), StringComparer.OrdinalIgnoreCase);
         return Task.FromResult<IDictionary<string, string>>(snapshot);
     }

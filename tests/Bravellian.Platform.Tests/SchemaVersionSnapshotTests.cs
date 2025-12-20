@@ -18,11 +18,11 @@ using Xunit;
 namespace Bravellian.Platform.Tests;
 
 public class SchemaVersionSnapshotTests
-{  
+{
     [Fact]
     public async Task SchemaVersions_MatchSnapshot()
     {
-        var captured = await SchemaVersionSnapshot.CaptureAsync(string.Empty, Xunit.TestContext.Current.CancellationToken);
+        var captured = await SchemaVersionSnapshot.CaptureAsync();
         var existingSnapshot = await SchemaVersionSnapshot.TryLoadSnapshotAsync(Xunit.TestContext.Current.CancellationToken);
 
         if (SchemaVersionSnapshot.ShouldRefreshFromEnvironment())
