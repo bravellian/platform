@@ -33,6 +33,12 @@ public static class SchedulerServiceCollectionExtensions
     /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
     public static IServiceCollection AddSqlOutbox(this IServiceCollection services, SqlOutboxOptions options)
     {
+        var validator = new SqlOutboxOptionsValidator();
+        ValidateAndThrow(options, validator);
+
+        services.AddOptions<SqlOutboxOptions>().ValidateOnStart();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<SqlOutboxOptions>>(validator));
+
         services.Configure<SqlOutboxOptions>(o =>
         {
             o.ConnectionString = options.ConnectionString;
@@ -81,6 +87,9 @@ public static class SchedulerServiceCollectionExtensions
     [Obsolete("This method uses a hardcoded connection string and creates its own lease factories, bypassing dynamic discovery. Use AddPlatformMultiDatabaseWithDiscovery or AddPlatformMultiDatabaseWithList instead to ensure all databases go through IPlatformDatabaseDiscovery.")]
     public static IServiceCollection AddSqlScheduler(this IServiceCollection services, SqlSchedulerOptions options)
     {
+        var validator = new SqlSchedulerOptionsValidator();
+        ValidateAndThrow(options, validator);
+
         // Add time abstractions
         services.AddTimeAbstractions();
 
@@ -105,6 +114,9 @@ public static class SchedulerServiceCollectionExtensions
             o.EnableBackgroundWorkers = options.EnableBackgroundWorkers;
             o.EnableSchemaDeployment = options.EnableSchemaDeployment;
         });
+
+        services.AddOptions<SqlSchedulerOptions>().ValidateOnStart();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<SqlSchedulerOptions>>(validator));
 
         // Expose the configured options instance directly for consumers that depend on the concrete type.
         services.TryAddSingleton(sp => sp.GetRequiredService<IOptions<SqlSchedulerOptions>>().Value);
@@ -235,6 +247,12 @@ public static class SchedulerServiceCollectionExtensions
     /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
     public static IServiceCollection AddSqlFanout(this IServiceCollection services, SqlFanoutOptions options)
     {
+        var validator = new SqlFanoutOptionsValidator();
+        ValidateAndThrow(options, validator);
+
+        services.AddOptions<SqlFanoutOptions>().ValidateOnStart();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<SqlFanoutOptions>>(validator));
+
         // Add time abstractions
         services.AddTimeAbstractions();
 
@@ -341,6 +359,12 @@ public static class SchedulerServiceCollectionExtensions
     /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
     public static IServiceCollection AddSqlInbox(this IServiceCollection services, SqlInboxOptions options)
     {
+        var validator = new SqlInboxOptionsValidator();
+        ValidateAndThrow(options, validator);
+
+        services.AddOptions<SqlInboxOptions>().ValidateOnStart();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<SqlInboxOptions>>(validator));
+
         services.Configure<SqlInboxOptions>(o =>
         {
             o.ConnectionString = options.ConnectionString;
@@ -414,6 +438,12 @@ public static class SchedulerServiceCollectionExtensions
         IEnumerable<SqlInboxOptions> inboxOptions,
         IInboxSelectionStrategy? selectionStrategy = null)
     {
+        var validator = new SqlInboxOptionsValidator();
+        foreach (var option in inboxOptions)
+        {
+            ValidateAndThrow(option, validator);
+        }
+
         // Add time abstractions
         services.AddTimeAbstractions();
 
@@ -621,6 +651,12 @@ public static class SchedulerServiceCollectionExtensions
         IEnumerable<SqlOutboxOptions> outboxOptions,
         IOutboxSelectionStrategy? selectionStrategy = null)
     {
+        var validator = new SqlOutboxOptionsValidator();
+        foreach (var option in outboxOptions)
+        {
+            ValidateAndThrow(option, validator);
+        }
+
         // Add time abstractions
         services.AddTimeAbstractions();
 
@@ -774,5 +810,18 @@ public static class SchedulerServiceCollectionExtensions
         var router = provider.GetRequiredService<IInboxRouter>();
         var key = storeProvider.GetStoreIdentifier(stores[0]);
         return router.GetInbox(key);
+    }
+
+    private static void ValidateAndThrow<TOptions>(TOptions options, IValidateOptions<TOptions> validator)
+        where TOptions : class
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(validator);
+
+        var validationResult = validator.Validate(Options.DefaultName, options);
+        if (validationResult.Failed)
+        {
+            throw new OptionsValidationException(Options.DefaultName, typeof(TOptions), validationResult.Failures);
+        }
     }
 }

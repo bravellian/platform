@@ -17,6 +17,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Bravellian.Platform;
 /// <summary>
@@ -41,6 +42,16 @@ public static class FanoutServiceCollectionExtensions
         if (optionsList.Count == 0)
         {
             throw new ArgumentException("At least one fanout option must be provided.", nameof(fanoutOptions));
+        }
+
+        var validator = new SqlFanoutOptionsValidator();
+        foreach (var option in optionsList)
+        {
+            var validationResult = validator.Validate(Options.DefaultName, option);
+            if (validationResult.Failed)
+            {
+                throw new OptionsValidationException(Options.DefaultName, typeof(SqlFanoutOptions), validationResult.Failures);
+            }
         }
 
         // Add time abstractions
