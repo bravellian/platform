@@ -35,6 +35,9 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
     {
         if (SchemaVersionSnapshot.ShouldRefreshFromEnvironment())
         {
+            // In snapshot refresh mode we only regenerate the schema snapshot files and
+            // intentionally skip database initialization (including base.InitializeAsync
+            // and schema deployment) to avoid unnecessary work and side effects.
             return;
         }
 
