@@ -75,6 +75,31 @@ public class CachedHealthCheckTests
     }
 
     [Fact]
+    public async Task CachesDegradedResults_UntilDurationExpires()
+    {
+        // Arrange
+        var fakeTime = new FakeTimeProvider(DateTimeOffset.Parse("2024-01-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture));
+        var inner = new CountingHealthCheck(HealthStatus.Degraded);
+        var options = new CachedHealthCheckOptions
+        {
+            HealthyCacheDuration = TimeSpan.FromMinutes(1),
+            DegradedCacheDuration = TimeSpan.FromSeconds(30),
+            UnhealthyCacheDuration = TimeSpan.Zero,
+        };
+        var cached = new CachedHealthCheck(inner, options, fakeTime);
+
+        // Act
+        await cached.CheckHealthAsync(new HealthCheckContext(), TestContext.Current.CancellationToken);
+        fakeTime.Advance(TimeSpan.FromSeconds(15));
+        await cached.CheckHealthAsync(new HealthCheckContext(), TestContext.Current.CancellationToken);
+        fakeTime.Advance(TimeSpan.FromSeconds(20));
+        await cached.CheckHealthAsync(new HealthCheckContext(), TestContext.Current.CancellationToken);
+
+        // Assert
+        inner.InvocationCount.ShouldBe(2);
+    }
+
+    [Fact]
     public async Task BuilderRegistersCachedCheck_WithOptionsPerName()
     {
         // Arrange
@@ -107,6 +132,117 @@ public class CachedHealthCheckTests
 
         // Assert
         inner.InvocationCount.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task BuilderRegistersDelegateBasedCachedCheck_WithCaching()
+    {
+        // Arrange
+        var fakeTime = new FakeTimeProvider(DateTimeOffset.Parse("2024-01-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture));
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSingleton<TimeProvider>(fakeTime);
+
+        var invocationCount = 0;
+        services
+            .AddHealthChecks()
+            .AddCachedCheck(
+                "delegateCheck",
+                (sp, ct) =>
+                {
+                    invocationCount++;
+                    return Task.FromResult(HealthCheckResult.Healthy("ok"));
+                },
+                options =>
+                {
+                    options.HealthyCacheDuration = TimeSpan.FromMinutes(1);
+                });
+
+        var provider = services.BuildServiceProvider();
+        var healthService = provider.GetRequiredService<HealthCheckService>();
+
+        // Act
+        await healthService.CheckHealthAsync(TestContext.Current.CancellationToken);
+        fakeTime.Advance(TimeSpan.FromSeconds(30));
+        await healthService.CheckHealthAsync(TestContext.Current.CancellationToken);
+        fakeTime.Advance(TimeSpan.FromMinutes(1));
+        await healthService.CheckHealthAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        invocationCount.ShouldBe(2);
+    }
+
+    [Fact]
+    public void OptionsValidator_RejectsNegativeHealthyCacheDuration()
+    {
+        // Arrange
+        var validator = new CachedHealthCheckOptionsValidator();
+        var options = new CachedHealthCheckOptions
+        {
+            HealthyCacheDuration = TimeSpan.FromSeconds(-1),
+        };
+
+        // Act
+        var result = validator.Validate("test", options);
+
+        // Assert
+        result.Failed.ShouldBeTrue();
+        result.FailureMessage.ShouldContain("HealthyCacheDuration");
+    }
+
+    [Fact]
+    public void OptionsValidator_RejectsNegativeDegradedCacheDuration()
+    {
+        // Arrange
+        var validator = new CachedHealthCheckOptionsValidator();
+        var options = new CachedHealthCheckOptions
+        {
+            DegradedCacheDuration = TimeSpan.FromSeconds(-1),
+        };
+
+        // Act
+        var result = validator.Validate("test", options);
+
+        // Assert
+        result.Failed.ShouldBeTrue();
+        result.FailureMessage.ShouldContain("DegradedCacheDuration");
+    }
+
+    [Fact]
+    public void OptionsValidator_RejectsNegativeUnhealthyCacheDuration()
+    {
+        // Arrange
+        var validator = new CachedHealthCheckOptionsValidator();
+        var options = new CachedHealthCheckOptions
+        {
+            UnhealthyCacheDuration = TimeSpan.FromSeconds(-1),
+        };
+
+        // Act
+        var result = validator.Validate("test", options);
+
+        // Assert
+        result.Failed.ShouldBeTrue();
+        result.FailureMessage.ShouldContain("UnhealthyCacheDuration");
+    }
+
+    [Fact]
+    public void OptionsValidator_AcceptsValidOptions()
+    {
+        // Arrange
+        var validator = new CachedHealthCheckOptionsValidator();
+        var options = new CachedHealthCheckOptions
+        {
+            HealthyCacheDuration = TimeSpan.FromMinutes(1),
+            DegradedCacheDuration = TimeSpan.FromSeconds(30),
+            UnhealthyCacheDuration = TimeSpan.Zero,
+        };
+
+        // Act
+        var result = validator.Validate("test", options);
+
+        // Assert
+        result.Succeeded.ShouldBeTrue();
     }
 
     private sealed class CountingHealthCheck : IHealthCheck
