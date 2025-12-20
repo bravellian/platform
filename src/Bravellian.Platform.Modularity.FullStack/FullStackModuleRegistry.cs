@@ -31,6 +31,15 @@ public static class FullStackModuleRegistry
         ModuleRegistry.RegisterModuleType(typeof(T), ModuleCategory.FullStack);
     }
 
+    /// <summary>
+    /// Gets a snapshot of all registered full stack module types.
+    /// </summary>
+    /// <returns>A read-only collection of registered full stack module types.</returns>
+    public static IReadOnlyCollection<Type> GetRegisteredModuleTypes()
+    {
+        return ModuleRegistry.GetRegisteredTypes(ModuleCategory.FullStack);
+    }
+
     internal static IReadOnlyCollection<IFullStackModule> InitializeFullStackModules(
         IConfiguration configuration,
         IServiceCollection services,
