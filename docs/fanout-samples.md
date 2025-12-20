@@ -13,15 +13,17 @@ var builder = Host.CreateApplicationBuilder(args);
 
 const string connectionString = "Server=localhost;Database=Platform;Trusted_Connection=True;TrustServerCertificate=True";
 
-builder.Services.AddSqlScheduler(new SqlSchedulerOptions
-{
-    ConnectionString = connectionString,
-});
-
-builder.Services.AddSqlFanout(new SqlFanoutOptions
-{
-    ConnectionString = connectionString,
-});
+// Register platform with single database
+builder.Services.AddPlatformMultiDatabaseWithList(
+    new[]
+    {
+        new PlatformDatabase
+        {
+            Name = "Platform",
+            ConnectionString = connectionString,
+        }
+    },
+    enableSchemaDeployment: true);
 
 builder.Services.AddFanoutTopic<ReportFanoutPlanner>(new FanoutTopicOptions
 {
@@ -84,17 +86,22 @@ using Microsoft.Extensions.Hosting;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-builder.Services.AddMultiSqlOutbox(new[]
-{
-    new SqlOutboxOptions { ConnectionString = "Server=localhost;Database=TenantA;Trusted_Connection=True;TrustServerCertificate=True" },
-    new SqlOutboxOptions { ConnectionString = "Server=localhost;Database=TenantB;Trusted_Connection=True;TrustServerCertificate=True" },
-});
-
-builder.Services.AddMultiSqlFanout(new[]
-{
-    new SqlFanoutOptions { ConnectionString = "Server=localhost;Database=TenantA;Trusted_Connection=True;TrustServerCertificate=True" },
-    new SqlFanoutOptions { ConnectionString = "Server=localhost;Database=TenantB;Trusted_Connection=True;TrustServerCertificate=True" },
-});
+// Register platform with multiple databases
+builder.Services.AddPlatformMultiDatabaseWithList(
+    new[]
+    {
+        new PlatformDatabase
+        {
+            Name = "TenantA",
+            ConnectionString = "Server=localhost;Database=TenantA;Trusted_Connection=True;TrustServerCertificate=True",
+        },
+        new PlatformDatabase
+        {
+            Name = "TenantB",
+            ConnectionString = "Server=localhost;Database=TenantB;Trusted_Connection=True;TrustServerCertificate=True",
+        }
+    },
+    enableSchemaDeployment: true);
 
 builder.Services.AddFanoutTopic<InventoryFanoutPlanner>(new FanoutTopicOptions
 {
