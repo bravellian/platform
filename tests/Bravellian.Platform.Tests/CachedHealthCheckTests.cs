@@ -22,11 +22,13 @@ namespace Bravellian.Platform.Tests;
 
 public class CachedHealthCheckTests
 {
+    private static readonly DateTimeOffset TestStartTime = DateTimeOffset.Parse("2024-01-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture);
+
     [Fact]
     public async Task CachesHealthyResults_UntilDurationExpires()
     {
         // Arrange
-        var fakeTime = new FakeTimeProvider(DateTimeOffset.Parse("2024-01-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture));
+        var fakeTime = new FakeTimeProvider(TestStartTime);
         var inner = new CountingHealthCheck(HealthStatus.Healthy);
         var options = new CachedHealthCheckOptions
         {
@@ -51,7 +53,7 @@ public class CachedHealthCheckTests
     public async Task RechecksImmediately_WhenUnhealthy()
     {
         // Arrange
-        var fakeTime = new FakeTimeProvider(DateTimeOffset.Parse("2024-01-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture));
+        var fakeTime = new FakeTimeProvider(TestStartTime);
         var inner = new SequenceHealthCheck([
             HealthCheckResult.Unhealthy("down"),
             HealthCheckResult.Healthy("recovered"),
@@ -78,7 +80,7 @@ public class CachedHealthCheckTests
     public async Task CachesDegradedResults_UntilDurationExpires()
     {
         // Arrange
-        var fakeTime = new FakeTimeProvider(DateTimeOffset.Parse("2024-01-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture));
+        var fakeTime = new FakeTimeProvider(TestStartTime);
         var inner = new CountingHealthCheck(HealthStatus.Degraded);
         var options = new CachedHealthCheckOptions
         {
@@ -103,7 +105,7 @@ public class CachedHealthCheckTests
     public async Task BuilderRegistersCachedCheck_WithOptionsPerName()
     {
         // Arrange
-        var fakeTime = new FakeTimeProvider(DateTimeOffset.Parse("2024-01-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture));
+        var fakeTime = new FakeTimeProvider(TestStartTime);
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton<TimeProvider>(fakeTime);
@@ -138,7 +140,7 @@ public class CachedHealthCheckTests
     public async Task BuilderRegistersDelegateBasedCachedCheck_WithCaching()
     {
         // Arrange
-        var fakeTime = new FakeTimeProvider(DateTimeOffset.Parse("2024-01-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture));
+        var fakeTime = new FakeTimeProvider(TestStartTime);
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton<TimeProvider>(fakeTime);
