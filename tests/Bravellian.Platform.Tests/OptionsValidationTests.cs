@@ -32,7 +32,7 @@ public class OptionsValidationTests
     }
 
     [Fact]
-    public void AddSqlInbox_ThrowsForNegativeCleanupInterval()
+    public void AddSqlInbox_ThrowsForZeroCleanupInterval()
     {
         var services = new ServiceCollection();
 
@@ -40,20 +40,60 @@ public class OptionsValidationTests
             services.AddSqlInbox(new SqlInboxOptions
             {
                 ConnectionString = "Data Source=(local);Initial Catalog=Inbox;Integrated Security=True;TrustServerCertificate=True",
+                EnableAutomaticCleanup = true,
                 CleanupInterval = TimeSpan.Zero,
             }));
     }
 
     [Fact]
-    public void AddSqlScheduler_ThrowsForOutOfRangePollingInterval()
+    public void AddSqlOutbox_ThrowsForZeroCleanupInterval()
     {
         var services = new ServiceCollection();
 
         Assert.Throws<OptionsValidationException>(() =>
-            services.AddSqlScheduler(new SqlSchedulerOptions
+            services.AddSqlOutbox(new SqlOutboxOptions
             {
-                ConnectionString = "Data Source=(local);Initial Catalog=Scheduler;Integrated Security=True;TrustServerCertificate=True",
-                MaxPollingInterval = TimeSpan.FromSeconds(0.5),
+                ConnectionString = "Data Source=(local);Initial Catalog=Outbox;Integrated Security=True;TrustServerCertificate=True",
+                EnableAutomaticCleanup = true,
+                CleanupInterval = TimeSpan.Zero,
+            }));
+    }
+
+    [Fact]
+    public void AddSqlInbox_ThrowsForMissingConnectionString()
+    {
+        var services = new ServiceCollection();
+
+        Assert.Throws<OptionsValidationException>(() =>
+            services.AddSqlInbox(new SqlInboxOptions
+            {
+                ConnectionString = string.Empty,
+            }));
+    }
+
+    [Fact]
+    public void AddSqlInbox_ThrowsForMissingSchemaName()
+    {
+        var services = new ServiceCollection();
+
+        Assert.Throws<OptionsValidationException>(() =>
+            services.AddSqlInbox(new SqlInboxOptions
+            {
+                ConnectionString = "Data Source=(local);Initial Catalog=Inbox;Integrated Security=True;TrustServerCertificate=True",
+                SchemaName = string.Empty,
+            }));
+    }
+
+    [Fact]
+    public void AddSqlOutbox_ThrowsForMissingSchemaName()
+    {
+        var services = new ServiceCollection();
+
+        Assert.Throws<OptionsValidationException>(() =>
+            services.AddSqlOutbox(new SqlOutboxOptions
+            {
+                ConnectionString = "Data Source=(local);Initial Catalog=Outbox;Integrated Security=True;TrustServerCertificate=True",
+                SchemaName = string.Empty,
             }));
     }
 
@@ -66,6 +106,19 @@ public class OptionsValidationTests
             services.AddSqlFanout(new SqlFanoutOptions
             {
                 ConnectionString = "   ",
+            }));
+    }
+
+    [Fact]
+    public void AddSqlFanout_ThrowsForMissingSchemaName()
+    {
+        var services = new ServiceCollection();
+
+        Assert.Throws<OptionsValidationException>(() =>
+            services.AddSqlFanout(new SqlFanoutOptions
+            {
+                ConnectionString = "Data Source=(local);Initial Catalog=Fanout;Integrated Security=True;TrustServerCertificate=True",
+                SchemaName = string.Empty,
             }));
     }
 }
