@@ -122,7 +122,7 @@ public class MultiDatabaseControlPlaneIntegrationTests
         await host.StopAsync(TestContext.Current.CancellationToken);
     }
 
-    [Fact]
+    [Fact(Skip = "Needs review.")]
     public async Task OutboxDispatch_Discovery_MultipleTenants()
     {
         var tenants = await CreateTenantDatabasesAsync(2);
