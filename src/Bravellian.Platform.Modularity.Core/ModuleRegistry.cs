@@ -81,6 +81,13 @@ internal static class ModuleRegistry
             var module = (TModule)CreateInstance(type, loggerFactory);
             LoadConfiguration(configuration, module, loggerFactory);
             RegisterInstance(module);
+            if (module is IEngineModule engineModule)
+            {
+                var descriptors = engineModule.DescribeEngines()
+                    .Select(descriptor => descriptor with { ModuleKey = module.Key })
+                    .ToArray();
+                ModuleEngineRegistry.Register(module.Key, descriptors);
+            }
             initialized.Add(module);
         }
 
@@ -122,6 +129,7 @@ internal static class ModuleRegistry
             }
 
             Instances.Clear();
+            ModuleEngineRegistry.Reset();
         }
     }
 

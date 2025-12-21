@@ -1,0 +1,28 @@
+// Copyright (c) Bravellian
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+namespace Bravellian.Platform.Modularity;
+
+/// <summary>
+/// Engine descriptor registered by a module. Factories are provided by modules and consumed by adapters.
+/// </summary>
+/// <param name="ModuleKey">Module key that owns the engine.</param>
+/// <param name="Manifest">Engine manifest metadata.</param>
+/// <param name="ContractType">Engine contract interface (e.g., IUiEngine&lt;,&gt; or IWebhookEngine&lt;&gt;).</param>
+/// <param name="Factory">Factory that resolves the engine instance from an <see cref="IServiceProvider"/>.</param>
+public sealed record ModuleEngineDescriptor(
+    string ModuleKey,
+    ModuleEngineManifest Manifest,
+    Type ContractType,
+    Func<IServiceProvider, object> Factory);

@@ -39,6 +39,8 @@ public static class ApiModuleServiceCollectionExtensions
             services.AddSingleton(module);
         }
 
+        services.AddSingleton<ModuleEngineDiscoveryService>();
+
         return services;
     }
 

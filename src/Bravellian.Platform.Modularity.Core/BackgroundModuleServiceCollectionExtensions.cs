@@ -32,6 +32,7 @@ public static class BackgroundModuleServiceCollectionExtensions
         ILoggerFactory? loggerFactory = null)
     {
         ModuleRegistry.InitializeModules<IBackgroundModule>(ModuleCategory.Background, configuration, services, loggerFactory);
+        services.AddSingleton<ModuleEngineDiscoveryService>();
         return services;
     }
 }
