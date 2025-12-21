@@ -87,6 +87,9 @@ sequenceDiagram
 ## Related Guides
 - [Outbox Pattern Quick Start](outbox-quickstart.md)
 - [Inbox Pattern Quick Start](inbox-quickstart.md)
+- [Outbox Examples](outbox-examples.md) and [Inbox Examples](inbox-examples.md) for concrete handlers
+- [Work Queue Implementation](work-queue-implementation.md) for lease semantics across primitives
+- [Lease Examples](lease-examples.md) for coordination patterns that complement queues
 - [Outbox Join / Fan-In Support](OUTBOX_JOIN_FANIN.md)
 - [Understanding fanout and the outbox](official/fanout.md)
 - [Outbox Router Guide](OutboxRouter.md)

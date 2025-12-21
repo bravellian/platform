@@ -673,3 +673,9 @@ The Inbox pattern provides:
 ✅ **Concurrent safety** - SQL MERGE ensures atomicity  
 
 Combined with the [Outbox pattern](outbox-quickstart.md), you get end-to-end exactly-once semantics across distributed systems.
+
+### Next steps
+- Explore [Inbox Examples](inbox-examples.md) for webhook flows, poison handling, and coordinated replies.
+- See [Dynamic Inbox Configuration](dynamic-inbox-example.md) to onboard tenants without redeploying.
+- Review the [Work Queue Implementation](work-queue-implementation.md) to tune leases and batch sizes.
+- Pair with [Lease Examples](lease-examples.md) when inbox handlers coordinate shared resources.
