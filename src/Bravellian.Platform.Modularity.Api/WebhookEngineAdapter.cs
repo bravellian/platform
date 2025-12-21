@@ -57,8 +57,7 @@ public sealed class WebhookEngineAdapter
         var typedDescriptor = descriptor as ModuleEngineDescriptor<IWebhookEngine<TPayload>>
             ?? throw new InvalidOperationException($"Engine '{descriptor.Manifest.Id}' does not implement expected webhook contract.");
 
-        var engine = discovery.ResolveEngine(typedDescriptor, services)
-            ?? throw new InvalidOperationException($"Engine '{descriptor.Manifest.Id}' does not implement expected webhook contract.");
+        var engine = discovery.ResolveEngine(typedDescriptor, services);
 
         var outcome = await engine.HandleAsync(
             new WebhookRequest<TPayload>(request.Provider, request.EventType, request.Payload, request.IdempotencyKey, request.Attempt),
