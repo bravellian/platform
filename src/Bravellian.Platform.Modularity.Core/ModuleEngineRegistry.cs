@@ -43,7 +43,18 @@ internal static class ModuleEngineRegistry
 
     public static IReadOnlyCollection<IModuleEngineDescriptor> GetEngines()
     {
-        return Engines.Values.SelectMany(x => x).ToArray();
+        // Take a thread-safe snapshot of all registered engines by copying each list under its lock.
+        var snapshots = new List<IModuleEngineDescriptor[]>();
+
+        foreach (var list in Engines.Values)
+        {
+            lock (list)
+            {
+                snapshots.Add(list.ToArray());
+            }
+        }
+
+        return snapshots.SelectMany(x => x).ToArray();
     }
 
     public static IModuleEngineDescriptor? FindWebhookEngine(string provider, string eventType)
