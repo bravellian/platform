@@ -68,6 +68,23 @@ var app = builder.Build();
 app.MapHealthChecks("/health");
 ```
 
+### Discovery-first feature registration
+
+When you are already using `IPlatformDatabaseDiscovery` to enumerate tenant databases, you can opt into unified, discovery-based
+feature registration without bringing in the full platform bootstrapper. The following helpers reuse the same discovery pipeline
+for Outbox, Inbox, Scheduler, Fanout, and Leases:
+
+```csharp
+builder.Services.AddSingleton<IPlatformDatabaseDiscovery>(new MyTenantDiscovery());
+
+builder.Services
+    .AddPlatformOutbox(enableSchemaDeployment: true)
+    .AddPlatformInbox(enableSchemaDeployment: true)
+    .AddPlatformScheduler()
+    .AddPlatformFanout()
+    .AddPlatformLeases();
+```
+
 ### Database Schema
 
 The platform automatically creates the required database schema when `EnableSchemaDeployment = true`. Alternatively, you can run the SQL scripts manually:
