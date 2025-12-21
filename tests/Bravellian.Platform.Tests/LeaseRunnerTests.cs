@@ -15,6 +15,7 @@
 
 using System.Diagnostics;
 using System.Reflection;
+using Bravellian.Platform.Tests.TestUtilities;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Bravellian.Platform.Tests;
@@ -246,7 +247,7 @@ public class LeaseRunnerTests : SqlServerTestBase
         var owner = "monotonic-owner";
         var leaseDuration = TimeSpan.FromSeconds(20);
         var renewPercent = 0.6;
-        var monotonicClock = new TestMonotonicClock(startSeconds: 10_000);
+        var monotonicClock = new FakeMonotonicClock(startSeconds: 10_000);
         var timeProvider = TimeProvider.System; // Wall clock skew should not affect scheduling
         var logger = NullLogger.Instance;
 
@@ -263,21 +264,42 @@ public class LeaseRunnerTests : SqlServerTestBase
 
         runner.ShouldNotBeNull();
 
-        var nextRenewField = typeof(LeaseRunner).GetField("nextRenewMonotonicTime", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        var nextRenewField = typeof(LeaseRunner).GetField("nextRenewMonotonicTime", BindingFlags.NonPublic | BindingFlags.Instance);
+        if (nextRenewField == null)
+        {
+            throw new InvalidOperationException("LeaseRunner.nextRenewMonotonicTime field not found. The internal implementation may have changed.");
+        }
 
-        var scheduledBeforePause = (double)nextRenewField.GetValue(runner)!;
+        var scheduledBeforeFieldValue = nextRenewField.GetValue(runner);
+        if (scheduledBeforeFieldValue == null)
+        {
+            throw new InvalidOperationException("LeaseRunner.nextRenewMonotonicTime field value is null.");
+        }
+
+        var scheduledBeforePause = (double)scheduledBeforeFieldValue;
         scheduledBeforePause.ShouldBeGreaterThan(monotonicClock.Seconds);
 
         // Act - Simulate a GC pause and a wall clock skew (monotonic clock jumps forward)
         monotonicClock.Advance(TimeSpan.FromSeconds(30));
 
         var renewTimerCallback = typeof(LeaseRunner)
-            .GetMethod("RenewTimerCallback", BindingFlags.NonPublic | BindingFlags.Instance)!;
+            .GetMethod("RenewTimerCallback", BindingFlags.NonPublic | BindingFlags.Instance);
+        
+        if (renewTimerCallback == null)
+        {
+            throw new InvalidOperationException("LeaseRunner.RenewTimerCallback method not found. The internal implementation may have changed.");
+        }
 
         // Invoke the renewal callback manually to validate monotonic scheduling after the pause
         renewTimerCallback.Invoke(runner, new object?[] { null });
 
-        var scheduledAfterPause = (double)nextRenewField.GetValue(runner)!;
+        var scheduledAfterFieldValue = nextRenewField.GetValue(runner);
+        if (scheduledAfterFieldValue == null)
+        {
+            throw new InvalidOperationException("LeaseRunner.nextRenewMonotonicTime field value is null after renewal.");
+        }
+
+        var scheduledAfterPause = (double)scheduledAfterFieldValue;
 
         // Assert - Renewal reschedules based on monotonic time, not wall clock
         runner.IsLost.ShouldBeFalse();
@@ -286,28 +308,15 @@ public class LeaseRunnerTests : SqlServerTestBase
 
         // Invoke again without advancing monotonic clock to verify jitter/periodic ticks do not over-renew
         renewTimerCallback.Invoke(runner, new object?[] { null });
-        var scheduledAfterImmediateRetry = (double)nextRenewField.GetValue(runner)!;
+        var scheduledAfterImmediateRetryFieldValue = nextRenewField.GetValue(runner);
+        if (scheduledAfterImmediateRetryFieldValue == null)
+        {
+            throw new InvalidOperationException("LeaseRunner.nextRenewMonotonicTime field value is null after immediate retry.");
+        }
+
+        var scheduledAfterImmediateRetry = (double)scheduledAfterImmediateRetryFieldValue;
         scheduledAfterImmediateRetry.ShouldBe(scheduledAfterPause);
 
         await runner.DisposeAsync();
-    }
-
-    private sealed class TestMonotonicClock : IMonotonicClock
-    {
-        private double currentSeconds;
-
-        public TestMonotonicClock(double startSeconds)
-        {
-            currentSeconds = startSeconds;
-        }
-
-        public long Ticks => (long)(currentSeconds * Stopwatch.Frequency);
-
-        public double Seconds => currentSeconds;
-
-        public void Advance(TimeSpan timeSpan)
-        {
-            currentSeconds += timeSpan.TotalSeconds;
-        }
     }
 }

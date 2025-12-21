@@ -353,21 +353,23 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
             acquisitions.Add(acquired);
         }
 
-        var random = new Random(42);
         var renewResults = new ConcurrentBag<SemaphoreRenewResult>();
 
         // Act - Renew each lease several times with jitter and occasional long pauses to mimic GC
-        var renewalTasks = acquisitions.Select(acquired => Task.Run(async () =>
+        var renewalTasks = acquisitions.Select((acquired, taskIndex) => Task.Run(async () =>
         {
+            // Create thread-local Random with unique seed per task
+            var taskRandom = new Random(42 + taskIndex);
+            
             for (var iteration = 0; iteration < 6; iteration++)
             {
                 // Short jitter between renewals
-                await Task.Delay(TimeSpan.FromMilliseconds(random.Next(50, 250)), TestContext.Current.CancellationToken);
+                await Task.Delay(TimeSpan.FromMilliseconds(taskRandom.Next(50, 250)), TestContext.Current.CancellationToken);
 
                 // Simulate a rare GC pause
                 if (iteration == 2)
                 {
-                    await Task.Delay(TimeSpan.FromMilliseconds(random.Next(1500, 2000)), TestContext.Current.CancellationToken);
+                    await Task.Delay(TimeSpan.FromMilliseconds(taskRandom.Next(1500, 2000)), TestContext.Current.CancellationToken);
                 }
 
                 var renewed = await semaphoreService.RenewAsync(
@@ -377,7 +379,6 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
                     cancellationToken: TestContext.Current.CancellationToken);
 
                 renewResults.Add(renewed);
-                renewed.Status.ShouldBe(SemaphoreRenewStatus.Renewed);
             }
         }, Xunit.TestContext.Current.CancellationToken)).ToList();
 
@@ -409,11 +410,11 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
 
         holder.Status.ShouldBe(SemaphoreAcquireStatus.Acquired);
 
-        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(4));
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(4));
         var notAcquiredCount = 0;
 
         // Act - Saturate the semaphore and verify contenders are backpressured, not lost
-        await Task.WhenAll(Enumerable.Range(0, 4).Select(_ => Task.Run(async () =>
+        var contenderTasks = Enumerable.Range(0, 4).Select(_ => Task.Run(async () =>
         {
             while (!cts.IsCancellationRequested)
             {
@@ -430,7 +431,17 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
 
                 await Task.Delay(TimeSpan.FromMilliseconds(100), TestContext.Current.CancellationToken);
             }
-        }, Xunit.TestContext.Current.CancellationToken)));
+        }, Xunit.TestContext.Current.CancellationToken)).ToList();
+
+        // Wait for contender tasks to complete (they will timeout after 4 seconds)
+        try
+        {
+            await Task.WhenAll(contenderTasks);
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when tasks are cancelled due to timeout
+        }
 
         // Release capacity and confirm acquisition immediately resumes
         await semaphoreService.ReleaseAsync(name, holder.Token!.Value, TestContext.Current.CancellationToken);
