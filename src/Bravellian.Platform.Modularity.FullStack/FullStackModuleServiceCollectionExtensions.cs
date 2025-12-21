@@ -42,6 +42,7 @@ public static class FullStackModuleServiceCollectionExtensions
             services.AddSingleton(module);
         }
 
+        services.AddSingleton<ModuleEngineDiscoveryService>();
         services.AddSingleton<ModuleNavigationService>();
         return services;
     }
