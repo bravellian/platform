@@ -13,6 +13,7 @@
 // limitations under the License.
 
 
+using Bravellian.Platform.Tests.TestUtilities;
 using Microsoft.Extensions.Time.Testing;
 
 namespace Bravellian.Platform.Tests;
@@ -107,20 +108,5 @@ public class TimeAbstractionTests
         // Assert
         notExpired.ShouldBeFalse();
         expired.ShouldBeTrue();
-    }
-
-    // Helper class for testing monotonic clock functionality
-    private class FakeMonotonicClock : IMonotonicClock
-    {
-        private double currentSeconds = 1000.0; // Start at some arbitrary time
-
-        public long Ticks => (long)(currentSeconds * Stopwatch.Frequency);
-
-        public double Seconds => currentSeconds;
-
-        public void Advance(TimeSpan timeSpan)
-        {
-            currentSeconds += timeSpan.TotalSeconds;
-        }
     }
 }
