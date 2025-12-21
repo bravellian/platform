@@ -60,6 +60,7 @@ Welcome to the comprehensive documentation for the Bravellian Platform. This gui
 
 - [Implementation Summary](IMPLEMENTATION_SUMMARY.md) - High-level implementation overview
 - [API Reference](../src/Bravellian.Platform/PublicAPI.Shipped.txt) - Complete public API
+- [Operational Troubleshooting](operational-troubleshooting.md) - Runbook for common production issues
 
 ## 🔍 Quick Links by Task
 
@@ -85,5 +86,5 @@ Found an issue or want to improve the documentation? See our [contribution guide
 
 ---
 
-**Last Updated:** 2024-11-07  
+**Last Updated:** 2025-12-21
 **Platform Version:** 1.0.0+
