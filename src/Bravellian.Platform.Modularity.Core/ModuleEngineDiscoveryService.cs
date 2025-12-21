@@ -56,7 +56,7 @@ public sealed class ModuleEngineDiscoveryService
         if (instance is null)
         {
             throw new System.InvalidOperationException(
-                $"The factory for module engine '{descriptor.Manifest.ModuleKey}/{descriptor.Manifest.Id}' returned null.");
+                $"The factory for module engine '{descriptor.ModuleKey}/{descriptor.Manifest.Id}' returned null.");
         }
 
         return instance;

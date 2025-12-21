@@ -42,8 +42,7 @@ public sealed class UiEngineAdapter
         var typedDescriptor = descriptor as ModuleEngineDescriptor<IUiEngine<TInput, TViewModel>>
             ?? throw new InvalidOperationException($"Engine '{engineId}' does not implement the expected UI contract.");
 
-        var engine = discoveryService.ResolveEngine(typedDescriptor, services)
-            ?? throw new InvalidOperationException($"Engine '{engineId}' does not implement the expected UI contract.");
+        var engine = discoveryService.ResolveEngine(typedDescriptor, services);
 
         var result = await engine.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
 
