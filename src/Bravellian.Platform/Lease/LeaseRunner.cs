@@ -234,6 +234,16 @@ public sealed class LeaseRunner : IAsyncDisposable
                 return;
             }
 
+            // Pre-schedule the next renewal using monotonic time to avoid drift during async renewal.
+            var renewInSeconds = leaseDuration.TotalSeconds * renewPercent;
+            lock (lockObject)
+            {
+                if (currentMonotonicTime >= nextRenewMonotonicTime)
+                {
+                    nextRenewMonotonicTime = currentMonotonicTime + renewInSeconds;
+                }
+            }
+
             var renewed = await RenewLeaseAsync(CancellationToken.None).ConfigureAwait(false);
             if (!renewed)
             {
