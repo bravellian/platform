@@ -23,7 +23,7 @@ Welcome to the comprehensive documentation for the Bravellian Platform. This gui
 ### Core Documentation
 - [Outbox Quick Start](outbox-quickstart.md) - Get started with outbox pattern
 - [Outbox API Reference](outbox-api-reference.md) - Complete API documentation
-- [Outbox Examples (Coming Soon)](outbox-examples.md) - Real-world usage examples
+- [Outbox Examples](outbox-examples.md) - Real-world usage examples
 
 ### Multi-Tenant Scenarios
 - [Outbox Router Guide](OutboxRouter.md) - Multi-database routing
@@ -33,23 +33,23 @@ Welcome to the comprehensive documentation for the Bravellian Platform. This gui
 ### Implementation Details
 - [Outbox Router Implementation](OutboxRouterImplementation.md) - Internal architecture
 - [Multi-Outbox README](MULTI_OUTBOX_README.md) - Design decisions
-- [Work Queue Implementation (Coming Soon)](work-queue-implementation.md) - Technical details
+- [Work Queue Implementation](work-queue-implementation.md) - Technical details
 
 ## 📥 Inbox Pattern
 
 ### Core Documentation
 - [Inbox Quick Start](inbox-quickstart.md) - Get started with inbox pattern
 - [Inbox API Reference](inbox-api-reference.md) - Complete API documentation
-- [Inbox Examples (Coming Soon)](inbox-examples.md) - Real-world usage examples
+- [Inbox Examples](inbox-examples.md) - Real-world usage examples
 
 ### Multi-Tenant Scenarios
 - [Inbox Router Guide](InboxRouter.md) - Multi-database routing
-- [Dynamic Inbox Configuration (Coming Soon)](dynamic-inbox-example.md) - Runtime discovery
+- [Dynamic Inbox Configuration](dynamic-inbox-example.md) - Runtime discovery
 
 ## 🔒 Distributed Locking
 
 - [Lease System v2](lease-v2-usage.md) - Distributed locks with automatic renewal
-- [Lease Examples (Coming Soon)](lease-examples.md) - Common patterns and use cases
+- [Lease Examples](lease-examples.md) - Common patterns and use cases
 
 ## 🏢 Multi-Tenant Patterns
 

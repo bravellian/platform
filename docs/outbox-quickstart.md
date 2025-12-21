@@ -434,3 +434,8 @@ The Outbox pattern provides:
 ✅ **Horizontal scaling** - Multiple workers can process in parallel  
 
 For at-most-once processing on the receiving side, combine with the [Inbox pattern](inbox-quickstart.md).
+
+### Next steps
+- Browse the [Outbox Examples](outbox-examples.md) for end-to-end handlers and poison-message handling.
+- Review the [Work Queue Implementation](work-queue-implementation.md) to understand leases and stored procedures that power claims.
+- Coordinate cross-component work with [Lease Examples](lease-examples.md).
