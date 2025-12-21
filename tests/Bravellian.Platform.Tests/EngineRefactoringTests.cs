@@ -63,6 +63,60 @@ public sealed class EngineRefactoringTests
     }
 
     [Fact]
+    public async Task Webhook_adapter_rejects_invalid_signature()
+    {
+        var provider = BuildServiceProvider();
+        var adapter = new WebhookEngineAdapter(provider.GetRequiredService<ModuleEngineDiscoveryService>(), provider, provider.GetRequiredService<IWebhookSignatureValidator>());
+
+        var request = new WebhookAdapterRequest<PostmarkBouncePayload>(
+            "postmark",
+            "bounce",
+            new Dictionary<string, string> { ["X-Signature"] = "invalid-signature" },
+            "raw-body",
+            "idemp-1",
+            1,
+            null,
+            new PostmarkBouncePayload("HardBounce", "Mail rejected"));
+
+        var response = await adapter.DispatchAsync(request, CancellationToken.None);
+
+        Assert.Equal(WebhookOutcomeType.Acknowledge, response.Outcome);
+        Assert.Equal("Signature validation failed", response.Reason);
+    }
+
+    [Fact]
+    public async Task Webhook_adapter_requires_idempotency_key_when_configured()
+    {
+        var provider = BuildServiceProvider();
+        var adapter = new WebhookEngineAdapter(provider.GetRequiredService<ModuleEngineDiscoveryService>(), provider, provider.GetRequiredService<IWebhookSignatureValidator>());
+
+        var request = new WebhookAdapterRequest<PostmarkBouncePayload>(
+            "postmark",
+            "bounce",
+            new Dictionary<string, string> { ["X-Signature"] = "postmark:raw-body" },
+            "raw-body",
+            string.Empty, // Missing idempotency key
+            1,
+            null,
+            new PostmarkBouncePayload("HardBounce", "Mail rejected"));
+
+        var response = await adapter.DispatchAsync(request, CancellationToken.None);
+
+        Assert.Equal(WebhookOutcomeType.Retry, response.Outcome);
+        Assert.Contains("Idempotency key is required", response.Reason);
+    }
+
+    [Fact]
+    public async Task Ui_engine_exception_propagates_to_adapter()
+    {
+        var provider = BuildServiceProvider();
+        var adapter = new UiEngineAdapter(provider.GetRequiredService<ModuleEngineDiscoveryService>(), provider);
+
+        await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await adapter.ExecuteAsync<LoginCommand, LoginViewModel>("fake-module", "ui.login", new LoginCommand(string.Empty, "pass"), CancellationToken.None));
+    }
+
+    [Fact]
     public void Discovery_service_filters_engines()
     {
         var provider = BuildServiceProvider();
