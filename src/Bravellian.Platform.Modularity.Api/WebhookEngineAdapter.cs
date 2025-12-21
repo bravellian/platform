@@ -41,15 +41,16 @@ public sealed class WebhookEngineAdapter
         var descriptor = discovery.ResolveWebhookEngine(request.Provider, request.EventType)
             ?? throw new InvalidOperationException($"No webhook engine registered for provider '{request.Provider}' and event '{request.EventType}'.");
 
-        if (descriptor.Manifest.Security is { } security)
+        if (descriptor.Manifest.Security is { } security &&
+            !signatureValidator.Validate(security, request.Headers, request.RawBody, request.Signature))
         {
-            if (!signatureValidator.Validate(security, request.Headers, request.RawBody, request.Signature))
-            {
-                return new WebhookAdapterResponse(WebhookOutcomeType.Retry, "Signature validation failed");
-            }
+            return new WebhookAdapterResponse(WebhookOutcomeType.Retry, "Signature validation failed");
         }
 
         if (string.IsNullOrWhiteSpace(request.IdempotencyKey) && descriptor.Manifest.Security?.IdempotencyWindow is not null)
+        {
+            return new WebhookAdapterResponse(WebhookOutcomeType.Retry, "Missing idempotency key");
+        }
         {
             return new WebhookAdapterResponse(WebhookOutcomeType.Retry, "Missing idempotency key");
         }
