@@ -44,13 +44,10 @@ public sealed class WebhookEngineAdapter
         if (descriptor.Manifest.Security is { } security &&
             !signatureValidator.Validate(security, request.Headers, request.RawBody, request.Signature))
         {
-            return new WebhookAdapterResponse(WebhookOutcomeType.Retry, "Signature validation failed");
+            return new WebhookAdapterResponse(WebhookOutcomeType.Acknowledge, "Signature validation failed");
         }
 
         if (string.IsNullOrWhiteSpace(request.IdempotencyKey) && descriptor.Manifest.Security?.IdempotencyWindow is not null)
-        {
-            return new WebhookAdapterResponse(WebhookOutcomeType.Retry, "Missing idempotency key");
-        }
         {
             return new WebhookAdapterResponse(WebhookOutcomeType.Retry, "Missing idempotency key");
         }
