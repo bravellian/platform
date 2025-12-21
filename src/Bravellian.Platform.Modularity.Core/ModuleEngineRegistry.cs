@@ -59,19 +59,60 @@ internal static class ModuleEngineRegistry
 
     public static IModuleEngineDescriptor? FindWebhookEngine(string provider, string eventType)
     {
-        return GetEngines()
-            .Where(e => e.Manifest.Kind == EngineKind.Webhook)
-            .SelectMany(descriptor => descriptor.Manifest.WebhookMetadata?.Select(meta => (descriptor, meta))
-                                   ?? Array.Empty<(IModuleEngineDescriptor descriptor, ModuleEngineWebhookMetadata meta)>())
-            .FirstOrDefault(pair => string.Equals(pair.meta.Provider, provider, StringComparison.OrdinalIgnoreCase)
-                                 && string.Equals(pair.meta.EventType, eventType, StringComparison.OrdinalIgnoreCase))
-            .descriptor;
+        // Avoid creating a full snapshot; search lists directly under their locks.
+        foreach (var list in Engines.Values)
+        {
+            lock (list)
+            {
+                foreach (var descriptor in list)
+                {
+                    if (descriptor.Manifest.Kind != EngineKind.Webhook)
+                    {
+                        continue;
+                    }
+
+                    var metadataCollection = descriptor.Manifest.WebhookMetadata;
+                    if (metadataCollection == null)
+                    {
+                        continue;
+                    }
+
+                    foreach (var meta in metadataCollection)
+                    {
+                        if (string.Equals(meta.Provider, provider, StringComparison.OrdinalIgnoreCase)
+                            && string.Equals(meta.EventType, eventType, StringComparison.OrdinalIgnoreCase))
+                        {
+                            return descriptor;
+                        }
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 
     public static IModuleEngineDescriptor? FindById(string moduleKey, string engineId)
     {
-        return GetEngines().FirstOrDefault(e => string.Equals(e.ModuleKey, moduleKey, StringComparison.OrdinalIgnoreCase)
-                                             && string.Equals(e.Manifest.Id, engineId, StringComparison.OrdinalIgnoreCase));
+        // Narrow the lookup to the specific moduleKey instead of scanning all engines.
+        if (!Engines.TryGetValue(moduleKey, out var list))
+        {
+            return null;
+        }
+
+        lock (list)
+        {
+            foreach (var descriptor in list)
+            {
+                if (string.Equals(descriptor.ModuleKey, moduleKey, StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(descriptor.Manifest.Id, engineId, StringComparison.OrdinalIgnoreCase))
+                {
+                    return descriptor;
+                }
+            }
+        }
+
+        return null;
     }
 
     public static void Reset()

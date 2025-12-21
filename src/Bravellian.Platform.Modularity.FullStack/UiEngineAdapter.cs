@@ -36,6 +36,16 @@ public sealed class UiEngineAdapter
     /// </summary>
     public async Task<UiAdapterResponse<TViewModel>> ExecuteAsync<TInput, TViewModel>(string moduleKey, string engineId, TInput command, CancellationToken cancellationToken)
     {
+        if (string.IsNullOrWhiteSpace(moduleKey))
+        {
+            throw new ArgumentException("Module key must be a non-empty, non-whitespace string.", nameof(moduleKey));
+        }
+
+        if (string.IsNullOrWhiteSpace(engineId))
+        {
+            throw new ArgumentException("Engine ID must be a non-empty, non-whitespace string.", nameof(engineId));
+        }
+
         var descriptor = discoveryService.ResolveById(moduleKey, engineId)
             ?? throw new InvalidOperationException($"No UI engine registered with id '{engineId}' for module '{moduleKey}'.");
 
