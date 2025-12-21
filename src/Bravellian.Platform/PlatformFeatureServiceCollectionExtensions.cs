@@ -13,6 +13,8 @@
 // limitations under the License.
 
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Bravellian.Platform;
@@ -40,7 +42,7 @@ public static class PlatformFeatureServiceCollectionExtensions
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(tableName);
 
-        return services.AddMultiSqlOutbox(
+        services.AddMultiSqlOutbox(
             sp => new PlatformOutboxStoreProvider(
                 sp.GetRequiredService<IPlatformDatabaseDiscovery>(),
                 sp.GetRequiredService<TimeProvider>(),
@@ -49,6 +51,23 @@ public static class PlatformFeatureServiceCollectionExtensions
                 enableSchemaDeployment,
                 sp.GetService<PlatformConfiguration>()),
             new RoundRobinOutboxSelectionStrategy());
+
+        // Register outbox join store (uses same connection strings as outbox)
+        services.TryAddSingleton<IOutboxJoinStore, SqlOutboxJoinStore>();
+
+        // Register JoinWaitHandler for fan-in orchestration
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IOutboxHandler, JoinWaitHandler>());
+
+        // Register multi-outbox cleanup service
+        services.AddHostedService<MultiOutboxCleanupService>(sp => new MultiOutboxCleanupService(
+            sp.GetRequiredService<IOutboxStoreProvider>(),
+            sp.GetRequiredService<IMonotonicClock>(),
+            sp.GetRequiredService<ILogger<MultiOutboxCleanupService>>(),
+            retentionPeriod: TimeSpan.FromDays(7),
+            cleanupInterval: TimeSpan.FromHours(1),
+            schemaCompletion: sp.GetService<IDatabaseSchemaCompletion>()));
+
+        return services;
     }
 
     /// <summary>
@@ -65,7 +84,7 @@ public static class PlatformFeatureServiceCollectionExtensions
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(tableName);
 
-        return services.AddMultiSqlInbox(
+        services.AddMultiSqlInbox(
             sp => new PlatformInboxWorkStoreProvider(
                 sp.GetRequiredService<IPlatformDatabaseDiscovery>(),
                 sp.GetRequiredService<TimeProvider>(),
@@ -74,6 +93,17 @@ public static class PlatformFeatureServiceCollectionExtensions
                 enableSchemaDeployment,
                 sp.GetService<PlatformConfiguration>()),
             new RoundRobinInboxSelectionStrategy());
+
+        // Register multi-inbox cleanup service
+        services.AddHostedService<MultiInboxCleanupService>(sp => new MultiInboxCleanupService(
+            sp.GetRequiredService<IInboxWorkStoreProvider>(),
+            sp.GetRequiredService<IMonotonicClock>(),
+            sp.GetRequiredService<ILogger<MultiInboxCleanupService>>(),
+            retentionPeriod: TimeSpan.FromDays(7),
+            cleanupInterval: TimeSpan.FromHours(1),
+            schemaCompletion: sp.GetService<IDatabaseSchemaCompletion>()));
+
+        return services;
     }
 
     /// <summary>
