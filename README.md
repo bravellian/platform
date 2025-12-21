@@ -72,17 +72,10 @@ app.MapHealthChecks("/health");
 
 When you are already using `IPlatformDatabaseDiscovery` to enumerate tenant databases, you can opt into unified, discovery-based
 feature registration without bringing in the full platform bootstrapper. The following helpers reuse the same discovery pipeline
-for Outbox, Inbox, Scheduler, Fanout, and Leases while honoring any registered `PlatformConfiguration` for control-plane-aware
-environments:
+for Outbox, Inbox, Scheduler, Fanout, and Leases:
 
 ```csharp
 builder.Services.AddSingleton<IPlatformDatabaseDiscovery>(new MyTenantDiscovery());
-builder.Services.AddSingleton(new PlatformConfiguration
-{
-    EnvironmentStyle = PlatformEnvironmentStyle.MultiDatabaseWithControl,
-    ControlPlaneConnectionString = "Server=localhost;Database=Control;Trusted_Connection=true;",
-    ControlPlaneSchemaName = "dbo"
-});
 
 builder.Services
     .AddPlatformOutbox(enableSchemaDeployment: true)
