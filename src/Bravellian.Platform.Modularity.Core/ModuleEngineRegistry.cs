@@ -104,8 +104,7 @@ internal static class ModuleEngineRegistry
         {
             foreach (var descriptor in list)
             {
-                if (string.Equals(descriptor.ModuleKey, moduleKey, StringComparison.OrdinalIgnoreCase)
-                    && string.Equals(descriptor.Manifest.Id, engineId, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(descriptor.Manifest.Id, engineId, StringComparison.OrdinalIgnoreCase))
                 {
                     return descriptor;
                 }
