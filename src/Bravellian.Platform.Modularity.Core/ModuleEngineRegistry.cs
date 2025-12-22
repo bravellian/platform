@@ -22,12 +22,16 @@ namespace Bravellian.Platform.Modularity;
 internal static class ModuleEngineRegistry
 {
     private static readonly ConcurrentDictionary<string, List<IModuleEngineDescriptor>> Engines = new(StringComparer.OrdinalIgnoreCase);
+    
+    // ReaderWriterLockSlim protects registry operations. No disposal needed as this is a static class with application lifetime.
+    private static readonly ReaderWriterLockSlim RegistryLock = new();
 
     public static void Register(string moduleKey, IEnumerable<IModuleEngineDescriptor> descriptors)
     {
-        var list = Engines.GetOrAdd(moduleKey, _ => new List<IModuleEngineDescriptor>());
-        lock (list)
+        RegistryLock.EnterWriteLock();
+        try
         {
+            var list = Engines.GetOrAdd(moduleKey, _ => new List<IModuleEngineDescriptor>());
             foreach (var descriptor in descriptors)
             {
                 var exists = list.Any(existing => string.Equals(existing.ModuleKey, descriptor.ModuleKey, StringComparison.OrdinalIgnoreCase)
@@ -39,30 +43,33 @@ internal static class ModuleEngineRegistry
                 }
             }
         }
+        finally
+        {
+            RegistryLock.ExitWriteLock();
+        }
     }
 
     public static IReadOnlyCollection<IModuleEngineDescriptor> GetEngines()
     {
-        // Take a thread-safe snapshot of all registered engines by copying each list under its lock.
-        var snapshots = new List<IModuleEngineDescriptor[]>();
-
-        foreach (var list in Engines.Values)
+        RegistryLock.EnterReadLock();
+        try
         {
-            lock (list)
-            {
-                snapshots.Add(list.ToArray());
-            }
+            // Take a snapshot of all registered engines. The read lock ensures no modifications occur during enumeration.
+            return Engines.Values.SelectMany(list => list).ToArray();
         }
-
-        return snapshots.SelectMany(x => x).ToArray();
+        finally
+        {
+            RegistryLock.ExitReadLock();
+        }
     }
 
     public static IModuleEngineDescriptor? FindWebhookEngine(string provider, string eventType)
     {
-        // Avoid creating a full snapshot; search lists directly under their locks.
-        foreach (var list in Engines.Values)
+        RegistryLock.EnterReadLock();
+        try
         {
-            lock (list)
+            // Search for webhook engine matching the provider and event type.
+            foreach (var list in Engines.Values)
             {
                 foreach (var descriptor in list)
                 {
@@ -87,21 +94,26 @@ internal static class ModuleEngineRegistry
                     }
                 }
             }
-        }
 
-        return null;
+            return null;
+        }
+        finally
+        {
+            RegistryLock.ExitReadLock();
+        }
     }
 
     public static IModuleEngineDescriptor? FindById(string moduleKey, string engineId)
     {
-        // Narrow the lookup to the specific moduleKey instead of scanning all engines.
-        if (!Engines.TryGetValue(moduleKey, out var list))
+        RegistryLock.EnterReadLock();
+        try
         {
-            return null;
-        }
+            // Narrow the lookup to the specific moduleKey.
+            if (!Engines.TryGetValue(moduleKey, out var list))
+            {
+                return null;
+            }
 
-        lock (list)
-        {
             foreach (var descriptor in list)
             {
                 if (string.Equals(descriptor.Manifest.Id, engineId, StringComparison.OrdinalIgnoreCase))
@@ -109,13 +121,25 @@ internal static class ModuleEngineRegistry
                     return descriptor;
                 }
             }
-        }
 
-        return null;
+            return null;
+        }
+        finally
+        {
+            RegistryLock.ExitReadLock();
+        }
     }
 
     public static void Reset()
     {
-        Engines.Clear();
+        RegistryLock.EnterWriteLock();
+        try
+        {
+            Engines.Clear();
+        }
+        finally
+        {
+            RegistryLock.ExitWriteLock();
+        }
     }
 }
