@@ -147,6 +147,37 @@ public sealed class ModuleSystemTests
     }
 
     [Fact]
+    public void Engine_descriptor_module_key_must_match_module_key()
+    {
+        BackgroundModuleRegistry.Reset();
+        ApiModuleRegistry.RegisterApiModule<ModuleWithMismatchedEngineDescriptor>();
+
+        var configuration = new ConfigurationBuilder().Build();
+        var services = new ServiceCollection();
+
+        var ex = Should.Throw<InvalidOperationException>(() => services.AddApiModuleServices(configuration, NullLoggerFactory.Instance));
+        ex.Message.ShouldContain("Engine descriptor module key");
+        ex.Message.ShouldContain("module-alpha");
+        ex.Message.ShouldContain("module-beta");
+    }
+
+    [Fact]
+    public void Duplicate_webhook_provider_event_pairs_are_rejected()
+    {
+        BackgroundModuleRegistry.Reset();
+        ApiModuleRegistry.RegisterApiModule<WebhookModuleOne>();
+        ApiModuleRegistry.RegisterApiModule<WebhookModuleTwo>();
+
+        var configuration = new ConfigurationBuilder().Build();
+        var services = new ServiceCollection();
+
+        var ex = Should.Throw<InvalidOperationException>(() => services.AddApiModuleServices(configuration, NullLoggerFactory.Instance));
+        ex.Message.ShouldContain("postmark");
+        ex.Message.ShouldContain("bounce");
+        ex.Message.ShouldContain("already handled");
+    }
+
+    [Fact]
     public void Duplicate_module_type_registrations_in_same_category_are_idempotent()
     {
         BackgroundModuleRegistry.Reset();
@@ -232,6 +263,169 @@ public sealed class ModuleSystemTests
         public void MapApiEndpoints(RouteGroupBuilder group)
         {
             group.MapGet("/status", () => Results.Ok(new { Value = value }));
+        }
+    }
+
+    private sealed class ModuleWithMismatchedEngineDescriptor : IApiModule, IEngineModule
+    {
+        public string Key => "module-alpha";
+
+        public string DisplayName => "Module With Mismatched Descriptor";
+
+        public IEnumerable<string> GetRequiredConfigurationKeys() => Array.Empty<string>();
+
+        public IEnumerable<string> GetOptionalConfigurationKeys() => Array.Empty<string>();
+
+        public void LoadConfiguration(IReadOnlyDictionary<string, string> required, IReadOnlyDictionary<string, string> optional)
+        {
+        }
+
+        public void AddModuleServices(IServiceCollection services)
+        {
+        }
+
+        public void RegisterHealthChecks(ModuleHealthCheckBuilder builder)
+        {
+        }
+
+        public void MapApiEndpoints(RouteGroupBuilder group)
+        {
+        }
+
+        public IEnumerable<IModuleEngineDescriptor> DescribeEngines()
+        {
+            yield return new ModuleEngineDescriptor<IUiEngine<DummyCommand, DummyViewModel>>(
+                "module-beta",
+                new ModuleEngineManifest(
+                    "ui.dummy",
+                    "1.0",
+                    "Dummy UI engine",
+                    EngineKind.Ui),
+                _ => new DummyUiEngine());
+        }
+    }
+
+    private sealed record DummyCommand;
+
+    private sealed record DummyViewModel;
+
+    private sealed class DummyUiEngine : IUiEngine<DummyCommand, DummyViewModel>
+    {
+        public Task<UiEngineResult<DummyViewModel>> ExecuteAsync(DummyCommand command, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(new UiEngineResult<DummyViewModel>(new DummyViewModel()));
+        }
+    }
+
+    private sealed class WebhookModuleOne : IApiModule, IEngineModule
+    {
+        public string Key => "webhook-module-one";
+
+        public string DisplayName => "Webhook Module One";
+
+        public IEnumerable<string> GetRequiredConfigurationKeys() => Array.Empty<string>();
+
+        public IEnumerable<string> GetOptionalConfigurationKeys() => Array.Empty<string>();
+
+        public void LoadConfiguration(IReadOnlyDictionary<string, string> required, IReadOnlyDictionary<string, string> optional)
+        {
+        }
+
+        public void AddModuleServices(IServiceCollection services)
+        {
+            services.AddSingleton<WebhookEngineOne>();
+        }
+
+        public void RegisterHealthChecks(ModuleHealthCheckBuilder builder)
+        {
+        }
+
+        public void MapApiEndpoints(RouteGroupBuilder group)
+        {
+        }
+
+        public IEnumerable<IModuleEngineDescriptor> DescribeEngines()
+        {
+            yield return new ModuleEngineDescriptor<IWebhookEngine<DummyWebhookPayload>>(
+                Key,
+                new ModuleEngineManifest(
+                    "webhook.one",
+                    "1.0",
+                    "Webhook engine one",
+                    EngineKind.Webhook,
+                    WebhookMetadata: new[]
+                    {
+                        new ModuleEngineWebhookMetadata(
+                            "postmark",
+                            "bounce",
+                            new ModuleEngineSchema("payload", typeof(DummyWebhookPayload))),
+                    }),
+                sp => sp.GetRequiredService<WebhookEngineOne>());
+        }
+    }
+
+    private sealed class WebhookModuleTwo : IApiModule, IEngineModule
+    {
+        public string Key => "webhook-module-two";
+
+        public string DisplayName => "Webhook Module Two";
+
+        public IEnumerable<string> GetRequiredConfigurationKeys() => Array.Empty<string>();
+
+        public IEnumerable<string> GetOptionalConfigurationKeys() => Array.Empty<string>();
+
+        public void LoadConfiguration(IReadOnlyDictionary<string, string> required, IReadOnlyDictionary<string, string> optional)
+        {
+        }
+
+        public void AddModuleServices(IServiceCollection services)
+        {
+            services.AddSingleton<WebhookEngineTwo>();
+        }
+
+        public void RegisterHealthChecks(ModuleHealthCheckBuilder builder)
+        {
+        }
+
+        public void MapApiEndpoints(RouteGroupBuilder group)
+        {
+        }
+
+        public IEnumerable<IModuleEngineDescriptor> DescribeEngines()
+        {
+            yield return new ModuleEngineDescriptor<IWebhookEngine<DummyWebhookPayload>>(
+                Key,
+                new ModuleEngineManifest(
+                    "webhook.two",
+                    "1.0",
+                    "Webhook engine two",
+                    EngineKind.Webhook,
+                    WebhookMetadata: new[]
+                    {
+                        new ModuleEngineWebhookMetadata(
+                            "postmark",
+                            "bounce",
+                            new ModuleEngineSchema("payload", typeof(DummyWebhookPayload))),
+                    }),
+                sp => sp.GetRequiredService<WebhookEngineTwo>());
+        }
+    }
+
+    private sealed record DummyWebhookPayload(string Id);
+
+    private sealed class WebhookEngineOne : IWebhookEngine<DummyWebhookPayload>
+    {
+        public Task<WebhookOutcome> HandleAsync(WebhookRequest<DummyWebhookPayload> request, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(WebhookOutcome.Acknowledge());
+        }
+    }
+
+    private sealed class WebhookEngineTwo : IWebhookEngine<DummyWebhookPayload>
+    {
+        public Task<WebhookOutcome> HandleAsync(WebhookRequest<DummyWebhookPayload> request, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(WebhookOutcome.Acknowledge());
         }
     }
 

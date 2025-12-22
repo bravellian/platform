@@ -81,6 +81,25 @@ internal static class ModuleRegistry
             var module = (TModule)CreateInstance(type, loggerFactory);
             LoadConfiguration(configuration, module, loggerFactory);
             RegisterInstance(module);
+            if (module is IEngineModule engineModule)
+            {
+                var descriptors = engineModule
+                    .DescribeEngines()
+                    .Select(descriptor =>
+                    {
+                        if (!string.Equals(descriptor.ModuleKey, module.Key, StringComparison.OrdinalIgnoreCase))
+                        {
+                            throw new InvalidOperationException(
+                                $"Engine descriptor module key '{descriptor.ModuleKey}' must match its owning module key '{module.Key}'. " +
+                                "Engine descriptors must use their owning module's key to ensure proper isolation and discovery. " +
+                                "Update the engine descriptor's ModuleKey to match the module's Key.");
+                        }
+
+                        return descriptor;
+                    })
+                    .ToArray();
+                ModuleEngineRegistry.Register(module.Key, descriptors);
+            }
             initialized.Add(module);
         }
 
@@ -122,6 +141,7 @@ internal static class ModuleRegistry
             }
 
             Instances.Clear();
+            ModuleEngineRegistry.Reset();
         }
     }
 
