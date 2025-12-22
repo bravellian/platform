@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Microsoft.Extensions.DependencyInjection;
+
 namespace Bravellian.Platform.Modularity;
 
 /// <summary>
@@ -40,31 +42,17 @@ public sealed class WebhookEngineAdapter
     {
         if (request is null)
         {
-            throw new System.ArgumentNullException(nameof(request));
-        }
-
-        if (string.IsNullOrWhiteSpace(request.Provider))
-        {
-            throw new System.ArgumentException("Provider must be a non-empty, non-whitespace string.", nameof(request.Provider));
-        }
-
-        if (string.IsNullOrWhiteSpace(request.EventType))
-        {
-            throw new System.ArgumentException("EventType must be a non-empty, non-whitespace string.", nameof(request.EventType));
-        }
-        if (request is null)
-        {
             throw new ArgumentNullException(nameof(request));
         }
 
         if (string.IsNullOrWhiteSpace(request.Provider))
         {
-            throw new ArgumentException("Provider must be a non-empty, non-whitespace string.", nameof(request));
+            throw new ArgumentException("Provider must be a non-empty, non-whitespace string.", nameof(request.Provider));
         }
 
         if (string.IsNullOrWhiteSpace(request.EventType))
         {
-            throw new ArgumentException("EventType must be a non-empty, non-whitespace string.", nameof(request));
+            throw new ArgumentException("EventType must be a non-empty, non-whitespace string.", nameof(request.EventType));
         }
 
         var descriptor = discovery.ResolveWebhookEngine(request.Provider, request.EventType)
@@ -73,7 +61,9 @@ public sealed class WebhookEngineAdapter
         if (descriptor.Manifest.Security is { } security &&
             !signatureValidator.Validate(security, request.Headers, request.RawBody, request.Signature))
         {
-            return new WebhookAdapterResponse(WebhookOutcomeType.Acknowledge, "Signature validation failed");
+            return new WebhookAdapterResponse(
+                WebhookOutcomeType.Acknowledge,
+                $"Signature validation failed. Expected algorithm: {security.SignatureAlgorithm}.");
         }
 
         if (string.IsNullOrWhiteSpace(request.IdempotencyKey) && descriptor.Manifest.Security?.IdempotencyWindow is not null)
@@ -82,6 +72,8 @@ public sealed class WebhookEngineAdapter
                 WebhookOutcomeType.Retry,
                 "Idempotency key is required when an idempotency window is configured for this provider.");
         }
+
+        ValidateRequiredServices(descriptor, request.Provider, request.EventType);
 
         var typedDescriptor = descriptor as ModuleEngineDescriptor<IWebhookEngine<TPayload>>
             ?? throw new InvalidOperationException($"Engine '{descriptor.Manifest.Id}' does not implement expected webhook contract.");
@@ -93,5 +85,68 @@ public sealed class WebhookEngineAdapter
             cancellationToken).ConfigureAwait(false);
 
         return new WebhookAdapterResponse(outcome.Outcome, outcome.Reason, outcome.EnqueuedEvent);
+    }
+
+    private void ValidateRequiredServices(IModuleEngineDescriptor descriptor, string provider, string eventType)
+    {
+        var requiredServices = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        if (descriptor.Manifest.RequiredServices is { Count: > 0 } manifestRequired)
+        {
+            foreach (var service in manifestRequired)
+            {
+                requiredServices.Add(service);
+            }
+        }
+
+        if (descriptor.Manifest.WebhookMetadata is { } metadata)
+        {
+            foreach (var entry in metadata)
+            {
+                if (!string.Equals(entry.Provider, provider, StringComparison.OrdinalIgnoreCase)
+                    || !string.Equals(entry.EventType, eventType, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (entry.RequiredServices is null)
+                {
+                    continue;
+                }
+
+                foreach (var service in entry.RequiredServices)
+                {
+                    requiredServices.Add(service);
+                }
+            }
+        }
+
+        if (requiredServices.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var service in requiredServices)
+        {
+            if (string.IsNullOrWhiteSpace(service))
+            {
+                throw new InvalidOperationException(
+                    $"Engine '{descriptor.ModuleKey}/{descriptor.Manifest.Id}' declares an empty required service identifier.");
+            }
+        }
+
+        var validator = services.GetService<IRequiredServiceValidator>();
+        if (validator is null)
+        {
+            throw new InvalidOperationException(
+                $"Engine '{descriptor.ModuleKey}/{descriptor.Manifest.Id}' declares required services but no {nameof(IRequiredServiceValidator)} is registered.");
+        }
+
+        var missing = validator.GetMissingServices(requiredServices.ToArray()) ?? Array.Empty<string>();
+        if (missing.Count > 0)
+        {
+            throw new InvalidOperationException(
+                $"Engine '{descriptor.ModuleKey}/{descriptor.Manifest.Id}' is missing required services: {string.Join(", ", missing)}.");
+        }
     }
 }

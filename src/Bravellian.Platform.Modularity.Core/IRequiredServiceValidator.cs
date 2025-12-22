@@ -15,16 +15,12 @@
 namespace Bravellian.Platform.Modularity;
 
 /// <summary>
-/// Incoming webhook request passed to webhook engines.
+/// Validates that required engine services are available for a host.
 /// </summary>
-/// <param name="Provider">Provider identifier.</param>
-/// <param name="EventType">Event type identifier.</param>
-/// <param name="Payload">Deserialized payload.</param>
-/// <param name="IdempotencyKey">Idempotency key for replay protection.</param>
-/// <param name="Attempt">Current delivery attempt; 0 means unknown, values >= 1 are attempt counts (first attempt is 1).</param>
-public sealed record WebhookRequest<TPayload>(
-    string Provider,
-    string EventType,
-    TPayload Payload,
-    string IdempotencyKey,
-    int Attempt = 0);
+public interface IRequiredServiceValidator
+{
+    /// <summary>
+    /// Returns the subset of required services that are missing.
+    /// </summary>
+    IReadOnlyCollection<string> GetMissingServices(IReadOnlyCollection<string> requiredServices);
+}

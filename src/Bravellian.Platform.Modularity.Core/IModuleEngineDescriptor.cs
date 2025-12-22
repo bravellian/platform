@@ -25,5 +25,5 @@ public interface IModuleEngineDescriptor
 
     Type ContractType { get; }
 
-    object Create(IServiceProvider serviceProvider);
+    object? Create(IServiceProvider serviceProvider);
 }

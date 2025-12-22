@@ -51,6 +51,11 @@ public sealed class ModuleEngineDiscoveryService
     public TContract ResolveEngine<TContract>(ModuleEngineDescriptor<TContract> descriptor, IServiceProvider serviceProvider)
         where TContract : notnull
     {
+        if (serviceProvider is null)
+        {
+            throw new ArgumentNullException(nameof(serviceProvider));
+        }
+
         var instance = descriptor.Factory(serviceProvider);
 
         if (instance is null)
@@ -64,5 +69,21 @@ public sealed class ModuleEngineDiscoveryService
     /// <summary>
     /// Resolves an engine instance for a descriptor when only the contract type is known at runtime.
     /// </summary>
-    public object ResolveEngine(IModuleEngineDescriptor descriptor, IServiceProvider serviceProvider) => descriptor.Create(serviceProvider);
+    public object ResolveEngine(IModuleEngineDescriptor descriptor, IServiceProvider serviceProvider)
+    {
+        if (serviceProvider is null)
+        {
+            throw new ArgumentNullException(nameof(serviceProvider));
+        }
+
+        var instance = descriptor.Create(serviceProvider);
+
+        if (instance is null)
+        {
+            throw new InvalidOperationException(
+                $"The factory for module engine '{descriptor.ModuleKey}/{descriptor.Manifest.Id}' returned null.");
+        }
+
+        return instance;
+    }
 }

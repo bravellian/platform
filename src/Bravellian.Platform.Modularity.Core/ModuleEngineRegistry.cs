@@ -23,18 +23,18 @@ internal static class ModuleEngineRegistry
 {
     private static readonly ConcurrentDictionary<string, List<IModuleEngineDescriptor>> Engines = new(StringComparer.OrdinalIgnoreCase);
     
-    // ReaderWriterLockSlim protects registry operations. No disposal needed as this is a static class with application lifetime.
-    private static readonly ReaderWriterLockSlim RegistryLock = new();
+    // Single lock protects registry operations without disposal requirements.
+    private static readonly object RegistryLock = new();
     private static IModuleEngineDescriptor[]? CachedSnapshot;
 
     public static void Register(string moduleKey, IEnumerable<IModuleEngineDescriptor> descriptors)
     {
-        RegistryLock.EnterWriteLock();
-        try
+        lock (RegistryLock)
         {
             var list = Engines.GetOrAdd(moduleKey, _ => new List<IModuleEngineDescriptor>());
             foreach (var descriptor in descriptors)
             {
+                ValidateWebhookMetadataUniqueness(descriptor);
                 var exists = list.Any(existing => string.Equals(existing.ModuleKey, descriptor.ModuleKey, StringComparison.OrdinalIgnoreCase)
                                                 && string.Equals(existing.Manifest.Id, descriptor.Manifest.Id, StringComparison.OrdinalIgnoreCase)
                                                 && existing.ContractType == descriptor.ContractType);
@@ -46,46 +46,85 @@ internal static class ModuleEngineRegistry
 
             CachedSnapshot = null;
         }
-        finally
+    }
+
+    private static void ValidateWebhookMetadataUniqueness(IModuleEngineDescriptor descriptor)
+    {
+        var metadata = descriptor.Manifest.WebhookMetadata;
+        if (metadata is null)
         {
-            RegistryLock.ExitWriteLock();
+            return;
+        }
+
+        var seen = new HashSet<(string Provider, string EventType)>(new WebhookMetadataKeyComparer());
+
+        foreach (var entry in metadata)
+        {
+            if (!seen.Add((entry.Provider, entry.EventType)))
+            {
+                throw new InvalidOperationException(
+                    $"Engine '{descriptor.ModuleKey}/{descriptor.Manifest.Id}' declares duplicate webhook metadata for provider '{entry.Provider}' and event '{entry.EventType}'.");
+            }
+
+            foreach (var existingList in Engines.Values)
+            {
+                foreach (var existing in existingList)
+                {
+                    if (existing.Manifest.WebhookMetadata is null)
+                    {
+                        continue;
+                    }
+
+                    foreach (var existingEntry in existing.Manifest.WebhookMetadata)
+                    {
+                        if (string.Equals(existingEntry.Provider, entry.Provider, StringComparison.OrdinalIgnoreCase)
+                            && string.Equals(existingEntry.EventType, entry.EventType, StringComparison.OrdinalIgnoreCase))
+                        {
+                            throw new InvalidOperationException(
+                                $"Webhook provider '{entry.Provider}' and event '{entry.EventType}' are already handled by engine '{existing.ModuleKey}/{existing.Manifest.Id}'.");
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private sealed class WebhookMetadataKeyComparer : IEqualityComparer<(string Provider, string EventType)>
+    {
+        public bool Equals((string Provider, string EventType) x, (string Provider, string EventType) y)
+        {
+            return string.Equals(x.Provider, y.Provider, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(x.EventType, y.EventType, StringComparison.OrdinalIgnoreCase);
+        }
+
+        public int GetHashCode((string Provider, string EventType) obj)
+        {
+            return HashCode.Combine(
+                StringComparer.OrdinalIgnoreCase.GetHashCode(obj.Provider ?? string.Empty),
+                StringComparer.OrdinalIgnoreCase.GetHashCode(obj.EventType ?? string.Empty));
         }
     }
 
     public static IReadOnlyCollection<IModuleEngineDescriptor> GetEngines()
     {
-        RegistryLock.EnterUpgradeableReadLock();
-        try
+        lock (RegistryLock)
         {
             if (CachedSnapshot is { } cached)
             {
                 return cached;
             }
 
-            RegistryLock.EnterWriteLock();
-            try
-            {
-                // Snapshot the engine lists while holding the lock to avoid races with registry mutations.
-                var lists = Engines.Values.ToArray();
-                cached = lists.SelectMany(list => list).ToArray();
-                CachedSnapshot = cached;
-                return cached;
-            }
-            finally
-            {
-                RegistryLock.ExitWriteLock();
-            }
-        }
-        finally
-        {
-            RegistryLock.ExitUpgradeableReadLock();
+            // Snapshot the engine lists while holding the lock to avoid races with registry mutations.
+            var lists = Engines.Values.ToArray();
+            cached = lists.SelectMany(list => list).ToArray();
+            CachedSnapshot = cached;
+            return cached;
         }
     }
 
     public static IModuleEngineDescriptor? FindWebhookEngine(string provider, string eventType)
     {
-        RegistryLock.EnterReadLock();
-        try
+        lock (RegistryLock)
         {
             // Search for webhook engine matching the provider and event type.
             foreach (var list in Engines.Values)
@@ -116,16 +155,11 @@ internal static class ModuleEngineRegistry
 
             return null;
         }
-        finally
-        {
-            RegistryLock.ExitReadLock();
-        }
     }
 
     public static IModuleEngineDescriptor? FindById(string moduleKey, string engineId)
     {
-        RegistryLock.EnterReadLock();
-        try
+        lock (RegistryLock)
         {
             // Narrow the lookup to the specific moduleKey.
             if (!Engines.TryGetValue(moduleKey, out var list))
@@ -143,23 +177,14 @@ internal static class ModuleEngineRegistry
 
             return null;
         }
-        finally
-        {
-            RegistryLock.ExitReadLock();
-        }
     }
 
     public static void Reset()
     {
-        RegistryLock.EnterWriteLock();
-        try
+        lock (RegistryLock)
         {
             Engines.Clear();
             CachedSnapshot = null;
-        }
-        finally
-        {
-            RegistryLock.ExitWriteLock();
         }
     }
 }

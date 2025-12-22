@@ -28,5 +28,5 @@ public sealed record ModuleEngineDescriptor<TContract>(
 {
     public Type ContractType => typeof(TContract);
 
-    public object Create(IServiceProvider serviceProvider) => Factory(serviceProvider)!;
+    public object? Create(IServiceProvider serviceProvider) => Factory(serviceProvider);
 }

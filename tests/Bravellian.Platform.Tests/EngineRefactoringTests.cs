@@ -81,7 +81,7 @@ public sealed class EngineRefactoringTests
         var response = await adapter.DispatchAsync(request, CancellationToken.None);
 
         Assert.Equal(WebhookOutcomeType.Acknowledge, response.Outcome);
-        Assert.Equal("Signature validation failed", response.Reason);
+        Assert.Contains("Signature validation failed", response.Reason);
     }
 
     [Theory]
@@ -109,6 +109,46 @@ public sealed class EngineRefactoringTests
     }
 
     [Fact]
+    public async Task Webhook_adapter_throws_when_engine_is_not_registered()
+    {
+        var provider = BuildServiceProvider();
+        var adapter = new WebhookEngineAdapter(provider.GetRequiredService<ModuleEngineDiscoveryService>(), provider, provider.GetRequiredService<IWebhookSignatureValidator>());
+
+        var request = new WebhookAdapterRequest<PostmarkBouncePayload>(
+            "missing",
+            "event",
+            new Dictionary<string, string> { ["X-Signature"] = "missing:raw-body" },
+            "raw-body",
+            "idemp-1",
+            1,
+            null,
+            new PostmarkBouncePayload("HardBounce", "Mail rejected"));
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => adapter.DispatchAsync(request, CancellationToken.None));
+        Assert.Contains("No webhook engine registered", ex.Message);
+    }
+
+    [Fact]
+    public async Task Webhook_adapter_throws_when_engine_contract_is_mismatched()
+    {
+        var provider = BuildServiceProvider();
+        var adapter = new WebhookEngineAdapter(provider.GetRequiredService<ModuleEngineDiscoveryService>(), provider, provider.GetRequiredService<IWebhookSignatureValidator>());
+
+        var request = new WebhookAdapterRequest<OtherWebhookPayload>(
+            "postmark",
+            "bounce",
+            new Dictionary<string, string> { ["X-Signature"] = "postmark:raw-body" },
+            "raw-body",
+            "idemp-1",
+            1,
+            null,
+            new OtherWebhookPayload("wrong"));
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => adapter.DispatchAsync(request, CancellationToken.None));
+        Assert.Contains("does not implement expected webhook contract", ex.Message);
+    }
+
+    [Fact]
     public async Task Ui_engine_exception_propagates_to_adapter()
     {
         var provider = BuildServiceProvider();
@@ -116,6 +156,30 @@ public sealed class EngineRefactoringTests
 
         await Assert.ThrowsAsync<ArgumentException>(async () =>
             await adapter.ExecuteAsync<LoginCommand, LoginViewModel>("fake-module", "ui.login", new LoginCommand(string.Empty, "pass"), CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Ui_adapter_throws_when_engine_is_not_registered()
+    {
+        var provider = BuildServiceProvider();
+        var adapter = new UiEngineAdapter(provider.GetRequiredService<ModuleEngineDiscoveryService>(), provider);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await adapter.ExecuteAsync<LoginCommand, LoginViewModel>("fake-module", "ui.missing", new LoginCommand("admin", "pass"), CancellationToken.None));
+
+        Assert.Contains("No UI engine registered", ex.Message);
+    }
+
+    [Fact]
+    public async Task Ui_adapter_throws_when_engine_contract_is_mismatched()
+    {
+        var provider = BuildServiceProvider();
+        var adapter = new UiEngineAdapter(provider.GetRequiredService<ModuleEngineDiscoveryService>(), provider);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await adapter.ExecuteAsync<LoginCommand, LoginViewModel>("fake-module", "webhook.postmark", new LoginCommand("admin", "pass"), CancellationToken.None));
+
+        Assert.Contains("does not implement the expected UI contract", ex.Message);
     }
 
     [Fact]
@@ -139,6 +203,7 @@ public sealed class EngineRefactoringTests
     {
         var services = new ServiceCollection();
         services.AddSingleton<IWebhookSignatureValidator, TestSignatureValidator>();
+        services.AddSingleton<IRequiredServiceValidator, TestRequiredServiceValidator>();
         services.AddFullStackModuleServices(new ConfigurationBuilder().Build());
         services.AddSingleton<UiEngineAdapter>();
         services.AddSingleton<WebhookEngineAdapter>();
@@ -216,7 +281,7 @@ public sealed class EngineRefactoringTests
                     "Postmark bounce webhook handler",
                     EngineKind.Webhook,
                     "Notifications",
-                    new ModuleEngineCapabilities(new[] { "handle" }, new[] { "bounce.received" }),
+                    new ModuleEngineCapabilities(new[] { "handle" }, new[] { "bounce.received" }, SupportsStreaming: false),
                     new[] { new ModuleEngineSchema("payload", typeof(PostmarkBouncePayload)) },
                     Array.Empty<ModuleEngineSchema>(),
                     null,
@@ -255,6 +320,8 @@ public sealed class EngineRefactoringTests
 
     private sealed record PostmarkBouncePayload(string Type, string Description);
 
+    private sealed record OtherWebhookPayload(string Value);
+
     private sealed class PostmarkWebhookEngine : IWebhookEngine<PostmarkBouncePayload>
     {
         public Task<WebhookOutcome> HandleAsync(WebhookRequest<PostmarkBouncePayload> request, CancellationToken cancellationToken)
@@ -276,6 +343,14 @@ public sealed class EngineRefactoringTests
             var signature = providedSignature ?? headerSignature;
             return security.SignatureAlgorithm == ModuleSignatureAlgorithm.HmacSha256
                 && signature == $"{security.SecretScope}:{rawBody}";
+        }
+    }
+
+    private sealed class TestRequiredServiceValidator : IRequiredServiceValidator
+    {
+        public IReadOnlyCollection<string> GetMissingServices(IReadOnlyCollection<string> requiredServices)
+        {
+            return Array.Empty<string>();
         }
     }
 }

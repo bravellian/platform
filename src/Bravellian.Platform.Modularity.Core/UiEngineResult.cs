@@ -18,9 +18,9 @@ namespace Bravellian.Platform.Modularity;
 /// UI engine result containing the view model and optional navigation tokens/events.
 /// </summary>
 /// <param name="ViewModel">Resulting view model.</param>
-/// <param name="Navigation">Navigation tokens emitted by the engine.</param>
+/// <param name="NavigationTargets">Navigation tokens emitted by the engine.</param>
 /// <param name="Events">Events emitted for adapters to relay.</param>
 public sealed record UiEngineResult<TViewModel>(
     TViewModel ViewModel,
-    IReadOnlyCollection<ModuleNavigationToken>? Navigation = null,
+    IReadOnlyCollection<ModuleNavigationToken>? NavigationTargets = null,
     IReadOnlyCollection<string>? Events = null);

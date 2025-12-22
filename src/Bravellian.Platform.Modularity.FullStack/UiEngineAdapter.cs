@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Microsoft.Extensions.DependencyInjection;
+
 namespace Bravellian.Platform.Modularity;
 
 /// <summary>
@@ -46,8 +48,15 @@ public sealed class UiEngineAdapter
             throw new ArgumentException("Engine ID must be a non-empty, non-whitespace string.", nameof(engineId));
         }
 
+        if (command is null)
+        {
+            throw new ArgumentNullException(nameof(command));
+        }
+
         var descriptor = discoveryService.ResolveById(moduleKey, engineId)
             ?? throw new InvalidOperationException($"No UI engine registered with id '{engineId}' for module '{moduleKey}'.");
+
+        ValidateRequiredServices(descriptor, descriptor.Manifest.RequiredServices);
 
         var typedDescriptor = descriptor as ModuleEngineDescriptor<IUiEngine<TInput, TViewModel>>
             ?? throw new InvalidOperationException($"Engine '{engineId}' does not implement the expected UI contract.");
@@ -56,6 +65,37 @@ public sealed class UiEngineAdapter
 
         var result = await engine.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
 
-        return new UiAdapterResponse<TViewModel>(result.ViewModel, result.Navigation, result.Events);
+        return new UiAdapterResponse<TViewModel>(result.ViewModel, result.NavigationTargets, result.Events);
+    }
+
+    private void ValidateRequiredServices(IModuleEngineDescriptor descriptor, IReadOnlyCollection<string>? requiredServices)
+    {
+        if (requiredServices is null || requiredServices.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var service in requiredServices)
+        {
+            if (string.IsNullOrWhiteSpace(service))
+            {
+                throw new InvalidOperationException(
+                    $"Engine '{descriptor.ModuleKey}/{descriptor.Manifest.Id}' declares an empty required service identifier.");
+            }
+        }
+
+        var validator = services.GetService<IRequiredServiceValidator>();
+        if (validator is null)
+        {
+            throw new InvalidOperationException(
+                $"Engine '{descriptor.ModuleKey}/{descriptor.Manifest.Id}' declares required services but no {nameof(IRequiredServiceValidator)} is registered.");
+        }
+
+        var missing = validator.GetMissingServices(requiredServices) ?? Array.Empty<string>();
+        if (missing.Count > 0)
+        {
+            throw new InvalidOperationException(
+                $"Engine '{descriptor.ModuleKey}/{descriptor.Manifest.Id}' is missing required services: {string.Join(", ", missing)}.");
+        }
     }
 }
