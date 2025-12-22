@@ -38,6 +38,21 @@ public sealed class WebhookEngineAdapter
     /// </summary>
     public async Task<WebhookAdapterResponse> DispatchAsync<TPayload>(WebhookAdapterRequest<TPayload> request, CancellationToken cancellationToken)
     {
+        if (request is null)
+        {
+            throw new ArgumentNullException(nameof(request));
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Provider))
+        {
+            throw new ArgumentException("Provider must be a non-empty, non-whitespace string.", nameof(request));
+        }
+
+        if (string.IsNullOrWhiteSpace(request.EventType))
+        {
+            throw new ArgumentException("EventType must be a non-empty, non-whitespace string.", nameof(request));
+        }
+
         var descriptor = discovery.ResolveWebhookEngine(request.Provider, request.EventType)
             ?? throw new InvalidOperationException($"No webhook engine registered for provider '{request.Provider}' and event '{request.EventType}'.");
 
@@ -49,7 +64,9 @@ public sealed class WebhookEngineAdapter
 
         if (string.IsNullOrWhiteSpace(request.IdempotencyKey) && descriptor.Manifest.Security?.IdempotencyWindow is not null)
         {
-            return new WebhookAdapterResponse(WebhookOutcomeType.Retry, "Missing idempotency key");
+            return new WebhookAdapterResponse(
+                WebhookOutcomeType.Retry,
+                "Idempotency key is required when an idempotency window is configured for this provider.");
         }
 
         var typedDescriptor = descriptor as ModuleEngineDescriptor<IWebhookEngine<TPayload>>

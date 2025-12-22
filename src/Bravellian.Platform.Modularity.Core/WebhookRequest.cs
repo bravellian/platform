@@ -21,7 +21,7 @@ namespace Bravellian.Platform.Modularity;
 /// <param name="EventType">Event type identifier.</param>
 /// <param name="Payload">Deserialized payload.</param>
 /// <param name="IdempotencyKey">Idempotency key for replay protection.</param>
-/// <param name="Attempt">Current delivery attempt.</param>
+/// <param name="Attempt">Current delivery attempt (1-based; default is 0 for backwards compatibility, but callers should use 1 for the first attempt).</param>
 public sealed record WebhookRequest<TPayload>(
     string Provider,
     string EventType,

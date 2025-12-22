@@ -7,9 +7,10 @@ This repository now exposes transport-agnostic engines that sit inside each modu
 - **Engine manifest** (`ModuleEngineManifest`)
   - Identifies the engine (`Id`, `Version`, `Description`, `Kind`, optional `FeatureArea`).
   - Declares capabilities, schemas, security, compatibility expectations, and navigation hints via strongly typed records/enums (`ModuleEngineNavigationHints`, `ModuleNavigationToken`, `NavigationTargetKind`, `ModuleSignatureAlgorithm`).
+  - Declares `RequiredServices` – a list of logical capabilities (for example `IApiClient`, `ICache`, `ITelemetry`) that must be provided by the host for the engine to run. Hosts are expected to validate that every required service can be satisfied before executing an engine, typically by mapping each required service identifier to a concrete implementation in their DI container or adapter configuration. If validation fails, hosts should skip registration or surface a configuration error rather than invoking the engine.
   - Adds optional webhook metadata (`ModuleEngineWebhookMetadata`) for providers and event types.
 - **Engine descriptor** (`ModuleEngineDescriptor<TContract>`) wraps the manifest with a strongly typed factory so hosts can resolve engines without `object` casts.
-- **Discovery** (`ModuleEngineDiscoveryService`/`ModuleEngineRegistry`) stores descriptors and supports filtering by kind/feature or matching webhook provider + event type. Hosts can either enumerate engines (dynamic) or resolve known descriptors directly (static, isolation-focused deployments).
+- **Discovery** (`ModuleEngineDiscoveryService`/`ModuleEngineRegistry`) stores descriptors and supports filtering by kind/feature or matching webhook provider + event type. Hosts can either enumerate engines (dynamic) or resolve known descriptors directly (static, isolation-focused deployments), and use the exposed manifests (including `RequiredServices`) to ensure all dependencies are available before wiring engines into request or worker pipelines.
 
 ## Adapter roles
 

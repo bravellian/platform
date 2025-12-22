@@ -89,7 +89,10 @@ internal static class ModuleRegistry
                     {
                         if (!string.Equals(descriptor.ModuleKey, module.Key, StringComparison.OrdinalIgnoreCase))
                         {
-                            throw new InvalidOperationException($"Engine descriptor module key '{descriptor.ModuleKey}' must match module '{module.Key}'.");
+                            throw new InvalidOperationException(
+                                $"Engine descriptor module key '{descriptor.ModuleKey}' must match its owning module key '{module.Key}'. " +
+                                "Engine descriptors must use their owning module's key to ensure proper isolation and discovery. " +
+                                "Update the engine descriptor's ModuleKey to match the module's Key.");
                         }
 
                         return descriptor;
