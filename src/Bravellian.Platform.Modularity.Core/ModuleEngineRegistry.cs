@@ -25,6 +25,7 @@ internal static class ModuleEngineRegistry
     
     // ReaderWriterLockSlim protects registry operations. No disposal needed as this is a static class with application lifetime.
     private static readonly ReaderWriterLockSlim RegistryLock = new();
+    private static IModuleEngineDescriptor[]? CachedSnapshot;
 
     public static void Register(string moduleKey, IEnumerable<IModuleEngineDescriptor> descriptors)
     {
@@ -42,6 +43,8 @@ internal static class ModuleEngineRegistry
                     list.Add(descriptor);
                 }
             }
+
+            CachedSnapshot = null;
         }
         finally
         {
@@ -51,15 +54,31 @@ internal static class ModuleEngineRegistry
 
     public static IReadOnlyCollection<IModuleEngineDescriptor> GetEngines()
     {
-        RegistryLock.EnterReadLock();
+        RegistryLock.EnterUpgradeableReadLock();
         try
         {
-            // Take a snapshot of all registered engines. The read lock ensures no modifications occur during enumeration.
-            return Engines.Values.SelectMany(list => list).ToArray();
+            if (CachedSnapshot is { } cached)
+            {
+                return cached;
+            }
+
+            RegistryLock.EnterWriteLock();
+            try
+            {
+                // Snapshot the engine lists while holding the lock to avoid races with registry mutations.
+                var lists = Engines.Values.ToArray();
+                cached = lists.SelectMany(list => list).ToArray();
+                CachedSnapshot = cached;
+                return cached;
+            }
+            finally
+            {
+                RegistryLock.ExitWriteLock();
+            }
         }
         finally
         {
-            RegistryLock.ExitReadLock();
+            RegistryLock.ExitUpgradeableReadLock();
         }
     }
 
@@ -136,6 +155,7 @@ internal static class ModuleEngineRegistry
         try
         {
             Engines.Clear();
+            CachedSnapshot = null;
         }
         finally
         {

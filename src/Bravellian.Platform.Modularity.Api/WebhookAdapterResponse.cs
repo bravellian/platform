@@ -19,4 +19,5 @@ namespace Bravellian.Platform.Modularity;
 /// </summary>
 /// <param name="Outcome">Outcome the transport should emit.</param>
 /// <param name="Reason">Optional reason for retries.</param>
-public sealed record WebhookAdapterResponse(WebhookOutcomeType Outcome, string? Reason = null);
+/// <param name="EnqueuedEvent">Optional event payload to enqueue downstream.</param>
+public sealed record WebhookAdapterResponse(WebhookOutcomeType Outcome, string? Reason = null, object? EnqueuedEvent = null);

@@ -19,7 +19,7 @@ namespace Bravellian.Platform.Modularity;
 /// </summary>
 /// <param name="Actions">Named commands/actions the engine supports.</param>
 /// <param name="Events">Events emitted by the engine.</param>
-/// <param name="SupportsAsync">Reserved for future use. All engines are currently async by design (Task-based). This flag may be used by hosts to differentiate execution strategies in future versions.</param>
+/// <param name="SupportsAsync">Reserved for future use. All engines are currently Task-based; adapters ignore this flag today, so hosts should treat it as informational until sync execution is introduced.</param>
 /// <param name="SupportsStreaming">Indicates streaming updates are supported.</param>
 public sealed record ModuleEngineCapabilities(
     IReadOnlyCollection<string> Actions,

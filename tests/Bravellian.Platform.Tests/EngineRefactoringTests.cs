@@ -84,8 +84,10 @@ public sealed class EngineRefactoringTests
         Assert.Equal("Signature validation failed", response.Reason);
     }
 
-    [Fact]
-    public async Task Webhook_adapter_requires_idempotency_key_when_configured()
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task Webhook_adapter_requires_idempotency_key_when_configured(string idempotencyKey)
     {
         var provider = BuildServiceProvider();
         var adapter = new WebhookEngineAdapter(provider.GetRequiredService<ModuleEngineDiscoveryService>(), provider, provider.GetRequiredService<IWebhookSignatureValidator>());
@@ -95,7 +97,7 @@ public sealed class EngineRefactoringTests
             "bounce",
             new Dictionary<string, string> { ["X-Signature"] = "postmark:raw-body" },
             "raw-body",
-            string.Empty, // Missing idempotency key
+            idempotencyKey,
             1,
             null,
             new PostmarkBouncePayload("HardBounce", "Mail rejected"));

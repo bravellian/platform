@@ -78,6 +78,6 @@ public sealed class WebhookEngineAdapter
             new WebhookRequest<TPayload>(request.Provider, request.EventType, request.Payload, request.IdempotencyKey, request.Attempt),
             cancellationToken).ConfigureAwait(false);
 
-        return new WebhookAdapterResponse(outcome.Outcome, outcome.Reason);
+        return new WebhookAdapterResponse(outcome.Outcome, outcome.Reason, outcome.EnqueuedEvent);
     }
 }
