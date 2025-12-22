@@ -22,6 +22,8 @@ namespace Bravellian.Platform.Modularity;
 internal static class ModuleEngineRegistry
 {
     private static readonly ConcurrentDictionary<string, List<IModuleEngineDescriptor>> Engines = new(StringComparer.OrdinalIgnoreCase);
+    
+    // ReaderWriterLockSlim protects registry operations. No disposal needed as this is a static class with application lifetime.
     private static readonly ReaderWriterLockSlim RegistryLock = new();
 
     public static void Register(string moduleKey, IEnumerable<IModuleEngineDescriptor> descriptors)
@@ -52,7 +54,7 @@ internal static class ModuleEngineRegistry
         RegistryLock.EnterReadLock();
         try
         {
-            // Take a snapshot of all registered engines.
+            // Take a snapshot of all registered engines. The read lock ensures no modifications occur during enumeration.
             return Engines.Values.SelectMany(list => list).ToArray();
         }
         finally
