@@ -40,6 +40,20 @@ public sealed class WebhookEngineAdapter
     {
         if (request is null)
         {
+            throw new System.ArgumentNullException(nameof(request));
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Provider))
+        {
+            throw new System.ArgumentException("Provider must be a non-empty, non-whitespace string.", nameof(request.Provider));
+        }
+
+        if (string.IsNullOrWhiteSpace(request.EventType))
+        {
+            throw new System.ArgumentException("EventType must be a non-empty, non-whitespace string.", nameof(request.EventType));
+        }
+        if (request is null)
+        {
             throw new ArgumentNullException(nameof(request));
         }
 
