@@ -24,7 +24,7 @@ internal static class ModuleEngineRegistry
     private static readonly ConcurrentDictionary<string, List<IModuleEngineDescriptor>> Engines = new(StringComparer.OrdinalIgnoreCase);
     
     // Single lock protects registry operations without disposal requirements.
-    private static readonly object RegistryLock = new();
+    private static readonly Lock RegistryLock = new();
     private static IModuleEngineDescriptor[]? CachedSnapshot;
 
     public static void Register(string moduleKey, IEnumerable<IModuleEngineDescriptor> descriptors)
