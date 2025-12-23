@@ -1,58 +1,30 @@
 # Bravellian.Platform.Modularity
 
-Engine-first module infrastructure for generic hosts and adapters.
+Engine-first module infrastructure for transport-agnostic UI, webhook, and background workflows.
 
-## Overview
+## Install
 
-`Bravellian.Platform.Modularity` provides a single, transport-agnostic module system. Modules register services, configuration, and health checks, and optionally expose engines (UI/webhook) through manifests and descriptors. Hosts choose how to surface engines via adapters.
-
-Optional adapters live in separate packages:
-- **Bravellian.Platform.Modularity.Razor** – Razor Pages adapter for UI engines.
-- **Bravellian.Platform.Modularity.AspNetCore** – Minimal API endpoint helpers for UI and webhook engines.
-
-## Requirements
-
-This library targets **.NET 10.0** and requires:
-- .NET SDK 10.0 or later
-
-## Getting Started
-
-### 1. Register Module Types
-
-```csharp
-// In your Program.cs or Startup.cs
-ModuleRegistry.RegisterModule<MyModule>();
+```bash
+dotnet add package Bravellian.Platform.Modularity
 ```
 
-### 2. Configure Services
+## Usage
 
 ```csharp
-var builder = WebApplication.CreateBuilder(args);
+ModuleRegistry.RegisterModule<MyModule>();
 
-// Add module services
 builder.Services.AddModuleServices(builder.Configuration);
+
 builder.Services.AddSingleton<UiEngineAdapter>();
 builder.Services.AddSingleton<WebhookEngineAdapter>();
-builder.Services.AddSingleton<IWebhookSignatureValidator, MySignatureValidator>();
+
 builder.Services.AddSingleton<IRequiredServiceValidator, MyRequiredServiceValidator>();
-
-// Optional Razor Pages adapter
-builder.Services.AddRazorPages()
-    .ConfigureRazorModulePages();
-
-var app = builder.Build();
+builder.Services.AddSingleton<IWebhookSignatureValidator, MySignatureValidator>();
 ```
 
-### 3. Wire Adapters
+## Examples
 
-```csharp
-app.MapUiEngineEndpoints();
-app.MapWebhookEngineEndpoints();
-```
-
-## Module Implementation
-
-Modules implement `IModuleDefinition` and return engine descriptors when applicable.
+### Module with UI engine
 
 ```csharp
 public sealed class MyModule : IModuleDefinition
@@ -60,26 +32,16 @@ public sealed class MyModule : IModuleDefinition
     public string Key => "my-module";
     public string DisplayName => "My Module";
 
-    public IEnumerable<string> GetRequiredConfigurationKeys()
-    {
-        yield return "MyModule:ApiKey";
-    }
+    public IEnumerable<string> GetRequiredConfigurationKeys() => Array.Empty<string>();
+    public IEnumerable<string> GetOptionalConfigurationKeys() => Array.Empty<string>();
 
-    public IEnumerable<string> GetOptionalConfigurationKeys()
+    public void LoadConfiguration(IReadOnlyDictionary<string, string> required, IReadOnlyDictionary<string, string> optional)
     {
-        yield return "MyModule:Timeout";
-    }
-
-    public void LoadConfiguration(
-        IReadOnlyDictionary<string, string> required,
-        IReadOnlyDictionary<string, string> optional)
-    {
-        // Store configuration for use during service registration
     }
 
     public void AddModuleServices(IServiceCollection services)
     {
-        services.AddHostedService<MyBackgroundService>();
+        services.AddSingleton<MyUiEngine>();
     }
 
     public void RegisterHealthChecks(ModuleHealthCheckBuilder builder)
@@ -89,48 +51,74 @@ public sealed class MyModule : IModuleDefinition
 
     public IEnumerable<IModuleEngineDescriptor> DescribeEngines()
     {
-        yield return new ModuleEngineDescriptor<IUiEngine<LoginCommand, LoginViewModel>>(
+        yield return new ModuleEngineDescriptor<IUiEngine<MyCommand, MyViewModel>>(
             Key,
             new ModuleEngineManifest(
-                "ui.login",
+                "ui.example",
                 "1.0",
-                "Login UI engine",
-                EngineKind.Ui),
-            sp => sp.GetRequiredService<LoginUiEngine>());
+                "Example UI engine",
+                EngineKind.Ui,
+                Inputs: new[] { new ModuleEngineSchema("command", typeof(MyCommand)) },
+                Outputs: new[] { new ModuleEngineSchema("viewModel", typeof(MyViewModel)) }),
+            sp => sp.GetRequiredService<MyUiEngine>());
     }
 }
 ```
 
-## Features
+### Background-only module
 
-### Configuration Management
+```csharp
+public sealed class WorkerModule : IModuleDefinition
+{
+    public string Key => "worker";
+    public string DisplayName => "Worker";
 
-Modules declare their required and optional configuration keys. The registry validates that all required configuration is present before initialization.
+    public IEnumerable<string> GetRequiredConfigurationKeys() => Array.Empty<string>();
+    public IEnumerable<string> GetOptionalConfigurationKeys() => Array.Empty<string>();
 
-### Health Checks
+    public void LoadConfiguration(IReadOnlyDictionary<string, string> required, IReadOnlyDictionary<string, string> optional)
+    {
+    }
 
-All modules can register health checks that integrate with ASP.NET Core's health check system.
+    public void AddModuleServices(IServiceCollection services)
+    {
+        services.AddHostedService<WorkerService>();
+    }
 
-### Engine Discovery
+    public void RegisterHealthChecks(ModuleHealthCheckBuilder builder)
+    {
+        builder.AddCheck("worker", () => HealthCheckResult.Healthy());
+    }
 
-Engines are registered with the `ModuleEngineDiscoveryService`, which supports querying by kind or feature area and resolving descriptors for adapters.
+    public IEnumerable<IModuleEngineDescriptor> DescribeEngines()
+        => Array.Empty<IModuleEngineDescriptor>();
+}
+```
 
-### Validation
+### Typed UI endpoint handler
 
-The system validates:
-- Module keys are URL-safe (no slashes)
-- Module keys are unique (case-insensitive)
-- Required configuration is present
-- Engine descriptors match their owning module key
+```csharp
+app.MapPost("/modules/{moduleKey}/ui/{engineId}", async (
+    string moduleKey,
+    string engineId,
+    MyCommand command,
+    UiEngineAdapter adapter,
+    CancellationToken cancellationToken) =>
+{
+    var response = await adapter.ExecuteAsync<MyCommand, MyViewModel>(
+        moduleKey,
+        engineId,
+        command,
+        cancellationToken);
 
-## More documentation
+    return Results.Ok(response.ViewModel);
+});
+```
 
-- [Modularity Quick Start](../../docs/modularity-quickstart.md)
-- [Engine Contracts Overview](../../docs/engine-overview.md)
-- [Module Engine Architecture](../../docs/module-engine-architecture.md)
+## Documentation
 
-## License
-
-Copyright (c) Bravellian
-
-Licensed under the Apache License, Version 2.0. See the LICENSE file for details.
+- https://github.com/bravellian/platform
+- docs/INDEX.md
+- docs/modularity-quickstart.md
+- docs/engine-overview.md
+- docs/module-engine-architecture.md
