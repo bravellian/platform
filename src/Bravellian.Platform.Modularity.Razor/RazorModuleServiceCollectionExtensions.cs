@@ -12,59 +12,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Bravellian.Platform.Modularity;
 
 /// <summary>
-/// Registration helpers for full stack modules.
+/// Razor Pages helpers for modules that expose UI adapters.
 /// </summary>
-public static class FullStackModuleServiceCollectionExtensions
+public static class RazorModuleServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers services for full stack modules.
+    /// Adds Razor Pages configuration for registered Razor modules.
     /// </summary>
-    public static IServiceCollection AddFullStackModuleServices(
-        this IServiceCollection services,
-        IConfiguration configuration,
-        ILoggerFactory? loggerFactory = null)
-    {
-        var modules = FullStackModuleRegistry.InitializeFullStackModules(configuration, services, loggerFactory);
-        foreach (var module in modules)
-        {
-            services.AddSingleton(module.GetType(), module);
-            services.AddSingleton<IApiModule>(module);
-            services.AddSingleton(module);
-        }
-
-        services.AddSingleton<ModuleEngineDiscoveryService>();
-        services.AddSingleton<ModuleNavigationService>();
-        return services;
-    }
-
-    /// <summary>
-    /// Adds Razor Pages configuration for registered full stack modules.
-    /// </summary>
-    public static IMvcBuilder ConfigureFullStackModuleRazorPages(
+    public static IMvcBuilder ConfigureRazorModulePages(
         this IMvcBuilder builder,
         ILoggerFactory? loggerFactory = null)
     {
         var modules = builder.Services
-            .Where(descriptor => descriptor.ServiceType == typeof(IFullStackModule))
+            .Where(descriptor => descriptor.ServiceType == typeof(IModuleDefinition))
             .Select(descriptor => descriptor.ImplementationInstance)
-            .OfType<IFullStackModule>()
+            .OfType<IRazorModule>()
             .ToArray();
 
         foreach (var module in modules)
         {
             builder.Services.Configure<RazorPagesOptions>(module.ConfigureRazorPages);
             builder.PartManager.ApplicationParts.Add(new AssemblyPart(module.GetType().Assembly));
-            loggerFactory?.CreateLogger(typeof(FullStackModuleServiceCollectionExtensions))
+            loggerFactory?.CreateLogger(typeof(RazorModuleServiceCollectionExtensions))
                 .LogInformation("Registered Razor Pages for module {ModuleKey}", module.Key);
         }
 

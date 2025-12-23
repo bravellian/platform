@@ -20,6 +20,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Shouldly;
+using Xunit;
 
 namespace Bravellian.Platform.Tests.Modularity;
 
@@ -27,66 +28,64 @@ namespace Bravellian.Platform.Tests.Modularity;
 public sealed class RazorPagesConfigurationTests
 {
     [Fact]
-    public void ConfigureFullStackModuleRazorPages_registers_application_parts()
+    public void ConfigureRazorModulePages_registers_application_parts()
     {
         ModuleRegistry.Reset();
-        FullStackModuleRegistry.RegisterFullStackModule<TestFullStackModule>();
+        ModuleRegistry.RegisterModule<TestRazorModule>();
 
         var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-(StringComparer.Ordinal)
+            .AddInMemoryCollection(new Dictionary<string, string?>(StringComparer.Ordinal)
             {
-                [TestFullStackModule.RequiredKey] = "test-value",
+                [TestRazorModule.RequiredKey] = "test-value",
             })
             .Build();
 
         var services = new ServiceCollection();
-        services.AddFullStackModuleServices(configuration, NullLoggerFactory.Instance);
+        services.AddModuleServices(configuration, NullLoggerFactory.Instance);
 
         var mvcBuilder = services.AddRazorPages();
-        mvcBuilder.ConfigureFullStackModuleRazorPages(NullLoggerFactory.Instance);
+        mvcBuilder.ConfigureRazorModulePages(NullLoggerFactory.Instance);
 
-        // Verify assembly part was added
         var assemblyPart = mvcBuilder.PartManager.ApplicationParts
             .OfType<AssemblyPart>()
-            .FirstOrDefault(p => p.Assembly == typeof(TestFullStackModule).Assembly);
+            .FirstOrDefault(p => p.Assembly == typeof(TestRazorModule).Assembly);
 
         assemblyPart.ShouldNotBeNull();
     }
 
     [Fact]
-    public void ConfigureFullStackModuleRazorPages_invokes_module_configuration()
+    public void ConfigureRazorModulePages_invokes_module_configuration()
     {
         ModuleRegistry.Reset();
-        FullStackModuleRegistry.RegisterFullStackModule<TestFullStackModule>();
+        ModuleRegistry.RegisterModule<TestRazorModule>();
 
         var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-(StringComparer.Ordinal)
+            .AddInMemoryCollection(new Dictionary<string, string?>(StringComparer.Ordinal)
             {
-                [TestFullStackModule.RequiredKey] = "test-value",
+                [TestRazorModule.RequiredKey] = "test-value",
             })
             .Build();
 
         var services = new ServiceCollection();
-        services.AddFullStackModuleServices(configuration, NullLoggerFactory.Instance);
+        services.AddModuleServices(configuration, NullLoggerFactory.Instance);
 
         var mvcBuilder = services.AddRazorPages();
-        mvcBuilder.ConfigureFullStackModuleRazorPages(NullLoggerFactory.Instance);
+        mvcBuilder.ConfigureRazorModulePages(NullLoggerFactory.Instance);
 
         using var provider = services.BuildServiceProvider();
 
-        // Verify the ConfigureRazorPages method was invoked by checking options were configured
         var optionsMonitor = provider.GetService<IOptionsMonitor<RazorPagesOptions>>();
         optionsMonitor.ShouldNotBeNull();
     }
 
-    private sealed class TestFullStackModule : IFullStackModule
+    private sealed class TestRazorModule : IRazorModule
     {
         internal const string RequiredKey = "test:key";
 
         public string Key => "test-module";
+
         public string DisplayName => "Test Module";
+
         public string AreaName => "TestArea";
 
         public IEnumerable<string> GetRequiredConfigurationKeys()
@@ -110,17 +109,9 @@ public sealed class RazorPagesConfigurationTests
 
         public void ConfigureRazorPages(RazorPagesOptions options)
         {
-            // Configure authorization for the area
             options.Conventions.AuthorizeAreaFolder(AreaName, "/");
         }
 
-        public IEnumerable<ModuleNavLink> GetNavLinks()
-        {
-            yield break;
-        }
-
-        public void MapApiEndpoints(Microsoft.AspNetCore.Routing.RouteGroupBuilder group)
-        {
-        }
+        public IEnumerable<IModuleEngineDescriptor> DescribeEngines() => Array.Empty<IModuleEngineDescriptor>();
     }
 }

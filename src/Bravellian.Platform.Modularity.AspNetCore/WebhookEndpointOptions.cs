@@ -1,0 +1,89 @@
+// Copyright (c) Bravellian
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+using System.Text.Json;
+using Microsoft.AspNetCore.Http;
+
+namespace Bravellian.Platform.Modularity;
+
+/// <summary>
+/// Options for mapping webhook engine endpoints.
+/// </summary>
+public sealed class WebhookEndpointOptions
+{
+    /// <summary>
+    /// Route pattern for webhook intake.
+    /// </summary>
+    public string RoutePattern { get; set; } = "/webhooks/{provider}/{eventType}";
+
+    /// <summary>
+    /// Route parameter name for the provider.
+    /// </summary>
+    public string ProviderRouteParameterName { get; set; } = "provider";
+
+    /// <summary>
+    /// Route parameter name for the event type.
+    /// </summary>
+    public string EventTypeRouteParameterName { get; set; } = "eventType";
+
+    /// <summary>
+    /// Header name used to supply webhook signatures.
+    /// </summary>
+    public string? SignatureHeaderName { get; set; } = "X-Signature";
+
+    /// <summary>
+    /// Query parameter name used to supply webhook signatures.
+    /// </summary>
+    public string? SignatureQueryName { get; set; }
+
+    /// <summary>
+    /// Header name used to supply idempotency keys.
+    /// </summary>
+    public string? IdempotencyHeaderName { get; set; } = "Idempotency-Key";
+
+    /// <summary>
+    /// Query parameter name used to supply idempotency keys.
+    /// </summary>
+    public string? IdempotencyQueryName { get; set; }
+
+    /// <summary>
+    /// Header name used to supply delivery attempt numbers.
+    /// </summary>
+    public string? AttemptHeaderName { get; set; } = "X-Webhook-Attempt";
+
+    /// <summary>
+    /// Query parameter name used to supply delivery attempt numbers.
+    /// </summary>
+    public string? AttemptQueryName { get; set; } = "attempt";
+
+    /// <summary>
+    /// Overrides the JSON serializer options.
+    /// </summary>
+    public JsonSerializerOptions? SerializerOptions { get; set; }
+
+    /// <summary>
+    /// Maps webhook outcomes to HTTP status codes.
+    /// </summary>
+    public IDictionary<WebhookOutcomeType, int> OutcomeStatusCodes { get; } = new Dictionary<WebhookOutcomeType, int>
+    {
+        [WebhookOutcomeType.Acknowledge] = StatusCodes.Status200OK,
+        [WebhookOutcomeType.Retry] = StatusCodes.Status503ServiceUnavailable,
+        [WebhookOutcomeType.EnqueueEvent] = StatusCodes.Status202Accepted,
+    };
+
+    /// <summary>
+    /// Custom response mapping for webhook adapter results.
+    /// </summary>
+    public Func<WebhookAdapterResponse, IResult>? ResponseFactory { get; set; }
+}

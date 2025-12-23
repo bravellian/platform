@@ -13,6 +13,11 @@ Welcome to the comprehensive documentation for the Bravellian Platform. This gui
 - [Time Abstractions Guide](time-abstractions.md) - TimeProvider and IMonotonicClock
 - [Monotonic Clock Usage](monotonic-clock-guide.md) - Stable timing for timeouts and measurements
 
+### Modularity and Engines
+- [Modularity Quick Start](modularity-quickstart.md) - Plug modules into a host and expose engines
+- [Engine Contracts Overview](engine-overview.md) - Manifests, descriptors, and discovery
+- [Module Engine Architecture](module-engine-architecture.md) - End-to-end engine and adapter design
+
 ### Work Queue Pattern
 - [Platform Primitives Overview](platform-primitives-overview.md) - Inbox, outbox, fanout, and fan-in end-to-end
 - [Work Queue Pattern](work-queue-pattern.md) - Claim-ack-abandon semantics

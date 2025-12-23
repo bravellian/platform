@@ -13,11 +13,11 @@
 // limitations under the License.
 
 using Bravellian.Platform.Modularity;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
+using Xunit;
 
 namespace Bravellian.Platform.Tests.Modularity;
 
@@ -28,10 +28,10 @@ public sealed class RequiredServiceValidationTests
     public async Task Ui_adapter_requires_required_service_validator_when_engine_declares_required_services()
     {
         ModuleRegistry.Reset();
-        ApiModuleRegistry.RegisterApiModule<RequiredServiceModule>();
+        ModuleRegistry.RegisterModule<RequiredServiceModule>();
 
         var services = new ServiceCollection();
-        services.AddApiModuleServices(new ConfigurationBuilder().Build(), NullLoggerFactory.Instance);
+        services.AddModuleServices(new ConfigurationBuilder().Build(), NullLoggerFactory.Instance);
 
         using var provider = services.BuildServiceProvider();
         var adapter = new UiEngineAdapter(provider.GetRequiredService<ModuleEngineDiscoveryService>(), provider);
@@ -50,11 +50,11 @@ public sealed class RequiredServiceValidationTests
     public async Task Ui_adapter_throws_when_required_services_are_missing()
     {
         ModuleRegistry.Reset();
-        ApiModuleRegistry.RegisterApiModule<RequiredServiceModule>();
+        ModuleRegistry.RegisterModule<RequiredServiceModule>();
 
         var services = new ServiceCollection();
         services.AddSingleton<IRequiredServiceValidator>(new TestRequiredServiceValidator(Array.Empty<string>()));
-        services.AddApiModuleServices(new ConfigurationBuilder().Build(), NullLoggerFactory.Instance);
+        services.AddModuleServices(new ConfigurationBuilder().Build(), NullLoggerFactory.Instance);
 
         using var provider = services.BuildServiceProvider();
         var adapter = new UiEngineAdapter(provider.GetRequiredService<ModuleEngineDiscoveryService>(), provider);
@@ -74,11 +74,11 @@ public sealed class RequiredServiceValidationTests
     public async Task Ui_adapter_executes_when_required_services_are_satisfied()
     {
         ModuleRegistry.Reset();
-        ApiModuleRegistry.RegisterApiModule<RequiredServiceModule>();
+        ModuleRegistry.RegisterModule<RequiredServiceModule>();
 
         var services = new ServiceCollection();
         services.AddSingleton<IRequiredServiceValidator>(new TestRequiredServiceValidator(new[] { "cache", "telemetry" }));
-        services.AddApiModuleServices(new ConfigurationBuilder().Build(), NullLoggerFactory.Instance);
+        services.AddModuleServices(new ConfigurationBuilder().Build(), NullLoggerFactory.Instance);
 
         using var provider = services.BuildServiceProvider();
         var adapter = new UiEngineAdapter(provider.GetRequiredService<ModuleEngineDiscoveryService>(), provider);
@@ -113,7 +113,7 @@ public sealed class RequiredServiceValidationTests
         ex.Message.ShouldContain("null-module/ui.null");
     }
 
-    private sealed class RequiredServiceModule : IApiModule, IEngineModule
+    private sealed class RequiredServiceModule : IModuleDefinition
     {
         public string Key => "required-service-module";
 
@@ -133,10 +133,6 @@ public sealed class RequiredServiceValidationTests
         }
 
         public void RegisterHealthChecks(ModuleHealthCheckBuilder builder)
-        {
-        }
-
-        public void MapApiEndpoints(RouteGroupBuilder group)
         {
         }
 

@@ -12,18 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace Bravellian.Platform.Modularity;
 
 /// <summary>
-/// Module that contributes HTTP endpoints such as webhooks or APIs.
+/// Module that provides Razor Pages UI on top of module engines.
 /// </summary>
-public interface IApiModule : IModuleDefinition
+public interface IRazorModule : IModuleDefinition
 {
     /// <summary>
-    /// Maps API endpoints under the module's route group.
+    /// Name of the Razor Pages area.
     /// </summary>
-    /// <param name="group">The route group builder.</param>
-    void MapApiEndpoints(RouteGroupBuilder group);
+    string AreaName { get; }
+
+    /// <summary>
+    /// Configures Razor Pages conventions for the module.
+    /// </summary>
+    /// <param name="options">The Razor pages options.</param>
+    void ConfigureRazorPages(RazorPagesOptions options);
 }

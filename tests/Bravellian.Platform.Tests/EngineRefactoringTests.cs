@@ -13,19 +13,20 @@
 // limitations under the License.
 
 using Bravellian.Platform.Modularity;
-using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Bravellian.Platform.Tests;
 
+[Collection("ModuleRegistryTests")]
 public sealed class EngineRefactoringTests
 {
     public EngineRefactoringTests()
     {
         ModuleEngineRegistry.Reset();
-        FullStackModuleRegistry.RegisterFullStackModule<FakeEngineModule>();
+        ModuleRegistry.Reset();
+        ModuleRegistry.RegisterModule<FakeEngineModule>();
     }
 
     [Fact]
@@ -204,23 +205,17 @@ public sealed class EngineRefactoringTests
         var services = new ServiceCollection();
         services.AddSingleton<IWebhookSignatureValidator, TestSignatureValidator>();
         services.AddSingleton<IRequiredServiceValidator, TestRequiredServiceValidator>();
-        services.AddFullStackModuleServices(new ConfigurationBuilder().Build());
+        services.AddModuleServices(new ConfigurationBuilder().Build());
         services.AddSingleton<UiEngineAdapter>();
         services.AddSingleton<WebhookEngineAdapter>();
         return services.BuildServiceProvider();
     }
 
-    private sealed class FakeEngineModule : IFullStackModule, INavigationModuleMetadata, IEngineModule
+    private sealed class FakeEngineModule : IModuleDefinition
     {
         public string Key => "fake-module";
 
         public string DisplayName => "Fake Engines";
-
-        public string AreaName => "Fake";
-
-        public string NavigationGroup => "Engines";
-
-        public int NavigationOrder => 0;
 
         public IEnumerable<string> GetOptionalConfigurationKeys() => Array.Empty<string>();
 
@@ -237,19 +232,6 @@ public sealed class EngineRefactoringTests
         }
 
         public void RegisterHealthChecks(ModuleHealthCheckBuilder builder)
-        {
-        }
-
-        public IEnumerable<ModuleNavLink> GetNavLinks()
-        {
-            yield return ModuleNavLink.Create("Home", "/", 0, null);
-        }
-
-        public void ConfigureRazorPages(RazorPagesOptions options)
-        {
-        }
-
-        public void MapApiEndpoints(Microsoft.AspNetCore.Routing.RouteGroupBuilder group)
         {
         }
 

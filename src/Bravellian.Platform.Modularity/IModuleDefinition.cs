@@ -61,4 +61,9 @@ public interface IModuleDefinition
     /// </summary>
     /// <param name="builder">The health check builder.</param>
     void RegisterHealthChecks(ModuleHealthCheckBuilder builder);
+
+    /// <summary>
+    /// Provides engine descriptors for the module.
+    /// </summary>
+    IEnumerable<IModuleEngineDescriptor> DescribeEngines();
 }

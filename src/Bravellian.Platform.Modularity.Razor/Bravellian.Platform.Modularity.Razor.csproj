@@ -5,11 +5,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Deterministic>true</Deterministic>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <PackageId>Bravellian.Platform.Modularity.Api</PackageId>
+    <PackageId>Bravellian.Platform.Modularity.Razor</PackageId>
     <Version>1.0.0</Version>
     <Authors>Bravellian</Authors>
     <Owners>Bravellian</Owners>
-    <Description>API-focused module infrastructure for ASP.NET Core.</Description>
+    <Description>Razor Pages adapter for modular UI engines.</Description>
     <PackageProjectUrl>https://github.com/bravellian/platform</PackageProjectUrl>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/bravellian/platform</RepositoryUrl>
@@ -20,7 +20,7 @@
     <NoWarn>NU5123</NoWarn>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Bravellian.Platform.Modularity.Core\Bravellian.Platform.Modularity.Core.csproj" />
+    <ProjectReference Include="..\Bravellian.Platform.Modularity\Bravellian.Platform.Modularity.csproj" />
   </ItemGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />

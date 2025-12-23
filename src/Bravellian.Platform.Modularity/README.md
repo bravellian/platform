@@ -1,31 +1,19 @@
 # Bravellian.Platform.Modularity
 
-Composable module infrastructure for ASP.NET Core and generic hosts.
+Engine-first module infrastructure for generic hosts and adapters.
 
 ## Overview
 
-The modularity tooling is now offered as three focused packages so you only take the dependencies you need:
+`Bravellian.Platform.Modularity` provides a single, transport-agnostic module system. Modules register services, configuration, and health checks, and optionally expose engines (UI/webhook) through manifests and descriptors. Hosts choose how to surface engines via adapters.
 
-- **Bravellian.Platform.Modularity.Core** – background/headless modules for generic hosts, no ASP.NET Core dependency
-- **Bravellian.Platform.Modularity.Api** – API-first modules that expose endpoints, depends on `Microsoft.AspNetCore.App`
-- **Bravellian.Platform.Modularity.FullStack** – UI-enabled modules that include navigation and Razor Pages wiring
-
-The existing `Bravellian.Platform.Modularity` package remains as a convenience meta-package that references all of the above and re-exports the familiar extension methods.
+Optional adapters live in separate packages:
+- **Bravellian.Platform.Modularity.Razor** – Razor Pages adapter for UI engines.
+- **Bravellian.Platform.Modularity.AspNetCore** – Minimal API endpoint helpers for UI and webhook engines.
 
 ## Requirements
 
 This library targets **.NET 10.0** and requires:
 - .NET SDK 10.0 or later
-- ASP.NET Core 10.0 (included in .NET 10.0 SDK)
-
-### Why .NET 10?
-
-This library uses features introduced in C# 13 and .NET 10, including:
-- `System.Threading.Lock` - Modern lock type introduced in .NET 9, fully supported in .NET 10
-- Enhanced nullability annotations
-- Performance improvements in ASP.NET Core
-
-If you need support for earlier .NET versions, please file an issue to discuss compatibility requirements.
 
 ## Getting Started
 
@@ -33,9 +21,7 @@ If you need support for earlier .NET versions, please file an issue to discuss c
 
 ```csharp
 // In your Program.cs or Startup.cs
-ModuleRegistry.RegisterBackgroundModule<MyBackgroundModule>();
-ApiModuleRegistry.RegisterApiModule<MyApiModule>();
-FullStackModuleRegistry.RegisterFullStackModule<MyFullStackModule>();
+ModuleRegistry.RegisterModule<MyModule>();
 ```
 
 ### 2. Configure Services
@@ -44,35 +30,35 @@ FullStackModuleRegistry.RegisterFullStackModule<MyFullStackModule>();
 var builder = WebApplication.CreateBuilder(args);
 
 // Add module services
-builder.Services.AddBackgroundModuleServices(builder.Configuration);
-builder.Services.AddApiModuleServices(builder.Configuration);
-builder.Services.AddFullStackModuleServices(builder.Configuration);
+builder.Services.AddModuleServices(builder.Configuration);
+builder.Services.AddSingleton<UiEngineAdapter>();
+builder.Services.AddSingleton<WebhookEngineAdapter>();
+builder.Services.AddSingleton<IWebhookSignatureValidator, MySignatureValidator>();
+builder.Services.AddSingleton<IRequiredServiceValidator, MyRequiredServiceValidator>();
 
-// For Full Stack modules with Razor Pages
+// Optional Razor Pages adapter
 builder.Services.AddRazorPages()
-    .ConfigureFullStackModuleRazorPages();
+    .ConfigureRazorModulePages();
 
 var app = builder.Build();
 ```
 
-### 3. Map Module Endpoints
+### 3. Wire Adapters
 
 ```csharp
-// Map all module endpoints
-app.MapModuleEndpoints();
-
-app.Run();
+app.MapUiEngineEndpoints();
+app.MapWebhookEngineEndpoints();
 ```
 
 ## Module Implementation
 
-### Background Module Example
+Modules implement `IModuleDefinition` and return engine descriptors when applicable.
 
 ```csharp
-public class MyBackgroundModule : IBackgroundModule
+public sealed class MyModule : IModuleDefinition
 {
-    public string Key => "my-background";
-    public string DisplayName => "My Background Service";
+    public string Key => "my-module";
+    public string DisplayName => "My Module";
 
     public IEnumerable<string> GetRequiredConfigurationKeys()
     {
@@ -98,56 +84,19 @@ public class MyBackgroundModule : IBackgroundModule
 
     public void RegisterHealthChecks(ModuleHealthCheckBuilder builder)
     {
-        builder.AddCheck("my-background", () => HealthCheckResult.Healthy());
-    }
-}
-```
-
-### API Module Example
-
-```csharp
-public class MyApiModule : IApiModule
-{
-    public string Key => "my-api";
-    public string DisplayName => "My API";
-
-    // ... configuration methods ...
-
-    public void MapApiEndpoints(RouteGroupBuilder group)
-    {
-        group.MapGet("/status", () => Results.Ok(new { Status = "OK" }));
-        group.MapPost("/data", (DataRequest request) => Results.Created());
-    }
-}
-```
-
-### Full Stack Module Example
-
-```csharp
-public class MyFullStackModule : IFullStackModule, INavigationModuleMetadata
-{
-    public string Key => "my-module";
-    public string DisplayName => "My Module";
-    public string AreaName => "MyModule";
-    public string NavigationGroup => "Tools";
-    public int NavigationOrder => 10;
-
-    // ... configuration and service methods ...
-
-    public void ConfigureRazorPages(RazorPagesOptions options)
-    {
-        options.Conventions.AuthorizeAreaFolder(AreaName, "/");
+        builder.AddCheck("my-module", () => HealthCheckResult.Healthy());
     }
 
-    public IEnumerable<ModuleNavLink> GetNavLinks()
+    public IEnumerable<IModuleEngineDescriptor> DescribeEngines()
     {
-        yield return ModuleNavLink.Create("Dashboard", "/dashboard", 0, "home");
-        yield return ModuleNavLink.Create("Settings", "/settings", 10, "settings");
-    }
-
-    public void MapApiEndpoints(RouteGroupBuilder group)
-    {
-        group.MapGet("/api/data", () => Results.Ok());
+        yield return new ModuleEngineDescriptor<IUiEngine<LoginCommand, LoginViewModel>>(
+            Key,
+            new ModuleEngineManifest(
+                "ui.login",
+                "1.0",
+                "Login UI engine",
+                EngineKind.Ui),
+            sp => sp.GetRequiredService<LoginUiEngine>());
     }
 }
 ```
@@ -162,21 +111,23 @@ Modules declare their required and optional configuration keys. The registry val
 
 All modules can register health checks that integrate with ASP.NET Core's health check system.
 
-### Navigation Composition
+### Engine Discovery
 
-Full Stack modules can contribute navigation links that are automatically composed into a unified navigation structure.
-
-### Thread Safety
-
-The module registry is thread-safe and can be used from multiple threads simultaneously.
+Engines are registered with the `ModuleEngineDiscoveryService`, which supports querying by kind or feature area and resolving descriptors for adapters.
 
 ### Validation
 
 The system validates:
 - Module keys are URL-safe (no slashes)
 - Module keys are unique (case-insensitive)
-- Modules are not registered in multiple categories
 - Required configuration is present
+- Engine descriptors match their owning module key
+
+## More documentation
+
+- [Modularity Quick Start](../../docs/modularity-quickstart.md)
+- [Engine Contracts Overview](../../docs/engine-overview.md)
+- [Module Engine Architecture](../../docs/module-engine-architecture.md)
 
 ## License
 

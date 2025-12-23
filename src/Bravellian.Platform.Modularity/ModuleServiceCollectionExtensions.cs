@@ -19,19 +19,25 @@ using Microsoft.Extensions.Logging;
 namespace Bravellian.Platform.Modularity;
 
 /// <summary>
-/// Registration helpers for background modules.
+/// Registration helpers for modules.
 /// </summary>
-public static class BackgroundModuleServiceCollectionExtensions
+public static class ModuleServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers services for background modules.
+    /// Registers services for modules and engine discovery.
     /// </summary>
-    public static IServiceCollection AddBackgroundModuleServices(
+    public static IServiceCollection AddModuleServices(
         this IServiceCollection services,
         IConfiguration configuration,
         ILoggerFactory? loggerFactory = null)
     {
-        ModuleRegistry.InitializeModules<IBackgroundModule>(ModuleCategory.Background, configuration, services, loggerFactory);
+        var modules = ModuleRegistry.InitializeModules(configuration, services, loggerFactory);
+        foreach (var module in modules)
+        {
+            services.AddSingleton(module.GetType(), module);
+            services.AddSingleton<IModuleDefinition>(module);
+        }
+
         services.AddSingleton<ModuleEngineDiscoveryService>();
         return services;
     }

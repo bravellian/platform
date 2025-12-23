@@ -2,6 +2,8 @@
 
 This repository now exposes transport-agnostic engines that sit inside each module. Engines describe their contracts in a manifest and can be surfaced through adapters when a host wants to expose UI or webhook behaviors.
 
+Modules implement `IModuleDefinition` and register themselves with `ModuleRegistry`. Hosts call `AddModuleServices` to load configuration, register health checks, and expose engine discovery.
+
 ## Core building blocks
 
 - **Engine manifest** (`ModuleEngineManifest`)
@@ -17,6 +19,7 @@ This repository now exposes transport-agnostic engines that sit inside each modu
 Adapters remain optional: they map transport concerns to engines while keeping the engines themselves unaware of ASP.NET, MVC, or Razor. Reference adapters include:
 - `UiEngineAdapter` → executes an `IUiEngine` and surfaces `UiAdapterResponse` with typed navigation tokens.
 - `WebhookEngineAdapter` → validates signatures, enforces idempotency hints, and dispatches to `IWebhookEngine` instances.
+- `Bravellian.Platform.Modularity.AspNetCore` → adds `MapUiEngineEndpoints` and `MapWebhookEngineEndpoints` for minimal API wiring based on manifest schemas (`Inputs`/`Outputs` and `WebhookMetadata`).
 
 ## Versioning and isolation
 

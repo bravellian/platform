@@ -5,10 +5,9 @@
     <Platform Name="x86" />
   </Configurations>
   <Folder Name="/modularity/">
-    <Project Path="src/Bravellian.Platform.Modularity.Api/Bravellian.Platform.Modularity.Api.csproj" />
-    <Project Path="src/Bravellian.Platform.Modularity.Core/Bravellian.Platform.Modularity.Core.csproj" />
-    <Project Path="src/Bravellian.Platform.Modularity.FullStack/Bravellian.Platform.Modularity.FullStack.csproj" />
     <Project Path="src/Bravellian.Platform.Modularity/Bravellian.Platform.Modularity.csproj" />
+    <Project Path="src/Bravellian.Platform.Modularity.AspNetCore/Bravellian.Platform.Modularity.AspNetCore.csproj" />
+    <Project Path="src/Bravellian.Platform.Modularity.Razor/Bravellian.Platform.Modularity.Razor.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Bravellian.Platform.Tests/Bravellian.Platform.Tests.csproj" />

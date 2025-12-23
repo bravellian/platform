@@ -20,86 +20,63 @@ using Microsoft.Extensions.Logging;
 namespace Bravellian.Platform.Modularity;
 
 /// <summary>
-/// Internal registry of module types and initialized instances.
+/// Registry of module types and initialized instances.
 /// </summary>
-internal static class ModuleRegistry
+public static class ModuleRegistry
 {
     private static readonly System.Threading.Lock Sync = new();
-    private static readonly Dictionary<ModuleCategory, HashSet<Type>> RegisteredTypes = new()
-    {
-        [ModuleCategory.Background] = new HashSet<Type>(),
-        [ModuleCategory.Api] = new HashSet<Type>(),
-        [ModuleCategory.FullStack] = new HashSet<Type>(),
-    };
+    private static readonly HashSet<Type> RegisteredTypes = new();
 
     private static readonly Dictionary<Type, IModuleDefinition> Instances = new();
 
-    internal static void RegisterModuleType(Type type, ModuleCategory category)
+    /// <summary>
+    /// Registers a module type.
+    /// </summary>
+    /// <typeparam name="T">The module type.</typeparam>
+    public static void RegisterModule<T>() where T : class, IModuleDefinition, new()
+    {
+        RegisterModuleType(typeof(T));
+    }
+
+    internal static void RegisterModuleType(Type type)
     {
         lock (Sync)
         {
-            var alreadyRegistered = RegisteredTypes
-                .Where(pair => pair.Value.Contains(type))
-                .Select(pair => pair.Key)
-                .ToArray();
-
-            if (alreadyRegistered.Length > 0 && !alreadyRegistered.Contains(category))
-            {
-                throw new InvalidOperationException($"Module type '{type.FullName}' is already registered in a different category. A module cannot be registered in multiple categories.");
-            }
-
-            var targetSet = RegisteredTypes[category];
-            if (targetSet.Contains(type))
+            if (RegisteredTypes.Contains(type))
             {
                 return;
             }
 
-            targetSet.Add(type);
+            RegisteredTypes.Add(type);
         }
     }
 
-    internal static IReadOnlyCollection<Type> GetRegisteredTypes(ModuleCategory category)
+    /// <summary>
+    /// Gets a snapshot of all registered module types.
+    /// </summary>
+    /// <returns>A read-only collection of registered module types.</returns>
+    public static IReadOnlyCollection<Type> GetRegisteredModuleTypes()
     {
         lock (Sync)
         {
-            return RegisteredTypes[category].ToArray();
+            return RegisteredTypes.ToArray();
         }
     }
 
-    internal static IReadOnlyCollection<TModule> InitializeModules<TModule>(
-        ModuleCategory category,
+    internal static IReadOnlyCollection<IModuleDefinition> InitializeModules(
         IConfiguration configuration,
         IServiceCollection services,
         ILoggerFactory? loggerFactory)
-        where TModule : class, IModuleDefinition
     {
-        var types = SnapshotTypes(category);
-        var initialized = new List<TModule>();
+        var types = SnapshotTypes();
+        var initialized = new List<IModuleDefinition>();
 
         foreach (var type in types)
         {
-            var module = (TModule)CreateInstance(type, loggerFactory);
+            var module = CreateInstance(type, loggerFactory);
             LoadConfiguration(configuration, module, loggerFactory);
             RegisterInstance(module);
-            if (module is IEngineModule engineModule)
-            {
-                var descriptors = engineModule
-                    .DescribeEngines()
-                    .Select(descriptor =>
-                    {
-                        if (!string.Equals(descriptor.ModuleKey, module.Key, StringComparison.OrdinalIgnoreCase))
-                        {
-                            throw new InvalidOperationException(
-                                $"Engine descriptor module key '{descriptor.ModuleKey}' must match its owning module key '{module.Key}'. " +
-                                "Engine descriptors must use their owning module's key to ensure proper isolation and discovery. " +
-                                "Update the engine descriptor's ModuleKey to match the module's Key.");
-                        }
-
-                        return descriptor;
-                    })
-                    .ToArray();
-                ModuleEngineRegistry.Register(module.Key, descriptors);
-            }
+            RegisterEngines(module);
             initialized.Add(module);
         }
 
@@ -114,15 +91,6 @@ internal static class ModuleRegistry
         return initialized;
     }
 
-    internal static IReadOnlyCollection<TModule> GetModules<TModule>()
-        where TModule : class, IModuleDefinition
-    {
-        lock (Sync)
-        {
-            return Instances.Values.OfType<TModule>().ToArray();
-        }
-    }
-
     /// <summary>
     /// Clears all registered module types and instances.
     /// </summary>
@@ -135,22 +103,44 @@ internal static class ModuleRegistry
     {
         lock (Sync)
         {
-            foreach (var entry in RegisteredTypes.Values)
-            {
-                entry.Clear();
-            }
-
+            RegisteredTypes.Clear();
             Instances.Clear();
             ModuleEngineRegistry.Reset();
         }
     }
 
-    private static Type[] SnapshotTypes(ModuleCategory category)
+    private static Type[] SnapshotTypes()
     {
         lock (Sync)
         {
-            return RegisteredTypes[category].ToArray();
+            return RegisteredTypes.ToArray();
         }
+    }
+
+    private static void RegisterEngines(IModuleDefinition module)
+    {
+        var descriptors = module.DescribeEngines()?.ToArray() ?? Array.Empty<IModuleEngineDescriptor>();
+        if (descriptors.Length == 0)
+        {
+            return;
+        }
+
+        var validated = descriptors
+            .Select(descriptor =>
+            {
+                if (!string.Equals(descriptor.ModuleKey, module.Key, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException(
+                        $"Engine descriptor module key '{descriptor.ModuleKey}' must match its owning module key '{module.Key}'. " +
+                        "Engine descriptors must use their owning module's key to ensure proper isolation and discovery. " +
+                        "Update the engine descriptor's ModuleKey to match the module's Key.");
+                }
+
+                return descriptor;
+            })
+            .ToArray();
+
+        ModuleEngineRegistry.Register(module.Key, validated);
     }
 
     private static IModuleDefinition CreateInstance(Type type, ILoggerFactory? loggerFactory)

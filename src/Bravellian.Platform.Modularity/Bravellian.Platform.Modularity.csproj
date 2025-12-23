@@ -9,7 +9,7 @@
     <Version>1.0.0</Version>
     <Authors>Bravellian</Authors>
     <Owners>Bravellian</Owners>
-    <Description>Composable module infrastructure for ASP.NET Core and generic hosts.</Description>
+    <Description>Engine-first module infrastructure for generic hosts and adapters.</Description>
     <PackageProjectUrl>https://github.com/bravellian/platform</PackageProjectUrl>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/bravellian/platform</RepositoryUrl>
@@ -20,9 +20,9 @@
     <NoWarn>$(NoWarn);NU5123</NoWarn>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Bravellian.Platform.Modularity.Api\Bravellian.Platform.Modularity.Api.csproj" />
-    <ProjectReference Include="..\Bravellian.Platform.Modularity.Core\Bravellian.Platform.Modularity.Core.csproj" />
-    <ProjectReference Include="..\Bravellian.Platform.Modularity.FullStack\Bravellian.Platform.Modularity.FullStack.csproj" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.1">
+      <NoWarn>NU1510</NoWarn>
+    </PackageReference>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\assets\nuget_logo.png">

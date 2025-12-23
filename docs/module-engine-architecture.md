@@ -44,7 +44,7 @@ Both contracts operate purely on DTOs so engines remain isolated from HTTP, MVC,
 
 Module registration wires engines into the shared registry:
 
-1. Modules implement `IEngineModule.DescribeEngines()` to return descriptors that belong to the module’s `Key`.
+1. Modules implement `IModuleDefinition.DescribeEngines()` to return descriptors that belong to the module’s `Key`.
 2. During module initialization, `ModuleEngineRegistry.Register` validates the descriptors (including webhook metadata uniqueness) and stores them in a per-module collection.
 3. `ModuleEngineDiscoveryService` provides the host and adapters with filtered access to the registry: list by kind/feature area, resolve by module/engine id, or resolve webhook engines by provider/event type.
 4. Discovery also resolves engine instances using the descriptor factory, enforcing non-null instance creation.
@@ -79,14 +79,20 @@ Typical use: HTTP endpoints deserialize the webhook payload and raw metadata int
 
 ### UI routing surface
 
-- Register modules and discovery service in DI, then add `UiEngineAdapter` as a singleton.
+- Register modules in DI with `AddModuleServices`, then add `UiEngineAdapter` as a singleton.
 - Create endpoint handlers (e.g., minimal APIs or controllers) that accept module/engine identifiers and command DTOs, delegate to the adapter, and translate navigation tokens to routes/pages.
+- Optionally use `Bravellian.Platform.Modularity.AspNetCore` and `MapUiEngineEndpoints` to wire a generic endpoint that deserializes inputs based on manifest schemas.
 - Optionally expose manifest metadata (capabilities, navigation hints) to client apps to build menus or deep links dynamically.
+
+### Razor Pages adapter
+
+- Add `Bravellian.Platform.Modularity.Razor` and implement `IRazorModule` for modules that ship Razor Pages.
+- Call `services.AddRazorPages().ConfigureRazorModulePages()` to register Razor conventions and application parts.
 
 ### Webhook intake surface
 
 - Add `WebhookEngineAdapter` and a concrete `IWebhookSignatureValidator` to DI.
-- Define HTTP endpoints that capture provider, event type, headers, raw body, payload DTO, signature, idempotency key, and attempt number into a `WebhookAdapterRequest<TPayload>`.
+- Define HTTP endpoints that capture provider, event type, headers, raw body, payload DTO, signature, idempotency key, and attempt number into a `WebhookAdapterRequest<TPayload>`, or use `MapWebhookEngineEndpoints` from `Bravellian.Platform.Modularity.AspNetCore`.
 - Let the adapter enforce signature and idempotency rules, check required services, and return an adapter response that the host maps to HTTP status codes or retry instructions.
 
 ### Mixed module deployments
@@ -112,8 +118,8 @@ Typical use: HTTP endpoints deserialize the webhook payload and raw metadata int
 
 ## Next steps for new applications
 
-1. Define module(s) implementing `IEngineModule` with clear `Key` values and manifest-rich engine descriptors.
-2. Register module types in the appropriate category (API/FullStack/Background) so initialization loads configuration, registers engines, and wires health checks.
+1. Define module(s) implementing `IModuleDefinition` with clear `Key` values and manifest-rich engine descriptors.
+2. Register module types with `ModuleRegistry.RegisterModule<T>()` so initialization loads configuration, registers engines, and wires health checks.
 3. Choose adapter surfaces (UI, webhook, or both), register them with DI, and map HTTP routes or background triggers to adapter calls.
 4. Validate required services and security settings during startup, optionally exposing manifest metadata to operators or client applications for discovery and governance.
 
