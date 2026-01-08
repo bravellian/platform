@@ -29,6 +29,24 @@ app.MapHealthChecks("/health");
 
 ## Examples
 
+### One-time execution registry
+
+Use <xref:Bravellian.Platform.OnceExecutionRegistry> to guard idempotent startup tasks or DI registrations.
+
+```csharp
+var registry = new OnceExecutionRegistry();
+
+if (!registry.CheckAndMark("platform:di"))
+{
+    builder.Services.AddPlatformScheduler();
+}
+
+if (registry.HasRun("platform:di"))
+{
+    logger.LogInformation("Platform services already registered.");
+}
+```
+
 ### Outbox + Inbox
 
 ```csharp

@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Threading;
+
 namespace Bravellian.Platform;
 
 /// <summary>
@@ -19,7 +21,7 @@ namespace Bravellian.Platform;
 /// </summary>
 public sealed class OnceExecutionRegistry
 {
-    private readonly object syncRoot = new();
+    private readonly Lock syncRoot = new();
     private readonly HashSet<string> executedKeys = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
@@ -31,7 +33,7 @@ public sealed class OnceExecutionRegistry
     {
         var normalizedKey = NormalizeKey(key);
 
-        lock (syncRoot)
+        using (syncRoot.EnterScope())
         {
             return executedKeys.Contains(normalizedKey);
         }
@@ -49,7 +51,7 @@ public sealed class OnceExecutionRegistry
     {
         var normalizedKey = NormalizeKey(key);
 
-        lock (syncRoot)
+        using (syncRoot.EnterScope())
         {
             if (executedKeys.Contains(normalizedKey))
             {
