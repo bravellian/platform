@@ -1,4 +1,4 @@
-﻿// Copyright (c) Bravellian
+// Copyright (c) Bravellian
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@ using System.Diagnostics.Metrics;
 
 namespace Bravellian.Platform;
 
-internal static class SchedulerMetrics
+public static class SchedulerMetrics
 {
     private static readonly Meter Meter = new("Bravellian.Platform", "1.0.0");
     private static readonly ActivitySource ActivitySource = new("Bravellian.Platform");

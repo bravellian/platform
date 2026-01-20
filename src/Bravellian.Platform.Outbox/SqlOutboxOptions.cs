@@ -1,4 +1,4 @@
-﻿// Copyright (c) Bravellian
+// Copyright (c) Bravellian
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -29,13 +29,6 @@ public class SqlOutboxOptions
     /// Defaults to "Outbox".
     /// </summary>
     public string TableName { get; set; } = "Outbox";
-
-    /// <summary>
-    /// Gets or sets a value indicating whether database schema deployment should be performed automatically.
-    /// When true, the required database schema will be created/updated on startup.
-    /// Defaults to true.
-    /// </summary>
-    public bool EnableSchemaDeployment { get; set; } = true;
 
     /// <summary>
     /// Gets or sets the retention period for processed outbox messages.

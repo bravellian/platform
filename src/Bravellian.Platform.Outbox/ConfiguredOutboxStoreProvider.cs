@@ -74,54 +74,6 @@ internal sealed class ConfiguredOutboxStoreProvider : IOutboxStoreProvider
         logger = loggerFactory.CreateLogger<ConfiguredOutboxStoreProvider>();
     }
 
-    /// <summary>
-    /// Initializes the outbox stores by deploying database schemas if enabled.
-    /// This method should be called after construction to ensure all databases are ready.
-    /// </summary>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    public async Task InitializeAsync(CancellationToken cancellationToken = default)
-    {
-        foreach (var options in outboxOptions)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            if (options.EnableSchemaDeployment)
-            {
-                var identifier = options.ConnectionString.Contains("Database=")
-                    ? ExtractDatabaseName(options.ConnectionString)
-                    : $"{options.SchemaName}.{options.TableName}";
-
-                try
-                {
-                    logger.LogInformation(
-                        "Deploying outbox schema for database: {Identifier}",
-                        identifier);
-
-                    await DatabaseSchemaManager.EnsureOutboxSchemaAsync(
-                        options.ConnectionString,
-                        options.SchemaName,
-                        options.TableName).ConfigureAwait(false);
-
-                    await DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(
-                        options.ConnectionString,
-                        options.SchemaName).ConfigureAwait(false);
-
-                    logger.LogInformation(
-                        "Successfully deployed outbox schema for database: {Identifier}",
-                        identifier);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(
-                        ex,
-                        "Failed to deploy outbox schema for database: {Identifier}. Store will be available but may fail on first use.",
-                        identifier);
-                }
-            }
-        }
-    }
-
     /// <inheritdoc/>
     public Task<IReadOnlyList<IOutboxStore>> GetAllStoresAsync() =>
         Task.FromResult<IReadOnlyList<IOutboxStore>>(stores);

@@ -26,7 +26,6 @@ internal sealed class MultiOutboxPollingService : BackgroundService
 {
     private readonly MultiOutboxDispatcher dispatcher;
     private readonly IMonotonicClock mono;
-    private readonly IDatabaseSchemaCompletion? schemaCompletion;
     private readonly double intervalSeconds;
     private readonly int batchSize;
     private readonly ILogger<MultiOutboxPollingService> logger;
@@ -36,13 +35,11 @@ internal sealed class MultiOutboxPollingService : BackgroundService
         IMonotonicClock mono,
         ILogger<MultiOutboxPollingService> logger,
         double intervalSeconds = 0.25, // 250ms default
-        int batchSize = 50,
-        IDatabaseSchemaCompletion? schemaCompletion = null)
+        int batchSize = 50)
     {
         this.dispatcher = dispatcher;
         this.mono = mono;
         this.logger = logger;
-        this.schemaCompletion = schemaCompletion;
         this.intervalSeconds = intervalSeconds;
         this.batchSize = batchSize;
     }
@@ -52,22 +49,6 @@ internal sealed class MultiOutboxPollingService : BackgroundService
         logger.LogInformation(
             "Starting multi-outbox polling service with {IntervalMs}ms interval and batch size {BatchSize}",
             intervalSeconds * 1000, batchSize);
-
-        // Wait for schema deployment to complete if available
-        if (schemaCompletion != null)
-        {
-            logger.LogDebug("Waiting for database schema deployment to complete");
-            try
-            {
-                await schemaCompletion.SchemaDeploymentCompleted.ConfigureAwait(false);
-                logger.LogInformation("Database schema deployment completed successfully");
-            }
-            catch (Exception ex)
-            {
-                // Log and continue - schema deployment errors should not prevent outbox processing
-                logger.LogWarning(ex, "Schema deployment failed, but continuing with outbox processing");
-            }
-        }
 
         while (!stoppingToken.IsCancellationRequested)
         {

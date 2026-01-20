@@ -8,11 +8,11 @@
     <!-- Package metadata -->
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
-    <PackageId>Bravellian.Platform.Outbox</PackageId>
+    <PackageId>Bravellian.Platform.Common</PackageId>
     <Version>1.0.0</Version>
     <Authors>Bravellian</Authors>
     <Owners>Bravellian</Owners>
-    <Description>Outbox pattern implementation for message dispatching.</Description>
+    <Description>Common utilities and abstractions for the Bravellian platform.</Description>
     <PackageProjectUrl>https://github.com/bravellian/platform</PackageProjectUrl>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/bravellian/platform</RepositoryUrl>
@@ -40,7 +40,6 @@
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.0" />
-    <ProjectReference Include="..\Bravellian.Platform.Common\Bravellian.Platform.Common.csproj" />
     <PackageReference Update="DotNet.ReproducibleBuilds.Isolated" Version="1.2.39" />
     <PackageReference Update="Meziantou.Analyzer" Version="2.0.257" />
     <PackageReference Update="Roslynator.Analyzers" Version="4.14.1" />

@@ -164,9 +164,6 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
             var configs = await discovery.DiscoverDatabasesAsync(cancellationToken).ConfigureAwait(false);
             var configList = configs.ToList();
 
-            // Track configurations that need schema deployment
-            var schemasToDeploy = new List<OutboxDatabaseConfig>();
-
             lock (lockObject)
             {
                 // Track which identifiers we've seen in this refresh
@@ -191,7 +188,6 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
                                 ConnectionString = config.ConnectionString,
                                 SchemaName = config.SchemaName,
                                 TableName = config.TableName,
-                                EnableSchemaDeployment = config.EnableSchemaDeployment,
                             }),
                             timeProvider,
                             storeLogger);
@@ -203,7 +199,6 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
                                 ConnectionString = config.ConnectionString,
                                 SchemaName = config.SchemaName,
                                 TableName = config.TableName,
-                                EnableSchemaDeployment = config.EnableSchemaDeployment,
                             }),
                             outboxLogger);
 
@@ -217,12 +212,6 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
 
                         storesByIdentifier[config.Identifier] = entry;
                         currentStores.Add(store);
-
-                        // Mark for schema deployment
-                        if (config.EnableSchemaDeployment)
-                        {
-                            schemasToDeploy.Add(config);
-                        }
                     }
                     else if (!string.Equals(entry.Config.ConnectionString, config.ConnectionString, StringComparison.Ordinal) ||
 !string.Equals(entry.Config.SchemaName, config.SchemaName, StringComparison.Ordinal) ||
@@ -242,7 +231,6 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
                                 ConnectionString = config.ConnectionString,
                                 SchemaName = config.SchemaName,
                                 TableName = config.TableName,
-                                EnableSchemaDeployment = config.EnableSchemaDeployment,
                             }),
                             timeProvider,
                             storeLogger);
@@ -254,7 +242,6 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
                                 ConnectionString = config.ConnectionString,
                                 SchemaName = config.SchemaName,
                                 TableName = config.TableName,
-                                EnableSchemaDeployment = config.EnableSchemaDeployment,
                             }),
                             outboxLogger);
 
@@ -263,12 +250,6 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
                         entry.Config = config;
 
                         currentStores.Add(store);
-
-                        // Mark for schema deployment
-                        if (config.EnableSchemaDeployment)
-                        {
-                            schemasToDeploy.Add(config);
-                        }
                     }
                 }
 
@@ -291,39 +272,6 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
                 logger.LogDebug(
                     "Discovery complete. Managing {Count} outbox databases",
                     storesByIdentifier.Count);
-            }
-
-            // Deploy schemas outside the lock for databases that need it
-            foreach (var config in schemasToDeploy)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                try
-                {
-                    logger.LogInformation(
-                        "Deploying outbox schema for database: {Identifier}",
-                        config.Identifier);
-
-                    await DatabaseSchemaManager.EnsureOutboxSchemaAsync(
-                        config.ConnectionString,
-                        config.SchemaName,
-                        config.TableName).ConfigureAwait(false);
-
-                    await DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(
-                        config.ConnectionString,
-                        config.SchemaName).ConfigureAwait(false);
-
-                    logger.LogInformation(
-                        "Successfully deployed outbox schema for database: {Identifier}",
-                        config.Identifier);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(
-                        ex,
-                        "Failed to deploy outbox schema for database: {Identifier}. Store will be available but may fail on first use.",
-                        config.Identifier);
-                }
             }
         }
         catch (Exception ex)

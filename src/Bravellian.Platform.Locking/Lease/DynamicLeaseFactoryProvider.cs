@@ -284,34 +284,6 @@ internal sealed class DynamicLeaseFactoryProvider : ILeaseFactoryProvider, IDisp
                     "Discovery complete. Managing {Count} lease databases",
                     factoriesByIdentifier.Count);
             }
-
-            // Deploy schemas outside the lock for databases that need it
-            foreach (var config in schemasToDeploy)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                try
-                {
-                    logger.LogInformation(
-                        "Deploying lease schema for database: {Identifier}",
-                        config.Identifier);
-
-                    await DatabaseSchemaManager.EnsureLeaseSchemaAsync(
-                        config.ConnectionString,
-                        config.SchemaName).ConfigureAwait(false);
-
-                    logger.LogInformation(
-                        "Successfully deployed lease schema for database: {Identifier}",
-                        config.Identifier);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(
-                        ex,
-                        "Failed to deploy lease schema for database: {Identifier}. Factory will be available but may fail on first use.",
-                        config.Identifier);
-                }
-            }
         }
         catch (Exception ex)
         {

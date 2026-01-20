@@ -88,7 +88,6 @@ internal sealed class PlatformOutboxStoreProvider : IOutboxStoreProvider
                 if (cachedStores == null)
                 {
                     var stores = new List<IOutboxStore>();
-                    var newDatabases = new List<PlatformDatabase>();
 
                     foreach (var db in databases)
                     {
@@ -119,52 +118,9 @@ internal sealed class PlatformOutboxStoreProvider : IOutboxStoreProvider
                         stores.Add(store);
                         storesByKey[db.Name] = store;
                         outboxesByKey[db.Name] = outbox;
-
-                        // Track new databases for schema deployment
-                        if (enableSchemaDeployment && schemasDeployed.TryAdd(db.Name, 0))
-                        {
-                            newDatabases.Add(db);
-                        }
                     }
 
                     cachedStores = stores;
-
-                    // Deploy schemas for new databases outside the lock
-                    if (newDatabases.Count > 0)
-                    {
-                        _ = Task.Run(async () =>
-                        {
-                            foreach (var db in newDatabases)
-                            {
-                                try
-                                {
-                                    logger.LogInformation(
-                                        "Deploying outbox schema for newly discovered database: {DatabaseName}",
-                                        db.Name);
-
-                                    await DatabaseSchemaManager.EnsureOutboxSchemaAsync(
-                                        db.ConnectionString,
-                                        db.SchemaName,
-                                        tableName).ConfigureAwait(false);
-
-                                    await DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(
-                                        db.ConnectionString,
-                                        db.SchemaName).ConfigureAwait(false);
-
-                                    logger.LogInformation(
-                                        "Successfully deployed outbox schema for database: {DatabaseName}",
-                                        db.Name);
-                                }
-                                catch (Exception ex)
-                                {
-                                    logger.LogError(
-                                        ex,
-                                        "Failed to deploy outbox schema for database: {DatabaseName}. Store may fail on first use.",
-                                        db.Name);
-                                }
-                            }
-                        });
-                    }
                 }
             }
         }

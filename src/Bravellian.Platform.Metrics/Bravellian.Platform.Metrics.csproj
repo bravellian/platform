@@ -1,0 +1,56 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <Deterministic>true</Deterministic>
+
+    <!-- Package metadata -->
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <PackageId>Bravellian.Platform.Metrics</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Bravellian</Authors>
+    <Owners>Bravellian</Owners>
+    <Description>Common utilities and abstractions for the Bravellian platform.</Description>
+    <PackageProjectUrl>https://github.com/bravellian/platform</PackageProjectUrl>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/bravellian/platform</RepositoryUrl>
+    <PackageIcon>nuget_logo.png</PackageIcon>
+    <PackageReleaseNotes>For support, contact oss@bravellian.com</PackageReleaseNotes>
+    <NuspecProperties>id=$(PackageId);version=$(Version);authors=$(Authors)</NuspecProperties>
+    <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
+    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);MA0051;MA0015</WarningsNotAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="DatabaseIdentifier.guid.json" />
+    <AdditionalFiles Include="InstanceIdentifier.guid.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\assets\nuget_logo.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Bravellian.Generators" Version="2025.12.6.1169" PrivateAssets="all" />
+    <PackageReference Include="Cronos" Version="0.11.1" />
+    <PackageReference Include="Dapper" Version="2.1.66" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.3" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.0" />
+    <ProjectReference Include="..\Bravellian.Platform.Common\Bravellian.Platform.Common.csproj" />
+    <PackageReference Update="DotNet.ReproducibleBuilds.Isolated" Version="1.2.39" />
+    <PackageReference Update="Meziantou.Analyzer" Version="2.0.257" />
+    <PackageReference Update="Roslynator.Analyzers" Version="4.14.1" />
+    <PackageReference Update="Roslynator.CodeAnalysis.Analyzers" Version="4.14.1" />
+    <PackageReference Update="Roslynator.Formatting.Analyzers" Version="4.14.1" />
+  </ItemGroup>
+
+</Project>

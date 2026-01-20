@@ -26,8 +26,6 @@
 
 	<ItemGroup>
 	  <AdditionalFiles Include="Inbox\InboxMessageIdentifier.guid.json" />
-	  <AdditionalFiles Include="Metrics\InstanceIdentifier.guid.json" />
-	  <AdditionalFiles Include="Metrics\DatabaseIdentifier.guid.json" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -74,6 +72,10 @@
 		<EmbeddedResource Include="..\..\Bravellian.Platform.Database.ControlPlane\infra\Tables\*.sql" Link="Schema\ControlPlane\Tables\%(Filename)%(Extension)" />
 		<EmbeddedResource Include="..\..\Bravellian.Platform.Database.ControlPlane\infra\Stored Procedures\*.sql" Link="Schema\ControlPlane\StoredProcedures\%(Filename)%(Extension)" />
 		<EmbeddedResource Include="..\..\Bravellian.Platform.Database.ControlPlane\Security\*.sql" Link="Schema\ControlPlane\Security\%(Filename)%(Extension)" />
+	</ItemGroup>
+	<ItemGroup>
+	  <ProjectReference Include="..\..\Bravellian.Platform.Common\Bravellian.Platform.Common.csproj" />
+	  <ProjectReference Include="..\Bravellian.Platform.Common\Bravellian.Platform.Common.csproj" />
 	</ItemGroup>
 
 </Project>

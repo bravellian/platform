@@ -1,33 +1,5 @@
 <Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   
-  <ItemGroup Condition="'$(MSBuildProjectExtension)' == '.csproj'">
-    <TypeDefinitionFiles Include="$(ProjectDir)**\*.json" Exclude="$(BaseIntermediateOutputPath)**\*;$(OutputPath)**\*" />
-    <TypeDefinitionFiles Include="$(ProjectDir)**\_generate.xml" />
-
-    <!--
-      Step 2: Register the discovered files with the FUTD check.
-      This tells VS to monitor these files. [1]
-    -->
-    <UpToDateCheckInput Include="@(TypeDefinitionFiles)" />
-
-    <!--
-      Step 3: THE CRITICAL FIX from the documentation.
-      Register our marker file as a key output. The FUTD check will now compare
-      the timestamps of the inputs against this specific file. [1]
-    -->
-    <UpToDateCheckOutput Include="$(ProjectDir)Generated\__codegen.marker" />
-
-    <!--
-      4. THE MAGIC BULLET: Tell the FUTD that the project file itself is an input.
-      This forces it to re-evaluate globs on every build, defeating the cache and
-      correctly detecting changes in files matched by the wildcards above.
-    -->
-    <UpToDateCheckInput Include="$(MSBuildProjectFullPath)" />
-
-    <GeneratedFiles Include="$(ProjectDir)Generated\**\*.cs" />
-    <Compile Include="@(GeneratedFiles)" />
-  </ItemGroup>
-  
 	<!-- Keep global Using directives -->
 	<ItemGroup Condition="'$(MSBuildProjectExtension)' != '.dcproj' AND '$(MSBuildProjectExtension)' != '.sqlproj' AND $(MSBuildProjectName.StartsWith('Bravellian.Generators')) == false AND $(MSBuildProjectName.StartsWith('Bravellian.Database')) == false">
 		<Using Include="System" />

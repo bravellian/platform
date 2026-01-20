@@ -64,45 +64,6 @@ internal sealed class ConfiguredLeaseFactoryProvider : ILeaseFactoryProvider
         }
     }
 
-    /// <summary>
-    /// Initializes the lease factories by deploying database schemas if enabled.
-    /// This method should be called after construction to ensure all databases are ready.
-    /// </summary>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    public async Task InitializeAsync(CancellationToken cancellationToken = default)
-    {
-        foreach (var config in configs)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            if (config.EnableSchemaDeployment)
-            {
-                try
-                {
-                    logger.LogInformation(
-                        "Deploying lease schema for database: {Identifier}",
-                        config.Identifier);
-
-                    await DatabaseSchemaManager.EnsureLeaseSchemaAsync(
-                        config.ConnectionString,
-                        config.SchemaName).ConfigureAwait(false);
-
-                    logger.LogInformation(
-                        "Successfully deployed lease schema for database: {Identifier}",
-                        config.Identifier);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(
-                        ex,
-                        "Failed to deploy lease schema for database: {Identifier}. Factory will be available but may fail on first use.",
-                        config.Identifier);
-                }
-            }
-        }
-    }
-
     /// <inheritdoc/>
     public Task<IReadOnlyList<ISystemLeaseFactory>> GetAllFactoriesAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<ISystemLeaseFactory>>(allFactories);
 

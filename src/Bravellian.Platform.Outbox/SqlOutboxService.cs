@@ -74,15 +74,6 @@ internal class SqlOutboxService : IOutbox
         DateTimeOffset? dueTimeUtc,
         CancellationToken cancellationToken)
     {
-        // Ensure outbox table exists before attempting to enqueue (if enabled)
-        if (options.EnableSchemaDeployment)
-        {
-            await DatabaseSchemaManager.EnsureOutboxSchemaAsync(
-                connectionString,
-                options.SchemaName,
-                options.TableName).ConfigureAwait(false);
-        }
-
         // Create our own connection and transaction for reliability
         var connection = new SqlConnection(connectionString);
 
@@ -362,14 +353,6 @@ internal class SqlOutboxService : IOutbox
         {
             throw new InvalidOperationException(
                 "Join functionality is not available. Ensure IOutboxJoinStore is registered in the service collection.");
-        }
-
-        // Ensure join schema exists before attempting to create join (if enabled)
-        if (options.EnableSchemaDeployment)
-        {
-            await DatabaseSchemaManager.EnsureOutboxJoinSchemaAsync(
-                connectionString,
-                options.SchemaName).ConfigureAwait(false);
         }
 
         var join = await joinStore.CreateJoinAsync(

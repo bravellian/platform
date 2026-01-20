@@ -32,14 +32,12 @@ public sealed class OutboxCleanupService : BackgroundService
     private readonly TimeSpan retentionPeriod;
     private readonly TimeSpan cleanupInterval;
     private readonly IMonotonicClock mono;
-    private readonly IDatabaseSchemaCompletion? schemaCompletion;
     private readonly ILogger<OutboxCleanupService> logger;
 
     public OutboxCleanupService(
         IOptions<SqlOutboxOptions> options,
         IMonotonicClock mono,
-        ILogger<OutboxCleanupService> logger,
-        IDatabaseSchemaCompletion? schemaCompletion = null)
+        ILogger<OutboxCleanupService> logger)
     {
         var opts = options.Value;
         connectionString = opts.ConnectionString;
@@ -49,7 +47,6 @@ public sealed class OutboxCleanupService : BackgroundService
         cleanupInterval = opts.CleanupInterval;
         this.mono = mono;
         this.logger = logger;
-        this.schemaCompletion = schemaCompletion;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -57,22 +54,6 @@ public sealed class OutboxCleanupService : BackgroundService
         logger.LogInformation(
             "Starting outbox cleanup service with retention period {RetentionPeriod} and cleanup interval {CleanupInterval}",
             retentionPeriod, cleanupInterval);
-
-        // Wait for schema deployment to complete if available
-        if (schemaCompletion != null)
-        {
-            logger.LogDebug("Waiting for database schema deployment to complete");
-            try
-            {
-                await schemaCompletion.SchemaDeploymentCompleted.ConfigureAwait(false);
-                logger.LogInformation("Database schema deployment completed successfully");
-            }
-            catch (Exception ex)
-            {
-                // Log and continue - schema deployment errors should not prevent cleanup
-                logger.LogWarning(ex, "Schema deployment failed, but continuing with outbox cleanup");
-            }
-        }
 
         while (!stoppingToken.IsCancellationRequested)
         {

@@ -16,7 +16,6 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Bravellian.Platform;
@@ -37,7 +36,7 @@ public static class LeaseServiceCollectionExtensions
 
         // Add time abstractions
         services.AddSingleton(TimeProvider.System);
-        services.AddSingleton<IMonotonicClock, MonotonicClock>();
+        services.AddTimeAbstractions();
 
         services.Configure<SystemLeaseOptions>(o =>
         {
@@ -47,7 +46,6 @@ public static class LeaseServiceCollectionExtensions
             o.RenewPercent = options.RenewPercent;
             o.UseGate = options.UseGate;
             o.GateTimeoutMs = options.GateTimeoutMs;
-            o.EnableSchemaDeployment = options.EnableSchemaDeployment;
         });
 
         // Require an existing lease factory provider (e.g., PlatformLeaseFactoryProvider or a configured/dynamic provider).
@@ -58,16 +56,6 @@ public static class LeaseServiceCollectionExtensions
         }
 
         EnsureLeaseRoutingInfrastructure(services);
-
-        // Register schema deployment service if enabled (only register once per service collection)
-        if (options.EnableSchemaDeployment)
-        {
-            services.TryAddSingleton<DatabaseSchemaCompletion>();
-            services.TryAddSingleton<IDatabaseSchemaCompletion>(provider => provider.GetRequiredService<DatabaseSchemaCompletion>());
-
-            // Only add hosted service if not already registered using TryAddEnumerable
-            services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, DatabaseSchemaBackgroundService>());
-        }
 
         return services;
     }
@@ -86,7 +74,7 @@ public static class LeaseServiceCollectionExtensions
 
         // Add time abstractions
         services.AddSingleton(TimeProvider.System);
-        services.AddSingleton<IMonotonicClock, MonotonicClock>();
+        services.AddTimeAbstractions();
 
         var options = new SystemLeaseOptions
         {
@@ -101,7 +89,6 @@ public static class LeaseServiceCollectionExtensions
             o.RenewPercent = options.RenewPercent;
             o.UseGate = options.UseGate;
             o.GateTimeoutMs = options.GateTimeoutMs;
-            o.EnableSchemaDeployment = options.EnableSchemaDeployment;
         });
 
         var leaseFactoryConfig = new LeaseFactoryConfig
@@ -127,16 +114,6 @@ public static class LeaseServiceCollectionExtensions
 
         EnsureLeaseRoutingInfrastructure(services);
 
-        // Register schema deployment service if enabled (only register once per service collection)
-        if (options.EnableSchemaDeployment)
-        {
-            services.TryAddSingleton<DatabaseSchemaCompletion>();
-            services.TryAddSingleton<IDatabaseSchemaCompletion>(provider => provider.GetRequiredService<DatabaseSchemaCompletion>());
-
-            // Only add hosted service if not already registered using TryAddEnumerable
-            services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, DatabaseSchemaBackgroundService>());
-        }
-
         return services;
     }
 
@@ -154,7 +131,7 @@ public static class LeaseServiceCollectionExtensions
     {
         // Add time abstractions
         services.AddSingleton(TimeProvider.System);
-        services.AddSingleton<IMonotonicClock, MonotonicClock>();
+        services.AddTimeAbstractions();
 
         // Register the factory provider with the list of lease configs
         services.AddSingleton<ILeaseFactoryProvider>(provider =>
@@ -192,7 +169,7 @@ public static class LeaseServiceCollectionExtensions
     {
         // Add time abstractions
         services.AddSingleton(TimeProvider.System);
-        services.AddSingleton<IMonotonicClock, MonotonicClock>();
+        services.AddTimeAbstractions();
 
         // Register the custom factory provider
         services.AddSingleton(factoryProviderFactory);
@@ -220,7 +197,7 @@ public static class LeaseServiceCollectionExtensions
     {
         // Add time abstractions
         services.AddSingleton(TimeProvider.System);
-        services.AddSingleton<IMonotonicClock, MonotonicClock>();
+        services.AddTimeAbstractions();
 
         // Register the dynamic factory provider
         services.AddSingleton<ILeaseFactoryProvider>(provider =>

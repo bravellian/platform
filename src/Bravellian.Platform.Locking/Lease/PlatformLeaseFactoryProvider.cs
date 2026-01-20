@@ -77,7 +77,6 @@ internal sealed class PlatformLeaseFactoryProvider : ILeaseFactoryProvider
                 if (cachedFactories == null)
                 {
                     var factories = new List<ISystemLeaseFactory>();
-                    var newDatabasesNeedingSchema = new List<PlatformDatabase>();
 
                     foreach (var db in databases)
                     {
@@ -96,46 +95,9 @@ internal sealed class PlatformLeaseFactoryProvider : ILeaseFactoryProvider
                         factories.Add(factory);
                         factoriesByKey[db.Name] = factory;
                         identifiersByFactory[factory] = db.Name;
-
-                        if (enableSchemaDeployment && schemasDeployed.TryAdd(db.Name, 0))
-                        {
-                            newDatabasesNeedingSchema.Add(db);
-                        }
                     }
 
                     cachedFactories = factories;
-
-                    if (newDatabasesNeedingSchema.Count > 0)
-                    {
-                        _ = Task.Run(async () =>
-                        {
-                            foreach (var db in newDatabasesNeedingSchema)
-                            {
-                                try
-                                {
-                                    logger.LogInformation(
-                                        "Deploying lease schema for newly discovered database: {DatabaseName}",
-                                        db.Name);
-
-                                    await DatabaseSchemaManager.EnsureDistributedLockSchemaAsync(
-                                        db.ConnectionString,
-                                        db.SchemaName,
-                                        "DistributedLock").ConfigureAwait(false);
-
-                                    logger.LogInformation(
-                                        "Successfully deployed lease schema for database: {DatabaseName}",
-                                        db.Name);
-                                }
-                                catch (Exception ex)
-                                {
-                                    logger.LogError(
-                                        ex,
-                                        "Failed to deploy lease schema for database: {DatabaseName}. Leases may fail on first use.",
-                                        db.Name);
-                                }
-                            }
-                        });
-                    }
                 }
             }
         }

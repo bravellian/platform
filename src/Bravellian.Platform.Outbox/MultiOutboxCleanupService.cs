@@ -29,7 +29,6 @@ internal sealed class MultiOutboxCleanupService : BackgroundService
     private readonly TimeSpan retentionPeriod;
     private readonly TimeSpan cleanupInterval;
     private readonly IMonotonicClock mono;
-    private readonly IDatabaseSchemaCompletion? schemaCompletion;
     private readonly ILogger<MultiOutboxCleanupService> logger;
 
     public MultiOutboxCleanupService(
@@ -37,15 +36,13 @@ internal sealed class MultiOutboxCleanupService : BackgroundService
         IMonotonicClock mono,
         ILogger<MultiOutboxCleanupService> logger,
         TimeSpan? retentionPeriod = null,
-        TimeSpan? cleanupInterval = null,
-        IDatabaseSchemaCompletion? schemaCompletion = null)
+        TimeSpan? cleanupInterval = null)
     {
         this.storeProvider = storeProvider;
         this.retentionPeriod = retentionPeriod ?? TimeSpan.FromDays(7);
         this.cleanupInterval = cleanupInterval ?? TimeSpan.FromHours(1);
         this.mono = mono;
         this.logger = logger;
-        this.schemaCompletion = schemaCompletion;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -53,22 +50,6 @@ internal sealed class MultiOutboxCleanupService : BackgroundService
         logger.LogInformation(
             "Starting multi-outbox cleanup service with retention period {RetentionPeriod} and cleanup interval {CleanupInterval}",
             retentionPeriod, cleanupInterval);
-
-        // Wait for schema deployment to complete if available
-        if (schemaCompletion != null)
-        {
-            logger.LogDebug("Waiting for database schema deployment to complete");
-            try
-            {
-                await schemaCompletion.SchemaDeploymentCompleted.ConfigureAwait(false);
-                logger.LogInformation("Database schema deployment completed successfully");
-            }
-            catch (Exception ex)
-            {
-                // Log and continue - schema deployment errors should not prevent cleanup
-                logger.LogWarning(ex, "Schema deployment failed, but continuing with outbox cleanup");
-            }
-        }
 
         while (!stoppingToken.IsCancellationRequested)
         {

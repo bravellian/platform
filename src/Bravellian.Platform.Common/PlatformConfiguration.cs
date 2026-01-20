@@ -17,7 +17,7 @@ namespace Bravellian.Platform;
 /// <summary>
 /// Internal configuration state tracking platform registration.
 /// </summary>
-internal sealed class PlatformConfiguration
+public sealed class PlatformConfiguration
 {
     /// <summary>
     /// Gets the selected environment style.

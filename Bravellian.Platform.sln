@@ -9,17 +9,21 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bravellian.Platform.Tests", "tests\Bravellian.Platform.Tests\Bravellian.Platform.Tests.csproj", "{C3019488-CB69-4280-94E1-F22F9C5530C9}"
 EndProject
-Project("{00D1A9C2-B5F0-4AF3-8072-F6C62B433612}") = "Bravellian.Platform.Database.ControlPlane", "Bravellian.Platform.Database.ControlPlane\Bravellian.Platform.Database.ControlPlane.sqlproj", "{6F3F7E1C-17AA-40AA-A20C-52CEA3E58241}"
+Project("{00D1A9C2-B5F0-4AF3-8072-F6C62B433612}") = "Bravellian.Platform.Database.ControlPlane", "src\Bravellian.Platform.Database.ControlPlane\Bravellian.Platform.Database.ControlPlane.sqlproj", "{6F3F7E1C-17AA-40AA-A20C-52CEA3E58241}"
 EndProject
-Project("{00D1A9C2-B5F0-4AF3-8072-F6C62B433612}") = "Bravellian.Platform.Database.MultiDatabase", "Bravellian.Platform.Database.MultiDatabase\Bravellian.Platform.Database.MultiDatabase.sqlproj", "{174D4A24-4CF1-4EE3-A12C-2A7006341347}"
+Project("{00D1A9C2-B5F0-4AF3-8072-F6C62B433612}") = "Bravellian.Platform.Database.MultiDatabase", "src\Bravellian.Platform.Database.MultiDatabase\Bravellian.Platform.Database.MultiDatabase.sqlproj", "{174D4A24-4CF1-4EE3-A12C-2A7006341347}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bravellian.Platform.Outbox", "Bravellian.Platform.Outbox\Bravellian.Platform.Outbox.csproj", "{F5DBCD35-A321-4BA4-86E1-1879F57A8E6B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bravellian.Platform.Outbox", "src\Bravellian.Platform.Outbox\Bravellian.Platform.Outbox.csproj", "{F5DBCD35-A321-4BA4-86E1-1879F57A8E6B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bravellian.Platform.Fanout", "Bravellian.Platform.Fanout\Bravellian.Platform.Fanout.csproj", "{D86D29A5-6F2D-43ED-9E7F-AF6CB7FC1188}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bravellian.Platform.Fanout", "src\Bravellian.Platform.Fanout\Bravellian.Platform.Fanout.csproj", "{D86D29A5-6F2D-43ED-9E7F-AF6CB7FC1188}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bravellian.Platform.Scheduler", "Bravellian.Platform.Scheduler\Bravellian.Platform.Scheduler.csproj", "{F168E050-8847-4674-B0BE-E492A895AA3F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bravellian.Platform.Scheduler", "src\Bravellian.Platform.Scheduler\Bravellian.Platform.Scheduler.csproj", "{F168E050-8847-4674-B0BE-E492A895AA3F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bravellian.Platform.Common", "Bravellian.Platform.Common\Bravellian.Platform.Common.csproj", "{39B72D80-B0AA-44B0-815D-551DCA1A5C1F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bravellian.Platform.Common", "src\Bravellian.Platform.Common\Bravellian.Platform.Common.csproj", "{39B72D80-B0AA-44B0-815D-551DCA1A5C1F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bravellian.Platform.Locking", "src\Bravellian.Platform.Locking\Bravellian.Platform.Locking.csproj", "{7BE07E54-1F4D-4470-8DAF-E47AA678E281}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bravellian.Platform.Metrics", "src\Bravellian.Platform.Metrics\Bravellian.Platform.Metrics.csproj", "{4BE484A8-BA09-49C4-BE6A-69371270C221}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -139,6 +143,30 @@ Global
 		{39B72D80-B0AA-44B0-815D-551DCA1A5C1F}.Release|x64.Build.0 = Release|Any CPU
 		{39B72D80-B0AA-44B0-815D-551DCA1A5C1F}.Release|x86.ActiveCfg = Release|Any CPU
 		{39B72D80-B0AA-44B0-815D-551DCA1A5C1F}.Release|x86.Build.0 = Release|Any CPU
+		{7BE07E54-1F4D-4470-8DAF-E47AA678E281}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7BE07E54-1F4D-4470-8DAF-E47AA678E281}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7BE07E54-1F4D-4470-8DAF-E47AA678E281}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{7BE07E54-1F4D-4470-8DAF-E47AA678E281}.Debug|x64.Build.0 = Debug|Any CPU
+		{7BE07E54-1F4D-4470-8DAF-E47AA678E281}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{7BE07E54-1F4D-4470-8DAF-E47AA678E281}.Debug|x86.Build.0 = Debug|Any CPU
+		{7BE07E54-1F4D-4470-8DAF-E47AA678E281}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7BE07E54-1F4D-4470-8DAF-E47AA678E281}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7BE07E54-1F4D-4470-8DAF-E47AA678E281}.Release|x64.ActiveCfg = Release|Any CPU
+		{7BE07E54-1F4D-4470-8DAF-E47AA678E281}.Release|x64.Build.0 = Release|Any CPU
+		{7BE07E54-1F4D-4470-8DAF-E47AA678E281}.Release|x86.ActiveCfg = Release|Any CPU
+		{7BE07E54-1F4D-4470-8DAF-E47AA678E281}.Release|x86.Build.0 = Release|Any CPU
+		{4BE484A8-BA09-49C4-BE6A-69371270C221}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4BE484A8-BA09-49C4-BE6A-69371270C221}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4BE484A8-BA09-49C4-BE6A-69371270C221}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{4BE484A8-BA09-49C4-BE6A-69371270C221}.Debug|x64.Build.0 = Debug|Any CPU
+		{4BE484A8-BA09-49C4-BE6A-69371270C221}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{4BE484A8-BA09-49C4-BE6A-69371270C221}.Debug|x86.Build.0 = Debug|Any CPU
+		{4BE484A8-BA09-49C4-BE6A-69371270C221}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4BE484A8-BA09-49C4-BE6A-69371270C221}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4BE484A8-BA09-49C4-BE6A-69371270C221}.Release|x64.ActiveCfg = Release|Any CPU
+		{4BE484A8-BA09-49C4-BE6A-69371270C221}.Release|x64.Build.0 = Release|Any CPU
+		{4BE484A8-BA09-49C4-BE6A-69371270C221}.Release|x86.ActiveCfg = Release|Any CPU
+		{4BE484A8-BA09-49C4-BE6A-69371270C221}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

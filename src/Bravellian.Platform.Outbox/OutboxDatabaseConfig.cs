@@ -38,11 +38,4 @@ public sealed class OutboxDatabaseConfig
     /// Gets or sets the table name for the outbox. Defaults to "Outbox".
     /// </summary>
     public string TableName { get; set; } = "Outbox";
-
-    /// <summary>
-    /// Gets or sets a value indicating whether database schema deployment should be performed automatically.
-    /// When true, the required database schema will be created/updated when the database is first discovered.
-    /// Defaults to true.
-    /// </summary>
-    public bool EnableSchemaDeployment { get; set; } = true;
 }
