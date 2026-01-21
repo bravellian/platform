@@ -1,11 +1,10 @@
-# Bravellian.Platform
+# Bravellian.Platform.SqlServer
 
-Core platform abstractions and orchestration. SQL Server integrations live in `Bravellian.Platform.SqlServer`.
+SQL Server provider for Bravellian.Platform: outbox, inbox, scheduler, fanout, metrics, leases, and semaphores.
 
 ## Install
 
 ```bash
-dotnet add package Bravellian.Platform
 dotnet add package Bravellian.Platform.SqlServer
 ```
 

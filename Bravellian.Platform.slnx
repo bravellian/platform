@@ -24,4 +24,5 @@
     <File Path="stylecop.json" />
   </Folder>
   <Project Path="src/Bravellian.Platform/Bravellian.Platform.csproj" />
+  <Project Path="src/Bravellian.Platform.SqlServer/Bravellian.Platform.SqlServer.csproj" />
 </Solution>
