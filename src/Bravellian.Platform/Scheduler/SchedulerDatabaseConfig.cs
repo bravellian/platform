@@ -30,9 +30,9 @@ public sealed class SchedulerDatabaseConfig
     public required string ConnectionString { get; set; }
 
     /// <summary>
-    /// Gets or sets the schema name for scheduler tables. Defaults to "dbo".
+    /// Gets or sets the schema name for scheduler tables. Defaults to "infra".
     /// </summary>
-    public string SchemaName { get; set; } = "dbo";
+    public string SchemaName { get; set; } = "infra";
 
     /// <summary>
     /// Gets or sets the table name for jobs. Defaults to "Jobs".

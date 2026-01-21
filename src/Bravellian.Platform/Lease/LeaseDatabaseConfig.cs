@@ -30,9 +30,9 @@ public sealed class LeaseDatabaseConfig
     public required string ConnectionString { get; set; }
 
     /// <summary>
-    /// Gets or sets the schema name for the lease table. Defaults to "dbo".
+    /// Gets or sets the schema name for the lease table. Defaults to "infra".
     /// </summary>
-    public string SchemaName { get; set; } = "dbo";
+    public string SchemaName { get; set; } = "infra";
 
     /// <summary>
     /// Gets or sets a value indicating whether database schema deployment should be performed automatically.

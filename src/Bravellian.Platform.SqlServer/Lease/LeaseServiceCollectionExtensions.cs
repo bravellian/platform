@@ -77,10 +77,10 @@ public static class LeaseServiceCollectionExtensions
     /// </summary>
     /// <param name="services">The IServiceCollection to add services to.</param>
     /// <param name="connectionString">The database connection string.</param>
-    /// <param name="schemaName">The schema name (default: "dbo").</param>
+    /// <param name="schemaName">The schema name (default: "infra").</param>
     /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
     [Obsolete("This method uses a hardcoded connection string and bypasses dynamic discovery. Use AddPlatformMultiDatabaseWithDiscovery or AddPlatformMultiDatabaseWithList instead to ensure all databases go through IPlatformDatabaseDiscovery.")]
-    public static IServiceCollection AddSystemLeases(this IServiceCollection services, string connectionString, string schemaName = "dbo")
+    public static IServiceCollection AddSystemLeases(this IServiceCollection services, string connectionString, string schemaName = "infra")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
 

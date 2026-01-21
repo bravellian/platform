@@ -97,6 +97,8 @@ public abstract class SqlServerTestBase : IAsyncLifetime
         {
             await connection.OpenAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
 
+            await ExecuteSqlScript(connection, GetCreateSchemaScript()).ConfigureAwait(false);
+
             // Create table types for work queue stored procedures
             await ExecuteSqlScript(connection, GetTableTypesScript()).ConfigureAwait(false);
 
@@ -117,6 +119,16 @@ public abstract class SqlServerTestBase : IAsyncLifetime
 
             TestOutputHelper.WriteLine($"Database schema created successfully on {connection.DataSource}");
         }
+    }
+
+    private static string GetCreateSchemaScript()
+    {
+        return """
+            IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'infra')
+            BEGIN
+                EXEC('CREATE SCHEMA [infra]')
+            END
+            """;
     }
 
     private async Task ExecuteSqlScript(SqlConnection connection, string script)
@@ -143,7 +155,7 @@ public abstract class SqlServerTestBase : IAsyncLifetime
     private string GetOutboxTableScript()
     {
         return @"
-CREATE TABLE dbo.Outbox (
+CREATE TABLE infra.Outbox (
     -- Core Fields
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     Payload NVARCHAR(MAX) NOT NULL,
@@ -174,7 +186,7 @@ CREATE TABLE dbo.Outbox (
 GO
 
 -- An index to efficiently query for work queue claiming
-CREATE INDEX IX_Outbox_WorkQueue ON dbo.Outbox(Status, CreatedAt)
+CREATE INDEX IX_Outbox_WorkQueue ON infra.Outbox(Status, CreatedAt)
     INCLUDE(Id, LockedUntil, DueTimeUtc)
     WHERE Status = 0;
 GO";
@@ -183,7 +195,7 @@ GO";
     private string GetTimersTableScript()
     {
         return @"
-CREATE TABLE dbo.Timers (
+CREATE TABLE infra.Timers (
     -- Core Fields
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     DueTime DATETIMEOFFSET NOT NULL,
@@ -193,7 +205,12 @@ CREATE TABLE dbo.Timers (
     -- For tracing back to business logic
     CorrelationId NVARCHAR(255) NULL,
 
-    -- Processing State Management
+    -- Work queue state management
+    StatusCode TINYINT NOT NULL DEFAULT(0),
+    LockedUntil DATETIME2(3) NULL,
+    OwnerToken UNIQUEIDENTIFIER NULL,
+
+    -- Legacy status fields
     Status NVARCHAR(20) NOT NULL DEFAULT 'Pending', -- Pending, Claimed, Processed, Failed
     ClaimedBy NVARCHAR(100) NULL,
     ClaimedAt DATETIMEOFFSET NULL,
@@ -206,17 +223,17 @@ CREATE TABLE dbo.Timers (
 );
 GO
 
--- A critical index to find the next due timers efficiently.
-CREATE INDEX IX_Timers_GetNext ON dbo.Timers(Status, DueTime)
-    INCLUDE(Id, Topic) -- Include columns needed to start processing
-    WHERE Status = 'Pending';
+-- Work queue index for claiming due timers efficiently.
+CREATE INDEX IX_Timers_WorkQueue ON infra.Timers(StatusCode, DueTime)
+    INCLUDE(Id, OwnerToken)
+    WHERE StatusCode = 0;
 GO";
     }
 
     private string GetJobsTableScript()
     {
         return @"
-CREATE TABLE dbo.Jobs (
+CREATE TABLE infra.Jobs (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     JobName NVARCHAR(100) NOT NULL,
     CronSchedule NVARCHAR(100) NOT NULL, -- e.g., ""0 */5 * * * *"" for every 5 minutes
@@ -232,14 +249,14 @@ CREATE TABLE dbo.Jobs (
 GO
 
 -- Unique index to prevent duplicate job definitions
-CREATE UNIQUE INDEX UQ_Jobs_JobName ON dbo.Jobs(JobName);
+CREATE UNIQUE INDEX UQ_Jobs_JobName ON infra.Jobs(JobName);
 GO";
     }
 
     private string GetInboxTableScript()
     {
         return @"
-CREATE TABLE dbo.Inbox (
+CREATE TABLE infra.Inbox (
     -- Core Fields
     MessageId VARCHAR(64) NOT NULL PRIMARY KEY,
     Source VARCHAR(64) NOT NULL,
@@ -264,7 +281,7 @@ CREATE TABLE dbo.Inbox (
 GO
 
 -- Work queue index for claiming messages
-CREATE INDEX IX_Inbox_WorkQueue ON dbo.Inbox(Status, LastSeenUtc)
+CREATE INDEX IX_Inbox_WorkQueue ON infra.Inbox(Status, LastSeenUtc)
     INCLUDE(MessageId, OwnerToken)
     WHERE Status IN ('Seen', 'Processing');
 GO";
@@ -273,7 +290,7 @@ GO";
     private string GetOutboxStateTableScript()
     {
         return @"
-CREATE TABLE dbo.OutboxState (
+CREATE TABLE infra.OutboxState (
     Id INT NOT NULL CONSTRAINT PK_OutboxState PRIMARY KEY,
     CurrentFencingToken BIGINT NOT NULL DEFAULT(0),
     LastDispatchAt DATETIME2(3) NULL
@@ -281,7 +298,7 @@ CREATE TABLE dbo.OutboxState (
 GO
 
 -- Insert initial state row
-INSERT dbo.OutboxState (Id, CurrentFencingToken, LastDispatchAt)
+INSERT infra.OutboxState (Id, CurrentFencingToken, LastDispatchAt)
 VALUES (1, 0, NULL);
 GO";
     }
@@ -289,7 +306,7 @@ GO";
     private string GetSchedulerStateTableScript()
     {
         return @"
-CREATE TABLE dbo.SchedulerState (
+CREATE TABLE infra.SchedulerState (
     Id INT NOT NULL CONSTRAINT PK_SchedulerState PRIMARY KEY,
     CurrentFencingToken BIGINT NOT NULL DEFAULT(0),
     LastRunAt DATETIME2(3) NULL
@@ -297,7 +314,7 @@ CREATE TABLE dbo.SchedulerState (
 GO
 
 -- Insert initial state row
-INSERT dbo.SchedulerState (Id, CurrentFencingToken, LastRunAt)
+INSERT infra.SchedulerState (Id, CurrentFencingToken, LastRunAt)
 VALUES (1, 0, NULL);
 GO";
     }
@@ -305,12 +322,17 @@ GO";
     private string GetJobRunsTableScript()
     {
         return @"
-CREATE TABLE dbo.JobRuns (
+CREATE TABLE infra.JobRuns (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    JobId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Jobs(Id),
+    JobId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES infra.Jobs(Id),
     ScheduledTime DATETIMEOFFSET NOT NULL,
 
-    -- Processing State Management
+    -- Work queue state management
+    StatusCode TINYINT NOT NULL DEFAULT(0),
+    LockedUntil DATETIME2(3) NULL,
+    OwnerToken UNIQUEIDENTIFIER NULL,
+
+    -- Legacy status fields
     Status NVARCHAR(20) NOT NULL DEFAULT 'Pending', -- Pending, Claimed, Running, Succeeded, Failed
     ClaimedBy NVARCHAR(100) NULL,
     ClaimedAt DATETIMEOFFSET NULL,
@@ -324,23 +346,24 @@ CREATE TABLE dbo.JobRuns (
 );
 GO
 
--- Index to find pending job runs that are due
-CREATE INDEX IX_JobRuns_GetNext ON dbo.JobRuns(Status, ScheduledTime)
-    WHERE Status = 'Pending';
+-- Work queue index for claiming due job runs efficiently.
+CREATE INDEX IX_JobRuns_WorkQueue ON infra.JobRuns(StatusCode, ScheduledTime)
+    INCLUDE(Id, OwnerToken)
+    WHERE StatusCode = 0;
 GO";
     }
 
     private string GetOutboxCleanupProcedure()
     {
         return @"
-CREATE OR ALTER PROCEDURE dbo.Outbox_Cleanup
+CREATE OR ALTER PROCEDURE infra.Outbox_Cleanup
     @RetentionSeconds INT
 AS
 BEGIN
     SET NOCOUNT ON;
     DECLARE @cutoffTime DATETIMEOFFSET = DATEADD(SECOND, -@RetentionSeconds, SYSDATETIMEOFFSET());
 
-    DELETE FROM dbo.Outbox
+    DELETE FROM infra.Outbox
      WHERE IsProcessed = 1
        AND ProcessedAt IS NOT NULL
        AND ProcessedAt < @cutoffTime;
@@ -353,14 +376,14 @@ GO";
     private string GetInboxCleanupProcedure()
     {
         return @"
-CREATE OR ALTER PROCEDURE dbo.Inbox_Cleanup
+CREATE OR ALTER PROCEDURE infra.Inbox_Cleanup
     @RetentionSeconds INT
 AS
 BEGIN
     SET NOCOUNT ON;
     DECLARE @cutoffTime DATETIME2(3) = DATEADD(SECOND, -@RetentionSeconds, SYSUTCDATETIME());
 
-    DELETE FROM dbo.Inbox
+    DELETE FROM infra.Inbox
      WHERE Status = 'Done'
        AND ProcessedUtc IS NOT NULL
        AND ProcessedUtc < @cutoffTime;
@@ -374,18 +397,18 @@ GO";
     {
         return @"
 -- Create GuidIdList type for Outbox stored procedures
-IF TYPE_ID('dbo.GuidIdList') IS NULL
+IF TYPE_ID('infra.GuidIdList') IS NULL
 BEGIN
-    CREATE TYPE dbo.GuidIdList AS TABLE (
+    CREATE TYPE infra.GuidIdList AS TABLE (
         Id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY
     );
 END
 GO
 
 -- Create StringIdList type for Inbox stored procedures
-IF TYPE_ID('dbo.StringIdList') IS NULL
+IF TYPE_ID('infra.StringIdList') IS NULL
 BEGIN
-    CREATE TYPE dbo.StringIdList AS TABLE (
+    CREATE TYPE infra.StringIdList AS TABLE (
         Id VARCHAR(64) NOT NULL PRIMARY KEY
     );
 END
@@ -395,7 +418,7 @@ GO";
     private string GetOutboxWorkQueueProcedures()
     {
         return @"
-CREATE OR ALTER PROCEDURE dbo.Outbox_Claim
+CREATE OR ALTER PROCEDURE infra.Outbox_Claim
     @OwnerToken UNIQUEIDENTIFIER,
     @LeaseSeconds INT,
     @BatchSize INT = 50
@@ -407,7 +430,7 @@ BEGIN
 
     WITH cte AS (
         SELECT TOP (@BatchSize) Id
-        FROM dbo.Outbox WITH (READPAST, UPDLOCK, ROWLOCK)
+        FROM infra.Outbox WITH (READPAST, UPDLOCK, ROWLOCK)
         WHERE Status = 0
             AND (LockedUntil IS NULL OR LockedUntil <= @now)
             AND (DueTimeUtc IS NULL OR DueTimeUtc <= @now)
@@ -415,25 +438,25 @@ BEGIN
     )
     UPDATE o SET Status = 1, OwnerToken = @OwnerToken, LockedUntil = @until
     OUTPUT inserted.Id
-    FROM dbo.Outbox o JOIN cte ON cte.Id = o.Id;
+    FROM infra.Outbox o JOIN cte ON cte.Id = o.Id;
 END
 GO
 
-CREATE OR ALTER PROCEDURE dbo.Outbox_Ack
+CREATE OR ALTER PROCEDURE infra.Outbox_Ack
     @OwnerToken UNIQUEIDENTIFIER,
-    @Ids dbo.GuidIdList READONLY
+    @Ids infra.GuidIdList READONLY
 AS
 BEGIN
     SET NOCOUNT ON;
     UPDATE o SET Status = 2, OwnerToken = NULL, LockedUntil = NULL, IsProcessed = 1, ProcessedAt = SYSUTCDATETIME()
-    FROM dbo.Outbox o JOIN @Ids i ON i.Id = o.Id
+    FROM infra.Outbox o JOIN @Ids i ON i.Id = o.Id
     WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
 END
 GO
 
-CREATE OR ALTER PROCEDURE dbo.Outbox_Abandon
+CREATE OR ALTER PROCEDURE infra.Outbox_Abandon
     @OwnerToken UNIQUEIDENTIFIER,
-    @Ids dbo.GuidIdList READONLY,
+    @Ids infra.GuidIdList READONLY,
     @LastError NVARCHAR(MAX) = NULL,
     @DueTimeUtc DATETIME2(3) = NULL
 AS
@@ -447,14 +470,14 @@ BEGIN
         RetryCount = RetryCount + 1,
         LastError = ISNULL(@LastError, o.LastError),
         DueTimeUtc = COALESCE(@DueTimeUtc, o.DueTimeUtc, @now)
-    FROM dbo.Outbox o JOIN @Ids i ON i.Id = o.Id
+    FROM infra.Outbox o JOIN @Ids i ON i.Id = o.Id
     WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
 END
 GO
 
-CREATE OR ALTER PROCEDURE dbo.Outbox_Fail
+CREATE OR ALTER PROCEDURE infra.Outbox_Fail
     @OwnerToken UNIQUEIDENTIFIER,
-    @Ids dbo.GuidIdList READONLY,
+    @Ids infra.GuidIdList READONLY,
     @LastError NVARCHAR(MAX) = NULL,
     @ProcessedBy NVARCHAR(100) = NULL
 AS
@@ -466,16 +489,16 @@ BEGIN
         LockedUntil = NULL,
         LastError = ISNULL(@LastError, o.LastError),
         ProcessedBy = ISNULL(@ProcessedBy, o.ProcessedBy)
-    FROM dbo.Outbox o JOIN @Ids i ON i.Id = o.Id
+    FROM infra.Outbox o JOIN @Ids i ON i.Id = o.Id
     WHERE o.OwnerToken = @OwnerToken AND o.Status = 1;
 END
 GO
 
-CREATE OR ALTER PROCEDURE dbo.Outbox_ReapExpired
+CREATE OR ALTER PROCEDURE infra.Outbox_ReapExpired
 AS
 BEGIN
     SET NOCOUNT ON;
-    UPDATE dbo.Outbox SET Status = 0, OwnerToken = NULL, LockedUntil = NULL
+    UPDATE infra.Outbox SET Status = 0, OwnerToken = NULL, LockedUntil = NULL
     WHERE Status = 1 AND LockedUntil IS NOT NULL AND LockedUntil <= SYSUTCDATETIME();
     SELECT @@ROWCOUNT AS ReapedCount;
 END
@@ -485,7 +508,7 @@ GO";
     private string GetInboxWorkQueueProcedures()
     {
         return @"
-CREATE OR ALTER PROCEDURE dbo.Inbox_Claim
+CREATE OR ALTER PROCEDURE infra.Inbox_Claim
     @OwnerToken UNIQUEIDENTIFIER,
     @LeaseSeconds INT,
     @BatchSize INT = 50
@@ -497,7 +520,7 @@ BEGIN
 
     WITH cte AS (
         SELECT TOP (@BatchSize) MessageId
-        FROM dbo.Inbox WITH (READPAST, UPDLOCK, ROWLOCK)
+        FROM infra.Inbox WITH (READPAST, UPDLOCK, ROWLOCK)
         WHERE Status IN ('Seen', 'Processing')
             AND (LockedUntil IS NULL OR LockedUntil <= @now)
             AND (DueTimeUtc IS NULL OR DueTimeUtc <= @now)
@@ -505,52 +528,52 @@ BEGIN
     )
     UPDATE i SET Status = 'Processing', OwnerToken = @OwnerToken, LockedUntil = @until, LastSeenUtc = @now
     OUTPUT inserted.MessageId
-    FROM dbo.Inbox i JOIN cte ON cte.MessageId = i.MessageId;
+    FROM infra.Inbox i JOIN cte ON cte.MessageId = i.MessageId;
 END
 GO
 
-CREATE OR ALTER PROCEDURE dbo.Inbox_Ack
+CREATE OR ALTER PROCEDURE infra.Inbox_Ack
     @OwnerToken UNIQUEIDENTIFIER,
-    @Ids dbo.StringIdList READONLY
+    @Ids infra.StringIdList READONLY
 AS
 BEGIN
     SET NOCOUNT ON;
     UPDATE i SET Status = 'Done', OwnerToken = NULL, LockedUntil = NULL, ProcessedUtc = SYSUTCDATETIME(), LastSeenUtc = SYSUTCDATETIME()
-    FROM dbo.Inbox i JOIN @Ids ids ON ids.Id = i.MessageId
+    FROM infra.Inbox i JOIN @Ids ids ON ids.Id = i.MessageId
     WHERE i.OwnerToken = @OwnerToken AND i.Status = 'Processing';
 END
 GO
 
-CREATE OR ALTER PROCEDURE dbo.Inbox_Abandon
+CREATE OR ALTER PROCEDURE infra.Inbox_Abandon
     @OwnerToken UNIQUEIDENTIFIER,
-    @Ids dbo.StringIdList READONLY
+    @Ids infra.StringIdList READONLY
 AS
 BEGIN
     SET NOCOUNT ON;
     UPDATE i SET Status = 'Seen', OwnerToken = NULL, LockedUntil = NULL, LastSeenUtc = SYSUTCDATETIME()
-    FROM dbo.Inbox i JOIN @Ids ids ON ids.Id = i.MessageId
+    FROM infra.Inbox i JOIN @Ids ids ON ids.Id = i.MessageId
     WHERE i.OwnerToken = @OwnerToken AND i.Status = 'Processing';
 END
 GO
 
-CREATE OR ALTER PROCEDURE dbo.Inbox_Fail
+CREATE OR ALTER PROCEDURE infra.Inbox_Fail
     @OwnerToken UNIQUEIDENTIFIER,
-    @Ids dbo.StringIdList READONLY,
+    @Ids infra.StringIdList READONLY,
     @Reason NVARCHAR(MAX) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
     UPDATE i SET Status = 'Dead', OwnerToken = NULL, LockedUntil = NULL, LastSeenUtc = SYSUTCDATETIME()
-    FROM dbo.Inbox i JOIN @Ids ids ON ids.Id = i.MessageId
+    FROM infra.Inbox i JOIN @Ids ids ON ids.Id = i.MessageId
     WHERE i.OwnerToken = @OwnerToken AND i.Status = 'Processing';
 END
 GO
 
-CREATE OR ALTER PROCEDURE dbo.Inbox_ReapExpired
+CREATE OR ALTER PROCEDURE infra.Inbox_ReapExpired
 AS
 BEGIN
     SET NOCOUNT ON;
-    UPDATE dbo.Inbox SET Status = 'Seen', OwnerToken = NULL, LockedUntil = NULL, LastSeenUtc = SYSUTCDATETIME()
+    UPDATE infra.Inbox SET Status = 'Seen', OwnerToken = NULL, LockedUntil = NULL, LastSeenUtc = SYSUTCDATETIME()
     WHERE Status = 'Processing' AND LockedUntil IS NOT NULL AND LockedUntil <= SYSUTCDATETIME();
     SELECT @@ROWCOUNT AS ReapedCount;
 END

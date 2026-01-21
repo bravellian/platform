@@ -35,13 +35,13 @@ public class InboxRouterTests
             new SqlInboxOptions
             {
                 ConnectionString = "Server=localhost;Database=Tenant1;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 TableName = "Inbox",
             },
             new SqlInboxOptions
             {
                 ConnectionString = "Server=localhost;Database=Tenant2;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 TableName = "Inbox",
             },
         };
@@ -67,7 +67,7 @@ public class InboxRouterTests
             new SqlInboxOptions
             {
                 ConnectionString = $"Server=localhost;Database={tenantId};",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 TableName = "Inbox",
             },
         };
@@ -92,7 +92,7 @@ public class InboxRouterTests
             new SqlInboxOptions
             {
                 ConnectionString = "Server=localhost;Database=Tenant1;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 TableName = "Inbox",
             },
         };
@@ -114,7 +114,7 @@ public class InboxRouterTests
             new SqlInboxOptions
             {
                 ConnectionString = "Server=localhost;Database=Tenant1;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 TableName = "Inbox",
             },
         };

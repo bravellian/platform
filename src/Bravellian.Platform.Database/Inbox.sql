@@ -1,12 +1,18 @@
-IF TYPE_ID(N'dbo.StringIdList') IS NULL
+IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'infra')
 BEGIN
-    CREATE TYPE dbo.StringIdList AS TABLE (Id VARCHAR(64) NOT NULL PRIMARY KEY);
+    EXEC('CREATE SCHEMA [infra]');
 END
 GO
 
-IF OBJECT_ID(N'dbo.Inbox', N'U') IS NULL
+IF TYPE_ID(N'infra.StringIdList') IS NULL
 BEGIN
-    CREATE TABLE dbo.Inbox (
+    CREATE TYPE infra.StringIdList AS TABLE (Id VARCHAR(64) NOT NULL PRIMARY KEY);
+END
+GO
+
+IF OBJECT_ID(N'infra.Inbox', N'U') IS NULL
+BEGIN
+    CREATE TABLE infra.Inbox (
         -- Core identification
         MessageId VARCHAR(64) NOT NULL PRIMARY KEY,
         Source VARCHAR(64) NOT NULL,
@@ -34,32 +40,32 @@ END
 GO
 
 IF NOT EXISTS (
-    SELECT 1 FROM sys.indexes WHERE name = 'IX_Inbox_ProcessedUtc' AND object_id = OBJECT_ID(N'dbo.Inbox', N'U'))
+    SELECT 1 FROM sys.indexes WHERE name = 'IX_Inbox_ProcessedUtc' AND object_id = OBJECT_ID(N'infra.Inbox', N'U'))
 BEGIN
-    CREATE INDEX IX_Inbox_ProcessedUtc ON dbo.Inbox(ProcessedUtc)
+    CREATE INDEX IX_Inbox_ProcessedUtc ON infra.Inbox(ProcessedUtc)
         WHERE ProcessedUtc IS NOT NULL;
 END
 GO
 
 IF NOT EXISTS (
-    SELECT 1 FROM sys.indexes WHERE name = 'IX_Inbox_Status' AND object_id = OBJECT_ID(N'dbo.Inbox', N'U'))
+    SELECT 1 FROM sys.indexes WHERE name = 'IX_Inbox_Status' AND object_id = OBJECT_ID(N'infra.Inbox', N'U'))
 BEGIN
-    CREATE INDEX IX_Inbox_Status ON dbo.Inbox(Status);
+    CREATE INDEX IX_Inbox_Status ON infra.Inbox(Status);
 END
 GO
 
 IF NOT EXISTS (
-    SELECT 1 FROM sys.indexes WHERE name = 'IX_Inbox_Status_ProcessedUtc' AND object_id = OBJECT_ID(N'dbo.Inbox', N'U'))
+    SELECT 1 FROM sys.indexes WHERE name = 'IX_Inbox_Status_ProcessedUtc' AND object_id = OBJECT_ID(N'infra.Inbox', N'U'))
 BEGIN
-    CREATE INDEX IX_Inbox_Status_ProcessedUtc ON dbo.Inbox(Status, ProcessedUtc)
+    CREATE INDEX IX_Inbox_Status_ProcessedUtc ON infra.Inbox(Status, ProcessedUtc)
         WHERE Status = 'Done' AND ProcessedUtc IS NOT NULL;
 END
 GO
 
 IF NOT EXISTS (
-    SELECT 1 FROM sys.indexes WHERE name = 'IX_Inbox_WorkQueue' AND object_id = OBJECT_ID(N'dbo.Inbox', N'U'))
+    SELECT 1 FROM sys.indexes WHERE name = 'IX_Inbox_WorkQueue' AND object_id = OBJECT_ID(N'infra.Inbox', N'U'))
 BEGIN
-    CREATE INDEX IX_Inbox_WorkQueue ON dbo.Inbox(Status, LastSeenUtc)
+    CREATE INDEX IX_Inbox_WorkQueue ON infra.Inbox(Status, LastSeenUtc)
         INCLUDE(MessageId, OwnerToken)
         WHERE Status IN ('Seen', 'Processing');
 END

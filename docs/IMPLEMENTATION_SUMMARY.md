@@ -103,7 +103,7 @@ services.AddMultiSqlOutbox(
 services.AddSqlOutbox(new SqlOutboxOptions
 {
     ConnectionString = "...",
-    SchemaName = "dbo",
+    SchemaName = "infra",
     TableName = "Outbox",
 });
 ```

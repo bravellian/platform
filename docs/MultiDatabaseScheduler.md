@@ -18,7 +18,7 @@ The scheduler now supports both static and dynamic database configurations, enab
 services.AddSqlScheduler(new SqlSchedulerOptions
 {
     ConnectionString = "Server=localhost;Database=MyApp;",
-    SchemaName = "dbo",
+    SchemaName = "infra",
     JobsTableName = "Jobs",
     JobRunsTableName = "JobRuns",
     TimersTableName = "Timers",
@@ -34,13 +34,13 @@ var schedulerConfigs = new[]
     {
         Identifier = "Customer1",
         ConnectionString = "Server=localhost;Database=Customer1;",
-        SchemaName = "dbo",
+        SchemaName = "infra",
     },
     new SchedulerDatabaseConfig
     {
         Identifier = "Customer2",
         ConnectionString = "Server=localhost;Database=Customer2;",
-        SchemaName = "dbo",
+        SchemaName = "infra",
     },
 };
 
@@ -50,7 +50,7 @@ services.AddMultiSqlScheduler(schedulerConfigs);
 services.AddSystemLeases(new SystemLeaseOptions
 {
     ConnectionString = "Server=localhost;Database=Customer1;",
-    SchemaName = "dbo",
+    SchemaName = "infra",
 });
 ```
 
@@ -86,7 +86,7 @@ public class MySchedulerDatabaseDiscovery : ISchedulerDatabaseDiscovery
             {
                 Identifier = customer.Id,
                 ConnectionString = customer.ConnectionString,
-                SchemaName = "dbo",
+                SchemaName = "infra",
             });
         }
         
@@ -105,7 +105,7 @@ services.AddDynamicMultiSqlScheduler(
 services.AddSystemLeases(new SystemLeaseOptions
 {
     ConnectionString = "Server=localhost;Database=Registry;",
-    SchemaName = "dbo",
+    SchemaName = "infra",
 });
 ```
 

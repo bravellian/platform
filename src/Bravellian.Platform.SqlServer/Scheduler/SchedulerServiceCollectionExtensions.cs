@@ -162,10 +162,10 @@ public static class SchedulerServiceCollectionExtensions
     /// </summary>
     /// <param name="services">The IServiceCollection to add services to.</param>
     /// <param name="connectionString">The database connection string.</param>
-    /// <param name="schemaName">The database schema name (default: "dbo").</param>
+    /// <param name="schemaName">The database schema name (default: "infra").</param>
     /// <param name="tableName">The outbox table name (default: "Outbox").</param>
     /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
-    public static IServiceCollection AddSqlOutbox(this IServiceCollection services, string connectionString, string schemaName = "dbo", string tableName = "Outbox")
+    public static IServiceCollection AddSqlOutbox(this IServiceCollection services, string connectionString, string schemaName = "infra", string tableName = "Outbox")
     {
         return services.AddSqlOutbox(new SqlOutboxOptions
         {
@@ -290,14 +290,14 @@ public static class SchedulerServiceCollectionExtensions
     /// </summary>
     /// <param name="services">The IServiceCollection to add services to.</param>
     /// <param name="connectionString">The database connection string.</param>
-    /// <param name="schemaName">The database schema name (default: "dbo").</param>
+    /// <param name="schemaName">The database schema name (default: "infra").</param>
     /// <param name="policyTableName">The policy table name (default: "FanoutPolicy").</param>
     /// <param name="cursorTableName">The cursor table name (default: "FanoutCursor").</param>
     /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
     public static IServiceCollection AddSqlFanout(
         this IServiceCollection services,
         string connectionString,
-        string schemaName = "dbo",
+        string schemaName = "infra",
         string policyTableName = "FanoutPolicy",
         string cursorTableName = "FanoutCursor")
     {
@@ -412,10 +412,10 @@ public static class SchedulerServiceCollectionExtensions
     /// </summary>
     /// <param name="services">The IServiceCollection to add services to.</param>
     /// <param name="connectionString">The database connection string.</param>
-    /// <param name="schemaName">The database schema name (default: "dbo").</param>
+    /// <param name="schemaName">The database schema name (default: "infra").</param>
     /// <param name="tableName">The inbox table name (default: "Inbox").</param>
     /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
-    public static IServiceCollection AddSqlInbox(this IServiceCollection services, string connectionString, string schemaName = "dbo", string tableName = "Inbox")
+    public static IServiceCollection AddSqlInbox(this IServiceCollection services, string connectionString, string schemaName = "infra", string tableName = "Inbox")
     {
         return services.AddSqlInbox(new SqlInboxOptions
         {

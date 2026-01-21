@@ -43,7 +43,7 @@ public class OutboxWorkQueueTests : SqlServerTestBase
         var options = Options.Create(new SqlOutboxOptions
         {
             ConnectionString = ConnectionString,
-            SchemaName = "dbo",
+            SchemaName = "infra",
             TableName = "Outbox",
         });
         outboxService = new SqlOutboxService(options, NullLogger<SqlOutboxService>.Instance);
@@ -199,7 +199,7 @@ public class OutboxWorkQueueTests : SqlServerTestBase
 
                 await connection.ExecuteAsync(
                     @"
-                INSERT INTO dbo.Outbox (Id, Topic, Payload, Status, CreatedAt)
+                INSERT INTO infra.Outbox (Id, Topic, Payload, Status, CreatedAt)
                 VALUES (@Id, @Topic, @Payload, 0, SYSUTCDATETIME())",
                     new { Id = id, Topic = "test", Payload = $"payload{i}" }).ConfigureAwait(false);
             }
@@ -218,7 +218,7 @@ public class OutboxWorkQueueTests : SqlServerTestBase
             foreach (var id in ids)
             {
                 var status = await connection.ExecuteScalarAsync<int>(
-                    "SELECT Status FROM dbo.Outbox WHERE Id = @Id", new { Id = id }).ConfigureAwait(false);
+                    "SELECT Status FROM infra.Outbox WHERE Id = @Id", new { Id = id }).ConfigureAwait(false);
                 status.ShouldBe(expectedStatus);
             }
         }
@@ -234,7 +234,7 @@ public class OutboxWorkQueueTests : SqlServerTestBase
             foreach (var id in ids)
             {
                 var isProcessed = await connection.ExecuteScalarAsync<bool>(
-                    "SELECT IsProcessed FROM dbo.Outbox WHERE Id = @Id", new { Id = id }).ConfigureAwait(false);
+                    "SELECT IsProcessed FROM infra.Outbox WHERE Id = @Id", new { Id = id }).ConfigureAwait(false);
                 isProcessed.ShouldBe(expectedProcessed);
             }
         }

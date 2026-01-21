@@ -36,7 +36,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSqlInbox(new SqlInboxOptions
 {
     ConnectionString = "Server=localhost;Database=MyApp;Trusted_Connection=true;",
-    SchemaName = "dbo",
+    SchemaName = "infra",
     TableName = "Inbox",
     EnableSchemaDeployment = true // Automatically creates the Inbox table
 });
@@ -410,7 +410,7 @@ public async Task ReceivePaymentWebhookAsync(PaymentWebhook webhook)
 When `EnableSchemaDeployment = true`, this table is created automatically:
 
 ```sql
-CREATE TABLE dbo.Inbox (
+CREATE TABLE infra.Inbox (
     MessageId VARCHAR(64) NOT NULL PRIMARY KEY,
     Source VARCHAR(64) NOT NULL,
     Hash BINARY(32) NULL,                    -- Optional content verification
@@ -421,7 +421,7 @@ CREATE TABLE dbo.Inbox (
     Status VARCHAR(16) NOT NULL DEFAULT 'Seen'  -- Seen, Processing, Done, Dead
 );
 
-CREATE INDEX IX_Inbox_Processing ON dbo.Inbox(Status, LastSeenUtc)
+CREATE INDEX IX_Inbox_Processing ON infra.Inbox(Status, LastSeenUtc)
     WHERE Status IN ('Seen', 'Processing');
 ```
 
@@ -432,7 +432,7 @@ CREATE INDEX IX_Inbox_Processing ON dbo.Inbox(Status, LastSeenUtc)
 The `AlreadyProcessedAsync` method uses SQL MERGE for atomic deduplication:
 
 ```sql
-MERGE dbo.Inbox AS target
+MERGE infra.Inbox AS target
 USING (VALUES (@MessageId, @Source, @Hash, @Now)) AS source
 ON target.MessageId = source.MessageId
 
@@ -461,8 +461,8 @@ builder.Services.AddSqlInbox(new SqlInboxOptions
     // Required: Database connection
     ConnectionString = "Server=localhost;Database=MyApp;...",
     
-    // Optional: Schema and table names (defaults to "dbo" and "Inbox")
-    SchemaName = "dbo",
+    // Optional: Schema and table names (defaults to "infra" and "Inbox")
+    SchemaName = "infra",
     TableName = "Inbox",
     
     // Optional: Automatically create database objects (default: false)
@@ -513,7 +513,7 @@ public class InboxMaintenanceService : BackgroundService
         await connection.OpenAsync();
 
         var command = new SqlCommand(@"
-            DELETE FROM dbo.Inbox 
+            DELETE FROM infra.Inbox 
             WHERE Status = 'Done' 
               AND ProcessedUtc < @CutoffDate",
             connection);
@@ -657,7 +657,7 @@ Check for stuck "Processing" messages:
 
 ```sql
 SELECT MessageId, Source, LastSeenUtc, Attempts
-FROM dbo.Inbox
+FROM infra.Inbox
 WHERE Status = 'Processing'
   AND LastSeenUtc < DATEADD(hour, -1, GETUTCDATE());
 ```

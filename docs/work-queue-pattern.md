@@ -63,7 +63,7 @@ public interface ISchedulerClient
 The work queue pattern adds these columns to existing tables:
 
 ```sql
--- Added to dbo.Outbox, dbo.Timers, dbo.JobRuns
+-- Added to infra.Outbox, infra.Timers, infra.JobRuns
 Status TINYINT NOT NULL DEFAULT(0)           -- 0=Ready, 1=InProgress, 2=Done, 3=Failed
 LockedUntil DATETIME2(3) NULL                -- UTC lease expiration time  
 OwnerToken UNIQUEIDENTIFIER NULL             -- Process ownership identifier
@@ -71,9 +71,9 @@ OwnerToken UNIQUEIDENTIFIER NULL             -- Process ownership identifier
 
 **Indexes for efficient work queue operations:**
 ```sql
-CREATE INDEX IX_Outbox_WorkQueue ON dbo.Outbox(Status, CreatedAt) INCLUDE(Id, OwnerToken);
-CREATE INDEX IX_Timers_WorkQueue ON dbo.Timers(StatusCode, DueTime) INCLUDE(Id, OwnerToken);
-CREATE INDEX IX_JobRuns_WorkQueue ON dbo.JobRuns(StatusCode, ScheduledTime) INCLUDE(Id, OwnerToken);
+CREATE INDEX IX_Outbox_WorkQueue ON infra.Outbox(Status, CreatedAt) INCLUDE(Id, OwnerToken);
+CREATE INDEX IX_Timers_WorkQueue ON infra.Timers(StatusCode, DueTime) INCLUDE(Id, OwnerToken);
+CREATE INDEX IX_JobRuns_WorkQueue ON infra.JobRuns(StatusCode, ScheduledTime) INCLUDE(Id, OwnerToken);
 ```
 
 ## Stored Procedures
@@ -88,11 +88,11 @@ CREATE INDEX IX_JobRuns_WorkQueue ON dbo.JobRuns(StatusCode, ScheduledTime) INCL
 
 **Example for Outbox:**
 ```sql
-dbo.Outbox_Claim
-dbo.Outbox_Ack  
-dbo.Outbox_Abandon
-dbo.Outbox_Fail
-dbo.Outbox_ReapExpired
+infra.Outbox_Claim
+infra.Outbox_Ack  
+infra.Outbox_Abandon
+infra.Outbox_Fail
+infra.Outbox_ReapExpired
 ```
 
 ## Usage Examples

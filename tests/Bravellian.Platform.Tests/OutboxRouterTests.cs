@@ -44,13 +44,13 @@ public class OutboxRouterTests
             new SqlOutboxOptions
             {
                 ConnectionString = "Server=localhost;Database=Customer1;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 TableName = "Outbox",
             },
             new SqlOutboxOptions
             {
                 ConnectionString = "Server=localhost;Database=Customer2;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 TableName = "Outbox",
             },
         };
@@ -79,7 +79,7 @@ public class OutboxRouterTests
             new SqlOutboxOptions
             {
                 ConnectionString = $"Server=localhost;Database={customerId};",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 TableName = "Outbox",
             },
         };
@@ -104,7 +104,7 @@ public class OutboxRouterTests
             new SqlOutboxOptions
             {
                 ConnectionString = "Server=localhost;Database=Customer1;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 TableName = "Outbox",
             },
         };
@@ -127,7 +127,7 @@ public class OutboxRouterTests
             new SqlOutboxOptions
             {
                 ConnectionString = "Server=localhost;Database=Customer1;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 TableName = "Outbox",
             },
         };
@@ -149,7 +149,7 @@ public class OutboxRouterTests
             new SqlOutboxOptions
             {
                 ConnectionString = "Server=localhost;Database=Customer1;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 TableName = "Outbox",
             },
         };
@@ -172,14 +172,14 @@ public class OutboxRouterTests
             {
                 Identifier = "Tenant1",
                 ConnectionString = "Server=localhost;Database=Tenant1;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 TableName = "Outbox",
             },
             new OutboxDatabaseConfig
             {
                 Identifier = "Tenant2",
                 ConnectionString = "Server=localhost;Database=Tenant2;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 TableName = "Outbox",
             },
         });
@@ -262,7 +262,7 @@ public class OutboxRouterTests
             new SqlOutboxOptions
             {
                 ConnectionString = "Server=localhost;Database=Customer1;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 TableName = "Outbox",
             },
         };
@@ -291,7 +291,7 @@ public class OutboxRouterTests
             new SqlOutboxOptions
             {
                 ConnectionString = "Server=localhost;Database=Customer1;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 TableName = "Outbox",
             },
         };

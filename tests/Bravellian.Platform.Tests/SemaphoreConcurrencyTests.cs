@@ -39,13 +39,13 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
         await base.InitializeAsync().ConfigureAwait(false);
 
         // Ensure semaphore schema exists
-        await DatabaseSchemaManager.EnsureSemaphoreSchemaAsync(ConnectionString, "dbo").ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureSemaphoreSchemaAsync(ConnectionString, "infra").ConfigureAwait(false);
 
         // Create service
         var options = Options.Create(new SemaphoreOptions
         {
             ConnectionString = ConnectionString,
-            SchemaName = "dbo",
+            SchemaName = "infra",
             MinTtlSeconds = 1,
             MaxTtlSeconds = 3600,
             DefaultTtlSeconds = 30,

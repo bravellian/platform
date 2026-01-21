@@ -510,7 +510,7 @@ The Join component assumes the following SQL schema (names may be configurable; 
 ### 7.1 OutboxJoin Table
 
 ```sql
-CREATE TABLE [dbo].[OutboxJoin] (
+CREATE TABLE [infra].[OutboxJoin] (
     JoinId UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     GroupingKey NVARCHAR(255) NULL,
     ExpectedSteps INT NOT NULL,
@@ -523,7 +523,7 @@ CREATE TABLE [dbo].[OutboxJoin] (
 );
 
 CREATE INDEX IX_OutboxJoin_GroupingKey
-    ON [dbo].[OutboxJoin](GroupingKey)
+    ON [infra].[OutboxJoin](GroupingKey)
     WHERE GroupingKey IS NOT NULL;
 ```
 
@@ -547,18 +547,18 @@ CREATE INDEX IX_OutboxJoin_GroupingKey
 ### 7.2 OutboxJoinMember Table
 
 ```sql
-CREATE TABLE [dbo].[OutboxJoinMember] (
+CREATE TABLE [infra].[OutboxJoinMember] (
     JoinId UNIQUEIDENTIFIER NOT NULL,
     OutboxMessageId UNIQUEIDENTIFIER NOT NULL,
     Status TINYINT NOT NULL DEFAULT 0,  -- 0=Pending, 1=Completed, 2=Failed
     CreatedUtc DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
     CONSTRAINT PK_OutboxJoinMember PRIMARY KEY (JoinId, OutboxMessageId),
     CONSTRAINT FK_OutboxJoinMember_Join FOREIGN KEY (JoinId)
-        REFERENCES [dbo].[OutboxJoin](JoinId) ON DELETE CASCADE
+        REFERENCES [infra].[OutboxJoin](JoinId) ON DELETE CASCADE
 );
 
 CREATE INDEX IX_OutboxJoinMember_OutboxMessageId
-    ON [dbo].[OutboxJoinMember](OutboxMessageId);
+    ON [infra].[OutboxJoinMember](OutboxMessageId);
 ```
 
 **Column Descriptions:**

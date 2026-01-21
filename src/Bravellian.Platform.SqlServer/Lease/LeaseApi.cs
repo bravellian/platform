@@ -30,7 +30,7 @@ public sealed class LeaseApi
     /// </summary>
     /// <param name="connectionString">The database connection string.</param>
     /// <param name="schemaName">The schema name for the lease table.</param>
-    public LeaseApi(string connectionString, string schemaName = "dbo")
+    public LeaseApi(string connectionString, string schemaName = "infra")
     {
         this.connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
         this.schemaName = schemaName ?? throw new ArgumentNullException(nameof(schemaName));

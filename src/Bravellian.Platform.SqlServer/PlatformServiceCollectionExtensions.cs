@@ -195,7 +195,7 @@ public static class PlatformServiceCollectionExtensions
             new PlatformControlPlaneOptions
             {
                 ConnectionString = controlPlaneConnectionString,
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 EnableSchemaDeployment = enableSchemaDeployment,
             });
     }
@@ -270,7 +270,7 @@ public static class PlatformServiceCollectionExtensions
             new PlatformControlPlaneOptions
             {
                 ConnectionString = controlPlaneConnectionString,
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 EnableSchemaDeployment = enableSchemaDeployment,
             });
     }

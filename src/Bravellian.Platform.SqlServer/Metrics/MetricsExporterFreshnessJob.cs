@@ -50,7 +50,7 @@ internal sealed class MetricsExporterFreshnessJob
 
         try
         {
-            var staleExporters = await GetStaleExportersAsync(_options.CentralConnectionString, cancellationToken).ConfigureAwait(false);
+            var staleExporters = await GetStaleExportersAsync(_options.CentralConnectionString, _options.SchemaName, cancellationToken).ConfigureAwait(false);
 
             if (staleExporters.Count > 0)
             {
@@ -77,18 +77,18 @@ internal sealed class MetricsExporterFreshnessJob
         }
     }
 
-    private static async Task<IReadOnlyList<StaleExporter>> GetStaleExportersAsync(string connectionString, CancellationToken cancellationToken)
+    private static async Task<IReadOnlyList<StaleExporter>> GetStaleExportersAsync(string connectionString, string schemaName, CancellationToken cancellationToken)
     {
         using var connection = new SqlConnection(connectionString);
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-        var sql = """
+        var sql = $"""
             SELECT 
                 InstanceId,
                 LastFlushUtc,
                 LastError,
                 DATEDIFF(SECOND, LastFlushUtc, SYSUTCDATETIME()) / 60.0 AS AgeMinutes
-            FROM [infra].[ExporterHeartbeat]
+            FROM [{schemaName}].[ExporterHeartbeat]
             WHERE DATEDIFF(SECOND, LastFlushUtc, SYSUTCDATETIME()) > 120
             ORDER BY LastFlushUtc ASC;
             """;

@@ -121,7 +121,7 @@ internal class SqlSchedulerService : BackgroundService
                         UPDATE j
                         SET j.NextDueTime = (
                             SELECT TOP 1 NextOccurrence
-                            FROM dbo.GetNextOccurrences(j.CronSchedule, SYSDATETIMEOFFSET())
+                            FROM [{this.options.SchemaName}].[GetNextOccurrences](j.CronSchedule, SYSDATETIMEOFFSET())
                         )
                         FROM [{this.options.SchemaName}].[{this.options.JobsTableName}] j
                         WHERE j.Id IN (SELECT Id FROM DueJobs);

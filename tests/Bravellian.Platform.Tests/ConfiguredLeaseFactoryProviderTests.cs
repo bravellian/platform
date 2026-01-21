@@ -42,14 +42,14 @@ public class ConfiguredLeaseFactoryProviderTests
             {
                 Identifier = "Customer1",
                 ConnectionString = "Server=localhost;Database=Customer1;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 EnableSchemaDeployment = false,
             },
             new LeaseDatabaseConfig
             {
                 Identifier = "Customer2",
                 ConnectionString = "Server=localhost;Database=Customer2;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 EnableSchemaDeployment = false,
             },
         };
@@ -76,14 +76,14 @@ public class ConfiguredLeaseFactoryProviderTests
             {
                 Identifier = "Customer1",
                 ConnectionString = "Server=localhost;Database=Customer1;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 EnableSchemaDeployment = false,
             },
             new LeaseDatabaseConfig
             {
                 Identifier = "Customer2",
                 ConnectionString = "Server=localhost;Database=Customer2;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 EnableSchemaDeployment = false,
             },
         };
@@ -114,7 +114,7 @@ public class ConfiguredLeaseFactoryProviderTests
             {
                 Identifier = "Customer1",
                 ConnectionString = "Server=localhost;Database=Customer1;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 EnableSchemaDeployment = false,
             },
         };
@@ -127,7 +127,7 @@ public class ConfiguredLeaseFactoryProviderTests
             new LeaseFactoryConfig
             {
                 ConnectionString = "Server=localhost;Database=External;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 RenewPercent = 0.6,
                 GateTimeoutMs = 200,
                 UseGate = false,

@@ -39,7 +39,7 @@ public class MultiOutboxDispatcherTests : SqlServerTestBase
     public async Task MultiOutboxDispatcher_ProcessesMessagesFromMultipleStores()
     {
         // Arrange - Create two separate outbox stores with different schemas
-        var schema1 = "dbo";
+        var schema1 = "infra";
         var schema2 = "tenant1";
 
         // Create schema2 if it doesn't exist
@@ -149,7 +149,7 @@ public class MultiOutboxDispatcherTests : SqlServerTestBase
     public async Task MultiOutboxDispatcher_WithDrainFirstStrategy_DrainsOneStoreBeforeMoving()
     {
         // Arrange - Create one store with multiple messages
-        var schema1 = "dbo";
+        var schema1 = "infra";
 
         await DatabaseSchemaManager.EnsureOutboxSchemaAsync(ConnectionString, schema1, "Outbox");
 

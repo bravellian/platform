@@ -25,9 +25,9 @@ public sealed class PlatformControlPlaneOptions
     public required string ConnectionString { get; init; }
 
     /// <summary>
-    /// Gets or initializes the schema name for platform tables in the control plane database (default: "dbo").
+    /// Gets or initializes the schema name for platform tables in the control plane database (default: "infra").
     /// </summary>
-    public string SchemaName { get; init; } = "dbo";
+    public string SchemaName { get; init; } = "infra";
 
     /// <summary>
     /// Gets or initializes whether to automatically create platform tables and procedures at startup.

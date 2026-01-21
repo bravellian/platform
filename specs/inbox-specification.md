@@ -502,7 +502,7 @@ public sealed record InboxMessage
 public class SqlInboxOptions
 {
     public string ConnectionString { get; set; }
-    public string SchemaName { get; set; } = "dbo";
+    public string SchemaName { get; set; } = "infra";
     public string TableName { get; set; } = "Inbox";
     public bool EnableSchemaDeployment { get; set; } = false;
 }
@@ -797,7 +797,7 @@ IServiceCollection AddInboxHandler<THandler>(this IServiceCollection services) w
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
 | `ConnectionString` | string | (required) | SQL Server connection string |
-| `SchemaName` | string | "dbo" | Database schema name |
+| `SchemaName` | string | "infra" | Database schema name |
 | `TableName` | string | "Inbox" | Inbox table name |
 | `EnableSchemaDeployment` | bool | false | Automatically create schema objects |
 | `PollingIntervalSeconds` | double | 0.5 | Interval between polling iterations |
@@ -889,7 +889,7 @@ The following constraints are enforced by the Inbox component:
 ### A.1 Inbox Table
 
 ```sql
-CREATE TABLE [dbo].[Inbox] (
+CREATE TABLE [infra].[Inbox] (
     -- Natural key for deduplication
     Source NVARCHAR(255) NOT NULL,
     MessageId NVARCHAR(255) NOT NULL,
@@ -922,18 +922,18 @@ CREATE TABLE [dbo].[Inbox] (
 
 -- Index for work queue claims
 CREATE INDEX IX_Inbox_WorkQueue 
-    ON [dbo].[Inbox](Status, NextAttemptAt, DueTimeUtc) 
+    ON [infra].[Inbox](Status, NextAttemptAt, DueTimeUtc) 
     INCLUDE(Source, MessageId, OwnerToken, LockedUntil)
     WHERE Status = 'Processing';
 
 -- Index for due time queries
 CREATE INDEX IX_Inbox_DueTime 
-    ON [dbo].[Inbox](DueTimeUtc) 
+    ON [infra].[Inbox](DueTimeUtc) 
     WHERE DueTimeUtc IS NOT NULL AND Status = 'Processing';
 
 -- Index for cleanup operations
 CREATE INDEX IX_Inbox_Cleanup 
-    ON [dbo].[Inbox](Status, LastSeenUtc) 
+    ON [infra].[Inbox](Status, LastSeenUtc) 
     WHERE Status = 'Done';
 ```
 

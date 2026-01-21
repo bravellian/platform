@@ -419,7 +419,7 @@ Configuration options for SQL Server outbox.
 public class SqlOutboxOptions
 {
     public string ConnectionString { get; set; } = string.Empty;
-    public string SchemaName { get; set; } = "dbo";
+    public string SchemaName { get; set; } = "infra";
     public string TableName { get; set; } = "Outbox";
     public bool EnableSchemaDeployment { get; set; } = false;
 }
@@ -427,7 +427,7 @@ public class SqlOutboxOptions
 
 **Property Descriptions:**
 - `ConnectionString` - SQL Server connection string (required)
-- `SchemaName` - Database schema name (default: "dbo")
+- `SchemaName` - Database schema name (default: "infra")
 - `TableName` - Outbox table name (default: "Outbox")
 - `EnableSchemaDeployment` - Automatically create table and procedures (default: false)
 
@@ -437,7 +437,7 @@ public class SqlOutboxOptions
 builder.Services.AddSqlOutbox(new SqlOutboxOptions
 {
     ConnectionString = "Server=localhost;Database=MyApp;Trusted_Connection=true;",
-    SchemaName = "dbo",
+    SchemaName = "infra",
     TableName = "Outbox",
     EnableSchemaDeployment = true
 });
@@ -512,7 +512,7 @@ builder.Services.AddMultiSqlOutbox(tenantDatabases);
 ### Outbox Table
 
 ```sql
-CREATE TABLE dbo.Outbox (
+CREATE TABLE infra.Outbox (
     -- Core message fields
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     Topic NVARCHAR(255) NOT NULL,
@@ -539,7 +539,7 @@ CREATE TABLE dbo.Outbox (
     CorrelationId NVARCHAR(255) NULL
 );
 
-CREATE INDEX IX_Outbox_WorkQueue ON dbo.Outbox(Status, CreatedAt) 
+CREATE INDEX IX_Outbox_WorkQueue ON infra.Outbox(Status, CreatedAt) 
     INCLUDE(Id, OwnerToken);
 ```
 
@@ -550,7 +550,7 @@ CREATE INDEX IX_Outbox_WorkQueue ON dbo.Outbox(Status, CreatedAt)
 Claims ready messages for processing.
 
 ```sql
-EXEC dbo.Outbox_Claim 
+EXEC infra.Outbox_Claim 
     @OwnerToken = '...',
     @LeaseSeconds = 30,
     @BatchSize = 50
@@ -561,7 +561,7 @@ EXEC dbo.Outbox_Claim
 Acknowledges successful processing.
 
 ```sql
-EXEC dbo.Outbox_Ack 
+EXEC infra.Outbox_Ack 
     @OwnerToken = '...',
     @Ids = @IdList  -- User-defined table type
 ```
@@ -571,7 +571,7 @@ EXEC dbo.Outbox_Ack
 Returns messages to ready state.
 
 ```sql
-EXEC dbo.Outbox_Abandon 
+EXEC infra.Outbox_Abandon 
     @OwnerToken = '...',
     @Ids = @IdList
 ```
@@ -581,7 +581,7 @@ EXEC dbo.Outbox_Abandon
 Marks messages as failed.
 
 ```sql
-EXEC dbo.Outbox_Fail 
+EXEC infra.Outbox_Fail 
     @OwnerToken = '...',
     @Ids = @IdList
 ```
@@ -591,7 +591,7 @@ EXEC dbo.Outbox_Fail
 Recovers expired leases.
 
 ```sql
-EXEC dbo.Outbox_ReapExpired
+EXEC infra.Outbox_ReapExpired
 ```
 
 ---

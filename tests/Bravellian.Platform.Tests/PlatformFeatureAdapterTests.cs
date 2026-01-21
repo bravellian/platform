@@ -93,7 +93,7 @@ public class PlatformFeatureAdapterTests
         {
             EnvironmentStyle = PlatformEnvironmentStyle.MultiDatabaseWithControl,
             ControlPlaneConnectionString = "Server=localhost;Database=Control;Trusted_Connection=True;",
-            ControlPlaneSchemaName = "dbo",
+            ControlPlaneSchemaName = "infra",
             UsesDiscovery = true,
         });
 
@@ -110,13 +110,13 @@ public class PlatformFeatureAdapterTests
                 {
                     Name = "tenant1",
                     ConnectionString = "Server=localhost;Database=Tenant1;Trusted_Connection=True;",
-                    SchemaName = "dbo",
+                    SchemaName = "infra",
                 },
                 new()
                 {
                     Name = "tenant2",
                     ConnectionString = "Server=localhost;Database=Tenant2;Trusted_Connection=True;",
-                    SchemaName = "dbo",
+                    SchemaName = "infra",
                 },
             };
 

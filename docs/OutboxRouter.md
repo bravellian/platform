@@ -13,7 +13,7 @@ For applications with a single database, use the standard `IOutbox` interface:
 services.AddSqlOutbox(new SqlOutboxOptions
 {
     ConnectionString = "Server=localhost;Database=MyApp;",
-    SchemaName = "dbo",
+    SchemaName = "infra",
     TableName = "Outbox"
 });
 
@@ -43,13 +43,13 @@ var tenantDatabases = new[]
     new SqlOutboxOptions
     {
         ConnectionString = "Server=localhost;Database=Tenant1;",
-        SchemaName = "dbo",
+        SchemaName = "infra",
         TableName = "Outbox"
     },
     new SqlOutboxOptions
     {
         ConnectionString = "Server=localhost;Database=Tenant2;",
-        SchemaName = "dbo",
+        SchemaName = "infra",
         TableName = "Outbox"
     }
 };
@@ -100,7 +100,7 @@ public class MyTenantDatabaseDiscovery : IOutboxDatabaseDiscovery
         {
             Identifier = t.TenantId,
             ConnectionString = t.DatabaseConnectionString,
-            SchemaName = "dbo",
+            SchemaName = "infra",
             TableName = "Outbox"
         });
     }

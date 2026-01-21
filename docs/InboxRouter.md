@@ -13,7 +13,7 @@ For applications with a single database, use the standard `IInbox` interface:
 services.AddSqlInbox(new SqlInboxOptions
 {
     ConnectionString = "Server=localhost;Database=MyApp;",
-    SchemaName = "dbo",
+    SchemaName = "infra",
     TableName = "Inbox"
 });
 
@@ -43,13 +43,13 @@ var tenantDatabases = new[]
     new SqlInboxOptions
     {
         ConnectionString = "Server=localhost;Database=Tenant1;",
-        SchemaName = "dbo",
+        SchemaName = "infra",
         TableName = "Inbox"
     },
     new SqlInboxOptions
     {
         ConnectionString = "Server=localhost;Database=Tenant2;",
-        SchemaName = "dbo",
+        SchemaName = "infra",
         TableName = "Inbox"
     }
 };
@@ -100,7 +100,7 @@ public class MyTenantDatabaseDiscovery : IInboxDatabaseDiscovery
         {
             Identifier = t.TenantId,
             ConnectionString = t.DatabaseConnectionString,
-            SchemaName = "dbo",
+            SchemaName = "infra",
             TableName = "Inbox"
         });
     }

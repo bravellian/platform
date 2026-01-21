@@ -53,19 +53,19 @@ var outboxOptions = new[]
     new SqlOutboxOptions
     {
         ConnectionString = "Server=localhost;Database=Customer1;...",
-        SchemaName = "dbo",
+        SchemaName = "infra",
         TableName = "Outbox",
     },
     new SqlOutboxOptions
     {
         ConnectionString = "Server=localhost;Database=Customer2;...",
-        SchemaName = "dbo",
+        SchemaName = "infra",
         TableName = "Outbox",
     },
     new SqlOutboxOptions
     {
         ConnectionString = "Server=localhost;Database=Customer3;...",
-        SchemaName = "dbo",
+        SchemaName = "infra",
         TableName = "Outbox",
     },
 };
@@ -113,7 +113,7 @@ public class GlobalDatabaseOutboxDiscovery : IOutboxDatabaseDiscovery
         {
             Identifier = c.CustomerId,
             ConnectionString = c.ConnectionString,
-            SchemaName = "dbo",
+            SchemaName = "infra",
             TableName = "Outbox",
         });
     }
@@ -187,7 +187,7 @@ public class CustomOutboxStoreProvider : IOutboxStoreProvider
                 Options.Create(new SqlOutboxOptions
                 {
                     ConnectionString = db.ConnectionString,
-                    SchemaName = "dbo",
+                    SchemaName = "infra",
                     TableName = "Outbox",
                 }),
                 this.timeProvider,
@@ -287,7 +287,7 @@ The existing single-outbox setup remains unchanged and fully supported:
 services.AddSqlOutbox(new SqlOutboxOptions
 {
     ConnectionString = "Server=localhost;Database=MyDb;...",
-    SchemaName = "dbo",
+    SchemaName = "infra",
     TableName = "Outbox",
 });
 

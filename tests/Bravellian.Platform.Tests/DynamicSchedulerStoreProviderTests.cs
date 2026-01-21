@@ -68,7 +68,7 @@ public class DynamicSchedulerStoreProviderTests
             {
                 Identifier = "Customer1",
                 ConnectionString = "Server=localhost;Database=Customer1;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 JobsTableName = "Jobs",
                 JobRunsTableName = "JobRuns",
                 TimersTableName = "Timers",
@@ -77,7 +77,7 @@ public class DynamicSchedulerStoreProviderTests
             {
                 Identifier = "Customer2",
                 ConnectionString = "Server=localhost;Database=Customer2;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 JobsTableName = "Jobs",
                 JobRunsTableName = "JobRuns",
                 TimersTableName = "Timers",

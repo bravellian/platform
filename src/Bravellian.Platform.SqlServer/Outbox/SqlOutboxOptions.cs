@@ -20,9 +20,9 @@ public class SqlOutboxOptions
 
     /// <summary>
     /// Gets or sets the database schema name for the outbox table.
-    /// Defaults to "dbo".
+    /// Defaults to "infra".
     /// </summary>
-    public string SchemaName { get; set; } = "dbo";
+    public string SchemaName { get; set; } = "infra";
 
     /// <summary>
     /// Gets or sets the table name for the outbox.

@@ -38,7 +38,7 @@ public class InboxIntegrationTests : SqlServerTestBase
         var options = Options.Create(new SqlInboxOptions
         {
             ConnectionString = ConnectionString,
-            SchemaName = "dbo",
+            SchemaName = "infra",
             TableName = "Inbox",
         });
 
@@ -74,7 +74,7 @@ public class InboxIntegrationTests : SqlServerTestBase
         var options = Options.Create(new SqlInboxOptions
         {
             ConnectionString = ConnectionString,
-            SchemaName = "dbo",
+            SchemaName = "infra",
             TableName = "Inbox",
         });
 
@@ -114,7 +114,7 @@ public class InboxIntegrationTests : SqlServerTestBase
                 var options = Options.Create(new SqlInboxOptions
                 {
                     ConnectionString = ConnectionString,
-                    SchemaName = "dbo",
+                    SchemaName = "infra",
                     TableName = "Inbox",
                 });
 
@@ -134,7 +134,7 @@ public class InboxIntegrationTests : SqlServerTestBase
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var (count, attempts) = await connection.QuerySingleAsync<(int Count, int Attempts)>(
-            "SELECT COUNT(*) as Count, MAX(Attempts) as Attempts FROM dbo.Inbox WHERE MessageId = @MessageId",
+            "SELECT COUNT(*) as Count, MAX(Attempts) as Attempts FROM infra.Inbox WHERE MessageId = @MessageId",
             new { MessageId = messageId });
 
         Assert.Equal(1, count);
@@ -149,7 +149,7 @@ public class InboxIntegrationTests : SqlServerTestBase
             await connection.OpenAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
 
             var result = await connection.QuerySingleAsync<(string Status, DateTime? ProcessedUtc)>(
-                "SELECT Status, ProcessedUtc FROM dbo.Inbox WHERE MessageId = @MessageId",
+                "SELECT Status, ProcessedUtc FROM infra.Inbox WHERE MessageId = @MessageId",
                 new { MessageId = messageId }).ConfigureAwait(false);
 
             Assert.Equal(expectedStatus, result.Status);

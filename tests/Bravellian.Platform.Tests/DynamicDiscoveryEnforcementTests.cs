@@ -44,7 +44,7 @@ public sealed class DynamicDiscoveryEnforcementTests
             {
                 Name = "CustomerDB1",
                 ConnectionString = "Server=localhost;Database=Customer1;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
             },
         }));
 
@@ -53,7 +53,7 @@ public sealed class DynamicDiscoveryEnforcementTests
             new PlatformControlPlaneOptions
             {
                 ConnectionString = "Server=localhost;Database=ControlPlane;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 EnableSchemaDeployment = false,
             });
 
@@ -87,13 +87,13 @@ public sealed class DynamicDiscoveryEnforcementTests
             {
                 Name = "CustomerDB1",
                 ConnectionString = "Server=localhost;Database=Customer1;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
             },
             new PlatformDatabase
             {
                 Name = "CustomerDB2",
                 ConnectionString = "Server=localhost;Database=Customer2;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
             },
         };
 
@@ -128,7 +128,7 @@ public sealed class DynamicDiscoveryEnforcementTests
             {
                 Name = "CustomerDB1",
                 ConnectionString = "Server=localhost;Database=Customer1;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
             },
         }));
 
@@ -166,13 +166,13 @@ public sealed class DynamicDiscoveryEnforcementTests
             {
                 Name = "CustomerDB1",
                 ConnectionString = "Server=localhost;Database=Customer1;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
             },
             new PlatformDatabase
             {
                 Name = "CustomerDB2",
                 ConnectionString = "Server=localhost;Database=Customer2;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
             },
         };
 

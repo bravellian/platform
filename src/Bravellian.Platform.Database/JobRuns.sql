@@ -1,8 +1,14 @@
-IF OBJECT_ID(N'dbo.JobRuns', N'U') IS NULL
+IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'infra')
 BEGIN
-    CREATE TABLE dbo.JobRuns (
+    EXEC('CREATE SCHEMA [infra]');
+END
+GO
+
+IF OBJECT_ID(N'infra.JobRuns', N'U') IS NULL
+BEGIN
+    CREATE TABLE infra.JobRuns (
         Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-        JobId UNIQUEIDENTIFIER NOT NULL REFERENCES dbo.Jobs(Id),
+        JobId UNIQUEIDENTIFIER NOT NULL REFERENCES infra.Jobs(Id),
         ScheduledTime DATETIMEOFFSET NOT NULL,
 
         -- Work queue state management
@@ -29,9 +35,9 @@ IF NOT EXISTS (
     SELECT 1
     FROM sys.indexes
     WHERE name = 'IX_JobRuns_WorkQueue'
-      AND object_id = OBJECT_ID(N'dbo.JobRuns', N'U'))
+      AND object_id = OBJECT_ID(N'infra.JobRuns', N'U'))
 BEGIN
-    CREATE INDEX IX_JobRuns_WorkQueue ON dbo.JobRuns(StatusCode, ScheduledTime)
+    CREATE INDEX IX_JobRuns_WorkQueue ON infra.JobRuns(StatusCode, ScheduledTime)
         INCLUDE(Id, OwnerToken)
         WHERE StatusCode = 0;
 END

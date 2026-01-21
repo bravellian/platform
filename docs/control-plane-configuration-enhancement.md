@@ -8,7 +8,7 @@ This enhancement adds full configuration support for control plane database sett
 
 Before this change, the service collection extensions had the following limitations:
 
-1. **No schema configuration for control plane**: When using `AddPlatformMultiDatabaseWithControlPlaneAndDiscovery` or `AddPlatformMultiDatabaseWithControlPlaneAndList`, the control plane database always used the default "dbo" schema.
+1. **No schema configuration for control plane**: When using `AddPlatformMultiDatabaseWithControlPlaneAndDiscovery` or `AddPlatformMultiDatabaseWithControlPlaneAndList`, the control plane database always used the default "infra" schema.
 
 2. **Limited configuration options**: Users couldn't specify additional control plane settings like schema deployment options in a structured way.
 
@@ -24,7 +24,7 @@ A new configuration class has been introduced:
 public sealed class PlatformControlPlaneOptions
 {
     public required string ConnectionString { get; init; }
-    public string SchemaName { get; init; } = "dbo";
+    public string SchemaName { get; init; } = "infra";
     public bool EnableSchemaDeployment { get; init; }
 }
 ```
@@ -100,7 +100,7 @@ The old API still works but will generate obsolete warnings:
 services.AddPlatformMultiDatabaseWithControlPlaneAndDiscovery(
     controlPlaneConnectionString: "Server=localhost;Database=ControlPlane;",
     enableSchemaDeployment: true);
-// Schema defaults to "dbo"
+// Schema defaults to "infra"
 ```
 
 ## Benefits
@@ -125,7 +125,7 @@ The internal semaphore service registration has been updated to accept schema na
 internal static void AddSemaphoreServices(
     this IServiceCollection services,
     string connectionString,
-    string schemaName = "dbo",  // Now accepts schema name
+    string schemaName = "infra",  // Now accepts schema name
     Action<SemaphoreOptions>? configure = null)
 ```
 
@@ -150,7 +150,7 @@ internal sealed class PlatformConfiguration
 Comprehensive tests have been added to verify:
 
 1. Schema name configuration is properly passed through to services
-2. Default schema name ("dbo") is used when not specified
+2. Default schema name ("infra") is used when not specified
 3. Backward compatibility with old API signatures
 4. Semaphore services respect the control plane schema configuration
 

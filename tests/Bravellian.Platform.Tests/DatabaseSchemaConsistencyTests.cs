@@ -71,8 +71,8 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
 
         foreach (var tableName in expectedTables)
         {
-            var exists = await TableExistsAsync(connection, "dbo", tableName);
-            exists.ShouldBeTrue($"Table dbo.{tableName} should exist");
+            var exists = await TableExistsAsync(connection, "infra", tableName);
+            exists.ShouldBeTrue($"Table infra.{tableName} should exist");
         }
     }
 
@@ -80,7 +80,7 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
     public async Task OutboxTable_HasCorrectSchema()
     {
         // Arrange & Act
-        var columns = await GetTableColumnsAsync("dbo", "Outbox");
+        var columns = await GetTableColumnsAsync("infra", "Outbox");
 
         // Assert - Check essential columns exist with correct types
         var expectedColumns = new Dictionary<string, string>
@@ -116,7 +116,7 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
     public async Task JobsTable_HasCorrectSchema()
     {
         // Arrange & Act
-        var columns = await GetTableColumnsAsync("dbo", "Jobs");
+        var columns = await GetTableColumnsAsync("infra", "Jobs");
 
         // Assert
         var expectedColumns = new Dictionary<string, string>
@@ -144,7 +144,7 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
     public async Task TimersTable_HasCorrectSchema()
     {
         // Arrange & Act
-        var columns = await GetTableColumnsAsync("dbo", "Timers");
+        var columns = await GetTableColumnsAsync("infra", "Timers");
 
         // Assert
         var expectedColumns = new Dictionary<string, string>
@@ -155,6 +155,9 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
             ["Payload"] = "nvarchar",
             ["Topic"] = "nvarchar",
             ["CorrelationId"] = "nvarchar",
+            ["StatusCode"] = "tinyint",
+            ["LockedUntil"] = "datetime2",
+            ["OwnerToken"] = "uniqueidentifier",
             ["Status"] = "nvarchar",
             ["ClaimedBy"] = "nvarchar",
             ["ClaimedAt"] = "datetimeoffset",
@@ -175,7 +178,7 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
     public async Task JobRunsTable_HasCorrectSchema()
     {
         // Arrange & Act
-        var columns = await GetTableColumnsAsync("dbo", "JobRuns");
+        var columns = await GetTableColumnsAsync("infra", "JobRuns");
 
         // Assert
         var expectedColumns = new Dictionary<string, string>
@@ -184,6 +187,9 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
             ["Id"] = "uniqueidentifier",
             ["JobId"] = "uniqueidentifier",
             ["ScheduledTime"] = "datetimeoffset",
+            ["StatusCode"] = "tinyint",
+            ["LockedUntil"] = "datetime2",
+            ["OwnerToken"] = "uniqueidentifier",
             ["Status"] = "nvarchar",
             ["ClaimedBy"] = "nvarchar",
             ["ClaimedAt"] = "datetimeoffset",
@@ -205,7 +211,7 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
     public async Task InboxTable_HasCorrectSchema()
     {
         // Arrange & Act
-        var columns = await GetTableColumnsAsync("dbo", "Inbox");
+        var columns = await GetTableColumnsAsync("infra", "Inbox");
 
         // Assert
         var expectedColumns = new Dictionary<string, string>
@@ -236,17 +242,17 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         // Check critical indexes exist
-        var indexExists = await IndexExistsAsync(connection, "dbo", "Outbox", "IX_Outbox_WorkQueue");
+        var indexExists = await IndexExistsAsync(connection, "infra", "Outbox", "IX_Outbox_WorkQueue");
         indexExists.ShouldBeTrue("Outbox should have IX_Outbox_WorkQueue index");
 
-        indexExists = await IndexExistsAsync(connection, "dbo", "Jobs", "UQ_Jobs_JobName");
+        indexExists = await IndexExistsAsync(connection, "infra", "Jobs", "UQ_Jobs_JobName");
         indexExists.ShouldBeTrue("Jobs should have UQ_Jobs_JobName index");
 
-        indexExists = await IndexExistsAsync(connection, "dbo", "Timers", "IX_Timers_GetNext");
-        indexExists.ShouldBeTrue("Timers should have IX_Timers_GetNext index");
+        indexExists = await IndexExistsAsync(connection, "infra", "Timers", "IX_Timers_WorkQueue");
+        indexExists.ShouldBeTrue("Timers should have IX_Timers_WorkQueue index");
 
-        indexExists = await IndexExistsAsync(connection, "dbo", "JobRuns", "IX_JobRuns_GetNext");
-        indexExists.ShouldBeTrue("JobRuns should have IX_JobRuns_GetNext index");
+        indexExists = await IndexExistsAsync(connection, "infra", "JobRuns", "IX_JobRuns_WorkQueue");
+        indexExists.ShouldBeTrue("JobRuns should have IX_JobRuns_WorkQueue index");
     }
 
     [Fact]
@@ -291,21 +297,21 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
     public async Task WorkQueueColumns_ExistAfterMigration()
     {
         // Arrange & Act - WorkQueue migration should have been applied during setup
-        var columns = await GetTableColumnsAsync("dbo", "Outbox");
+        var columns = await GetTableColumnsAsync("infra", "Outbox");
 
         // Assert - Work queue columns should exist
         columns.ShouldContainKey("Status", "Status column should exist after work queue migration");
         columns.ShouldContainKey("LockedUntil", "LockedUntil column should exist after work queue migration");
         columns.ShouldContainKey("OwnerToken", "OwnerToken column should exist after work queue migration");
 
-        // Check that the type dbo.GuidIdList exists
+        // Check that the type infra.GuidIdList exists
         await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var typeExists = await connection.QuerySingleOrDefaultAsync<int>(
-            "SELECT COUNT(*) FROM sys.types WHERE name = 'GuidIdList' AND schema_id = SCHEMA_ID('dbo')");
+            "SELECT COUNT(*) FROM sys.types WHERE name = 'GuidIdList' AND schema_id = SCHEMA_ID('infra')");
 
-        typeExists.ShouldBeGreaterThan(0, "Work queue type dbo.GuidIdList should exist");
+        typeExists.ShouldBeGreaterThan(0, "Work queue type infra.GuidIdList should exist");
     }
 
     [Fact]
@@ -316,36 +322,36 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
 
         // Check ReapExpired procedures
         var outboxReaper = await connection.ExecuteScalarAsync<string>(
-            "SELECT OBJECT_DEFINITION(OBJECT_ID('dbo.Outbox_ReapExpired'))");
+            "SELECT OBJECT_DEFINITION(OBJECT_ID('infra.Outbox_ReapExpired'))");
         var inboxReaper = await connection.ExecuteScalarAsync<string>(
-            "SELECT OBJECT_DEFINITION(OBJECT_ID('dbo.Inbox_ReapExpired'))");
+            "SELECT OBJECT_DEFINITION(OBJECT_ID('infra.Inbox_ReapExpired'))");
 
         outboxReaper.ShouldContain("SYSUTCDATETIME", Case.Sensitive);
         inboxReaper.ShouldContain("SYSUTCDATETIME", Case.Sensitive);
 
         // Check Claim procedures
         var outboxClaim = await connection.ExecuteScalarAsync<string>(
-            "SELECT OBJECT_DEFINITION(OBJECT_ID('dbo.Outbox_Claim'))");
+            "SELECT OBJECT_DEFINITION(OBJECT_ID('infra.Outbox_Claim'))");
         var inboxClaim = await connection.ExecuteScalarAsync<string>(
-            "SELECT OBJECT_DEFINITION(OBJECT_ID('dbo.Inbox_Claim'))");
+            "SELECT OBJECT_DEFINITION(OBJECT_ID('infra.Inbox_Claim'))");
 
         outboxClaim.ShouldContain("SYSUTCDATETIME", Case.Sensitive);
         inboxClaim.ShouldContain("SYSUTCDATETIME", Case.Sensitive);
 
         // Check Ack procedures
         var outboxAck = await connection.ExecuteScalarAsync<string>(
-            "SELECT OBJECT_DEFINITION(OBJECT_ID('dbo.Outbox_Ack'))");
+            "SELECT OBJECT_DEFINITION(OBJECT_ID('infra.Outbox_Ack'))");
         var inboxAck = await connection.ExecuteScalarAsync<string>(
-            "SELECT OBJECT_DEFINITION(OBJECT_ID('dbo.Inbox_Ack'))");
+            "SELECT OBJECT_DEFINITION(OBJECT_ID('infra.Inbox_Ack'))");
 
         outboxAck.ShouldContain("SYSUTCDATETIME", Case.Sensitive);
         inboxAck.ShouldContain("SYSUTCDATETIME", Case.Sensitive);
 
         // Check Abandon procedures
         var outboxAbandon = await connection.ExecuteScalarAsync<string>(
-            "SELECT OBJECT_DEFINITION(OBJECT_ID('dbo.Outbox_Abandon'))");
+            "SELECT OBJECT_DEFINITION(OBJECT_ID('infra.Outbox_Abandon'))");
         var inboxAbandon = await connection.ExecuteScalarAsync<string>(
-            "SELECT OBJECT_DEFINITION(OBJECT_ID('dbo.Inbox_Abandon'))");
+            "SELECT OBJECT_DEFINITION(OBJECT_ID('infra.Inbox_Abandon'))");
 
         outboxAbandon.ShouldContain("SYSUTCDATETIME", Case.Sensitive);
         inboxAbandon.ShouldContain("SYSUTCDATETIME", Case.Sensitive);

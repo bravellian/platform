@@ -74,7 +74,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var result = await connection.QuerySingleAsync(
-            "SELECT Status, OwnerToken FROM dbo.Inbox WHERE MessageId = @MessageId",
+            "SELECT Status, OwnerToken FROM infra.Inbox WHERE MessageId = @MessageId",
             new { MessageId = "msg-1" });
 
         Assert.Equal("Processing", result.Status);
@@ -129,7 +129,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var result = await connection.QuerySingleAsync(
-            "SELECT Status, OwnerToken, ProcessedUtc FROM dbo.Inbox WHERE MessageId = @MessageId",
+            "SELECT Status, OwnerToken, ProcessedUtc FROM infra.Inbox WHERE MessageId = @MessageId",
             new { MessageId = "msg-1" });
 
         Assert.Equal("Done", result.Status);
@@ -158,7 +158,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var result = await connection.QuerySingleAsync(
-            "SELECT Status, OwnerToken FROM dbo.Inbox WHERE MessageId = @MessageId",
+            "SELECT Status, OwnerToken FROM infra.Inbox WHERE MessageId = @MessageId",
             new { MessageId = "msg-1" });
 
         Assert.Equal("Seen", result.Status);
@@ -186,7 +186,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var result = await connection.QuerySingleAsync(
-            "SELECT Status, OwnerToken FROM dbo.Inbox WHERE MessageId = @MessageId",
+            "SELECT Status, OwnerToken FROM infra.Inbox WHERE MessageId = @MessageId",
             new { MessageId = "msg-1" });
 
         Assert.Equal("Dead", result.Status);
@@ -215,7 +215,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var result = await connection.QuerySingleAsync(
-            "SELECT Status, OwnerToken FROM dbo.Inbox WHERE MessageId = @MessageId",
+            "SELECT Status, OwnerToken FROM infra.Inbox WHERE MessageId = @MessageId",
             new { MessageId = "msg-1" });
 
         Assert.Equal("Processing", result.Status);
@@ -260,7 +260,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
         var options = Options.Create(new SqlInboxOptions
         {
             ConnectionString = ConnectionString,
-            SchemaName = "dbo",
+            SchemaName = "infra",
             TableName = "Inbox",
         });
 
@@ -273,7 +273,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
         var options = Options.Create(new SqlInboxOptions
         {
             ConnectionString = ConnectionString,
-            SchemaName = "dbo",
+            SchemaName = "infra",
             TableName = "Inbox",
         });
 

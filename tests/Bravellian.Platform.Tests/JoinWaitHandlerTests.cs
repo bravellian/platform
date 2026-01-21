@@ -31,7 +31,7 @@ public class JoinWaitHandlerTests : SqlServerTestBase
     private readonly SqlOutboxOptions defaultOptions = new()
     {
         ConnectionString = string.Empty,
-        SchemaName = "dbo",
+        SchemaName = "infra",
         TableName = "Outbox"
     };
 
@@ -46,8 +46,8 @@ public class JoinWaitHandlerTests : SqlServerTestBase
         defaultOptions.ConnectionString = ConnectionString;
 
         // Ensure schemas exist
-        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(ConnectionString, "dbo", "Outbox").ConfigureAwait(false);
-        await DatabaseSchemaManager.EnsureOutboxJoinSchemaAsync(ConnectionString, "dbo").ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(ConnectionString, "infra", "Outbox").ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureOutboxJoinSchemaAsync(ConnectionString, "infra").ConfigureAwait(false);
 
         joinStore = new SqlOutboxJoinStore(
             Options.Create(defaultOptions),
@@ -74,7 +74,7 @@ public class JoinWaitHandlerTests : SqlServerTestBase
 
             var id = Guid.NewGuid();
             await connection.ExecuteAsync(
-                "INSERT INTO dbo.Outbox (Id, Topic, Payload, MessageId) VALUES (@Id, @Topic, @Payload, @MessageId)",
+                "INSERT INTO infra.Outbox (Id, Topic, Payload, MessageId) VALUES (@Id, @Topic, @Payload, @MessageId)",
                 new { Id = id, Topic = "test.topic", Payload = "{}", MessageId = Guid.NewGuid() }).ConfigureAwait(false);
 
             return OutboxMessageIdentifier.From(id);
@@ -239,7 +239,7 @@ public class JoinWaitHandlerTests : SqlServerTestBase
         await connection.OpenAsync(CancellationToken.None);
 
         var count = await connection.ExecuteScalarAsync<int>(
-            "SELECT COUNT(*) FROM dbo.Outbox WHERE Topic = @Topic",
+            "SELECT COUNT(*) FROM infra.Outbox WHERE Topic = @Topic",
             new { Topic = "etl.start-transform" });
 
         count.ShouldBeGreaterThan(0);

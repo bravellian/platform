@@ -118,7 +118,7 @@ public class ControlPlaneConfigurationTests
         };
 
         // Assert
-        options.SchemaName.ShouldBe("dbo");
+        options.SchemaName.ShouldBe("infra");
     }
 
     [Fact]
@@ -147,12 +147,12 @@ public class ControlPlaneConfigurationTests
 
         var serviceProvider = services.BuildServiceProvider();
 
-        // Assert - Should default to "dbo"
+        // Assert - Should default to "infra"
         var config = serviceProvider.GetRequiredService<PlatformConfiguration>();
-        config.ControlPlaneSchemaName.ShouldBe("dbo");
+        config.ControlPlaneSchemaName.ShouldBe("infra");
 
         var semaphoreOptions = serviceProvider.GetRequiredService<IOptions<SemaphoreOptions>>();
-        semaphoreOptions.Value.SchemaName.ShouldBe("dbo");
+        semaphoreOptions.Value.SchemaName.ShouldBe("infra");
     }
 
     [Fact]
@@ -181,11 +181,11 @@ public class ControlPlaneConfigurationTests
 
         var serviceProvider = services.BuildServiceProvider();
 
-        // Assert - Should default to "dbo"
+        // Assert - Should default to "infra"
         var config = serviceProvider.GetRequiredService<PlatformConfiguration>();
-        config.ControlPlaneSchemaName.ShouldBe("dbo");
+        config.ControlPlaneSchemaName.ShouldBe("infra");
 
         var semaphoreOptions = serviceProvider.GetRequiredService<IOptions<SemaphoreOptions>>();
-        semaphoreOptions.Value.SchemaName.ShouldBe("dbo");
+        semaphoreOptions.Value.SchemaName.ShouldBe("infra");
     }
 }

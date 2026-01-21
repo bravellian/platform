@@ -53,7 +53,7 @@ internal sealed class MetricsRetentionHourlyJob
         try
         {
             var (server, db) = ParseConnectionInfo(_options.CentralConnectionString);
-            var deleted = await DeleteOldHourlyDataAsync(_options.CentralConnectionString, cutoffDate, cancellationToken).ConfigureAwait(false);
+            var deleted = await DeleteOldHourlyDataAsync(_options.CentralConnectionString, _options.SchemaName, cutoffDate, cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("Deleted {Count} hourly metric rows from central database ({Server}/{Db})", deleted, server, db);
         }
         catch (Exception ex)
@@ -63,13 +63,13 @@ internal sealed class MetricsRetentionHourlyJob
         }
     }
 
-    private static async Task<int> DeleteOldHourlyDataAsync(string connectionString, DateTime cutoffDate, CancellationToken cancellationToken)
+    private static async Task<int> DeleteOldHourlyDataAsync(string connectionString, string schemaName, DateTime cutoffDate, CancellationToken cancellationToken)
     {
         using var connection = new SqlConnection(connectionString);
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-        var sql = """
-            DELETE FROM [infra].[MetricPointHourly]
+        var sql = $"""
+            DELETE FROM [{schemaName}].[MetricPointHourly]
             WHERE BucketStartUtc < @CutoffDate;
             SELECT @@ROWCOUNT;
             """;

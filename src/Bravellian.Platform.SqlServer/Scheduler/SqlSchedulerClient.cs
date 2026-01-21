@@ -160,7 +160,7 @@ internal class SqlSchedulerClient : ISchedulerClient
         {
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-            var command = new SqlCommand("dbo.Timers_Claim", connection)
+            var command = new SqlCommand($"[{options.SchemaName}].[Timers_Claim]", connection)
             {
                 CommandType = CommandType.StoredProcedure,
             };
@@ -195,7 +195,7 @@ internal class SqlSchedulerClient : ISchedulerClient
         {
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-            var command = new SqlCommand("dbo.JobRuns_Claim", connection)
+            var command = new SqlCommand($"[{options.SchemaName}].[JobRuns_Claim]", connection)
             {
                 CommandType = CommandType.StoredProcedure,
             };
@@ -222,7 +222,7 @@ internal class SqlSchedulerClient : ISchedulerClient
         IEnumerable<Guid> ids,
         CancellationToken cancellationToken)
     {
-        await ExecuteWithIdsAsync("dbo.Timers_Ack", ownerToken, ids, cancellationToken).ConfigureAwait(false);
+        await ExecuteWithIdsAsync($"[{options.SchemaName}].[Timers_Ack]", ownerToken, ids, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task AckJobRunsAsync(
@@ -230,7 +230,7 @@ internal class SqlSchedulerClient : ISchedulerClient
         IEnumerable<Guid> ids,
         CancellationToken cancellationToken)
     {
-        await ExecuteWithIdsAsync("dbo.JobRuns_Ack", ownerToken, ids, cancellationToken).ConfigureAwait(false);
+        await ExecuteWithIdsAsync($"[{options.SchemaName}].[JobRuns_Ack]", ownerToken, ids, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task AbandonTimersAsync(
@@ -238,7 +238,7 @@ internal class SqlSchedulerClient : ISchedulerClient
         IEnumerable<Guid> ids,
         CancellationToken cancellationToken)
     {
-        await ExecuteWithIdsAsync("dbo.Timers_Abandon", ownerToken, ids, cancellationToken).ConfigureAwait(false);
+        await ExecuteWithIdsAsync($"[{options.SchemaName}].[Timers_Abandon]", ownerToken, ids, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task AbandonJobRunsAsync(
@@ -246,7 +246,7 @@ internal class SqlSchedulerClient : ISchedulerClient
         IEnumerable<Guid> ids,
         CancellationToken cancellationToken)
     {
-        await ExecuteWithIdsAsync("dbo.JobRuns_Abandon", ownerToken, ids, cancellationToken).ConfigureAwait(false);
+        await ExecuteWithIdsAsync($"[{options.SchemaName}].[JobRuns_Abandon]", ownerToken, ids, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task ReapExpiredTimersAsync(CancellationToken cancellationToken)
@@ -256,7 +256,7 @@ internal class SqlSchedulerClient : ISchedulerClient
         {
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-            var command = new SqlCommand("dbo.Timers_ReapExpired", connection)
+            var command = new SqlCommand($"[{options.SchemaName}].[Timers_ReapExpired]", connection)
             {
                 CommandType = CommandType.StoredProcedure,
             };
@@ -275,7 +275,7 @@ internal class SqlSchedulerClient : ISchedulerClient
         {
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-            var command = new SqlCommand("dbo.JobRuns_ReapExpired", connection)
+            var command = new SqlCommand($"[{options.SchemaName}].[JobRuns_ReapExpired]", connection)
             {
                 CommandType = CommandType.StoredProcedure,
             };

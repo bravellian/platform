@@ -76,7 +76,7 @@ public class InboxDispatcherTests : SqlServerTestBase
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var status = await connection.QuerySingleAsync<string>(
-            "SELECT Status FROM dbo.Inbox WHERE MessageId = @MessageId",
+            "SELECT Status FROM infra.Inbox WHERE MessageId = @MessageId",
             new { MessageId = "msg-1" });
 
         Assert.Equal("Done", status);
@@ -105,7 +105,7 @@ public class InboxDispatcherTests : SqlServerTestBase
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var status = await connection.QuerySingleAsync<string>(
-            "SELECT Status FROM dbo.Inbox WHERE MessageId = @MessageId",
+            "SELECT Status FROM infra.Inbox WHERE MessageId = @MessageId",
             new { MessageId = "msg-2" });
 
         Assert.Equal("Dead", status);
@@ -135,7 +135,7 @@ public class InboxDispatcherTests : SqlServerTestBase
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var status = await connection.QuerySingleAsync<string>(
-            "SELECT Status FROM dbo.Inbox WHERE MessageId = @MessageId",
+            "SELECT Status FROM infra.Inbox WHERE MessageId = @MessageId",
             new { MessageId = "msg-3" });
 
         Assert.Equal("Seen", status);
@@ -227,7 +227,7 @@ public class InboxDispatcherTests : SqlServerTestBase
         var options = Options.Create(new SqlInboxOptions
         {
             ConnectionString = ConnectionString,
-            SchemaName = "dbo",
+            SchemaName = "infra",
             TableName = "Inbox",
         });
 
@@ -240,7 +240,7 @@ public class InboxDispatcherTests : SqlServerTestBase
         var options = Options.Create(new SqlInboxOptions
         {
             ConnectionString = ConnectionString,
-            SchemaName = "dbo",
+            SchemaName = "infra",
             TableName = "Inbox",
         });
 

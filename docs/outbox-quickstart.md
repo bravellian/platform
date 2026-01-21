@@ -35,7 +35,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSqlOutbox(new SqlOutboxOptions
 {
     ConnectionString = "Server=localhost;Database=MyApp;Trusted_Connection=true;",
-    SchemaName = "dbo",
+    SchemaName = "infra",
     TableName = "Outbox",
     EnableSchemaDeployment = true // Automatically creates the Outbox table
 });
@@ -228,7 +228,7 @@ Maximum: 60 seconds delay
 When `EnableSchemaDeployment = true`, this table is created automatically:
 
 ```sql
-CREATE TABLE dbo.Outbox (
+CREATE TABLE infra.Outbox (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     Topic NVARCHAR(255) NOT NULL,
     Payload NVARCHAR(MAX) NOT NULL,
@@ -260,8 +260,8 @@ builder.Services.AddSqlOutbox(new SqlOutboxOptions
     // Required: Database connection
     ConnectionString = "Server=localhost;Database=MyApp;...",
     
-    // Optional: Schema and table names (defaults to "dbo" and "Outbox")
-    SchemaName = "dbo",
+    // Optional: Schema and table names (defaults to "infra" and "Outbox")
+    SchemaName = "infra",
     TableName = "Outbox",
     
     // Optional: Automatically create database objects (default: false)
@@ -417,10 +417,10 @@ Verify your connection string and permissions:
 
 ```sql
 -- The application needs these permissions:
-GRANT SELECT, INSERT, UPDATE, DELETE ON dbo.Outbox TO [AppUser];
-GRANT EXECUTE ON dbo.Outbox_Claim TO [AppUser];
-GRANT EXECUTE ON dbo.Outbox_Ack TO [AppUser];
-GRANT EXECUTE ON dbo.Outbox_Abandon TO [AppUser];
+GRANT SELECT, INSERT, UPDATE, DELETE ON infra.Outbox TO [AppUser];
+GRANT EXECUTE ON infra.Outbox_Claim TO [AppUser];
+GRANT EXECUTE ON infra.Outbox_Ack TO [AppUser];
+GRANT EXECUTE ON infra.Outbox_Abandon TO [AppUser];
 ```
 
 ## Summary

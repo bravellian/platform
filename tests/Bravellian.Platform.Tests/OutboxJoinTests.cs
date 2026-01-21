@@ -30,7 +30,7 @@ public class OutboxJoinTests : SqlServerTestBase
     private readonly SqlOutboxOptions defaultOptions = new()
     {
         ConnectionString = string.Empty,
-        SchemaName = "dbo",
+        SchemaName = "infra",
         TableName = "Outbox"
     };
 
@@ -45,8 +45,8 @@ public class OutboxJoinTests : SqlServerTestBase
         defaultOptions.ConnectionString = ConnectionString;
 
         // Ensure schemas exist
-        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(ConnectionString, "dbo", "Outbox").ConfigureAwait(false);
-        await DatabaseSchemaManager.EnsureOutboxJoinSchemaAsync(ConnectionString, "dbo").ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(ConnectionString, "infra", "Outbox").ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureOutboxJoinSchemaAsync(ConnectionString, "infra").ConfigureAwait(false);
 
         joinStore = new SqlOutboxJoinStore(
             Options.Create(defaultOptions),
@@ -68,7 +68,7 @@ public class OutboxJoinTests : SqlServerTestBase
 
             var id = Guid.NewGuid();
             await connection.ExecuteAsync(
-                "INSERT INTO dbo.Outbox (Id, Topic, Payload, MessageId) VALUES (@Id, @Topic, @Payload, @MessageId)",
+                "INSERT INTO infra.Outbox (Id, Topic, Payload, MessageId) VALUES (@Id, @Topic, @Payload, @MessageId)",
                 new { Id = id, Topic = "test.topic", Payload = "{}", MessageId = Guid.NewGuid() }).ConfigureAwait(false);
 
             return OutboxMessageIdentifier.From(id);
@@ -162,7 +162,7 @@ public class OutboxJoinTests : SqlServerTestBase
         await connection.OpenAsync(CancellationToken.None);
 
         var count = await connection.ExecuteScalarAsync<int>(
-            "SELECT COUNT(*) FROM dbo.OutboxJoinMember WHERE JoinId = @JoinId AND OutboxMessageId = @MessageId",
+            "SELECT COUNT(*) FROM infra.OutboxJoinMember WHERE JoinId = @JoinId AND OutboxMessageId = @MessageId",
             new { JoinId = join.JoinId, MessageId = messageId });
 
         count.ShouldBe(1);
@@ -195,7 +195,7 @@ public class OutboxJoinTests : SqlServerTestBase
         await connection.OpenAsync(CancellationToken.None);
 
         var count = await connection.ExecuteScalarAsync<int>(
-            "SELECT COUNT(*) FROM dbo.OutboxJoinMember WHERE JoinId = @JoinId AND OutboxMessageId = @MessageId",
+            "SELECT COUNT(*) FROM infra.OutboxJoinMember WHERE JoinId = @JoinId AND OutboxMessageId = @MessageId",
             new { JoinId = join.JoinId, MessageId = messageId });
 
         count.ShouldBe(1);
@@ -596,7 +596,7 @@ public class OutboxJoinTests : SqlServerTestBase
             await connection.OpenAsync(CancellationToken.None).ConfigureAwait(false);
 
             await connection.ExecuteAsync(
-                "[dbo].[Outbox_Claim]",
+                "[infra].[Outbox_Claim]",
                 new { OwnerToken = ownerToken.Value, LeaseSeconds = 30, BatchSize = 10 },
                 commandType: System.Data.CommandType.StoredProcedure).ConfigureAwait(false);
         }
@@ -610,14 +610,14 @@ public class OutboxJoinTests : SqlServerTestBase
             await connection.OpenAsync(CancellationToken.None).ConfigureAwait(false);
 
             var idsTable = CreateGuidIdTable(new[] { messageId.Value });
-            using var command = new SqlCommand("[dbo].[Outbox_Ack]", connection)
+            using var command = new SqlCommand("[infra].[Outbox_Ack]", connection)
             {
                 CommandType = System.Data.CommandType.StoredProcedure,
             };
             command.Parameters.AddWithValue("@OwnerToken", ownerToken.Value);
             var parameter = command.Parameters.AddWithValue("@Ids", idsTable);
             parameter.SqlDbType = System.Data.SqlDbType.Structured;
-            parameter.TypeName = "[dbo].[GuidIdList]";
+            parameter.TypeName = "[infra].[GuidIdList]";
             await command.ExecuteNonQueryAsync(CancellationToken.None).ConfigureAwait(false);
         }
     }
@@ -630,7 +630,7 @@ public class OutboxJoinTests : SqlServerTestBase
             await connection.OpenAsync(CancellationToken.None).ConfigureAwait(false);
 
             var idsTable = CreateGuidIdTable(new[] { messageId.Value });
-            using var command = new SqlCommand("[dbo].[Outbox_Fail]", connection)
+            using var command = new SqlCommand("[infra].[Outbox_Fail]", connection)
             {
                 CommandType = System.Data.CommandType.StoredProcedure,
             };
@@ -639,7 +639,7 @@ public class OutboxJoinTests : SqlServerTestBase
             command.Parameters.AddWithValue("@ProcessedBy", "TestMachine");
             var parameter = command.Parameters.AddWithValue("@Ids", idsTable);
             parameter.SqlDbType = System.Data.SqlDbType.Structured;
-            parameter.TypeName = "[dbo].[GuidIdList]";
+            parameter.TypeName = "[infra].[GuidIdList]";
             await command.ExecuteNonQueryAsync(CancellationToken.None).ConfigureAwait(false);
         }
     }

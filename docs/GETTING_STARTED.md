@@ -220,12 +220,12 @@ public async Task<ApiResponse> CallWithTimeoutAsync(string url, TimeSpan timeout
 The platform creates tables automatically when `EnableSchemaDeployment = true`:
 
 ```
-dbo.Outbox              -- Outbound messages
-dbo.Inbox               -- Inbound message tracking
-dbo.Lease               -- Distributed locks
-dbo.Timers              -- Scheduled one-time tasks
-dbo.Jobs                -- Recurring job definitions
-dbo.JobRuns             -- Job execution instances
+infra.Outbox              -- Outbound messages
+infra.Inbox               -- Inbound message tracking
+infra.Lease               -- Distributed locks
+infra.Timers              -- Scheduled one-time tasks
+infra.Jobs                -- Recurring job definitions
+infra.JobRuns             -- Job execution instances
 ```
 
 ## Next Steps

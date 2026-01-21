@@ -60,7 +60,7 @@ public class SemaphoreRegistrationTests : IAsyncLifetime
                 {
                     Name = "db1",
                     ConnectionString = connectionString!,
-                    SchemaName = "dbo",
+                    SchemaName = "infra",
                 },
             },
             enableSchemaDeployment: false);

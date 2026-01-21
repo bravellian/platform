@@ -6,7 +6,7 @@ This document describes the new Lease Lock v2 functionality that provides DB-aut
 
 The new lease system consists of:
 
-- **`dbo.Lease` table**: Stores lease information with DB-authoritative timestamps
+- **`infra.Lease` table**: Stores lease information with DB-authoritative timestamps
 - **`LeaseApi`**: Provides low-level data access operations
 - **`LeaseRunner`**: High-level lease manager with automatic renewal using monotonic clock scheduling
 
@@ -24,7 +24,7 @@ The new lease system consists of:
 
 ```csharp
 // Setup
-var leaseApi = new LeaseApi(connectionString, "dbo");
+var leaseApi = new LeaseApi(connectionString, "infra");
 var monotonicClock = new MonotonicClock();
 var timeProvider = TimeProvider.System;
 var logger = serviceProvider.GetRequiredService<ILogger>();
@@ -99,7 +99,7 @@ if (runner != null)
 ### Low-Level LeaseApi Usage
 
 ```csharp
-var leaseApi = new LeaseApi(connectionString, "dbo");
+var leaseApi = new LeaseApi(connectionString, "infra");
 
 // Acquire lease
 var result = await leaseApi.AcquireAsync("my-lease", "owner-1", 300); // 5 minutes

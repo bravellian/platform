@@ -74,7 +74,7 @@ public class GlobalDatabaseOutboxDiscovery : IOutboxDatabaseDiscovery
             {
                 Identifier = c.CustomerId,
                 ConnectionString = c.ConnectionString,
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 TableName = "Outbox",
             }).ToList();
 

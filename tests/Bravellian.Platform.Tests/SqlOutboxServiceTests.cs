@@ -27,7 +27,7 @@ namespace Bravellian.Platform.Tests;
 public class SqlOutboxServiceTests : SqlServerTestBase
 {
     private SqlOutboxService? outboxService;
-    private readonly SqlOutboxOptions defaultOptions = new() { ConnectionString = string.Empty, SchemaName = "dbo", TableName = "Outbox" };
+    private readonly SqlOutboxOptions defaultOptions = new() { ConnectionString = string.Empty, SchemaName = "infra", TableName = "Outbox" };
 
     public SqlOutboxServiceTests(ITestOutputHelper testOutputHelper, SqlServerCollectionFixture fixture)
         : base(testOutputHelper, fixture)
@@ -68,7 +68,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         await outboxService!.EnqueueAsync(topic, payload, transaction, correlationId, CancellationToken.None);
 
         // Verify the message was inserted
-        var sql = "SELECT COUNT(*) FROM dbo.Outbox WHERE Topic = @Topic AND Payload = @Payload";
+        var sql = "SELECT COUNT(*) FROM infra.Outbox WHERE Topic = @Topic AND Payload = @Payload";
         await using var command = new SqlCommand(sql, connection, transaction);
         command.Parameters.AddWithValue("@Topic", topic);
         command.Parameters.AddWithValue("@Payload", payload);
@@ -145,7 +145,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         await outboxService!.EnqueueAsync(topic, payload, transaction, correlationId: null, cancellationToken: CancellationToken.None);
 
         // Verify the message was inserted
-        var sql = "SELECT COUNT(*) FROM dbo.Outbox WHERE Topic = @Topic AND Payload = @Payload";
+        var sql = "SELECT COUNT(*) FROM infra.Outbox WHERE Topic = @Topic AND Payload = @Payload";
         await using var command = new SqlCommand(sql, connection, transaction);
         command.Parameters.AddWithValue("@Topic", topic);
         command.Parameters.AddWithValue("@Payload", payload);
@@ -177,7 +177,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
 
             // Verify the message has correct default values
             var sql = @"SELECT IsProcessed, ProcessedAt, RetryCount, CreatedAt, MessageId
-                   FROM dbo.Outbox
+                   FROM infra.Outbox
                    WHERE Topic = @Topic AND Payload = @Payload";
             await using var command = new SqlCommand(sql, connection, transaction);
             command.Parameters.AddWithValue("@Topic", topic);
@@ -214,7 +214,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         await outboxService.EnqueueAsync("topic-3", "payload-3", transaction, CancellationToken.None);
 
         // Verify all messages were inserted
-        var sql = "SELECT COUNT(*) FROM dbo.Outbox";
+        var sql = "SELECT COUNT(*) FROM infra.Outbox";
         await using var command = new SqlCommand(sql, connection, transaction);
         var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
 
@@ -255,7 +255,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         // Verify the message was inserted by querying the database directly
         await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
-        var sql = "SELECT COUNT(*) FROM dbo.Outbox WHERE Topic = @Topic AND Payload = @Payload AND CorrelationId = @CorrelationId";
+        var sql = "SELECT COUNT(*) FROM infra.Outbox WHERE Topic = @Topic AND Payload = @Payload AND CorrelationId = @CorrelationId";
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.AddWithValue("@Topic", topic);
         command.Parameters.AddWithValue("@Payload", payload);
@@ -267,7 +267,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         count.ShouldBe(1);
 
         // Clean up
-        var deleteSql = "DELETE FROM dbo.Outbox WHERE Topic = @Topic AND Payload = @Payload";
+        var deleteSql = "DELETE FROM infra.Outbox WHERE Topic = @Topic AND Payload = @Payload";
         await using var deleteCommand = new SqlCommand(deleteSql, connection);
         deleteCommand.Parameters.AddWithValue("@Topic", topic);
         deleteCommand.Parameters.AddWithValue("@Payload", payload);
@@ -287,7 +287,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         // Verify the message was inserted
         await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
-        var sql = "SELECT COUNT(*) FROM dbo.Outbox WHERE Topic = @Topic AND Payload = @Payload";
+        var sql = "SELECT COUNT(*) FROM infra.Outbox WHERE Topic = @Topic AND Payload = @Payload";
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.AddWithValue("@Topic", topic);
         command.Parameters.AddWithValue("@Payload", payload);
@@ -298,7 +298,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         count.ShouldBe(1);
 
         // Clean up
-        var deleteSql = "DELETE FROM dbo.Outbox WHERE Topic = @Topic AND Payload = @Payload";
+        var deleteSql = "DELETE FROM infra.Outbox WHERE Topic = @Topic AND Payload = @Payload";
         await using var deleteCommand = new SqlCommand(deleteSql, connection);
         deleteCommand.Parameters.AddWithValue("@Topic", topic);
         deleteCommand.Parameters.AddWithValue("@Payload", payload);
@@ -323,7 +323,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
             // Verify all messages were inserted
             await using var connection = new SqlConnection(ConnectionString);
             await connection.OpenAsync(TestContext.Current.CancellationToken);
-            var sql = "SELECT COUNT(*) FROM dbo.Outbox WHERE Topic LIKE @TopicPattern";
+            var sql = "SELECT COUNT(*) FROM infra.Outbox WHERE Topic LIKE @TopicPattern";
             await using var command = new SqlCommand(sql, connection);
             command.Parameters.AddWithValue("@TopicPattern", $"%-{testId}");
             var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
@@ -336,7 +336,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
             // Clean up
             await using var connection = new SqlConnection(ConnectionString);
             await connection.OpenAsync(TestContext.Current.CancellationToken);
-            var deleteSql = "DELETE FROM dbo.Outbox WHERE Topic LIKE @TopicPattern";
+            var deleteSql = "DELETE FROM infra.Outbox WHERE Topic LIKE @TopicPattern";
             await using var deleteCommand = new SqlCommand(deleteSql, connection);
             deleteCommand.Parameters.AddWithValue("@TopicPattern", $"%-{testId}");
             await deleteCommand.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
@@ -350,7 +350,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         var customOptions = new SqlOutboxOptions
         {
             ConnectionString = ConnectionString,
-            SchemaName = "dbo",
+            SchemaName = "infra",
             TableName = "TestOutbox_StandaloneEnsure",
         };
 
@@ -359,7 +359,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         // First, ensure the custom table doesn't exist
         await using var setupConnection = new SqlConnection(ConnectionString);
         await setupConnection.OpenAsync(TestContext.Current.CancellationToken);
-        await setupConnection.ExecuteAsync("IF OBJECT_ID('dbo.TestOutbox_StandaloneEnsure', 'U') IS NOT NULL DROP TABLE dbo.TestOutbox_StandaloneEnsure");
+        await setupConnection.ExecuteAsync("IF OBJECT_ID('infra.TestOutbox_StandaloneEnsure', 'U') IS NOT NULL DROP TABLE infra.TestOutbox_StandaloneEnsure");
 
         string topic = "test-topic-ensure";
         string payload = "test payload ensure";
@@ -370,7 +370,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
             await customOutboxService.EnqueueAsync(topic, payload, CancellationToken.None);
 
             // Verify the table was created and message was inserted
-            var sql = "SELECT COUNT(*) FROM dbo.TestOutbox_StandaloneEnsure WHERE Topic = @Topic AND Payload = @Payload";
+            var sql = "SELECT COUNT(*) FROM infra.TestOutbox_StandaloneEnsure WHERE Topic = @Topic AND Payload = @Payload";
             await using var command = new SqlCommand(sql, setupConnection);
             command.Parameters.AddWithValue("@Topic", topic);
             command.Parameters.AddWithValue("@Payload", payload);
@@ -383,7 +383,7 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         finally
         {
             // Clean up - Drop the test table
-            await setupConnection.ExecuteAsync("IF OBJECT_ID('dbo.TestOutbox_StandaloneEnsure', 'U') IS NOT NULL DROP TABLE dbo.TestOutbox_StandaloneEnsure");
+            await setupConnection.ExecuteAsync("IF OBJECT_ID('infra.TestOutbox_StandaloneEnsure', 'U') IS NOT NULL DROP TABLE infra.TestOutbox_StandaloneEnsure");
         }
     }
 }

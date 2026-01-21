@@ -4,7 +4,7 @@ This guide explains how to configure and use custom database schemas with the Br
 
 ## Overview
 
-By default, all platform components use the `dbo` schema. However, you can configure each component to use a custom schema for better organization, security, or compliance requirements.
+By default, all platform components use the `infra` schema. However, you can configure each component to use a custom schema for better organization, security, or compliance requirements.
 
 ## Configuration
 
@@ -14,7 +14,7 @@ By default, all platform components use the `dbo` schema. However, you can confi
 services.AddSqlScheduler(new SqlSchedulerOptions
 {
     ConnectionString = "Server=localhost;Database=MyApp;Trusted_Connection=true;",
-    SchemaName = "scheduler",        // Use 'scheduler' schema instead of 'dbo'
+    SchemaName = "scheduler",        // Use 'scheduler' schema instead of 'infra'
     EnableSchemaDeployment = true,
     MaxPollingInterval = TimeSpan.FromSeconds(30),
     EnableBackgroundWorkers = true
@@ -297,7 +297,7 @@ GRANT EXECUTE ON SCHEMA::custom_schema TO [PlatformUser];
 
 ### Objects Created in Wrong Schema
 
-**Issue**: Objects are being created in `dbo` instead of the configured schema.
+**Issue**: Objects are being created in `infra` instead of the configured schema.
 
 **Solution**: Verify the configuration is being applied correctly:
 
@@ -313,7 +313,7 @@ Console.WriteLine($"Auto-deploy: {options.EnableSchemaDeployment}");
 
 ## Migration from Default Schema
 
-If you need to migrate existing data from the `dbo` schema to a custom schema:
+If you need to migrate existing data from the `infra` schema to a custom schema:
 
 ```sql
 -- 1. Create the new schema
@@ -321,23 +321,23 @@ CREATE SCHEMA scheduler;
 GO
 
 -- 2. Move tables to new schema
-ALTER SCHEMA scheduler TRANSFER dbo.Jobs;
-ALTER SCHEMA scheduler TRANSFER dbo.JobRuns;
-ALTER SCHEMA scheduler TRANSFER dbo.Timers;
-ALTER SCHEMA scheduler TRANSFER dbo.SchedulerState;
+ALTER SCHEMA scheduler TRANSFER infra.Jobs;
+ALTER SCHEMA scheduler TRANSFER infra.JobRuns;
+ALTER SCHEMA scheduler TRANSFER infra.Timers;
+ALTER SCHEMA scheduler TRANSFER infra.SchedulerState;
 GO
 
 -- 3. Recreate stored procedures in new schema
 -- (The platform will do this automatically on next deployment)
 
--- 4. Drop old procedures from dbo
-DROP PROCEDURE IF EXISTS dbo.Timers_Claim;
-DROP PROCEDURE IF EXISTS dbo.Timers_Ack;
+-- 4. Drop old procedures from infra
+DROP PROCEDURE IF EXISTS infra.Timers_Claim;
+DROP PROCEDURE IF EXISTS infra.Timers_Ack;
 -- ... etc
 
 -- 5. Move user-defined types
 -- Note: This requires recreating dependent objects
-DROP TYPE IF EXISTS dbo.GuidIdList;
+DROP TYPE IF EXISTS infra.GuidIdList;
 CREATE TYPE scheduler.GuidIdList AS TABLE (Id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY);
 GO
 ```

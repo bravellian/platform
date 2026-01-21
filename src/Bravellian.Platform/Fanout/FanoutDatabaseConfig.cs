@@ -30,9 +30,9 @@ public sealed class FanoutDatabaseConfig
     public required string ConnectionString { get; set; }
 
     /// <summary>
-    /// Gets or sets the schema name for the fanout tables. Defaults to "dbo".
+    /// Gets or sets the schema name for the fanout tables. Defaults to "infra".
     /// </summary>
-    public string SchemaName { get; set; } = "dbo";
+    public string SchemaName { get; set; } = "infra";
 
     /// <summary>
     /// Gets or sets the table name for the fanout policy. Defaults to "FanoutPolicy".

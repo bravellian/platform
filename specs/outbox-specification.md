@@ -382,7 +382,7 @@ public sealed record OutboxMessage
 public class SqlOutboxOptions
 {
     public string ConnectionString { get; set; }
-    public string SchemaName { get; set; } = "dbo";
+    public string SchemaName { get; set; } = "infra";
     public string TableName { get; set; } = "Outbox";
     public bool EnableSchemaDeployment { get; set; } = false;
 }
@@ -631,7 +631,7 @@ IServiceCollection AddOutboxHandler<THandler>(this IServiceCollection services) 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
 | `ConnectionString` | string | (required) | SQL Server connection string |
-| `SchemaName` | string | "dbo" | Database schema name |
+| `SchemaName` | string | "infra" | Database schema name |
 | `TableName` | string | "Outbox" | Outbox table name |
 | `EnableSchemaDeployment` | bool | false | Automatically create schema objects |
 | `PollingIntervalSeconds` | double | 0.5 | Interval between polling iterations |
@@ -717,7 +717,7 @@ The following constraints are enforced by the Outbox component (also documented 
 ### A.1 Outbox Table
 
 ```sql
-CREATE TABLE [dbo].[Outbox] (
+CREATE TABLE [infra].[Outbox] (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     Topic NVARCHAR(255) NOT NULL,
     Payload NVARCHAR(MAX) NOT NULL,
@@ -744,8 +744,8 @@ CREATE TABLE [dbo].[Outbox] (
     DueTimeUtc DATETIMEOFFSET NULL
 );
 
-CREATE INDEX IX_Outbox_WorkQueue ON [dbo].[Outbox](Status, CreatedAt) INCLUDE(Id, OwnerToken);
-CREATE INDEX IX_Outbox_DueTime ON [dbo].[Outbox](DueTimeUtc) WHERE DueTimeUtc IS NOT NULL;
+CREATE INDEX IX_Outbox_WorkQueue ON [infra].[Outbox](Status, CreatedAt) INCLUDE(Id, OwnerToken);
+CREATE INDEX IX_Outbox_DueTime ON [infra].[Outbox](DueTimeUtc) WHERE DueTimeUtc IS NOT NULL;
 ```
 
 ## Appendix B: Handler Implementation Example

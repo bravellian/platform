@@ -1,12 +1,18 @@
-IF TYPE_ID(N'dbo.GuidIdList') IS NULL
+IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'infra')
 BEGIN
-    CREATE TYPE dbo.GuidIdList AS TABLE (Id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY);
+    EXEC('CREATE SCHEMA [infra]');
 END
 GO
 
-IF OBJECT_ID(N'dbo.Outbox', N'U') IS NULL
+IF TYPE_ID(N'infra.GuidIdList') IS NULL
 BEGIN
-    CREATE TABLE dbo.Outbox (
+    CREATE TYPE infra.GuidIdList AS TABLE (Id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY);
+END
+GO
+
+IF OBJECT_ID(N'infra.Outbox', N'U') IS NULL
+BEGIN
+    CREATE TABLE infra.Outbox (
         -- Core Fields
         Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
         Payload NVARCHAR(MAX) NOT NULL,
@@ -41,17 +47,17 @@ IF NOT EXISTS (
     SELECT 1
     FROM sys.indexes
     WHERE name = 'IX_Outbox_WorkQueue'
-      AND object_id = OBJECT_ID(N'dbo.Outbox', N'U'))
+      AND object_id = OBJECT_ID(N'infra.Outbox', N'U'))
 BEGIN
-    CREATE INDEX IX_Outbox_WorkQueue ON dbo.Outbox(Status, CreatedAt)
+    CREATE INDEX IX_Outbox_WorkQueue ON infra.Outbox(Status, CreatedAt)
         INCLUDE(Id, LockedUntil, DueTimeUtc)
         WHERE Status = 0;
 END
 GO
 
-IF OBJECT_ID(N'dbo.OutboxState', N'U') IS NULL
+IF OBJECT_ID(N'infra.OutboxState', N'U') IS NULL
 BEGIN
-    CREATE TABLE dbo.OutboxState (
+    CREATE TABLE infra.OutboxState (
         Id INT NOT NULL CONSTRAINT PK_OutboxState PRIMARY KEY,
         CurrentFencingToken BIGINT NOT NULL DEFAULT(0),
         LastDispatchAt DATETIMEOFFSET(3) NULL

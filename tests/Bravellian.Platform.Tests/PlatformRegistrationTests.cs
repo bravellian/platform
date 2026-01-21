@@ -30,7 +30,7 @@ public class PlatformRegistrationTests
         // Act - Test that single database scenarios work with multi-database code
         services.AddPlatformMultiDatabaseWithList(new[]
         {
-            new PlatformDatabase { Name = "default", ConnectionString = "Server=localhost;Database=Test;", SchemaName = "dbo" },
+            new PlatformDatabase { Name = "default", ConnectionString = "Server=localhost;Database=Test;", SchemaName = "infra" },
         });
 
         // Assert
@@ -151,7 +151,7 @@ public class PlatformRegistrationTests
         // Arrange
         var databases = new[]
         {
-            new PlatformDatabase { Name = "db1", ConnectionString = "conn1", SchemaName = "dbo" },
+            new PlatformDatabase { Name = "db1", ConnectionString = "conn1", SchemaName = "infra" },
             new PlatformDatabase { Name = "db2", ConnectionString = "conn2", SchemaName = "custom" },
         };
 
@@ -198,7 +198,7 @@ public class PlatformRegistrationTests
         var options = new PlatformControlPlaneOptions
         {
             ConnectionString = "Server=localhost;Database=ControlPlane;",
-            SchemaName = "dbo",
+            SchemaName = "infra",
             EnableSchemaDeployment = false,
         };
 
@@ -218,7 +218,7 @@ public class PlatformRegistrationTests
         var options = new PlatformControlPlaneOptions
         {
             ConnectionString = "Server=localhost;Database=ControlPlane;",
-            SchemaName = "dbo",
+            SchemaName = "infra",
             EnableSchemaDeployment = false,
         };
 
@@ -238,7 +238,7 @@ public class PlatformRegistrationTests
         var options = new PlatformControlPlaneOptions
         {
             ConnectionString = "Server=localhost;Database=ControlPlane;",
-            SchemaName = "dbo",
+            SchemaName = "infra",
             EnableSchemaDeployment = false,
         };
 

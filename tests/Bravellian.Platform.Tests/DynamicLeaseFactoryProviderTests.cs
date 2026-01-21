@@ -45,14 +45,14 @@ public class DynamicLeaseFactoryProviderTests
             {
                 Identifier = "Customer1",
                 ConnectionString = "Server=localhost;Database=Customer1;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 EnableSchemaDeployment = false,
             },
             new LeaseDatabaseConfig
             {
                 Identifier = "Customer2",
                 ConnectionString = "Server=localhost;Database=Customer2;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 EnableSchemaDeployment = false,
             },
         });
@@ -219,14 +219,14 @@ public class DynamicLeaseFactoryProviderTests
             {
                 Identifier = "Customer1",
                 ConnectionString = "Server=localhost;Database=Customer1;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 EnableSchemaDeployment = false,
             },
             new LeaseDatabaseConfig
             {
                 Identifier = "Customer2",
                 ConnectionString = "Server=localhost;Database=Customer2;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 EnableSchemaDeployment = false,
             },
         });
@@ -267,7 +267,7 @@ public class DynamicLeaseFactoryProviderTests
             {
                 Identifier = "Customer1",
                 ConnectionString = "Server=localhost;Database=Customer1;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 EnableSchemaDeployment = false,
             },
         });
@@ -291,7 +291,7 @@ public class DynamicLeaseFactoryProviderTests
         {
             Identifier = "Customer1",
             ConnectionString = "Server=localhost;Database=Customer1_New;",
-            SchemaName = "dbo",
+            SchemaName = "infra",
             EnableSchemaDeployment = false,
         });
 

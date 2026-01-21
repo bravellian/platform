@@ -15,8 +15,10 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using Dapper;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Bravellian.Platform;
 /// <summary>
@@ -30,244 +32,124 @@ internal static class DatabaseSchemaManager
     /// Ensures that the required database schema exists for the outbox functionality.
     /// </summary>
     /// <param name="connectionString">The database connection string.</param>
-    /// <param name="schemaName">The schema name (default: "dbo").</param>
+    /// <param name="schemaName">The schema name (default: "infra").</param>
     /// <param name="tableName">The table name (default: "Outbox").</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public static async Task EnsureOutboxSchemaAsync(string connectionString, string schemaName = "dbo", string tableName = "Outbox")
+    public static async Task EnsureOutboxSchemaAsync(string connectionString, string schemaName = "infra", string tableName = "Outbox")
     {
-        using var connection = new SqlConnection(connectionString);
-        await connection.OpenAsync().ConfigureAwait(false);
-
-        // Ensure schema exists
-        await EnsureSchemaExistsAsync(connection, schemaName).ConfigureAwait(false);
-
-        // Ensure GuidIdList type exists
-        await EnsureGuidIdListTypeAsync(connection, schemaName).ConfigureAwait(false);
-
-        // Check if table exists
-        var tableExists = await TableExistsAsync(connection, schemaName, tableName).ConfigureAwait(false);
-        if (!tableExists)
-        {
-            var createScript = GetOutboxCreateScript(schemaName, tableName);
-            await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
-        }
-
-        // Check if OutboxState table exists for fencing token management
-        var stateTableExists = await TableExistsAsync(connection, schemaName, "OutboxState").ConfigureAwait(false);
-        if (!stateTableExists)
-        {
-            var createStateScript = GetOutboxStateCreateScript(schemaName);
-            await ExecuteScriptAsync(connection, createStateScript).ConfigureAwait(false);
-        }
-
-        // Ensure stored procedures exist
-        await EnsureOutboxStoredProceduresAsync(connection, schemaName, tableName).ConfigureAwait(false);
+        await SqlServerSchemaMigrations.ApplyOutboxAsync(
+            connectionString,
+            schemaName,
+            tableName,
+            NullLogger.Instance,
+            CancellationToken.None).ConfigureAwait(false);
     }
 
     /// <summary>
     /// Ensures that the required database schema exists for the outbox join functionality.
     /// </summary>
     /// <param name="connectionString">The database connection string.</param>
-    /// <param name="schemaName">The schema name (default: "dbo").</param>
+    /// <param name="schemaName">The schema name (default: "infra").</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public static async Task EnsureOutboxJoinSchemaAsync(string connectionString, string schemaName = "dbo")
+    public static async Task EnsureOutboxJoinSchemaAsync(string connectionString, string schemaName = "infra")
     {
-        using var connection = new SqlConnection(connectionString);
-        await connection.OpenAsync().ConfigureAwait(false);
-
-        // Ensure schema exists
-        await EnsureSchemaExistsAsync(connection, schemaName).ConfigureAwait(false);
-
-        // Check if OutboxJoin table exists
-        var joinTableExists = await TableExistsAsync(connection, schemaName, "OutboxJoin").ConfigureAwait(false);
-        if (!joinTableExists)
-        {
-            var createJoinScript = GetOutboxJoinCreateScript(schemaName);
-            await ExecuteScriptAsync(connection, createJoinScript).ConfigureAwait(false);
-        }
-
-        // Check if OutboxJoinMember table exists
-        var memberTableExists = await TableExistsAsync(connection, schemaName, "OutboxJoinMember").ConfigureAwait(false);
-        if (!memberTableExists)
-        {
-            var createMemberScript = GetOutboxJoinMemberCreateScript(schemaName);
-            await ExecuteScriptAsync(connection, createMemberScript).ConfigureAwait(false);
-        }
+        await SqlServerSchemaMigrations.ApplyOutboxJoinAsync(
+            connectionString,
+            schemaName,
+            "Outbox",
+            NullLogger.Instance,
+            CancellationToken.None).ConfigureAwait(false);
     }
 
     /// <summary>
     /// Ensures that the required database schema exists for the distributed lock functionality.
     /// </summary>
     /// <param name="connectionString">The database connection string.</param>
-    /// <param name="schemaName">The schema name (default: "dbo").</param>
+    /// <param name="schemaName">The schema name (default: "infra").</param>
     /// <param name="tableName">The table name (default: "DistributedLock").</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public static async Task EnsureDistributedLockSchemaAsync(string connectionString, string schemaName = "dbo", string tableName = "DistributedLock")
+    public static async Task EnsureDistributedLockSchemaAsync(string connectionString, string schemaName = "infra", string tableName = "DistributedLock")
     {
-        using var connection = new SqlConnection(connectionString);
-        await connection.OpenAsync().ConfigureAwait(false);
-
-        // Ensure schema exists
-        await EnsureSchemaExistsAsync(connection, schemaName).ConfigureAwait(false);
-
-        // Check if table exists
-        var tableExists = await TableExistsAsync(connection, schemaName, tableName).ConfigureAwait(false);
-        if (!tableExists)
-        {
-            var createScript = GetDistributedLockCreateScript(schemaName, tableName);
-            await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
-        }
-
-        // Ensure stored procedures exist
-        await EnsureDistributedLockStoredProceduresAsync(connection, schemaName).ConfigureAwait(false);
+        await SqlServerSchemaMigrations.ApplyDistributedLockAsync(
+            connectionString,
+            schemaName,
+            tableName,
+            NullLogger.Instance,
+            CancellationToken.None).ConfigureAwait(false);
     }
 
     /// <summary>
     /// Ensures that the required database schema exists for the lease functionality.
     /// </summary>
     /// <param name="connectionString">The database connection string.</param>
-    /// <param name="schemaName">The schema name (default: "dbo").</param>
+    /// <param name="schemaName">The schema name (default: "infra").</param>
     /// <param name="tableName">The table name (default: "Lease").</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public static async Task EnsureLeaseSchemaAsync(string connectionString, string schemaName = "dbo", string tableName = "Lease")
+    public static async Task EnsureLeaseSchemaAsync(string connectionString, string schemaName = "infra", string tableName = "Lease")
     {
-        using var connection = new SqlConnection(connectionString);
-        await connection.OpenAsync().ConfigureAwait(false);
-
-        // Ensure schema exists
-        await EnsureSchemaExistsAsync(connection, schemaName).ConfigureAwait(false);
-
-        // Check if table exists
-        var tableExists = await TableExistsAsync(connection, schemaName, tableName).ConfigureAwait(false);
-        if (!tableExists)
-        {
-            var createScript = GetLeaseCreateScript(schemaName, tableName);
-            await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
-        }
-
-        // Ensure stored procedures exist
-        await EnsureLeaseStoredProceduresAsync(connection, schemaName).ConfigureAwait(false);
+        await SqlServerSchemaMigrations.ApplyLeaseAsync(
+            connectionString,
+            schemaName,
+            tableName,
+            NullLogger.Instance,
+            CancellationToken.None).ConfigureAwait(false);
     }
 
     /// <summary>
     /// Ensures that the required database schema exists for the inbox functionality.
     /// </summary>
     /// <param name="connectionString">The database connection string.</param>
-    /// <param name="schemaName">The schema name (default: "dbo").</param>
+    /// <param name="schemaName">The schema name (default: "infra").</param>
     /// <param name="tableName">The table name (default: "Inbox").</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public static async Task EnsureInboxSchemaAsync(string connectionString, string schemaName = "dbo", string tableName = "Inbox")
+    public static async Task EnsureInboxSchemaAsync(string connectionString, string schemaName = "infra", string tableName = "Inbox")
     {
-        using var connection = new SqlConnection(connectionString);
-        await connection.OpenAsync().ConfigureAwait(false);
-
-        // Ensure schema exists
-        await EnsureSchemaExistsAsync(connection, schemaName).ConfigureAwait(false);
-
-        // Ensure StringIdList type exists
-        await EnsureStringIdListTypeAsync(connection, schemaName).ConfigureAwait(false);
-
-        // Check if table exists
-        var tableExists = await TableExistsAsync(connection, schemaName, tableName).ConfigureAwait(false);
-        if (!tableExists)
-        {
-            var createScript = GetInboxCreateScript(schemaName, tableName);
-            await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
-        }
-        else
-        {
-            // Migrate existing tables to add LastError column if it doesn't exist
-            await MigrateInboxLastErrorColumnAsync(connection, schemaName, tableName).ConfigureAwait(false);
-        }
-
-        // Ensure stored procedures exist
-        await EnsureInboxStoredProceduresAsync(connection, schemaName, tableName).ConfigureAwait(false);
+        await SqlServerSchemaMigrations.ApplyInboxAsync(
+            connectionString,
+            schemaName,
+            tableName,
+            NullLogger.Instance,
+            CancellationToken.None).ConfigureAwait(false);
     }
 
     /// <summary>
     /// Ensures that the required database schema exists for the scheduler functionality.
     /// </summary>
     /// <param name="connectionString">The database connection string.</param>
-    /// <param name="schemaName">The schema name (default: "dbo").</param>
+    /// <param name="schemaName">The schema name (default: "infra").</param>
     /// <param name="jobsTableName">The jobs table name (default: "Jobs").</param>
     /// <param name="jobRunsTableName">The job runs table name (default: "JobRuns").</param>
     /// <param name="timersTableName">The timers table name (default: "Timers").</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public static async Task EnsureSchedulerSchemaAsync(string connectionString, string schemaName = "dbo", string jobsTableName = "Jobs", string jobRunsTableName = "JobRuns", string timersTableName = "Timers")
+    public static async Task EnsureSchedulerSchemaAsync(string connectionString, string schemaName = "infra", string jobsTableName = "Jobs", string jobRunsTableName = "JobRuns", string timersTableName = "Timers")
     {
-        using var connection = new SqlConnection(connectionString);
-        await connection.OpenAsync().ConfigureAwait(false);
-
-        // Ensure schema exists
-        await EnsureSchemaExistsAsync(connection, schemaName).ConfigureAwait(false);
-
-        // Ensure GuidIdList type exists
-        await EnsureGuidIdListTypeAsync(connection, schemaName).ConfigureAwait(false);
-
-        // Create Jobs table first (referenced by JobRuns)
-        var jobsExists = await TableExistsAsync(connection, schemaName, jobsTableName).ConfigureAwait(false);
-        if (!jobsExists)
-        {
-            var createScript = GetJobsCreateScript(schemaName, jobsTableName);
-            await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
-        }
-
-        // Create Timers table
-        var timersExists = await TableExistsAsync(connection, schemaName, timersTableName).ConfigureAwait(false);
-        if (!timersExists)
-        {
-            var createScript = GetTimersCreateScript(schemaName, timersTableName);
-            await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
-        }
-
-        // Create JobRuns table (has FK to Jobs)
-        var jobRunsExists = await TableExistsAsync(connection, schemaName, jobRunsTableName).ConfigureAwait(false);
-        if (!jobRunsExists)
-        {
-            var createScript = GetJobRunsCreateScript(schemaName, jobRunsTableName, jobsTableName);
-            await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
-        }
-
-        // Check if SchedulerState table exists for fencing token management
-        var schedulerStateExists = await TableExistsAsync(connection, schemaName, "SchedulerState").ConfigureAwait(false);
-        if (!schedulerStateExists)
-        {
-            var createStateScript = GetSchedulerStateCreateScript(schemaName);
-            await ExecuteScriptAsync(connection, createStateScript).ConfigureAwait(false);
-        }
+        await SqlServerSchemaMigrations.ApplySchedulerAsync(
+            connectionString,
+            schemaName,
+            jobsTableName,
+            jobRunsTableName,
+            timersTableName,
+            NullLogger.Instance,
+            CancellationToken.None).ConfigureAwait(false);
     }
 
     /// <summary>
     /// Ensures that the required database schema exists for the fanout functionality.
     /// </summary>
     /// <param name="connectionString">The database connection string.</param>
-    /// <param name="schemaName">The schema name (default: "dbo").</param>
+    /// <param name="schemaName">The schema name (default: "infra").</param>
     /// <param name="policyTableName">The policy table name (default: "FanoutPolicy").</param>
     /// <param name="cursorTableName">The cursor table name (default: "FanoutCursor").</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public static async Task EnsureFanoutSchemaAsync(string connectionString, string schemaName = "dbo", string policyTableName = "FanoutPolicy", string cursorTableName = "FanoutCursor")
+    public static async Task EnsureFanoutSchemaAsync(string connectionString, string schemaName = "infra", string policyTableName = "FanoutPolicy", string cursorTableName = "FanoutCursor")
     {
-        using var connection = new SqlConnection(connectionString);
-        await connection.OpenAsync().ConfigureAwait(false);
-
-        // Ensure schema exists
-        await EnsureSchemaExistsAsync(connection, schemaName).ConfigureAwait(false);
-
-        // Create FanoutPolicy table first (no dependencies)
-        var policyExists = await TableExistsAsync(connection, schemaName, policyTableName).ConfigureAwait(false);
-        if (!policyExists)
-        {
-            var createScript = GetFanoutPolicyCreateScript(schemaName, policyTableName);
-            await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
-        }
-
-        // Create FanoutCursor table
-        var cursorExists = await TableExistsAsync(connection, schemaName, cursorTableName).ConfigureAwait(false);
-        if (!cursorExists)
-        {
-            var createScript = GetFanoutCursorCreateScript(schemaName, cursorTableName);
-            await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
-        }
+        await SqlServerSchemaMigrations.ApplyFanoutAsync(
+            connectionString,
+            schemaName,
+            policyTableName,
+            cursorTableName,
+            NullLogger.Instance,
+            CancellationToken.None).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -443,42 +325,34 @@ internal static class DatabaseSchemaManager
 
     private static IEnumerable<string> GetOutboxSchemaScripts()
     {
-        yield return GetOutboxCreateScript("dbo", "Outbox");
-        yield return GetOutboxStateCreateScript("dbo");
-        yield return GetGuidIdListTypeScript("dbo");
-        yield return GetOutboxCleanupStoredProcedure("dbo", "Outbox");
-
-        foreach (var procedure in GetOutboxWorkQueueProcedures("dbo", "Outbox"))
+        foreach (var script in SqlServerSchemaMigrations.GetOutboxScriptsForSnapshot())
         {
-            yield return procedure;
+            yield return script;
         }
     }
 
     private static IEnumerable<string> GetInboxSchemaScripts()
     {
-        yield return GetInboxCreateScript("dbo", "Inbox");
-        yield return GetStringIdListTypeScript("dbo");
-        yield return GetInboxCleanupStoredProcedure("dbo", "Inbox");
-
-        foreach (var procedure in GetInboxWorkQueueProcedures("dbo", "Inbox"))
+        foreach (var script in SqlServerSchemaMigrations.GetInboxScriptsForSnapshot())
         {
-            yield return procedure;
+            yield return script;
         }
     }
 
     private static IEnumerable<string> GetSchedulerSchemaScripts()
     {
-        yield return GetJobsCreateScript("dbo", "Jobs");
-        yield return GetJobRunsCreateScript("dbo", "JobRuns", "Jobs");
-        yield return GetTimersCreateScript("dbo", "Timers");
-        yield return GetSchedulerStateCreateScript("dbo");
-        yield return GetGuidIdListTypeScript("dbo");
+        foreach (var script in SqlServerSchemaMigrations.GetSchedulerScriptsForSnapshot())
+        {
+            yield return script;
+        }
     }
 
     private static IEnumerable<string> GetFanoutSchemaScripts()
     {
-        yield return GetFanoutPolicyCreateScript("dbo", "FanoutPolicy");
-        yield return GetFanoutCursorCreateScript("dbo", "FanoutCursor");
+        foreach (var script in SqlServerSchemaMigrations.GetFanoutScriptsForSnapshot())
+        {
+            yield return script;
+        }
     }
 
     /// <summary>
@@ -1242,9 +1116,9 @@ internal static class DatabaseSchemaManager
     /// This method is now a wrapper around EnsureOutboxSchemaAsync for backward compatibility.
     /// </summary>
     /// <param name="connectionString">The database connection string.</param>
-    /// <param name="schemaName">The schema name (default: "dbo").</param>
+    /// <param name="schemaName">The schema name (default: "infra").</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public static async Task EnsureWorkQueueSchemaAsync(string connectionString, string schemaName = "dbo")
+    public static async Task EnsureWorkQueueSchemaAsync(string connectionString, string schemaName = "infra")
     {
         // The work queue pattern is now built into the standard Outbox schema
         await EnsureOutboxSchemaAsync(connectionString, schemaName, "Outbox").ConfigureAwait(false);
@@ -1550,9 +1424,9 @@ internal static class DatabaseSchemaManager
     /// This method is now a wrapper around EnsureInboxSchemaAsync for backward compatibility.
     /// </summary>
     /// <param name="connectionString">The database connection string.</param>
-    /// <param name="schemaName">The schema name (default: "dbo").</param>
+    /// <param name="schemaName">The schema name (default: "infra").</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public static async Task EnsureInboxWorkQueueSchemaAsync(string connectionString, string schemaName = "dbo")
+    public static async Task EnsureInboxWorkQueueSchemaAsync(string connectionString, string schemaName = "infra")
     {
         // The work queue pattern is now built into the standard Inbox schema
         await EnsureInboxSchemaAsync(connectionString, schemaName, "Inbox").ConfigureAwait(false);
@@ -1628,34 +1502,15 @@ internal static class DatabaseSchemaManager
     /// Ensures that the required database schema exists for the semaphore functionality.
     /// </summary>
     /// <param name="connectionString">The database connection string.</param>
-    /// <param name="schemaName">The schema name (default: "dbo").</param>
+    /// <param name="schemaName">The schema name (default: "infra").</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public static async Task EnsureSemaphoreSchemaAsync(string connectionString, string schemaName = "dbo")
+    public static async Task EnsureSemaphoreSchemaAsync(string connectionString, string schemaName = "infra")
     {
-        using var connection = new SqlConnection(connectionString);
-        await connection.OpenAsync().ConfigureAwait(false);
-
-        // Ensure schema exists
-        await EnsureSchemaExistsAsync(connection, schemaName).ConfigureAwait(false);
-
-        // Check if Semaphore table exists
-        var semaphoreExists = await TableExistsAsync(connection, schemaName, "Semaphore").ConfigureAwait(false);
-        if (!semaphoreExists)
-        {
-            var createScript = GetSemaphoreCreateScript(schemaName);
-            await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
-        }
-
-        // Check if SemaphoreLease table exists
-        var leaseExists = await TableExistsAsync(connection, schemaName, "SemaphoreLease").ConfigureAwait(false);
-        if (!leaseExists)
-        {
-            var createScript = GetSemaphoreLeaseCreateScript(schemaName);
-            await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
-        }
-
-        // Ensure stored procedures exist
-        await EnsureSemaphoreStoredProceduresAsync(connection, schemaName).ConfigureAwait(false);
+        await SqlServerSchemaMigrations.ApplySemaphoreAsync(
+            connectionString,
+            schemaName,
+            NullLogger.Instance,
+            CancellationToken.None).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -1972,38 +1827,11 @@ internal static class DatabaseSchemaManager
     /// <returns>A task representing the asynchronous operation.</returns>
     public static async Task EnsureMetricsSchemaAsync(string connectionString, string schemaName = "infra")
     {
-        using var connection = new SqlConnection(connectionString);
-        await connection.OpenAsync().ConfigureAwait(false);
-
-        // Ensure schema exists
-        await EnsureSchemaExistsAsync(connection, schemaName).ConfigureAwait(false);
-
-        // Create MetricDef table
-        var metricDefExists = await TableExistsAsync(connection, schemaName, "MetricDef").ConfigureAwait(false);
-        if (!metricDefExists)
-        {
-            var createScript = GetMetricDefCreateScript(schemaName);
-            await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
-        }
-
-        // Create MetricSeries table
-        var metricSeriesExists = await TableExistsAsync(connection, schemaName, "MetricSeries").ConfigureAwait(false);
-        if (!metricSeriesExists)
-        {
-            var createScript = GetMetricSeriesCreateScript(schemaName);
-            await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
-        }
-
-        // Create MetricPointMinute table
-        var metricPointExists = await TableExistsAsync(connection, schemaName, "MetricPointMinute").ConfigureAwait(false);
-        if (!metricPointExists)
-        {
-            var createScript = GetMetricPointMinuteCreateScript(schemaName);
-            await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
-        }
-
-        // Ensure stored procedures exist
-        await EnsureMetricsStoredProceduresAsync(connection, schemaName).ConfigureAwait(false);
+        await SqlServerSchemaMigrations.ApplyMetricsAsync(
+            connectionString,
+            schemaName,
+            NullLogger.Instance,
+            CancellationToken.None).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -2014,46 +1842,11 @@ internal static class DatabaseSchemaManager
     /// <returns>A task representing the asynchronous operation.</returns>
     public static async Task EnsureCentralMetricsSchemaAsync(string connectionString, string schemaName = "infra")
     {
-        using var connection = new SqlConnection(connectionString);
-        await connection.OpenAsync().ConfigureAwait(false);
-
-        // Ensure schema exists
-        await EnsureSchemaExistsAsync(connection, schemaName).ConfigureAwait(false);
-
-        // Create MetricDef table
-        var metricDefExists = await TableExistsAsync(connection, schemaName, "MetricDef").ConfigureAwait(false);
-        if (!metricDefExists)
-        {
-            var createScript = GetMetricDefCreateScript(schemaName);
-            await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
-        }
-
-        // Create central MetricSeries table (with DatabaseId for cross-database aggregation)
-        var metricSeriesExists = await TableExistsAsync(connection, schemaName, "MetricSeries").ConfigureAwait(false);
-        if (!metricSeriesExists)
-        {
-            var createScript = GetCentralMetricSeriesCreateScript(schemaName);
-            await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
-        }
-
-        // Create MetricPointHourly table
-        var metricPointExists = await TableExistsAsync(connection, schemaName, "MetricPointHourly").ConfigureAwait(false);
-        if (!metricPointExists)
-        {
-            var createScript = GetMetricPointHourlyCreateScript(schemaName);
-            await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
-        }
-
-        // Create ExporterHeartbeat table
-        var heartbeatExists = await TableExistsAsync(connection, schemaName, "ExporterHeartbeat").ConfigureAwait(false);
-        if (!heartbeatExists)
-        {
-            var createScript = GetExporterHeartbeatCreateScript(schemaName);
-            await ExecuteScriptAsync(connection, createScript).ConfigureAwait(false);
-        }
-
-        // Ensure stored procedures exist
-        await EnsureCentralMetricsStoredProceduresAsync(connection, schemaName).ConfigureAwait(false);
+        await SqlServerSchemaMigrations.ApplyCentralMetricsAsync(
+            connectionString,
+            schemaName,
+            NullLogger.Instance,
+            CancellationToken.None).ConfigureAwait(false);
     }
 
     private static async Task EnsureMetricsStoredProceduresAsync(SqlConnection connection, string schemaName)

@@ -31,9 +31,9 @@ public class LeaseTests : SqlServerTestBase
         await base.InitializeAsync().ConfigureAwait(false);
 
         // Ensure the lease schema exists
-        await DatabaseSchemaManager.EnsureLeaseSchemaAsync(ConnectionString, "dbo").ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureLeaseSchemaAsync(ConnectionString, "infra").ConfigureAwait(false);
 
-        leaseApi = new LeaseApi(ConnectionString, "dbo");
+        leaseApi = new LeaseApi(ConnectionString, "infra");
     }
 
     [Fact]

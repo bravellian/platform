@@ -421,7 +421,7 @@ Configuration options for SQL Server inbox.
 public class SqlInboxOptions
 {
     public string ConnectionString { get; set; } = string.Empty;
-    public string SchemaName { get; set; } = "dbo";
+    public string SchemaName { get; set; } = "infra";
     public string TableName { get; set; } = "Inbox";
     public bool EnableSchemaDeployment { get; set; } = false;
 }
@@ -429,7 +429,7 @@ public class SqlInboxOptions
 
 **Property Descriptions:**
 - `ConnectionString` - SQL Server connection string (required)
-- `SchemaName` - Database schema name (default: "dbo")
+- `SchemaName` - Database schema name (default: "infra")
 - `TableName` - Inbox table name (default: "Inbox")
 - `EnableSchemaDeployment` - Automatically create table (default: false)
 
@@ -439,7 +439,7 @@ public class SqlInboxOptions
 builder.Services.AddSqlInbox(new SqlInboxOptions
 {
     ConnectionString = "Server=localhost;Database=MyApp;Trusted_Connection=true;",
-    SchemaName = "dbo",
+    SchemaName = "infra",
     TableName = "Inbox",
     EnableSchemaDeployment = true
 });
@@ -514,7 +514,7 @@ builder.Services.AddMultiSqlInbox(tenantDatabases);
 ### Inbox Table
 
 ```sql
-CREATE TABLE dbo.Inbox (
+CREATE TABLE infra.Inbox (
     MessageId VARCHAR(64) NOT NULL PRIMARY KEY,
     Source VARCHAR(64) NOT NULL,
     Hash BINARY(32) NULL,                    -- Optional content verification
@@ -525,7 +525,7 @@ CREATE TABLE dbo.Inbox (
     Status VARCHAR(16) NOT NULL DEFAULT 'Seen'  -- Seen, Processing, Done, Dead
 );
 
-CREATE INDEX IX_Inbox_Processing ON dbo.Inbox(Status, LastSeenUtc)
+CREATE INDEX IX_Inbox_Processing ON infra.Inbox(Status, LastSeenUtc)
     WHERE Status IN ('Seen', 'Processing');
 ```
 
@@ -534,7 +534,7 @@ CREATE INDEX IX_Inbox_Processing ON dbo.Inbox(Status, LastSeenUtc)
 The `AlreadyProcessedAsync` method uses SQL MERGE for atomic deduplication:
 
 ```sql
-MERGE dbo.Inbox AS target
+MERGE infra.Inbox AS target
 USING (VALUES (@MessageId, @Source, @Hash, @Now)) AS source(MessageId, Source, Hash, LastSeenUtc)
 ON target.MessageId = source.MessageId
 
@@ -719,7 +719,7 @@ public class InboxCleanupService : BackgroundService
             await connection.OpenAsync(stoppingToken);
             
             var command = new SqlCommand(@"
-                DELETE FROM dbo.Inbox 
+                DELETE FROM infra.Inbox 
                 WHERE Status = 'Done' 
                   AND ProcessedUtc < DATEADD(day, -30, GETUTCDATE())",
                 connection);

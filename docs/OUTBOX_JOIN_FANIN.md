@@ -172,7 +172,7 @@ The join functionality uses two tables:
 ### OutboxJoin
 
 ```sql
-CREATE TABLE [dbo].[OutboxJoin] (
+CREATE TABLE [infra].[OutboxJoin] (
     JoinId UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     PayeWaiveTenantId BIGINT NOT NULL,
     ExpectedSteps INT NOT NULL,
@@ -188,13 +188,13 @@ CREATE TABLE [dbo].[OutboxJoin] (
 ### OutboxJoinMember
 
 ```sql
-CREATE TABLE [dbo].[OutboxJoinMember] (
+CREATE TABLE [infra].[OutboxJoinMember] (
     JoinId UNIQUEIDENTIFIER NOT NULL,
     OutboxMessageId UNIQUEIDENTIFIER NOT NULL,
     CreatedUtc DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
     CONSTRAINT PK_OutboxJoinMember PRIMARY KEY (JoinId, OutboxMessageId),
     CONSTRAINT FK_OutboxJoinMember_Join FOREIGN KEY (JoinId) 
-        REFERENCES [dbo].[OutboxJoin](JoinId) ON DELETE CASCADE
+        REFERENCES [infra].[OutboxJoin](JoinId) ON DELETE CASCADE
 );
 ```
 

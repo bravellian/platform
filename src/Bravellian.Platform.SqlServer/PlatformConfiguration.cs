@@ -35,7 +35,7 @@ internal sealed class PlatformConfiguration
     public string? ControlPlaneConnectionString { get; init; }
 
     /// <summary>
-    /// Gets the control plane schema name if configured (default: "dbo").
+    /// Gets the control plane schema name if configured (default: "infra").
     /// </summary>
     public string? ControlPlaneSchemaName { get; init; }
 

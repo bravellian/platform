@@ -24,7 +24,7 @@ namespace Bravellian.Platform.Tests;
 [Trait("RequiresDocker", "true")]
 public class InboxCleanupTests : SqlServerTestBase
 {
-    private readonly SqlInboxOptions defaultOptions = new() { ConnectionString = string.Empty, SchemaName = "dbo", TableName = "Inbox" };
+    private readonly SqlInboxOptions defaultOptions = new() { ConnectionString = string.Empty, SchemaName = "infra", TableName = "Inbox" };
 
     public InboxCleanupTests(ITestOutputHelper testOutputHelper, SqlServerCollectionFixture fixture)
         : base(testOutputHelper, fixture)

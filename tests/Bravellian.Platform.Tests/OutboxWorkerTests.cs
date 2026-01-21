@@ -49,7 +49,7 @@ public class OutboxWorkerTests : SqlServerTestBase
         var options = Options.Create(new SqlOutboxOptions
         {
             ConnectionString = ConnectionString,
-            SchemaName = "dbo",
+            SchemaName = "infra",
             TableName = "Outbox",
         });
         outboxService = new SqlOutboxService(options, new TestLogger<SqlOutboxService>(TestOutputHelper));
@@ -324,7 +324,7 @@ public class OutboxWorkerTests : SqlServerTestBase
 
                 await connection.ExecuteAsync(
                     @"
-                INSERT INTO dbo.Outbox (Id, Topic, Payload, Status, CreatedAt)
+                INSERT INTO infra.Outbox (Id, Topic, Payload, Status, CreatedAt)
                 VALUES (@Id, @Topic, @Payload, 0, SYSUTCDATETIME())",
                     new { Id = id, Topic = "test", Payload = $"payload{i}" }).ConfigureAwait(false);
             }
@@ -343,7 +343,7 @@ public class OutboxWorkerTests : SqlServerTestBase
             foreach (var id in ids)
             {
                 var status = await connection.ExecuteScalarAsync<int>(
-                    "SELECT Status FROM dbo.Outbox WHERE Id = @Id", new { Id = id.Value }).ConfigureAwait(false);
+                    "SELECT Status FROM infra.Outbox WHERE Id = @Id", new { Id = id.Value }).ConfigureAwait(false);
                 status.ShouldBe(expectedStatus);
             }
         }
@@ -353,7 +353,7 @@ public class OutboxWorkerTests : SqlServerTestBase
     {
         await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
-        var ownerToken = await connection.ExecuteScalarAsync<Guid?>("SELECT OwnerToken FROM dbo.Outbox WHERE Id = @Id", new { Id = id.Value }).ConfigureAwait(false);
+        var ownerToken = await connection.ExecuteScalarAsync<Guid?>("SELECT OwnerToken FROM infra.Outbox WHERE Id = @Id", new { Id = id.Value }).ConfigureAwait(false);
         ownerToken.ShouldBe(expectedOwner);
     }
 

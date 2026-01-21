@@ -14,10 +14,10 @@ All work-queue-aware tables share the same columns:
 **Indexes** prioritize claim order and avoid contention:
 
 ```sql
-CREATE INDEX IX_Outbox_WorkQueue ON dbo.Outbox(Status, CreatedAt) INCLUDE (Id, OwnerToken);
-CREATE INDEX IX_Inbox_WorkQueue ON dbo.Inbox(Status, DeliveredAt) INCLUDE (Id, OwnerToken);
-CREATE INDEX IX_Timers_WorkQueue ON dbo.Timers(StatusCode, DueTime) INCLUDE (Id, OwnerToken);
-CREATE INDEX IX_JobRuns_WorkQueue ON dbo.JobRuns(StatusCode, ScheduledTime) INCLUDE (Id, OwnerToken);
+CREATE INDEX IX_Outbox_WorkQueue ON infra.Outbox(Status, CreatedAt) INCLUDE (Id, OwnerToken);
+CREATE INDEX IX_Inbox_WorkQueue ON infra.Inbox(Status, DeliveredAt) INCLUDE (Id, OwnerToken);
+CREATE INDEX IX_Timers_WorkQueue ON infra.Timers(StatusCode, DueTime) INCLUDE (Id, OwnerToken);
+CREATE INDEX IX_JobRuns_WorkQueue ON infra.JobRuns(StatusCode, ScheduledTime) INCLUDE (Id, OwnerToken);
 ```
 
 ## Stored Procedures

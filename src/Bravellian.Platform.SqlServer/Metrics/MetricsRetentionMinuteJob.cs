@@ -55,7 +55,7 @@ internal sealed class MetricsRetentionMinuteJob
             try
             {
                 var (server, db) = ParseConnectionInfo(database.ConnectionString);
-                var deleted = await DeleteOldMinuteDataAsync(database.ConnectionString, cutoffDate, cancellationToken).ConfigureAwait(false);
+                var deleted = await DeleteOldMinuteDataAsync(database.ConnectionString, _options.SchemaName, cutoffDate, cancellationToken).ConfigureAwait(false);
                 totalDeleted += deleted;
 
                 _logger.LogInformation("Deleted {Count} minute metric rows from database {Database} ({Server}/{Db})", deleted, database.Name, server, db);
@@ -74,13 +74,13 @@ internal sealed class MetricsRetentionMinuteJob
         _logger.LogInformation("Metrics minute retention job completed. Total deleted: {TotalDeleted}", totalDeleted);
     }
 
-    private static async Task<int> DeleteOldMinuteDataAsync(string connectionString, DateTime cutoffDate, CancellationToken cancellationToken)
+    private static async Task<int> DeleteOldMinuteDataAsync(string connectionString, string schemaName, DateTime cutoffDate, CancellationToken cancellationToken)
     {
         using var connection = new SqlConnection(connectionString);
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-        var sql = """
-            DELETE FROM [infra].[MetricPointMinute]
+        var sql = $"""
+            DELETE FROM [{schemaName}].[MetricPointMinute]
             WHERE BucketStartUtc < @CutoffDate;
             SELECT @@ROWCOUNT;
             """;

@@ -47,15 +47,16 @@
 
 	<ItemGroup>
 		<PackageReference Include="Bravellian.Generators" Version="2025.12.15.1154" PrivateAssets="all" />
-		<PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.1" />
-		<PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions" Version="10.0.1" />
-		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.1" />
-		<PackageReference Include="Microsoft.Extensions.Options" Version="10.0.1" />
+		<PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.2" />
+		<PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions" Version="10.0.2" />
+		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.2" />
+		<PackageReference Include="Microsoft.Extensions.Options" Version="10.0.2" />
 	</ItemGroup>
 
 	<ItemGroup>
 	  <PackageReference Update="DotNet.ReproducibleBuilds.Isolated" Version="1.2.39" />
-	  <PackageReference Update="Meziantou.Analyzer" Version="2.0.264" />
+	  <PackageReference Update="Meziantou.Analyzer" Version="2.0.284" />
+	  <PackageReference Update="Microsoft.SourceLink.GitHub" Version="10.0.102" />
 	  <PackageReference Update="Roslynator.Analyzers" Version="4.15.0" />
 	  <PackageReference Update="Roslynator.CodeAnalysis.Analyzers" Version="4.15.0" />
 	  <PackageReference Update="Roslynator.Formatting.Analyzers" Version="4.15.0" />

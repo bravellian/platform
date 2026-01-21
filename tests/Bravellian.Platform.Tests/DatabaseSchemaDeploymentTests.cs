@@ -131,7 +131,7 @@ namespace Bravellian.Platform.Tests
                 {
                     Name = "db1",
                     ConnectionString = "Server=localhost;Database=Db1;",
-                    SchemaName = "dbo",
+                    SchemaName = "infra",
                 },
             };
 
@@ -159,14 +159,14 @@ namespace Bravellian.Platform.Tests
                 {
                     Name = "db1",
                     ConnectionString = "Server=localhost;Database=Db1;",
-                    SchemaName = "dbo",
+                    SchemaName = "infra",
                 },
             };
 
             var controlPlaneOptions = new PlatformControlPlaneOptions
             {
                 ConnectionString = "Server=localhost;Database=ControlPlane;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 EnableSchemaDeployment = true,
             };
 
@@ -194,7 +194,7 @@ namespace Bravellian.Platform.Tests
                 {
                     Name = "db1",
                     ConnectionString = "Server=localhost;Database=Db1;",
-                    SchemaName = "dbo",
+                    SchemaName = "infra",
                 },
             };
 

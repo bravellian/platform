@@ -47,14 +47,14 @@ public class InboxRouterIntegrationTests
             new SqlInboxOptions
             {
                 ConnectionString = "Server=localhost;Database=Tenant1;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 TableName = "Inbox",
                 EnableSchemaDeployment = false,
             },
             new SqlInboxOptions
             {
                 ConnectionString = "Server=localhost;Database=Tenant2;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 TableName = "Inbox",
                 EnableSchemaDeployment = false,
             },
@@ -202,14 +202,14 @@ public class InboxRouterIntegrationTests
             new SqlInboxOptions
             {
                 ConnectionString = "Server=localhost;Database=Tenant1;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 TableName = "Inbox",
                 EnableSchemaDeployment = false,
             },
             new SqlInboxOptions
             {
                 ConnectionString = "Server=localhost;Database=Tenant2;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 TableName = "Inbox",
                 EnableSchemaDeployment = false,
             },

@@ -19,7 +19,7 @@ using Microsoft.Extensions.Options;
 
 namespace Bravellian.Platform.Tests;
 /// <summary>
-/// Integration tests to verify that custom schemas (non-dbo) work correctly across all platform components.
+/// Integration tests to verify that custom schemas (non-infra) work correctly across all platform components.
 /// These tests ensure that schema configuration is respected during deployment and at runtime.
 /// </summary>
 [Collection(SqlServerCollection.Name)]

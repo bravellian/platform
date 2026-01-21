@@ -25,7 +25,7 @@ namespace Bravellian.Platform.Tests;
 public class SqlSchedulerClientTests : SqlServerTestBase
 {
     private SqlSchedulerClient? schedulerClient;
-    private readonly SqlSchedulerOptions defaultOptions = new() { ConnectionString = string.Empty, SchemaName = "dbo", JobsTableName = "Jobs", JobRunsTableName = "JobRuns", TimersTableName = "Timers" };
+    private readonly SqlSchedulerOptions defaultOptions = new() { ConnectionString = string.Empty, SchemaName = "infra", JobsTableName = "Jobs", JobRunsTableName = "JobRuns", TimersTableName = "Timers" };
 
     public SqlSchedulerClientTests(ITestOutputHelper testOutputHelper, SqlServerCollectionFixture fixture)
         : base(testOutputHelper, fixture)
@@ -69,7 +69,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         // Verify the timer was inserted
         await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
-        var sql = "SELECT COUNT(*) FROM dbo.Timers WHERE Id = @Id AND Topic = @Topic";
+        var sql = "SELECT COUNT(*) FROM infra.Timers WHERE Id = @Id AND Topic = @Topic";
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.AddWithValue("@Id", timerGuid);
         command.Parameters.AddWithValue("@Topic", topic);
@@ -141,7 +141,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
         var sql = @"SELECT Status, ClaimedBy, ClaimedAt, RetryCount, CreatedAt 
-                   FROM dbo.Timers 
+                   FROM infra.Timers 
                    WHERE Id = @Id";
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.AddWithValue("@Id", Guid.Parse(timerId));
@@ -176,7 +176,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         // Verify the timer status was updated
         await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
-        var sql = "SELECT Status FROM dbo.Timers WHERE Id = @Id";
+        var sql = "SELECT Status FROM infra.Timers WHERE Id = @Id";
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.AddWithValue("@Id", Guid.Parse(timerId));
 
@@ -213,7 +213,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         // Verify the job was inserted
         await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
-        var sql = @"SELECT COUNT(*) FROM dbo.Jobs 
+        var sql = @"SELECT COUNT(*) FROM infra.Jobs 
                    WHERE JobName = @JobName AND Topic = @Topic AND CronSchedule = @CronSchedule";
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.AddWithValue("@JobName", jobName);
@@ -238,7 +238,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         // Verify the job was inserted with null payload
         await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
-        var sql = @"SELECT Payload FROM dbo.Jobs WHERE JobName = @JobName";
+        var sql = @"SELECT Payload FROM infra.Jobs WHERE JobName = @JobName";
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.AddWithValue("@JobName", jobName);
 
@@ -264,7 +264,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         // Verify the job was updated, not duplicated
         await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
-        var countSql = "SELECT COUNT(*) FROM dbo.Jobs WHERE JobName = @JobName";
+        var countSql = "SELECT COUNT(*) FROM infra.Jobs WHERE JobName = @JobName";
         await using var countCommand = new SqlCommand(countSql, connection);
         countCommand.Parameters.AddWithValue("@JobName", jobName);
 
@@ -272,7 +272,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         count.ShouldBe(1);
 
         // Verify the topic was updated
-        var topicSql = "SELECT Topic FROM dbo.Jobs WHERE JobName = @JobName";
+        var topicSql = "SELECT Topic FROM infra.Jobs WHERE JobName = @JobName";
         await using var topicCommand = new SqlCommand(topicSql, connection);
         topicCommand.Parameters.AddWithValue("@JobName", jobName);
 
@@ -296,7 +296,7 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         // Verify the job was deleted
         await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
-        var sql = "SELECT COUNT(*) FROM dbo.Jobs WHERE JobName = @JobName";
+        var sql = "SELECT COUNT(*) FROM infra.Jobs WHERE JobName = @JobName";
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.AddWithValue("@JobName", jobName);
 
@@ -320,8 +320,8 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         // Verify a job run was created
         await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
-        var sql = @"SELECT COUNT(*) FROM dbo.JobRuns jr
-                   INNER JOIN dbo.Jobs j ON jr.JobId = j.Id 
+        var sql = @"SELECT COUNT(*) FROM infra.JobRuns jr
+                   INNER JOIN infra.Jobs j ON jr.JobId = j.Id 
                    WHERE j.JobName = @JobName";
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.AddWithValue("@JobName", jobName);

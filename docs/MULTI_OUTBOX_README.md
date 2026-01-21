@@ -24,9 +24,9 @@ This implementation adds support for processing outbox messages across multiple 
 ```csharp
 var outboxOptions = new[]
 {
-    new SqlOutboxOptions { ConnectionString = "Server=...;Database=Customer1;...", SchemaName = "dbo", TableName = "Outbox" },
-    new SqlOutboxOptions { ConnectionString = "Server=...;Database=Customer2;...", SchemaName = "dbo", TableName = "Outbox" },
-    new SqlOutboxOptions { ConnectionString = "Server=...;Database=Customer3;...", SchemaName = "dbo", TableName = "Outbox" },
+    new SqlOutboxOptions { ConnectionString = "Server=...;Database=Customer1;...", SchemaName = "infra", TableName = "Outbox" },
+    new SqlOutboxOptions { ConnectionString = "Server=...;Database=Customer2;...", SchemaName = "infra", TableName = "Outbox" },
+    new SqlOutboxOptions { ConnectionString = "Server=...;Database=Customer3;...", SchemaName = "infra", TableName = "Outbox" },
 };
 
 services.AddMultiSqlOutbox(
@@ -61,7 +61,7 @@ All existing single-outbox functionality remains unchanged and fully supported:
 services.AddSqlOutbox(new SqlOutboxOptions
 {
     ConnectionString = "Server=localhost;Database=MyDb;...",
-    SchemaName = "dbo",
+    SchemaName = "infra",
     TableName = "Outbox",
 });
 ```

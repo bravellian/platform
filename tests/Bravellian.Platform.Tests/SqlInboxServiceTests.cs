@@ -48,7 +48,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var count = await connection.QuerySingleAsync<int>(
-            "SELECT COUNT(*) FROM dbo.Inbox WHERE MessageId = @MessageId",
+            "SELECT COUNT(*) FROM infra.Inbox WHERE MessageId = @MessageId",
             new { MessageId = messageId });
 
         Assert.Equal(1, count);
@@ -92,7 +92,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var result = await connection.QuerySingleAsync<(DateTime? ProcessedUtc, string Status)>(
-            "SELECT ProcessedUtc, Status FROM dbo.Inbox WHERE MessageId = @MessageId",
+            "SELECT ProcessedUtc, Status FROM infra.Inbox WHERE MessageId = @MessageId",
             new { MessageId = messageId });
 
         Assert.NotNull(result.ProcessedUtc);
@@ -118,7 +118,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var status = await connection.QuerySingleAsync<string>(
-            "SELECT Status FROM dbo.Inbox WHERE MessageId = @MessageId",
+            "SELECT Status FROM infra.Inbox WHERE MessageId = @MessageId",
             new { MessageId = messageId });
 
         Assert.Equal("Processing", status);
@@ -143,7 +143,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var status = await connection.QuerySingleAsync<string>(
-            "SELECT Status FROM dbo.Inbox WHERE MessageId = @MessageId",
+            "SELECT Status FROM infra.Inbox WHERE MessageId = @MessageId",
             new { MessageId = messageId });
 
         Assert.Equal("Dead", status);
@@ -174,14 +174,14 @@ public class SqlInboxServiceTests : SqlServerTestBase
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var count = await connection.QuerySingleAsync<int>(
-            "SELECT COUNT(*) FROM dbo.Inbox WHERE MessageId = @MessageId",
+            "SELECT COUNT(*) FROM infra.Inbox WHERE MessageId = @MessageId",
             new { MessageId = messageId });
 
         Assert.Equal(1, count);
 
         // Check that attempts were incremented appropriately
         var attempts = await connection.QuerySingleAsync<int>(
-            "SELECT Attempts FROM dbo.Inbox WHERE MessageId = @MessageId",
+            "SELECT Attempts FROM infra.Inbox WHERE MessageId = @MessageId",
             new { MessageId = messageId });
 
         Assert.Equal(5, attempts);
@@ -204,7 +204,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var storedHash = await connection.QuerySingleAsync<byte[]>(
-            "SELECT Hash FROM dbo.Inbox WHERE MessageId = @MessageId",
+            "SELECT Hash FROM infra.Inbox WHERE MessageId = @MessageId",
             new { MessageId = messageId });
 
         Assert.Equal(hash, storedHash);
@@ -241,7 +241,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
         var options = Options.Create(new SqlInboxOptions
         {
             ConnectionString = ConnectionString,
-            SchemaName = "dbo",
+            SchemaName = "infra",
             TableName = "Inbox",
         });
 

@@ -56,7 +56,7 @@ public sealed class SemaphoreOptions
     public required string ConnectionString { get; set; }
 
     /// <summary>
-    /// Gets or sets the schema name for semaphore tables (default: "dbo").
+    /// Gets or sets the schema name for semaphore tables (default: "infra").
     /// </summary>
-    public string SchemaName { get; set; } = "dbo";
+    public string SchemaName { get; set; } = "infra";
 }

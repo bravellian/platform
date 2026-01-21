@@ -63,6 +63,7 @@ When provider split is stable, evaluate Postgres implementation details:
 - DBUp supports SQL Server and Postgres via provider packages (`DbUp.SqlServer`, `DbUp.Postgresql`).
 - Embedding scripts as resources or loading from disk is supported; we can keep provider-specific script sets.
 - DBUp is “up” only and tracks applied scripts in a journal table; it does not do full drift detection.
+- DBUp can use a dedicated journal table per schema/module to avoid conflicts with other DBUp users.
 
 ### What changes are required
 - Replace `DatabaseSchemaManager` with DBUp-based migration runner per provider.
@@ -96,4 +97,7 @@ When provider split is stable, evaluate Postgres implementation details:
 2) Keep schema snapshot tests, but drive hashes from DBUp migration list rather than `DatabaseSchemaManager`.
 3) Add a provider-agnostic migration runner interface in core to call the provider-specific DBUp runner.
 4) Later, add Postgres provider with a parallel migration set and comparable version numbering.
+
+### Recommendation note
+Given the platform’s concurrency primitives and heavy reliance on DB-specific behavior, a SQL-first migration approach (DBUp) is the least disruptive and most faithful. FluentMigrator or EF Core would still require raw SQL for the critical behaviors, which negates much of their advantage. DBUp also keeps the migration logic owned by the library without introducing an external toolchain.
 

@@ -58,6 +58,11 @@ public sealed class MetricsExporterOptions
     /// </summary>
     public string? CentralConnectionString { get; set; }
 
+    /// <summary>
+    /// Gets or sets the schema name for metrics tables (default: "infra").
+    /// </summary>
+    public string SchemaName { get; set; } = "infra";
+
     private IReadOnlySet<string>? _globalAllowedTags;
 
     /// <summary>

@@ -43,7 +43,7 @@ public class FanoutRouterIntegrationTests
             new SqlFanoutOptions
             {
                 ConnectionString = "Server=localhost;Database=Tenant1;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 PolicyTableName = "FanoutPolicy",
                 CursorTableName = "FanoutCursor",
                 EnableSchemaDeployment = false,
@@ -51,7 +51,7 @@ public class FanoutRouterIntegrationTests
             new SqlFanoutOptions
             {
                 ConnectionString = "Server=localhost;Database=Tenant2;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 PolicyTableName = "FanoutPolicy",
                 CursorTableName = "FanoutCursor",
                 EnableSchemaDeployment = false,
@@ -100,13 +100,13 @@ public class FanoutRouterIntegrationTests
             new SqlFanoutOptions
             {
                 ConnectionString = "Server=localhost;Database=Tenant1;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 EnableSchemaDeployment = false,
             },
             new SqlFanoutOptions
             {
                 ConnectionString = "Server=localhost;Database=Tenant2;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 EnableSchemaDeployment = false,
             },
         };
@@ -141,7 +141,7 @@ public class FanoutRouterIntegrationTests
             new SqlFanoutOptions
             {
                 ConnectionString = "Server=localhost;Database=Tenant1;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 EnableSchemaDeployment = false,
             },
         };
@@ -168,7 +168,7 @@ public class FanoutRouterIntegrationTests
             new SqlFanoutOptions
             {
                 ConnectionString = "Server=localhost;Database=Tenant1;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 EnableSchemaDeployment = false,
             },
         };

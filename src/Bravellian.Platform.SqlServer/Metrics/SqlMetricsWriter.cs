@@ -24,13 +24,12 @@ namespace Bravellian.Platform.Metrics;
 /// </summary>
 internal sealed class SqlMetricsWriter
 {
-    private const string SchemaName = "infra";
-
     /// <summary>
     /// Writes a metric point to an application database.
     /// </summary>
     public static async Task WriteMinutePointAsync(
         string connectionString,
+        string schemaName,
         MetricSeriesKey seriesKey,
         MetricSnapshot snapshot,
         DateTime bucketStartUtc,
@@ -58,7 +57,7 @@ internal sealed class SqlMetricsWriter
         seriesIdParam.Add("@SeriesId", dbType: System.Data.DbType.Int64, direction: System.Data.ParameterDirection.Output);
 
         await connection.ExecuteAsync(
-            $"[{SchemaName}].[SpUpsertSeries]",
+            $"[{schemaName}].[SpUpsertSeries]",
             seriesIdParam,
             commandType: System.Data.CommandType.StoredProcedure).ConfigureAwait(false);
 
@@ -79,7 +78,7 @@ internal sealed class SqlMetricsWriter
         pointParams.Add("@P99", snapshot.P99);
 
         await connection.ExecuteAsync(
-            $"[{SchemaName}].[SpUpsertMetricPointMinute]",
+            $"[{schemaName}].[SpUpsertMetricPointMinute]",
             pointParams,
             commandType: System.Data.CommandType.StoredProcedure).ConfigureAwait(false);
     }
@@ -89,6 +88,7 @@ internal sealed class SqlMetricsWriter
     /// </summary>
     public static async Task WriteHourlyPointAsync(
         string connectionString,
+        string schemaName,
         MetricSeriesKey seriesKey,
         MetricSnapshot snapshot,
         DateTime bucketStartUtc,
@@ -116,7 +116,7 @@ internal sealed class SqlMetricsWriter
         seriesIdParam.Add("@SeriesId", dbType: System.Data.DbType.Int64, direction: System.Data.ParameterDirection.Output);
 
         await connection.ExecuteAsync(
-            $"[{SchemaName}].[SpUpsertSeriesCentral]",
+            $"[{schemaName}].[SpUpsertSeriesCentral]",
             seriesIdParam,
             commandType: System.Data.CommandType.StoredProcedure).ConfigureAwait(false);
 
@@ -137,7 +137,7 @@ internal sealed class SqlMetricsWriter
         pointParams.Add("@P99", snapshot.P99);
 
         await connection.ExecuteAsync(
-            $"[{SchemaName}].[SpUpsertMetricPointHourly]",
+            $"[{schemaName}].[SpUpsertMetricPointHourly]",
             pointParams,
             commandType: System.Data.CommandType.StoredProcedure).ConfigureAwait(false);
     }
@@ -147,6 +147,7 @@ internal sealed class SqlMetricsWriter
     /// </summary>
     public static async Task UpdateHeartbeatAsync(
         string connectionString,
+        string schemaName,
         string instanceId,
         DateTime lastFlushUtc,
         string? lastError,
@@ -156,7 +157,7 @@ internal sealed class SqlMetricsWriter
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
         var sql = $"""
-            MERGE [{SchemaName}].[ExporterHeartbeat] AS T
+            MERGE [{schemaName}].[ExporterHeartbeat] AS T
             USING (SELECT @InstanceId AS InstanceId) AS S
             ON T.InstanceId = S.InstanceId
             WHEN MATCHED THEN

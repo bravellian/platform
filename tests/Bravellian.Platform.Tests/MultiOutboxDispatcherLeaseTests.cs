@@ -40,7 +40,7 @@ public class MultiOutboxDispatcherLeaseTests : SqlServerTestBase
     public async Task MultiOutboxDispatcher_WithLease_PreventsConcurrentProcessing()
     {
         // Arrange - Create outbox and distributed lock tables
-        var schema = "dbo";
+        var schema = "infra";
         await DatabaseSchemaManager.EnsureOutboxSchemaAsync(ConnectionString, schema, "Outbox");
         await DatabaseSchemaManager.EnsureDistributedLockSchemaAsync(ConnectionString, schema);
 
@@ -147,7 +147,7 @@ public class MultiOutboxDispatcherLeaseTests : SqlServerTestBase
     public async Task MultiOutboxDispatcher_WithoutLease_AllowsProcessing()
     {
         // Arrange - Create outbox table (no lease table)
-        var schema = "dbo";
+        var schema = "infra";
         await DatabaseSchemaManager.EnsureOutboxSchemaAsync(ConnectionString, schema, "Outbox");
 
         // Insert test messages

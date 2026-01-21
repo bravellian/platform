@@ -24,7 +24,7 @@ public sealed class SqlFanoutOptions
     public required string ConnectionString { get; set; }
 
     /// <summary>Gets or sets the schema name for fanout tables.</summary>
-    public string SchemaName { get; set; } = "dbo";
+    public string SchemaName { get; set; } = "infra";
 
     /// <summary>Gets or sets the table name for fanout policies.</summary>
     public string PolicyTableName { get; set; } = "FanoutPolicy";

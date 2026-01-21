@@ -15,6 +15,7 @@
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
 
 namespace Bravellian.Platform;
 
@@ -22,10 +23,17 @@ internal class SchedulerHealthCheck : IHealthCheck
 {
     private readonly string connectionString;
     private readonly TimeProvider timeProvider;
+    private readonly string schemaName;
+    private readonly string timersTableName;
+    private readonly string jobRunsTableName;
 
-    public SchedulerHealthCheck(string connectionString, TimeProvider timeProvider)
+    public SchedulerHealthCheck(IOptions<SqlSchedulerOptions> options, TimeProvider timeProvider)
     {
-        this.connectionString = connectionString;
+        var schedulerOptions = options.Value;
+        connectionString = schedulerOptions.ConnectionString;
+        schemaName = schedulerOptions.SchemaName;
+        timersTableName = schedulerOptions.TimersTableName;
+        jobRunsTableName = schedulerOptions.JobRunsTableName;
         this.timeProvider = timeProvider;
     }
 
@@ -34,12 +42,11 @@ internal class SchedulerHealthCheck : IHealthCheck
         try
         {
             // This query is designed to be very fast and non-locking.
-            var sql = """
-
-                                SELECT
-                                    (SELECT MIN(CreatedAt) FROM dbo.Outbox WITH(NOLOCK) WHERE IsProcessed = 0) AS OldestOutbox,
-                                    (SELECT MIN(DueTime) FROM dbo.Timers WITH(NOLOCK) WHERE Status = 'Pending') AS OldestTimer,
-                                    (SELECT MIN(ScheduledTime) FROM dbo.JobRuns WITH(NOLOCK) WHERE Status = 'Pending') AS OldestJobRun;
+            var sql = $"""
+                SELECT
+                    (SELECT MIN(CreatedAt) FROM [{schemaName}].[Outbox] WITH(NOLOCK) WHERE IsProcessed = 0) AS OldestOutbox,
+                    (SELECT MIN(DueTime) FROM [{schemaName}].[{timersTableName}] WITH(NOLOCK) WHERE Status = 'Pending') AS OldestTimer,
+                    (SELECT MIN(ScheduledTime) FROM [{schemaName}].[{jobRunsTableName}] WITH(NOLOCK) WHERE Status = 'Pending') AS OldestJobRun;
                 """;
 
             using (var connection = new SqlConnection(connectionString))

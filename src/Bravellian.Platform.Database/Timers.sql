@@ -1,6 +1,12 @@
-IF OBJECT_ID(N'dbo.Timers', N'U') IS NULL
+IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'infra')
 BEGIN
-    CREATE TABLE dbo.Timers (
+    EXEC('CREATE SCHEMA [infra]');
+END
+GO
+
+IF OBJECT_ID(N'infra.Timers', N'U') IS NULL
+BEGIN
+    CREATE TABLE infra.Timers (
         -- Core scheduling fields
         Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
         DueTime DATETIMEOFFSET NOT NULL,
@@ -31,9 +37,9 @@ IF NOT EXISTS (
     SELECT 1
     FROM sys.indexes
     WHERE name = 'IX_Timers_WorkQueue'
-      AND object_id = OBJECT_ID(N'dbo.Timers', N'U'))
+      AND object_id = OBJECT_ID(N'infra.Timers', N'U'))
 BEGIN
-    CREATE INDEX IX_Timers_WorkQueue ON dbo.Timers(StatusCode, DueTime)
+    CREATE INDEX IX_Timers_WorkQueue ON infra.Timers(StatusCode, DueTime)
         INCLUDE(Id, OwnerToken)
         WHERE StatusCode = 0;
 END

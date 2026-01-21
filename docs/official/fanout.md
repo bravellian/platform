@@ -165,7 +165,7 @@ Putting it together:
 Tenant DBs:
 ┌────────────────────┐    ┌────────────────────┐    ┌────────────────────┐
 │ Customer1 DB       │    │ Customer2 DB       │    │ Customer3 DB       │
-│  dbo.Outbox        │    │  dbo.Outbox        │    │  dbo.Outbox        │
+│  infra.Outbox        │    │  infra.Outbox        │    │  infra.Outbox        │
 └─────────┬──────────┘    └─────────┬──────────┘    └─────────┬──────────┘
           │                         │                         │
           ▼                         ▼                         ▼

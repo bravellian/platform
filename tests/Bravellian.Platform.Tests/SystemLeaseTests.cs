@@ -36,7 +36,7 @@ public class SystemLeaseTests : SqlServerTestBase
         var config = new LeaseFactoryConfig
         {
             ConnectionString = ConnectionString,
-            SchemaName = "dbo",
+            SchemaName = "infra",
             RenewPercent = 0.6,
             UseGate = false,
             GateTimeoutMs = 200,

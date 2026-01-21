@@ -267,6 +267,7 @@ internal sealed class MetricsExporterService : BackgroundService
                 {
                     await SqlMetricsWriter.WriteMinutePointAsync(
                         connectionString,
+                        _options.SchemaName,
                         seriesKey,
                         snapshot,
                         bucketStart,
@@ -292,6 +293,7 @@ internal sealed class MetricsExporterService : BackgroundService
             {
                 await SqlMetricsWriter.UpdateHeartbeatAsync(
                     _options.CentralConnectionString,
+                    _options.SchemaName,
                     _instanceId.ToString(),
                     _lastFlushUtc!.Value,
                     _lastError,
@@ -344,6 +346,7 @@ internal sealed class MetricsExporterService : BackgroundService
                 {
                     await SqlMetricsWriter.WriteHourlyPointAsync(
                         _options.CentralConnectionString!,
+                        _options.SchemaName,
                         seriesKey,
                         snapshot,
                         bucketStart,

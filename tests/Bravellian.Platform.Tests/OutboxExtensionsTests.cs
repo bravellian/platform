@@ -30,7 +30,7 @@ public class OutboxExtensionsTests : SqlServerTestBase
     private readonly SqlOutboxOptions defaultOptions = new()
     {
         ConnectionString = string.Empty,
-        SchemaName = "dbo",
+        SchemaName = "infra",
         TableName = "Outbox"
     };
 
@@ -45,8 +45,8 @@ public class OutboxExtensionsTests : SqlServerTestBase
         defaultOptions.ConnectionString = ConnectionString;
 
         // Ensure schemas exist
-        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(ConnectionString, "dbo", "Outbox").ConfigureAwait(false);
-        await DatabaseSchemaManager.EnsureOutboxJoinSchemaAsync(ConnectionString, "dbo").ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(ConnectionString, "infra", "Outbox").ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureOutboxJoinSchemaAsync(ConnectionString, "infra").ConfigureAwait(false);
 
         joinStore = new SqlOutboxJoinStore(
             Options.Create(defaultOptions),
@@ -83,7 +83,7 @@ public class OutboxExtensionsTests : SqlServerTestBase
         await connection.OpenAsync(CancellationToken.None);
 
         var message = await connection.QuerySingleOrDefaultAsync<dynamic>(
-            "SELECT TOP 1 Payload FROM dbo.Outbox WHERE Topic = 'join.wait' ORDER BY CreatedAt DESC");
+            "SELECT TOP 1 Payload FROM infra.Outbox WHERE Topic = 'join.wait' ORDER BY CreatedAt DESC");
 
         message.ShouldNotBeNull();
 
@@ -113,7 +113,7 @@ public class OutboxExtensionsTests : SqlServerTestBase
         await connection.OpenAsync(CancellationToken.None);
 
         var message = await connection.QuerySingleOrDefaultAsync<dynamic>(
-            "SELECT TOP 1 Payload FROM dbo.Outbox WHERE Topic = 'join.wait' ORDER BY CreatedAt DESC");
+            "SELECT TOP 1 Payload FROM infra.Outbox WHERE Topic = 'join.wait' ORDER BY CreatedAt DESC");
 
         message.ShouldNotBeNull();
 
@@ -145,7 +145,7 @@ public class OutboxExtensionsTests : SqlServerTestBase
         await connection.OpenAsync(CancellationToken.None);
 
         var message = await connection.QuerySingleOrDefaultAsync<dynamic>(
-            "SELECT TOP 1 Payload FROM dbo.Outbox WHERE Topic = 'join.wait' ORDER BY CreatedAt DESC");
+            "SELECT TOP 1 Payload FROM infra.Outbox WHERE Topic = 'join.wait' ORDER BY CreatedAt DESC");
 
         message.ShouldNotBeNull();
 

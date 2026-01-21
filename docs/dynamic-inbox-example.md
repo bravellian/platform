@@ -51,7 +51,7 @@ public class GlobalDatabaseInboxDiscovery : IInboxDatabaseDiscovery
         {
             Identifier = t.TenantId,
             ConnectionString = t.ConnectionString,
-            SchemaName = "dbo",
+            SchemaName = "infra",
             TableName = "Inbox",
             Tags = string.IsNullOrWhiteSpace(t.Region) ? Array.Empty<string>() : new[] { t.Region }
         });

@@ -47,14 +47,14 @@ public class OutboxRouterIntegrationTests
             new SqlOutboxOptions
             {
                 ConnectionString = "Server=localhost;Database=Tenant1;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 TableName = "Outbox",
                 EnableSchemaDeployment = false,
             },
             new SqlOutboxOptions
             {
                 ConnectionString = "Server=localhost;Database=Tenant2;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 TableName = "Outbox",
                 EnableSchemaDeployment = false,
             },

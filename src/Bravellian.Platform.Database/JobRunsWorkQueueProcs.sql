@@ -1,16 +1,22 @@
-IF TYPE_ID(N'dbo.GuidIdList') IS NULL
+IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'infra')
 BEGIN
-    CREATE TYPE dbo.GuidIdList AS TABLE (Id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY);
+    EXEC('CREATE SCHEMA [infra]');
 END
 GO
 
-IF OBJECT_ID(N'dbo.JobRuns_Claim', N'P') IS NULL
+IF TYPE_ID(N'infra.GuidIdList') IS NULL
 BEGIN
-    EXEC('CREATE PROCEDURE dbo.JobRuns_Claim AS RETURN 0;');
+    CREATE TYPE infra.GuidIdList AS TABLE (Id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY);
 END
 GO
 
-CREATE OR ALTER PROCEDURE dbo.JobRuns_Claim
+IF OBJECT_ID(N'infra.JobRuns_Claim', N'P') IS NULL
+BEGIN
+    EXEC('CREATE PROCEDURE infra.JobRuns_Claim AS RETURN 0;');
+END
+GO
+
+CREATE OR ALTER PROCEDURE infra.JobRuns_Claim
     @OwnerToken UNIQUEIDENTIFIER,
     @LeaseSeconds INT,
     @BatchSize INT = 20
@@ -22,7 +28,7 @@ BEGIN
 
     WITH cte AS (
         SELECT TOP (@BatchSize) Id
-        FROM dbo.JobRuns WITH (READPAST, UPDLOCK, ROWLOCK)
+        FROM infra.JobRuns WITH (READPAST, UPDLOCK, ROWLOCK)
         WHERE StatusCode = 0
           AND ScheduledTime <= @now
           AND (LockedUntil IS NULL OR LockedUntil <= @now)
@@ -36,14 +42,14 @@ BEGIN
         ClaimedAt = @now,
         ClaimedBy = CONVERT(NVARCHAR(36), @OwnerToken)
     OUTPUT inserted.Id
-    FROM dbo.JobRuns jr
+    FROM infra.JobRuns jr
     JOIN cte ON cte.Id = jr.Id;
 END
 GO
 
-CREATE OR ALTER PROCEDURE dbo.JobRuns_Ack
+CREATE OR ALTER PROCEDURE infra.JobRuns_Ack
     @OwnerToken UNIQUEIDENTIFIER,
-    @Ids dbo.GuidIdList READONLY
+    @Ids infra.GuidIdList READONLY
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -54,15 +60,15 @@ BEGIN
         LockedUntil = NULL,
         Status = 'Succeeded',
         EndTime = ISNULL(EndTime, @now)
-    FROM dbo.JobRuns jr
+    FROM infra.JobRuns jr
     JOIN @Ids i ON i.Id = jr.Id
     WHERE jr.OwnerToken = @OwnerToken AND jr.StatusCode = 1;
 END
 GO
 
-CREATE OR ALTER PROCEDURE dbo.JobRuns_Abandon
+CREATE OR ALTER PROCEDURE infra.JobRuns_Abandon
     @OwnerToken UNIQUEIDENTIFIER,
-    @Ids dbo.GuidIdList READONLY,
+    @Ids infra.GuidIdList READONLY,
     @LastError NVARCHAR(MAX) = NULL,
     @RetryDelaySeconds INT = NULL
 AS
@@ -78,17 +84,17 @@ BEGIN
         RetryCount = RetryCount + 1,
         LastError = ISNULL(@LastError, jr.LastError),
         Status = 'Pending'
-    FROM dbo.JobRuns jr
+    FROM infra.JobRuns jr
     JOIN @Ids i ON i.Id = jr.Id
     WHERE jr.OwnerToken = @OwnerToken AND jr.StatusCode = 1;
 END
 GO
 
-CREATE OR ALTER PROCEDURE dbo.JobRuns_ReapExpired
+CREATE OR ALTER PROCEDURE infra.JobRuns_ReapExpired
 AS
 BEGIN
     SET NOCOUNT ON;
-    UPDATE dbo.JobRuns
+    UPDATE infra.JobRuns
     SET StatusCode = 0,
         OwnerToken = NULL,
         LockedUntil = NULL,

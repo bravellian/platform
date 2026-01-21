@@ -30,7 +30,7 @@ public sealed class PlatformDatabase
     public required string ConnectionString { get; init; }
 
     /// <summary>
-    /// Gets or initializes the schema name to use for platform tables (default: "dbo").
+    /// Gets or initializes the schema name to use for platform tables (default: "infra").
     /// </summary>
-    public string SchemaName { get; init; } = "dbo";
+    public string SchemaName { get; init; } = "infra";
 }

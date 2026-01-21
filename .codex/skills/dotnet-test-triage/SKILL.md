@@ -16,15 +16,28 @@ Run `dotnet test`, collect failed test cases, and write a compact failure report
 bash .codex/skills/dotnet-test-triage/scripts/run-test-triage.sh
 ```
 
+```powershell
+pwsh -File .codex/skills/dotnet-test-triage/scripts/run-test-triage.ps1
+```
+
 Optional: pass arguments through to `dotnet test`:
 ```bash
 bash .codex/skills/dotnet-test-triage/scripts/run-test-triage.sh ./src/Incursa.slnx --no-restore
+```
+
+```powershell
+pwsh -File .codex/skills/dotnet-test-triage/scripts/run-test-triage.ps1 ./src/Incursa.slnx --no-restore
 ```
 
 Optional: override the default command (useful for repo-specific defaults):
 ```bash
 DOTNET_TEST_CMD="dotnet test ./src/Incursa.slnx --no-restore" \
   bash .codex/skills/dotnet-test-triage/scripts/run-test-triage.sh
+```
+
+```powershell
+$env:DOTNET_TEST_CMD = "dotnet test ./src/Incursa.slnx --no-restore"
+pwsh -File .codex/skills/dotnet-test-triage/scripts/run-test-triage.ps1
 ```
 
 ## Rerun recommendations

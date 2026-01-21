@@ -28,7 +28,7 @@ namespace Bravellian.Platform.Tests;
 public class SqlOutboxStoreTests : SqlServerTestBase
 {
     private SqlOutboxStore? outboxStore;
-    private readonly SqlOutboxOptions defaultOptions = new() { ConnectionString = string.Empty, SchemaName = "dbo", TableName = "Outbox" };
+    private readonly SqlOutboxOptions defaultOptions = new() { ConnectionString = string.Empty, SchemaName = "infra", TableName = "Outbox" };
     private FakeTimeProvider timeProvider = default!;
 
     public SqlOutboxStoreTests(ITestOutputHelper testOutputHelper, SqlServerCollectionFixture fixture)

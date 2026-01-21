@@ -174,7 +174,7 @@ LockedUntil DATETIME2(3) NULL,                -- UTC lease expiration time
 OwnerToken UNIQUEIDENTIFIER NULL              -- Process ownership identifier
 
 -- Optimized indexes for work queue operations
-CREATE INDEX IX_{Table}_WorkQueue ON dbo.{Table}(Status, {TimeColumn}) 
+CREATE INDEX IX_{Table}_WorkQueue ON infra.{Table}(Status, {TimeColumn}) 
     INCLUDE(Id, OwnerToken);
 ```
 
@@ -184,16 +184,16 @@ Each table has five generated stored procedures following this pattern:
 
 ```sql
 -- Example for Outbox table
-dbo.Outbox_Claim        -- Atomically claim ready items
-dbo.Outbox_Ack          -- Mark items as successfully completed
-dbo.Outbox_Abandon      -- Return items to ready state for retry
-dbo.Outbox_Fail         -- Mark items as failed
-dbo.Outbox_ReapExpired  -- Recover expired leases
+infra.Outbox_Claim        -- Atomically claim ready items
+infra.Outbox_Ack          -- Mark items as successfully completed
+infra.Outbox_Abandon      -- Return items to ready state for retry
+infra.Outbox_Fail         -- Mark items as failed
+infra.Outbox_ReapExpired  -- Recover expired leases
 ```
 
 **Claim Procedure Logic** (simplified):
 ```sql
-CREATE OR ALTER PROCEDURE dbo.Outbox_Claim
+CREATE OR ALTER PROCEDURE infra.Outbox_Claim
     @OwnerToken UNIQUEIDENTIFIER,
     @LeaseSeconds INT,
     @BatchSize INT = 50
@@ -204,7 +204,7 @@ BEGIN
 
     WITH cte AS (
         SELECT TOP (@BatchSize) Id
-        FROM dbo.Outbox WITH (READPAST, UPDLOCK, ROWLOCK)
+        FROM infra.Outbox WITH (READPAST, UPDLOCK, ROWLOCK)
         WHERE Status = 0 /* Ready */
           AND (LockedUntil IS NULL OR LockedUntil <= @now)
         ORDER BY CreatedAt
@@ -214,7 +214,7 @@ BEGIN
         OwnerToken = @OwnerToken, 
         LockedUntil = @until
     OUTPUT inserted.Id
-    FROM dbo.Outbox o
+    FROM infra.Outbox o
     JOIN cte ON cte.Id = o.Id;
 END
 ```
@@ -331,7 +331,7 @@ The distributed lock system provides database-authoritative lease management wit
 ### Architecture
 
 **Core Components:**
-- **`dbo.Lease` table**: Stores lease information with DB-authoritative timestamps
+- **`infra.Lease` table**: Stores lease information with DB-authoritative timestamps
 - **`LeaseApi`**: Low-level data access operations  
 - **`LeaseRunner`**: High-level lease manager with automatic renewal
 
@@ -483,7 +483,7 @@ The outbox service combines traditional enqueuing with work queue processing:
 ### Database Schema
 
 ```sql
-CREATE TABLE dbo.Outbox (
+CREATE TABLE infra.Outbox (
     -- Core message fields
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     Payload NVARCHAR(MAX) NOT NULL,
@@ -511,7 +511,7 @@ CREATE TABLE dbo.Outbox (
 );
 
 -- Optimized work queue index
-CREATE INDEX IX_Outbox_WorkQueue ON dbo.Outbox(Status, CreatedAt) 
+CREATE INDEX IX_Outbox_WorkQueue ON infra.Outbox(Status, CreatedAt) 
     INCLUDE(Id, OwnerToken);
 ```
 
@@ -729,7 +729,7 @@ The inbox service provides idempotent message processing by tracking message IDs
 ### Database Schema
 
 ```sql
-CREATE TABLE dbo.Inbox (
+CREATE TABLE infra.Inbox (
     MessageId VARCHAR(64) NOT NULL PRIMARY KEY,
     Source VARCHAR(64) NOT NULL,
     Hash BINARY(32) NULL,                    -- Optional content verification
@@ -740,7 +740,7 @@ CREATE TABLE dbo.Inbox (
     Status VARCHAR(16) NOT NULL DEFAULT 'Seen'  -- Seen, Processing, Done, Dead
 );
 
-CREATE INDEX IX_Inbox_Processing ON dbo.Inbox(Status, LastSeenUtc)
+CREATE INDEX IX_Inbox_Processing ON infra.Inbox(Status, LastSeenUtc)
     WHERE Status IN ('Seen', 'Processing');
 ```
 
@@ -858,7 +858,7 @@ The `AlreadyProcessedAsync` method uses SQL MERGE for atomic deduplication:
 
 ```sql
 -- Simplified version of the actual implementation
-MERGE dbo.Inbox AS target
+MERGE infra.Inbox AS target
 USING (VALUES (@MessageId, @Source, @Hash, @Now)) AS source(MessageId, Source, Hash, LastSeenUtc)
 ON target.MessageId = source.MessageId
 
@@ -974,7 +974,7 @@ Schedules one-time tasks with precise timing and work queue processing for relia
 ### Database Schema
 
 ```sql
-CREATE TABLE dbo.Timers (
+CREATE TABLE infra.Timers (
     -- Core scheduling fields
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     DueTime DATETIMEOFFSET NOT NULL,
@@ -1000,7 +1000,7 @@ CREATE TABLE dbo.Timers (
 );
 
 -- Critical index for efficient timer processing
-CREATE INDEX IX_Timers_WorkQueue ON dbo.Timers(StatusCode, DueTime) 
+CREATE INDEX IX_Timers_WorkQueue ON infra.Timers(StatusCode, DueTime) 
     INCLUDE(Id, OwnerToken) WHERE StatusCode = 0;
 ```
 
@@ -1117,7 +1117,7 @@ public class TimerProcessingService : BackgroundService
 The `Timers_Claim` stored procedure implements domain-specific logic:
 
 ```sql
-CREATE OR ALTER PROCEDURE dbo.Timers_Claim
+CREATE OR ALTER PROCEDURE infra.Timers_Claim
     @OwnerToken UNIQUEIDENTIFIER,
     @LeaseSeconds INT,
     @BatchSize INT = 20
@@ -1130,7 +1130,7 @@ BEGIN
     -- Only claim timers that are due (DueTime <= now)
     WITH cte AS (
         SELECT TOP (@BatchSize) Id
-        FROM dbo.Timers WITH (READPAST, UPDLOCK, ROWLOCK)
+        FROM infra.Timers WITH (READPAST, UPDLOCK, ROWLOCK)
         WHERE StatusCode = 0 /* Ready */
           AND DueTime <= @now /* Due for execution */
           AND (LockedUntil IS NULL OR LockedUntil <= @now)
@@ -1141,7 +1141,7 @@ BEGIN
         OwnerToken = @OwnerToken, 
         LockedUntil = @until
     OUTPUT inserted.Id
-    FROM dbo.Timers t
+    FROM infra.Timers t
     JOIN cte ON cte.Id = t.Id;
 END
 ```
@@ -1230,8 +1230,8 @@ Schedules recurring jobs using cron expressions with work queue processing for r
 
 ### Architecture
 
-**Job Definitions**: Stored in `dbo.Jobs` table with cron schedules
-**Job Runs**: Individual execution instances stored in `dbo.JobRuns` table  
+**Job Definitions**: Stored in `infra.Jobs` table with cron schedules
+**Job Runs**: Individual execution instances stored in `infra.JobRuns` table  
 **Scheduling**: Background service creates `JobRuns` based on cron schedules
 **Processing**: Workers claim and execute job runs using work queue pattern
 
@@ -1239,7 +1239,7 @@ Schedules recurring jobs using cron expressions with work queue processing for r
 
 ```sql
 -- Job definitions with cron schedules
-CREATE TABLE dbo.Jobs (
+CREATE TABLE infra.Jobs (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     JobName NVARCHAR(100) NOT NULL,
     CronSchedule NVARCHAR(100) NOT NULL,         -- e.g., "0 */5 * * * *"
@@ -1254,9 +1254,9 @@ CREATE TABLE dbo.Jobs (
 );
 
 -- Individual job execution instances
-CREATE TABLE dbo.JobRuns (
+CREATE TABLE infra.JobRuns (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    JobId UNIQUEIDENTIFIER NOT NULL REFERENCES dbo.Jobs(Id),
+    JobId UNIQUEIDENTIFIER NOT NULL REFERENCES infra.Jobs(Id),
     ScheduledTime DATETIMEOFFSET NOT NULL,
     
     -- Work queue state management
@@ -1278,7 +1278,7 @@ CREATE TABLE dbo.JobRuns (
 );
 
 -- Efficient work queue index
-CREATE INDEX IX_JobRuns_WorkQueue ON dbo.JobRuns(StatusCode, ScheduledTime) 
+CREATE INDEX IX_JobRuns_WorkQueue ON infra.JobRuns(StatusCode, ScheduledTime) 
     INCLUDE(Id, OwnerToken) WHERE StatusCode = 0;
 ```
 
@@ -1501,7 +1501,7 @@ public class JobSchedulingService : BackgroundService
 The `JobRuns_Claim` stored procedure implements time-based claiming:
 
 ```sql
-CREATE OR ALTER PROCEDURE dbo.JobRuns_Claim
+CREATE OR ALTER PROCEDURE infra.JobRuns_Claim
     @OwnerToken UNIQUEIDENTIFIER,
     @LeaseSeconds INT,
     @BatchSize INT = 10
@@ -1514,7 +1514,7 @@ BEGIN
     -- Only claim job runs that are due (ScheduledTime <= now)
     WITH cte AS (
         SELECT TOP (@BatchSize) Id
-        FROM dbo.JobRuns WITH (READPAST, UPDLOCK, ROWLOCK)
+        FROM infra.JobRuns WITH (READPAST, UPDLOCK, ROWLOCK)
         WHERE StatusCode = 0 /* Ready */
           AND ScheduledTime <= @now /* Due for execution */
           AND (LockedUntil IS NULL OR LockedUntil <= @now)
@@ -1525,7 +1525,7 @@ BEGIN
         OwnerToken = @OwnerToken, 
         LockedUntil = @until
     OUTPUT inserted.Id
-    FROM dbo.JobRuns jr
+    FROM infra.JobRuns jr
     JOIN cte ON cte.Id = jr.Id;
 END
 ```
@@ -1797,7 +1797,7 @@ The fanout system uses two tables:
 
 ```sql
 -- Stores cadence policies per topic/work key
-CREATE TABLE dbo.FanoutPolicy (
+CREATE TABLE infra.FanoutPolicy (
     FanoutTopic NVARCHAR(100) NOT NULL,
     WorkKey NVARCHAR(100) NOT NULL,
     DefaultEverySeconds INT NOT NULL,
@@ -1808,7 +1808,7 @@ CREATE TABLE dbo.FanoutPolicy (
 );
 
 -- Tracks completion progress per slice
-CREATE TABLE dbo.FanoutCursor (
+CREATE TABLE infra.FanoutCursor (
     FanoutTopic NVARCHAR(100) NOT NULL,
     WorkKey NVARCHAR(100) NOT NULL, 
     ShardKey NVARCHAR(256) NOT NULL,
@@ -1884,7 +1884,7 @@ The fanout system provides a powerful abstraction for periodic, distributed proc
 {
   "SqlScheduler": {
     "ConnectionString": "Server=localhost;Database=MyApp;Trusted_Connection=true;",
-    "SchemaName": "dbo",
+    "SchemaName": "infra",
     "EnableSchemaDeployment": true,
     "MaxPollingInterval": "00:00:30",
     "EnableBackgroundWorkers": true
@@ -1906,7 +1906,7 @@ builder.Services.AddSqlScheduler(builder.Configuration.GetSection("SqlScheduler"
 builder.Services.AddSqlScheduler(new SqlSchedulerOptions
 {
     ConnectionString = builder.Configuration.GetConnectionString("Default")!,
-    SchemaName = "dbo",
+    SchemaName = "infra",
     EnableSchemaDeployment = true,      // Auto-create tables and procedures
     MaxPollingInterval = TimeSpan.FromSeconds(30),
     EnableBackgroundWorkers = true      // Start polling services
@@ -1916,7 +1916,7 @@ builder.Services.AddSqlScheduler(new SqlSchedulerOptions
 builder.Services.AddSqlOutbox(new SqlOutboxOptions
 {
     ConnectionString = builder.Configuration.GetConnectionString("Default")!,
-    SchemaName = "dbo",
+    SchemaName = "infra",
     TableName = "Outbox",
     EnableSchemaDeployment = true
 });
@@ -1924,7 +1924,7 @@ builder.Services.AddSqlOutbox(new SqlOutboxOptions
 builder.Services.AddSqlInbox(new SqlInboxOptions
 {
     ConnectionString = builder.Configuration.GetConnectionString("Default")!,
-    SchemaName = "dbo", 
+    SchemaName = "infra", 
     TableName = "Inbox",
     EnableSchemaDeployment = true
 });
@@ -1932,7 +1932,7 @@ builder.Services.AddSqlInbox(new SqlInboxOptions
 builder.Services.AddSystemLeases(new SystemLeaseOptions
 {
     ConnectionString = builder.Configuration.GetConnectionString("Default")!,
-    SchemaName = "dbo"
+    SchemaName = "infra"
 });
 
 // Register custom message handlers
@@ -1969,7 +1969,7 @@ app.Run();
 public class SqlSchedulerOptions
 {
     public string ConnectionString { get; set; } = string.Empty;
-    public string SchemaName { get; set; } = "dbo";
+    public string SchemaName { get; set; } = "infra";
     public bool EnableSchemaDeployment { get; set; } = false;
     public TimeSpan MaxPollingInterval { get; set; } = TimeSpan.FromSeconds(30);
     public bool EnableBackgroundWorkers { get; set; } = true;
@@ -1981,7 +1981,7 @@ public class SqlSchedulerOptions
 public class SqlOutboxOptions
 {
     public string ConnectionString { get; set; } = string.Empty;
-    public string SchemaName { get; set; } = "dbo";
+    public string SchemaName { get; set; } = "infra";
     public string TableName { get; set; } = "Outbox";
     public bool EnableSchemaDeployment { get; set; } = false;
 }
@@ -1992,7 +1992,7 @@ public class SqlOutboxOptions
 public class SqlInboxOptions
 {
     public string ConnectionString { get; set; } = string.Empty;
-    public string SchemaName { get; set; } = "dbo";
+    public string SchemaName { get; set; } = "infra";
     public string TableName { get; set; } = "Inbox";
     public bool EnableSchemaDeployment { get; set; } = false;
 }
@@ -2003,7 +2003,7 @@ public class SqlInboxOptions
 public class SystemLeaseOptions
 {
     public string ConnectionString { get; set; } = string.Empty;
-    public string SchemaName { get; set; } = "dbo";
+    public string SchemaName { get; set; } = "infra";
     public bool EnableSchemaDeployment { get; set; } = false;
 }
 ```
@@ -2096,7 +2096,7 @@ The platform creates a comprehensive set of tables and stored procedures for rel
 
 #### Outbox Table
 ```sql
-CREATE TABLE dbo.Outbox (
+CREATE TABLE infra.Outbox (
     -- Core message fields
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     Payload NVARCHAR(MAX) NOT NULL,
@@ -2124,18 +2124,18 @@ CREATE TABLE dbo.Outbox (
 );
 
 -- Work queue optimization index
-CREATE INDEX IX_Outbox_WorkQueue ON dbo.Outbox(Status, CreatedAt) 
+CREATE INDEX IX_Outbox_WorkQueue ON infra.Outbox(Status, CreatedAt) 
     INCLUDE(Id, OwnerToken);
 
 -- Legacy processing index
-CREATE INDEX IX_Outbox_GetNext ON dbo.Outbox(IsProcessed, NextAttemptAt)
+CREATE INDEX IX_Outbox_GetNext ON infra.Outbox(IsProcessed, NextAttemptAt)
     INCLUDE(Id, Payload, Topic, RetryCount) 
     WHERE IsProcessed = 0;
 ```
 
 #### Timers Table
 ```sql
-CREATE TABLE dbo.Timers (
+CREATE TABLE infra.Timers (
     -- Core scheduling fields
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     DueTime DATETIMEOFFSET NOT NULL,
@@ -2161,17 +2161,17 @@ CREATE TABLE dbo.Timers (
 );
 
 -- Efficient timer lookup index
-CREATE INDEX IX_Timers_WorkQueue ON dbo.Timers(StatusCode, DueTime) 
+CREATE INDEX IX_Timers_WorkQueue ON infra.Timers(StatusCode, DueTime) 
     INCLUDE(Id, OwnerToken) WHERE StatusCode = 0;
 
 -- Legacy index
-CREATE INDEX IX_Timers_GetNext ON dbo.Timers(Status, DueTime)
+CREATE INDEX IX_Timers_GetNext ON infra.Timers(Status, DueTime)
     INCLUDE(Id, Topic) WHERE Status = 'Pending';
 ```
 
 #### Jobs Table
 ```sql
-CREATE TABLE dbo.Jobs (
+CREATE TABLE infra.Jobs (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     JobName NVARCHAR(100) NOT NULL,
     CronSchedule NVARCHAR(100) NOT NULL,          -- e.g., "0 */5 * * * *"
@@ -2186,14 +2186,14 @@ CREATE TABLE dbo.Jobs (
 );
 
 -- Ensure unique job names
-CREATE UNIQUE INDEX UQ_Jobs_JobName ON dbo.Jobs(JobName);
+CREATE UNIQUE INDEX UQ_Jobs_JobName ON infra.Jobs(JobName);
 ```
 
 #### JobRuns Table
 ```sql
-CREATE TABLE dbo.JobRuns (
+CREATE TABLE infra.JobRuns (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    JobId UNIQUEIDENTIFIER NOT NULL REFERENCES dbo.Jobs(Id),
+    JobId UNIQUEIDENTIFIER NOT NULL REFERENCES infra.Jobs(Id),
     ScheduledTime DATETIMEOFFSET NOT NULL,
     
     -- Work queue state management
@@ -2215,17 +2215,17 @@ CREATE TABLE dbo.JobRuns (
 );
 
 -- Work queue processing index
-CREATE INDEX IX_JobRuns_WorkQueue ON dbo.JobRuns(StatusCode, ScheduledTime) 
+CREATE INDEX IX_JobRuns_WorkQueue ON infra.JobRuns(StatusCode, ScheduledTime) 
     INCLUDE(Id, OwnerToken) WHERE StatusCode = 0;
 
 -- Legacy index
-CREATE INDEX IX_JobRuns_GetNext ON dbo.JobRuns(Status, ScheduledTime)
+CREATE INDEX IX_JobRuns_GetNext ON infra.JobRuns(Status, ScheduledTime)
     WHERE Status = 'Pending';
 ```
 
 #### Inbox Table
 ```sql
-CREATE TABLE dbo.Inbox (
+CREATE TABLE infra.Inbox (
     MessageId VARCHAR(64) NOT NULL PRIMARY KEY,
     Source VARCHAR(64) NOT NULL,
     Hash BINARY(32) NULL,                         -- Optional content verification
@@ -2237,13 +2237,13 @@ CREATE TABLE dbo.Inbox (
 );
 
 -- Processing optimization index
-CREATE INDEX IX_Inbox_Processing ON dbo.Inbox(Status, LastSeenUtc)
+CREATE INDEX IX_Inbox_Processing ON infra.Inbox(Status, LastSeenUtc)
     WHERE Status IN ('Seen', 'Processing');
 ```
 
 #### Lease Table (Lease System v2)
 ```sql
-CREATE TABLE dbo.Lease (
+CREATE TABLE infra.Lease (
     LeaseName NVARCHAR(200) NOT NULL PRIMARY KEY,
     Owner NVARCHAR(200) NOT NULL,
     LeaseUntilUtc DATETIME2(3) NOT NULL,
@@ -2252,7 +2252,7 @@ CREATE TABLE dbo.Lease (
 );
 
 -- Index for expired lease cleanup
-CREATE INDEX IX_Lease_Expired ON dbo.Lease(LeaseUntilUtc)
+CREATE INDEX IX_Lease_Expired ON infra.Lease(LeaseUntilUtc)
     WHERE LeaseUntilUtc < SYSUTCDATETIME();
 ```
 
@@ -2263,49 +2263,49 @@ The platform generates work queue stored procedures following a consistent patte
 #### Outbox Procedures
 ```sql
 -- Atomically claim ready outbox messages
-dbo.Outbox_Claim (@OwnerToken, @LeaseSeconds, @BatchSize)
+infra.Outbox_Claim (@OwnerToken, @LeaseSeconds, @BatchSize)
 
 -- Mark messages as successfully processed
-dbo.Outbox_Ack (@OwnerToken, @Ids)
+infra.Outbox_Ack (@OwnerToken, @Ids)
 
 -- Return messages to ready state for retry
-dbo.Outbox_Abandon (@OwnerToken, @Ids)
+infra.Outbox_Abandon (@OwnerToken, @Ids)
 
 -- Mark messages as failed
-dbo.Outbox_Fail (@OwnerToken, @Ids)
+infra.Outbox_Fail (@OwnerToken, @Ids)
 
 -- Recover expired leases
-dbo.Outbox_ReapExpired ()
+infra.Outbox_ReapExpired ()
 ```
 
 #### Timer Procedures
 ```sql
 -- Claim due timers for processing
-dbo.Timers_Claim (@OwnerToken, @LeaseSeconds, @BatchSize)
+infra.Timers_Claim (@OwnerToken, @LeaseSeconds, @BatchSize)
 
 -- Acknowledge completed timers
-dbo.Timers_Ack (@OwnerToken, @Ids)
+infra.Timers_Ack (@OwnerToken, @Ids)
 
 -- Abandon failed timers for retry
-dbo.Timers_Abandon (@OwnerToken, @Ids)
+infra.Timers_Abandon (@OwnerToken, @Ids)
 
 -- Reap expired timer leases
-dbo.Timers_ReapExpired ()
+infra.Timers_ReapExpired ()
 ```
 
 #### JobRuns Procedures
 ```sql
 -- Claim due job runs for processing
-dbo.JobRuns_Claim (@OwnerToken, @LeaseSeconds, @BatchSize)
+infra.JobRuns_Claim (@OwnerToken, @LeaseSeconds, @BatchSize)
 
 -- Acknowledge completed job runs
-dbo.JobRuns_Ack (@OwnerToken, @Ids)
+infra.JobRuns_Ack (@OwnerToken, @Ids)
 
 -- Abandon failed job runs for retry
-dbo.JobRuns_Abandon (@OwnerToken, @Ids)
+infra.JobRuns_Abandon (@OwnerToken, @Ids)
 
 -- Reap expired job run leases
-dbo.JobRuns_ReapExpired ()
+infra.JobRuns_ReapExpired ()
 ```
 
 ### User-Defined Table Types
@@ -2314,7 +2314,7 @@ For efficient batch operations:
 
 ```sql
 -- Used for passing multiple IDs to stored procedures
-CREATE TYPE dbo.GuidIdList AS TABLE
+CREATE TYPE infra.GuidIdList AS TABLE
 (
     Id UNIQUEIDENTIFIER NOT NULL
 );
@@ -2344,27 +2344,27 @@ Required SQL Server permissions for the application user:
 
 ```sql
 -- Core permissions for work queue operations
-GRANT SELECT, INSERT, UPDATE, DELETE ON dbo.Outbox TO [AppUser];
-GRANT SELECT, INSERT, UPDATE, DELETE ON dbo.Timers TO [AppUser];
-GRANT SELECT, INSERT, UPDATE, DELETE ON dbo.Jobs TO [AppUser];
-GRANT SELECT, INSERT, UPDATE, DELETE ON dbo.JobRuns TO [AppUser];
-GRANT SELECT, INSERT, UPDATE, DELETE ON dbo.Inbox TO [AppUser];
-GRANT SELECT, INSERT, UPDATE, DELETE ON dbo.Lease TO [AppUser];
+GRANT SELECT, INSERT, UPDATE, DELETE ON infra.Outbox TO [AppUser];
+GRANT SELECT, INSERT, UPDATE, DELETE ON infra.Timers TO [AppUser];
+GRANT SELECT, INSERT, UPDATE, DELETE ON infra.Jobs TO [AppUser];
+GRANT SELECT, INSERT, UPDATE, DELETE ON infra.JobRuns TO [AppUser];
+GRANT SELECT, INSERT, UPDATE, DELETE ON infra.Inbox TO [AppUser];
+GRANT SELECT, INSERT, UPDATE, DELETE ON infra.Lease TO [AppUser];
 
 -- Stored procedure execution
-GRANT EXECUTE ON dbo.Outbox_Claim TO [AppUser];
-GRANT EXECUTE ON dbo.Outbox_Ack TO [AppUser];
-GRANT EXECUTE ON dbo.Outbox_Abandon TO [AppUser];
-GRANT EXECUTE ON dbo.Outbox_Fail TO [AppUser];
-GRANT EXECUTE ON dbo.Outbox_ReapExpired TO [AppUser];
+GRANT EXECUTE ON infra.Outbox_Claim TO [AppUser];
+GRANT EXECUTE ON infra.Outbox_Ack TO [AppUser];
+GRANT EXECUTE ON infra.Outbox_Abandon TO [AppUser];
+GRANT EXECUTE ON infra.Outbox_Fail TO [AppUser];
+GRANT EXECUTE ON infra.Outbox_ReapExpired TO [AppUser];
 
 -- Similar grants for Timers and JobRuns procedures...
 
 -- User-defined table type permissions
-GRANT EXECUTE ON TYPE::dbo.GuidIdList TO [AppUser];
+GRANT EXECUTE ON TYPE::infra.GuidIdList TO [AppUser];
 
 -- For schema deployment (if enabled)
-GRANT ALTER ON SCHEMA::dbo TO [AppUser];  -- Only if auto-deployment enabled
+GRANT ALTER ON SCHEMA::infra TO [AppUser];  -- Only if auto-deployment enabled
 ```
 
 ## Operational Considerations
@@ -2471,22 +2471,22 @@ var claimedIds = await outbox.ClaimAsync(ownerToken,
 **Database Maintenance**: Regular maintenance tasks:
 ```sql
 -- Clean up old processed outbox messages (run weekly)
-DELETE FROM dbo.Outbox 
+DELETE FROM infra.Outbox 
 WHERE Status = 2 /* Done */ 
   AND ProcessedAt < DATEADD(day, -30, GETUTCDATE());
 
 -- Clean up old completed job runs (run monthly)
-DELETE FROM dbo.JobRuns 
+DELETE FROM infra.JobRuns 
 WHERE StatusCode = 2 /* Done */ 
   AND EndTime < DATEADD(day, -90, GETUTCDATE());
 
 -- Update statistics for optimal query performance
-UPDATE STATISTICS dbo.Outbox;
-UPDATE STATISTICS dbo.Timers;
-UPDATE STATISTICS dbo.JobRuns;
+UPDATE STATISTICS infra.Outbox;
+UPDATE STATISTICS infra.Timers;
+UPDATE STATISTICS infra.JobRuns;
 
 -- Rebuild fragmented indexes if needed
-ALTER INDEX IX_Outbox_WorkQueue ON dbo.Outbox REBUILD;
+ALTER INDEX IX_Outbox_WorkQueue ON infra.Outbox REBUILD;
 ```
 
 ### Error Handling and Resilience
@@ -2601,7 +2601,7 @@ services.Configure<SqlSchedulerOptions>(options =>
 The platform uses parameterized queries throughout:
 ```sql
 -- All stored procedures use proper parameterization
-CREATE PROCEDURE dbo.Outbox_Claim
+CREATE PROCEDURE infra.Outbox_Claim
     @OwnerToken UNIQUEIDENTIFIER,
     @LeaseSeconds INT,
     @BatchSize INT
@@ -2610,7 +2610,7 @@ BEGIN
     -- Safe parameterized SQL - no injection risk
     UPDATE o SET OwnerToken = @OwnerToken
     WHERE Status = 0 AND Id IN (
-        SELECT TOP (@BatchSize) Id FROM dbo.Outbox WHERE Status = 0
+        SELECT TOP (@BatchSize) Id FROM infra.Outbox WHERE Status = 0
     );
 END
 ```
@@ -2622,14 +2622,14 @@ END
 CREATE USER [AppSchedulerUser] FOR LOGIN [AppSchedulerLogin];
 
 -- Grant only necessary permissions
-GRANT SELECT, INSERT, UPDATE, DELETE ON dbo.Outbox TO [AppSchedulerUser];
-GRANT EXECUTE ON dbo.Outbox_Claim TO [AppSchedulerUser];
-GRANT EXECUTE ON dbo.Outbox_Ack TO [AppSchedulerUser];
+GRANT SELECT, INSERT, UPDATE, DELETE ON infra.Outbox TO [AppSchedulerUser];
+GRANT EXECUTE ON infra.Outbox_Claim TO [AppSchedulerUser];
+GRANT EXECUTE ON infra.Outbox_Ack TO [AppSchedulerUser];
 -- ... other specific procedure grants
 
 -- Deny dangerous permissions
-DENY ALTER ON SCHEMA::dbo TO [AppSchedulerUser];
-DENY DROP ON SCHEMA::dbo TO [AppSchedulerUser];
+DENY ALTER ON SCHEMA::infra TO [AppSchedulerUser];
+DENY DROP ON SCHEMA::infra TO [AppSchedulerUser];
 ```
 
 ### Troubleshooting Guide
@@ -2681,13 +2681,13 @@ var runner = await LeaseRunner.AcquireAsync(
 SELECT 
     COUNT(*) as LeaseCount,
     AVG(DATEDIFF(second, ClaimedAt, GETUTCDATE())) as AvgLeaseAge
-FROM dbo.Timers 
+FROM infra.Timers 
 WHERE Status = 'InProgress' 
   AND LockedUntil > GETUTCDATE();
 
 -- Look for stuck timers
 SELECT TOP 10 *
-FROM dbo.Timers
+FROM infra.Timers
 WHERE Status = 'InProgress'
   AND LockedUntil < GETUTCDATE()
   AND ClaimedAt < DATEADD(minute, -5, GETUTCDATE());
@@ -2705,7 +2705,7 @@ SELECT
     SUM(CASE WHEN Status = 2 THEN 1 ELSE 0 END) as Done,
     SUM(CASE WHEN Status = 3 THEN 1 ELSE 0 END) as Failed,
     AVG(RetryCount) as AvgRetries
-FROM dbo.Outbox
+FROM infra.Outbox
 GROUP BY Topic
 ORDER BY TotalMessages DESC;
 
@@ -2715,7 +2715,7 @@ SELECT
     COUNT(*) as ScheduledCount,
     AVG(DATEDIFF(second, DueTime, ProcessedAt)) as AvgDelaySeconds,
     MAX(DATEDIFF(second, DueTime, ProcessedAt)) as MaxDelaySeconds
-FROM dbo.Timers 
+FROM infra.Timers 
 WHERE ProcessedAt IS NOT NULL
 GROUP BY DATEPART(hour, DueTime)
 ORDER BY Hour;
@@ -2726,21 +2726,21 @@ SELECT
     COUNT(*) as ActiveLeases,
     MIN(LockedUntil) as EarliestExpiry,
     MAX(LockedUntil) as LatestExpiry
-FROM dbo.Outbox WHERE Status = 1 AND LockedUntil > GETUTCDATE()
+FROM infra.Outbox WHERE Status = 1 AND LockedUntil > GETUTCDATE()
 UNION ALL
 SELECT 
     'Timers',
     COUNT(*),
     MIN(LockedUntil),
     MAX(LockedUntil)
-FROM dbo.Timers WHERE StatusCode = 1 AND LockedUntil > GETUTCDATE()
+FROM infra.Timers WHERE StatusCode = 1 AND LockedUntil > GETUTCDATE()
 UNION ALL
 SELECT 
     'JobRuns',
     COUNT(*),
     MIN(LockedUntil),
     MAX(LockedUntil)
-FROM dbo.JobRuns WHERE StatusCode = 1 AND LockedUntil > GETUTCDATE();
+FROM infra.JobRuns WHERE StatusCode = 1 AND LockedUntil > GETUTCDATE();
 ```
 
 ## Testing
@@ -2973,7 +2973,7 @@ public class LeaseSystemTests : SqlServerTestBase
     public async Task LeaseRunner_Should_AcquireAndRenewLease()
     {
         // Arrange
-        var leaseApi = new LeaseApi(ConnectionString, "dbo");
+        var leaseApi = new LeaseApi(ConnectionString, "infra");
         var clock = new MonotonicClock();
         var timeProvider = TimeProvider.System;
         var logger = new NullLogger<LeaseRunner>();
@@ -3002,7 +3002,7 @@ public class LeaseSystemTests : SqlServerTestBase
     public async Task LeaseRunner_Should_PreventDuplicateAcquisition()
     {
         // Arrange
-        var leaseApi = new LeaseApi(ConnectionString, "dbo");
+        var leaseApi = new LeaseApi(ConnectionString, "infra");
         var clock = new MonotonicClock();
         var timeProvider = TimeProvider.System;
         var logger = new NullLogger<LeaseRunner>();
@@ -3257,7 +3257,7 @@ public class TimerAccuracyHealthCheck : IHealthCheck
         // Check for timers that are significantly overdue
         var query = @"
             SELECT COUNT(*) 
-            FROM dbo.Timers 
+            FROM infra.Timers 
             WHERE StatusCode = 0 
               AND DueTime < DATEADD(minute, -5, GETUTCDATE())";
 

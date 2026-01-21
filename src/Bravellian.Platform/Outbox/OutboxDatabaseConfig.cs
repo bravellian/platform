@@ -30,9 +30,9 @@ public sealed class OutboxDatabaseConfig
     public required string ConnectionString { get; set; }
 
     /// <summary>
-    /// Gets or sets the schema name for the outbox table. Defaults to "dbo".
+    /// Gets or sets the schema name for the outbox table. Defaults to "infra".
     /// </summary>
-    public string SchemaName { get; set; } = "dbo";
+    public string SchemaName { get; set; } = "infra";
 
     /// <summary>
     /// Gets or sets the table name for the outbox. Defaults to "Outbox".

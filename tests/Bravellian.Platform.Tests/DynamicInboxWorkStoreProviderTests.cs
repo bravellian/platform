@@ -45,14 +45,14 @@ public class DynamicInboxWorkStoreProviderTests
             {
                 Identifier = "Customer1",
                 ConnectionString = "Server=localhost;Database=Customer1;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 TableName = "Inbox",
             },
             new InboxDatabaseConfig
             {
                 Identifier = "Customer2",
                 ConnectionString = "Server=localhost;Database=Customer2;",
-                SchemaName = "dbo",
+                SchemaName = "infra",
                 TableName = "Inbox",
             },
         });

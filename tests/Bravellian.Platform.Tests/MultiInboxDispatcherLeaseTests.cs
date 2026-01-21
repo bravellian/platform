@@ -40,7 +40,7 @@ public class MultiInboxDispatcherLeaseTests : SqlServerTestBase
     public async Task MultiInboxDispatcher_WithLease_PreventsConcurrentProcessing()
     {
         // Arrange - Create inbox and distributed lock tables
-        var schema = "dbo";
+        var schema = "infra";
         await DatabaseSchemaManager.EnsureInboxSchemaAsync(ConnectionString, schema, "Inbox");
         await DatabaseSchemaManager.EnsureDistributedLockSchemaAsync(ConnectionString, schema);
 
@@ -148,7 +148,7 @@ public class MultiInboxDispatcherLeaseTests : SqlServerTestBase
     public async Task MultiInboxDispatcher_WithoutLease_AllowsProcessing()
     {
         // Arrange - Create inbox table (no lease table)
-        var schema = "dbo";
+        var schema = "infra";
         await DatabaseSchemaManager.EnsureInboxSchemaAsync(ConnectionString, schema, "Inbox");
 
         // Insert test messages
