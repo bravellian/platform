@@ -471,6 +471,9 @@ public static class PlatformServiceCollectionExtensions
             cleanupInterval: TimeSpan.FromHours(1),
             schemaCompletion: sp.GetService<IDatabaseSchemaCompletion>()));
 
+        // External side effects
+        services.AddPlatformExternalSideEffects(enableSchemaDeployment: enableSchemaDeployment);
+
         // Inbox
         services.AddMultiSqlInbox(
             sp => new PlatformInboxWorkStoreProvider(
