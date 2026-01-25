@@ -30,7 +30,13 @@
 			<_Parameter1>Bravellian.Platform.Tests</_Parameter1>
 		</AssemblyAttribute>
 		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+			<_Parameter1>Bravellian.Platform.Postgres.Tests</_Parameter1>
+		</AssemblyAttribute>
+		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
 			<_Parameter1>Bravellian.Platform.SqlServer</_Parameter1>
+		</AssemblyAttribute>
+		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+			<_Parameter1>Bravellian.Platform.Postgres</_Parameter1>
 		</AssemblyAttribute>
 	</ItemGroup>
 

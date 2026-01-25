@@ -1,0 +1,1 @@
+-- No-op for PostgreSQL. Lease operations are implemented in application SQL.

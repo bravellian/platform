@@ -93,16 +93,16 @@ function Write-FailureArtifacts {
         if ($errorMessage) {
             $lines.Add("")
             $lines.Add("Message:")
-            $lines.Add("```")
+            $lines.Add('```')
             $lines.Add($errorMessage)
-            $lines.Add("```")
+            $lines.Add('```')
         }
         if ($stackTrace) {
             $lines.Add("")
             $lines.Add("Stack:")
-            $lines.Add("```")
+            $lines.Add('```')
             $lines.Add($stackTrace)
-            $lines.Add("```")
+            $lines.Add('```')
         }
         $lines.Add("")
 

@@ -97,6 +97,39 @@
     </PackageReference>
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Update="Castle.Core" Version="5.2.1" />
+    <PackageReference Update="dbup-core" Version="6.0.15" />
+    <PackageReference Update="DiffEngine" Version="18.3.0" />
+    <PackageReference Update="EmptyFiles" Version="8.17.1" />
+    <PackageReference Update="FluentValidation" Version="12.1.1" />
+    <PackageReference Update="Microsoft.Bcl.AsyncInterfaces" Version="10.0.2" />
+    <PackageReference Update="Microsoft.Extensions.Caching.Abstractions" Version="10.0.2" />
+    <PackageReference Update="Microsoft.Extensions.Caching.Memory" Version="10.0.2" />
+    <PackageReference Update="Microsoft.Identity.Client" Version="4.81.0" />
+    <PackageReference Update="Microsoft.Identity.Client.Extensions.Msal" Version="4.81.0" />
+    <PackageReference Update="Microsoft.IdentityModel.Abstractions" Version="8.15.0" />
+    <PackageReference Update="Microsoft.IdentityModel.JsonWebTokens" Version="8.15.0" />
+    <PackageReference Update="Microsoft.IdentityModel.Logging" Version="8.15.0" />
+    <PackageReference Update="Microsoft.IdentityModel.Protocols" Version="8.15.0" />
+    <PackageReference Update="Microsoft.IdentityModel.Protocols.OpenIdConnect" Version="8.15.0" />
+    <PackageReference Update="Microsoft.IdentityModel.Tokens" Version="8.15.0" />
+    <PackageReference Update="Microsoft.Testing.Extensions.Telemetry" Version="2.0.2" />
+    <PackageReference Update="Microsoft.Testing.Extensions.TrxReport.Abstractions" Version="2.0.2" />
+    <PackageReference Update="Microsoft.Testing.Platform" Version="2.0.2" />
+    <PackageReference Update="Microsoft.Testing.Platform.MSBuild" Version="2.0.2" />
+    <PackageReference Update="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Update="System.ClientModel" Version="1.8.1" />
+    <PackageReference Update="System.CodeDom" Version="10.0.2" />
+    <PackageReference Update="System.Configuration.ConfigurationManager" Version="10.0.2" />
+    <PackageReference Update="System.Diagnostics.EventLog" Version="10.0.2" />
+    <PackageReference Update="System.IdentityModel.Tokens.Jwt" Version="8.15.0" />
+    <PackageReference Update="System.Management" Version="10.0.2" />
+    <PackageReference Update="System.Memory.Data" Version="10.0.2" />
+    <PackageReference Update="System.Security.Cryptography.Pkcs" Version="10.0.2" />
+    <PackageReference Update="System.Security.Cryptography.ProtectedData" Version="10.0.2" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(MSBuildProjectExtension)' == '.csproj'">
     <AdditionalFiles Include="$(MSBuildThisFileDirectory)stylecop.json" Link="stylecop.json" />
   </ItemGroup>

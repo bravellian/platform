@@ -1,0 +1,1 @@
+-- No-op for PostgreSQL. Distributed lock operations are implemented in application SQL.

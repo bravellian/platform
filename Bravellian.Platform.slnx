@@ -11,6 +11,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Bravellian.Platform.Tests/Bravellian.Platform.Tests.csproj" />
+    <Project Path="tests/Bravellian.Platform.Postgres.Tests/Bravellian.Platform.Postgres.Tests.csproj" />
   </Folder>
   <Folder Name="/_src/">
     <File Path=".editorconfig" />
@@ -24,5 +25,6 @@
     <File Path="stylecop.json" />
   </Folder>
   <Project Path="src/Bravellian.Platform/Bravellian.Platform.csproj" />
+  <Project Path="src/Bravellian.Platform.Postgres/Bravellian.Platform.Postgres.csproj" />
   <Project Path="src/Bravellian.Platform.SqlServer/Bravellian.Platform.SqlServer.csproj" />
 </Solution>
