@@ -59,11 +59,13 @@ internal sealed class PostgresFanoutCursorRepository : IFanoutCursorRepository
                 AND "ShardKey" = @ShardKey;
             """;
 
-        var result = await connection.QueryFirstOrDefaultAsync<DateTimeOffset?>(
+        var result = await connection.QueryFirstOrDefaultAsync<DateTime?>(
             sql,
             new { FanoutTopic = fanoutTopic, WorkKey = workKey, ShardKey = shardKey }).ConfigureAwait(false);
 
-        return result;
+        return result.HasValue
+            ? new DateTimeOffset(DateTime.SpecifyKind(result.Value, DateTimeKind.Utc))
+            : null;
     }
 
     /// <inheritdoc/>

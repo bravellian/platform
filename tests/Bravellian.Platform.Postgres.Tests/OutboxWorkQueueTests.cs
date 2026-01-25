@@ -171,10 +171,10 @@ public class OutboxWorkQueueTests : PostgresTestBase
 
             await connection.ExecuteAsync(
                 $"""
-                INSERT INTO {qualifiedTableName} ("Id", "Topic", "Payload", "Status", "CreatedAt")
-                VALUES (@Id, @Topic, @Payload, 0, CURRENT_TIMESTAMP)
+                INSERT INTO {qualifiedTableName} ("Id", "Topic", "Payload", "Status", "CreatedAt", "MessageId")
+                VALUES (@Id, @Topic, @Payload, 0, CURRENT_TIMESTAMP, @MessageId)
                 """,
-                new { Id = id, Topic = "test", Payload = $"payload{i}" }).ConfigureAwait(false);
+                new { Id = id, Topic = "test", Payload = $"payload{i}", MessageId = Guid.NewGuid() }).ConfigureAwait(false);
         }
 
         return ids;

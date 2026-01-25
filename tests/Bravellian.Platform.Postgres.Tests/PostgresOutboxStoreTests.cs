@@ -64,8 +64,8 @@ public class PostgresOutboxStoreTests : PostgresTestBase
         await connection.ExecuteAsync(
             $"""
             INSERT INTO {qualifiedTableName}
-            ("Id", "Topic", "Payload", "Status", "CreatedAt", "RetryCount")
-            VALUES (@Id, @Topic, @Payload, @Status, @CreatedAt, 0)
+            ("Id", "Topic", "Payload", "Status", "CreatedAt", "RetryCount", "MessageId")
+            VALUES (@Id, @Topic, @Payload, @Status, @CreatedAt, 0, @MessageId)
             """,
             new
             {
@@ -74,6 +74,7 @@ public class PostgresOutboxStoreTests : PostgresTestBase
                 Payload = "test payload",
                 Status = OutboxStatus.Ready,
                 CreatedAt = DateTimeOffset.UtcNow.AddMinutes(-5),
+                MessageId = Guid.NewGuid(),
             });
 
         var messages = await outboxStore!.ClaimDueAsync(10, CancellationToken.None);
@@ -94,8 +95,8 @@ public class PostgresOutboxStoreTests : PostgresTestBase
         await connection.ExecuteAsync(
             $"""
             INSERT INTO {qualifiedTableName}
-            ("Id", "Topic", "Payload", "Status", "CreatedAt", "RetryCount", "DueTimeUtc")
-            VALUES (@Id, @Topic, @Payload, @Status, @CreatedAt, 0, @DueTimeUtc)
+            ("Id", "Topic", "Payload", "Status", "CreatedAt", "RetryCount", "DueTimeUtc", "MessageId")
+            VALUES (@Id, @Topic, @Payload, @Status, @CreatedAt, 0, @DueTimeUtc, @MessageId)
             """,
             new
             {
@@ -105,6 +106,7 @@ public class PostgresOutboxStoreTests : PostgresTestBase
                 Status = OutboxStatus.Ready,
                 DueTimeUtc = DateTime.UtcNow.AddMinutes(10),
                 CreatedAt = DateTimeOffset.UtcNow,
+                MessageId = Guid.NewGuid(),
             });
 
         var messages = await outboxStore!.ClaimDueAsync(10, CancellationToken.None);
@@ -122,8 +124,8 @@ public class PostgresOutboxStoreTests : PostgresTestBase
         await connection.ExecuteAsync(
             $"""
             INSERT INTO {qualifiedTableName}
-            ("Id", "Topic", "Payload", "Status", "CreatedAt", "RetryCount")
-            VALUES (@Id, @Topic, @Payload, @Status, @CreatedAt, 0)
+            ("Id", "Topic", "Payload", "Status", "CreatedAt", "RetryCount", "MessageId")
+            VALUES (@Id, @Topic, @Payload, @Status, @CreatedAt, 0, @MessageId)
             """,
             new
             {
@@ -132,6 +134,7 @@ public class PostgresOutboxStoreTests : PostgresTestBase
                 Payload = "test payload",
                 Status = OutboxStatus.Ready,
                 CreatedAt = DateTimeOffset.UtcNow,
+                MessageId = Guid.NewGuid(),
             });
 
         await outboxStore!.ClaimDueAsync(10, CancellationToken.None);
@@ -159,8 +162,8 @@ public class PostgresOutboxStoreTests : PostgresTestBase
         await connection.ExecuteAsync(
             $"""
             INSERT INTO {qualifiedTableName}
-            ("Id", "Topic", "Payload", "Status", "CreatedAt", "RetryCount")
-            VALUES (@Id, @Topic, @Payload, @Status, @CreatedAt, 2)
+            ("Id", "Topic", "Payload", "Status", "CreatedAt", "RetryCount", "MessageId")
+            VALUES (@Id, @Topic, @Payload, @Status, @CreatedAt, 2, @MessageId)
             """,
             new
             {
@@ -169,6 +172,7 @@ public class PostgresOutboxStoreTests : PostgresTestBase
                 Payload = "test payload",
                 Status = OutboxStatus.Ready,
                 CreatedAt = DateTimeOffset.UtcNow,
+                MessageId = Guid.NewGuid(),
             });
 
         await outboxStore!.ClaimDueAsync(10, CancellationToken.None);
@@ -200,8 +204,8 @@ public class PostgresOutboxStoreTests : PostgresTestBase
         await connection.ExecuteAsync(
             $"""
             INSERT INTO {qualifiedTableName}
-            ("Id", "Topic", "Payload", "Status", "CreatedAt", "RetryCount")
-            VALUES (@Id, @Topic, @Payload, @Status, @CreatedAt, 0)
+            ("Id", "Topic", "Payload", "Status", "CreatedAt", "RetryCount", "MessageId")
+            VALUES (@Id, @Topic, @Payload, @Status, @CreatedAt, 0, @MessageId)
             """,
             new
             {
@@ -210,6 +214,7 @@ public class PostgresOutboxStoreTests : PostgresTestBase
                 Payload = "test payload",
                 Status = OutboxStatus.Ready,
                 CreatedAt = DateTimeOffset.UtcNow,
+                MessageId = Guid.NewGuid(),
             });
 
         await outboxStore!.ClaimDueAsync(10, CancellationToken.None);

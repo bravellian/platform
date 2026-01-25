@@ -116,7 +116,7 @@ public class OutboxExtensionsTests : PostgresTestBase
         var payload = JsonSerializer.Deserialize<JoinWaitPayload>((string)message.Payload);
         payload.ShouldNotBeNull();
         payload!.JoinId.ShouldBe(joinId);
-        payload.FailIfAnyStepFailed.ShouldBeFalse();
+        payload.FailIfAnyStepFailed.ShouldBeTrue();
         payload.OnCompleteTopic.ShouldBeNull();
         payload.OnCompletePayload.ShouldBeNull();
         payload.OnFailTopic.ShouldBeNull();

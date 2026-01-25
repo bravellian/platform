@@ -69,7 +69,7 @@ public class PostgresOutboxServiceTests : PostgresTestBase
         command.Parameters.AddWithValue("@Topic", topic);
         command.Parameters.AddWithValue("@Payload", payload);
 
-        var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
+        var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken));
 
         count.ShouldBe(1);
 
@@ -106,7 +106,7 @@ public class PostgresOutboxServiceTests : PostgresTestBase
         command.Parameters.AddWithValue("@Topic", topic);
         command.Parameters.AddWithValue("@Payload", payload);
 
-        var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
+        var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken));
 
         count.ShouldBe(1);
 
@@ -130,7 +130,7 @@ public class PostgresOutboxServiceTests : PostgresTestBase
         command.Parameters.AddWithValue("@Topic", topic);
         command.Parameters.AddWithValue("@Payload", payload);
 
-        var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
+        var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken));
 
         count.ShouldBe(1);
 
@@ -184,7 +184,7 @@ public class PostgresOutboxServiceTests : PostgresTestBase
 
         var sql = $"SELECT COUNT(*) FROM {qualifiedTableName}";
         await using var command = new NpgsqlCommand(sql, connection, transaction);
-        var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
+        var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken));
 
         count.ShouldBe(3);
 
@@ -221,7 +221,7 @@ public class PostgresOutboxServiceTests : PostgresTestBase
         command.Parameters.AddWithValue("@Payload", payload);
         command.Parameters.AddWithValue("@CorrelationId", correlationId);
 
-        var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
+        var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken));
 
         count.ShouldBe(1);
 
@@ -247,7 +247,7 @@ public class PostgresOutboxServiceTests : PostgresTestBase
         command.Parameters.AddWithValue("@Topic", topic);
         command.Parameters.AddWithValue("@Payload", payload);
 
-        var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
+        var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken));
 
         count.ShouldBe(1);
 
@@ -276,7 +276,7 @@ public class PostgresOutboxServiceTests : PostgresTestBase
             var sql = $"SELECT COUNT(*) FROM {qualifiedTableName} WHERE \"Topic\" LIKE @TopicPattern";
             await using var command = new NpgsqlCommand(sql, connection);
             command.Parameters.AddWithValue("@TopicPattern", $"%-{testId}");
-            var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
+            var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken));
 
             count.ShouldBe(3);
         }
@@ -297,8 +297,9 @@ public class PostgresOutboxServiceTests : PostgresTestBase
         var customOptions = new PostgresOutboxOptions
         {
             ConnectionString = ConnectionString,
-            SchemaName = "infra",
+            SchemaName = "infra_ensure",
             TableName = "TestOutbox_StandaloneEnsure",
+            EnableSchemaDeployment = true,
         };
 
         var customOutboxService = new PostgresOutboxService(Options.Create(customOptions), NullLogger<PostgresOutboxService>.Instance);
@@ -306,6 +307,7 @@ public class PostgresOutboxServiceTests : PostgresTestBase
 
         await using var setupConnection = new NpgsqlConnection(ConnectionString);
         await setupConnection.OpenAsync(TestContext.Current.CancellationToken);
+        await setupConnection.ExecuteAsync($"CREATE SCHEMA IF NOT EXISTS {PostgresSqlHelper.QuoteIdentifier(customOptions.SchemaName)}");
         await setupConnection.ExecuteAsync($"DROP TABLE IF EXISTS {customTable}");
 
         string topic = "test-topic-ensure";
@@ -320,7 +322,7 @@ public class PostgresOutboxServiceTests : PostgresTestBase
             command.Parameters.AddWithValue("@Topic", topic);
             command.Parameters.AddWithValue("@Payload", payload);
 
-            var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
+            var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken));
 
             count.ShouldBe(1);
         }

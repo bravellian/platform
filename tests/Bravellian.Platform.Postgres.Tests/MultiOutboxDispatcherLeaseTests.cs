@@ -58,8 +58,8 @@ public class MultiOutboxDispatcherLeaseTests : PostgresTestBase
             await connection.ExecuteAsync(
                 $"""
                    INSERT INTO {outboxTable}
-                   ("Id", "Topic", "Payload", "Status", "CreatedAt", "RetryCount")
-                   VALUES (@Id, @Topic, @Payload, @Status, @CreatedAt, 0)
+                   ("Id", "Topic", "Payload", "Status", "CreatedAt", "RetryCount", "MessageId")
+                   VALUES (@Id, @Topic, @Payload, @Status, @CreatedAt, 0, @MessageId)
                    """,
                 new
                 {
@@ -68,6 +68,7 @@ public class MultiOutboxDispatcherLeaseTests : PostgresTestBase
                     Payload = $"message {i}",
                     Status = OutboxStatus.Ready,
                     CreatedAt = DateTimeOffset.UtcNow.AddMinutes(-5),
+                    MessageId = Guid.NewGuid(),
                 });
         }
 
@@ -167,8 +168,8 @@ public class MultiOutboxDispatcherLeaseTests : PostgresTestBase
             await connection.ExecuteAsync(
                 $"""
                    INSERT INTO {outboxTable}
-                   ("Id", "Topic", "Payload", "Status", "CreatedAt", "RetryCount")
-                   VALUES (@Id, @Topic, @Payload, @Status, @CreatedAt, 0)
+                   ("Id", "Topic", "Payload", "Status", "CreatedAt", "RetryCount", "MessageId")
+                   VALUES (@Id, @Topic, @Payload, @Status, @CreatedAt, 0, @MessageId)
                    """,
                 new
                 {
@@ -177,6 +178,7 @@ public class MultiOutboxDispatcherLeaseTests : PostgresTestBase
                     Payload = $"message {i}",
                     Status = OutboxStatus.Ready,
                     CreatedAt = DateTimeOffset.UtcNow.AddMinutes(-5),
+                    MessageId = Guid.NewGuid(),
                 });
         }
 

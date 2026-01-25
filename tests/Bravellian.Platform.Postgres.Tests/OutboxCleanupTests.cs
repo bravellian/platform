@@ -53,8 +53,8 @@ public class OutboxCleanupTests : PostgresTestBase
         await connection.ExecuteAsync(
             $"""
             INSERT INTO {qualifiedTableName}
-            ("Id", "Topic", "Payload", "IsProcessed", "ProcessedAt", "CreatedAt", "Status")
-            VALUES (@Id, @Topic, @Payload, TRUE, @ProcessedAt, @CreatedAt, @Status)
+            ("Id", "Topic", "Payload", "IsProcessed", "ProcessedAt", "CreatedAt", "Status", "MessageId")
+            VALUES (@Id, @Topic, @Payload, TRUE, @ProcessedAt, @CreatedAt, @Status, @MessageId)
             """,
             new
             {
@@ -64,13 +64,14 @@ public class OutboxCleanupTests : PostgresTestBase
                 ProcessedAt = DateTimeOffset.UtcNow.AddDays(-10),
                 CreatedAt = DateTimeOffset.UtcNow.AddDays(-11),
                 Status = OutboxStatus.Done,
+                MessageId = Guid.NewGuid(),
             });
 
         await connection.ExecuteAsync(
             $"""
             INSERT INTO {qualifiedTableName}
-            ("Id", "Topic", "Payload", "IsProcessed", "ProcessedAt", "CreatedAt", "Status")
-            VALUES (@Id, @Topic, @Payload, TRUE, @ProcessedAt, @CreatedAt, @Status)
+            ("Id", "Topic", "Payload", "IsProcessed", "ProcessedAt", "CreatedAt", "Status", "MessageId")
+            VALUES (@Id, @Topic, @Payload, TRUE, @ProcessedAt, @CreatedAt, @Status, @MessageId)
             """,
             new
             {
@@ -80,13 +81,14 @@ public class OutboxCleanupTests : PostgresTestBase
                 ProcessedAt = DateTimeOffset.UtcNow.AddDays(-1),
                 CreatedAt = DateTimeOffset.UtcNow.AddDays(-2),
                 Status = OutboxStatus.Done,
+                MessageId = Guid.NewGuid(),
             });
 
         await connection.ExecuteAsync(
             $"""
             INSERT INTO {qualifiedTableName}
-            ("Id", "Topic", "Payload", "IsProcessed", "CreatedAt", "Status")
-            VALUES (@Id, @Topic, @Payload, FALSE, @CreatedAt, @Status)
+            ("Id", "Topic", "Payload", "IsProcessed", "CreatedAt", "Status", "MessageId")
+            VALUES (@Id, @Topic, @Payload, FALSE, @CreatedAt, @Status, @MessageId)
             """,
             new
             {
@@ -95,6 +97,7 @@ public class OutboxCleanupTests : PostgresTestBase
                 Payload = "unprocessed message",
                 CreatedAt = DateTimeOffset.UtcNow.AddDays(-15),
                 Status = OutboxStatus.Ready,
+                MessageId = Guid.NewGuid(),
             });
 
         var deletedCount = await ExecuteCleanupAsync(TimeSpan.FromDays(7)).ConfigureAwait(false);
@@ -124,8 +127,8 @@ public class OutboxCleanupTests : PostgresTestBase
         await connection.ExecuteAsync(
             $"""
             INSERT INTO {qualifiedTableName}
-            ("Id", "Topic", "Payload", "IsProcessed", "ProcessedAt", "CreatedAt", "Status")
-            VALUES (@Id, @Topic, @Payload, TRUE, @ProcessedAt, @CreatedAt, @Status)
+            ("Id", "Topic", "Payload", "IsProcessed", "ProcessedAt", "CreatedAt", "Status", "MessageId")
+            VALUES (@Id, @Topic, @Payload, TRUE, @ProcessedAt, @CreatedAt, @Status, @MessageId)
             """,
             new
             {
@@ -135,6 +138,7 @@ public class OutboxCleanupTests : PostgresTestBase
                 ProcessedAt = DateTimeOffset.UtcNow.AddHours(-1),
                 CreatedAt = DateTimeOffset.UtcNow.AddHours(-2),
                 Status = OutboxStatus.Done,
+                MessageId = Guid.NewGuid(),
             });
 
         var deletedCount = await ExecuteCleanupAsync(TimeSpan.FromDays(7)).ConfigureAwait(false);
@@ -170,8 +174,8 @@ public class OutboxCleanupTests : PostgresTestBase
             await connection.ExecuteAsync(
                 $"""
                 INSERT INTO {qualifiedTableName}
-                ("Id", "Topic", "Payload", "IsProcessed", "ProcessedAt", "CreatedAt", "Status")
-                VALUES (@Id, @Topic, @Payload, TRUE, @ProcessedAt, @CreatedAt, @Status)
+                ("Id", "Topic", "Payload", "IsProcessed", "ProcessedAt", "CreatedAt", "Status", "MessageId")
+                VALUES (@Id, @Topic, @Payload, TRUE, @ProcessedAt, @CreatedAt, @Status, @MessageId)
                 """,
                 new
                 {
@@ -181,6 +185,7 @@ public class OutboxCleanupTests : PostgresTestBase
                     ProcessedAt = DateTimeOffset.UtcNow.AddDays(-daysAgo),
                     CreatedAt = DateTimeOffset.UtcNow.AddDays(-daysAgo - 1),
                     Status = OutboxStatus.Done,
+                    MessageId = Guid.NewGuid(),
                 });
         }
 

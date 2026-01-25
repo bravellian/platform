@@ -59,8 +59,8 @@ public class MultiOutboxDispatcherTests : PostgresTestBase
         await connection.ExecuteAsync(
             $"""
             INSERT INTO {table1}
-            ("Id", "Topic", "Payload", "Status", "CreatedAt", "RetryCount")
-            VALUES (@Id, @Topic, @Payload, @Status, @CreatedAt, 0)
+            ("Id", "Topic", "Payload", "Status", "CreatedAt", "RetryCount", "MessageId")
+            VALUES (@Id, @Topic, @Payload, @Status, @CreatedAt, 0, @MessageId)
             """,
             new
             {
@@ -69,13 +69,14 @@ public class MultiOutboxDispatcherTests : PostgresTestBase
                 Payload = "message from schema1",
                 Status = OutboxStatus.Ready,
                 CreatedAt = DateTimeOffset.UtcNow.AddMinutes(-5),
+                MessageId = Guid.NewGuid(),
             });
 
         await connection.ExecuteAsync(
             $"""
             INSERT INTO {table2}
-            ("Id", "Topic", "Payload", "Status", "CreatedAt", "RetryCount")
-            VALUES (@Id, @Topic, @Payload, @Status, @CreatedAt, 0)
+            ("Id", "Topic", "Payload", "Status", "CreatedAt", "RetryCount", "MessageId")
+            VALUES (@Id, @Topic, @Payload, @Status, @CreatedAt, 0, @MessageId)
             """,
             new
             {
@@ -84,6 +85,7 @@ public class MultiOutboxDispatcherTests : PostgresTestBase
                 Payload = "message from schema2",
                 Status = OutboxStatus.Ready,
                 CreatedAt = DateTimeOffset.UtcNow.AddMinutes(-5),
+                MessageId = Guid.NewGuid(),
             });
 
         var storeLogger = new TestLogger<PostgresOutboxStore>(TestOutputHelper);
@@ -162,8 +164,8 @@ public class MultiOutboxDispatcherTests : PostgresTestBase
             await connection.ExecuteAsync(
                 $"""
                 INSERT INTO {table}
-                ("Id", "Topic", "Payload", "Status", "CreatedAt", "RetryCount")
-                VALUES (@Id, @Topic, @Payload, @Status, @CreatedAt, 0)
+                ("Id", "Topic", "Payload", "Status", "CreatedAt", "RetryCount", "MessageId")
+                VALUES (@Id, @Topic, @Payload, @Status, @CreatedAt, 0, @MessageId)
                 """,
                 new
                 {
@@ -172,6 +174,7 @@ public class MultiOutboxDispatcherTests : PostgresTestBase
                     Payload = $"message {i} from schema1",
                     Status = OutboxStatus.Ready,
                     CreatedAt = DateTimeOffset.UtcNow.AddMinutes(-5),
+                    MessageId = Guid.NewGuid(),
                 });
         }
 

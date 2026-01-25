@@ -121,10 +121,11 @@ internal sealed class PostgresLease : ISystemLease
                 }
             }
 
-            var now = await connection.ExecuteScalarAsync<DateTimeOffset>(
+            var now = await connection.ExecuteScalarAsync<DateTime>(
                 "SELECT CURRENT_TIMESTAMP;",
                 transaction).ConfigureAwait(false);
-            var newLease = now.AddSeconds(leaseSeconds);
+            var nowOffset = new DateTimeOffset(DateTime.SpecifyKind(now, DateTimeKind.Utc));
+            var newLease = nowOffset.AddSeconds(leaseSeconds);
 
             await connection.ExecuteAsync(
                 $"""
@@ -155,7 +156,7 @@ internal sealed class PostgresLease : ISystemLease
                     OwnerToken = token.Value,
                     LeaseUntil = newLease,
                     ContextJson = contextJson,
-                    Now = now,
+                    Now = nowOffset,
                 },
                 transaction).ConfigureAwait(false);
 
@@ -275,8 +276,9 @@ internal sealed class PostgresLease : ISystemLease
             using var connection = new NpgsqlConnection(connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-            var now = await connection.ExecuteScalarAsync<DateTimeOffset>("SELECT CURRENT_TIMESTAMP;").ConfigureAwait(false);
-            var newLease = now.AddSeconds(leaseSeconds);
+            var now = await connection.ExecuteScalarAsync<DateTime>("SELECT CURRENT_TIMESTAMP;").ConfigureAwait(false);
+            var nowOffset = new DateTimeOffset(DateTime.SpecifyKind(now, DateTimeKind.Utc));
+            var newLease = nowOffset.AddSeconds(leaseSeconds);
 
             var fencingToken = await connection.ExecuteScalarAsync<long?>(
                 $"""
@@ -293,7 +295,7 @@ internal sealed class PostgresLease : ISystemLease
                     ResourceName,
                     OwnerToken = OwnerToken.Value,
                     LeaseUntil = newLease,
-                    Now = now,
+                    Now = nowOffset,
                 }).ConfigureAwait(false);
 
             if (fencingToken.HasValue)

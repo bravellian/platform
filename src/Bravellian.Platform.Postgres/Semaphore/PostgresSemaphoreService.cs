@@ -71,9 +71,10 @@ internal sealed class PostgresSemaphoreService : ISemaphoreService
 
             try
             {
-                var now = await connection.ExecuteScalarAsync<DateTimeOffset>(
+                var now = await connection.ExecuteScalarAsync<DateTime>(
                     "SELECT CURRENT_TIMESTAMP;",
                     transaction).ConfigureAwait(false);
+                var nowUtc = DateTime.SpecifyKind(now, DateTimeKind.Utc);
 
                 var limit = await connection.ExecuteScalarAsync<int?>(
                     $"""
@@ -93,7 +94,7 @@ internal sealed class PostgresSemaphoreService : ISemaphoreService
 
                 if (!string.IsNullOrEmpty(clientRequestId))
                 {
-                    var existing = await connection.QueryFirstOrDefaultAsync<(Guid Token, long Fencing, DateTimeOffset LeaseUntilUtc)>(
+                    var existing = await connection.QueryFirstOrDefaultAsync<(Guid Token, long Fencing, DateTime LeaseUntilUtc)>(
                         $"""
                         SELECT "Token", "Fencing", "LeaseUntilUtc"
                         FROM {leaseTable}
@@ -102,13 +103,13 @@ internal sealed class PostgresSemaphoreService : ISemaphoreService
                             AND "LeaseUntilUtc" > @Now
                         LIMIT 1;
                         """,
-                        new { Name = name, ClientRequestId = clientRequestId, Now = now },
+                        new { Name = name, ClientRequestId = clientRequestId, Now = nowUtc },
                         transaction).ConfigureAwait(false);
 
                     if (existing != default)
                     {
                         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
-                        return SemaphoreAcquireResult.Acquired(existing.Token, existing.Fencing, existing.LeaseUntilUtc.UtcDateTime);
+                        return SemaphoreAcquireResult.Acquired(existing.Token, existing.Fencing, existing.LeaseUntilUtc);
                     }
                 }
 
@@ -124,7 +125,7 @@ internal sealed class PostgresSemaphoreService : ISemaphoreService
                     DELETE FROM {leaseTable}
                     WHERE ctid IN (SELECT ctid FROM expired);
                     """,
-                    new { Name = name, Now = now },
+                    new { Name = name, Now = nowUtc },
                     transaction).ConfigureAwait(false);
 
                 var activeCount = await connection.ExecuteScalarAsync<int>(
@@ -133,7 +134,7 @@ internal sealed class PostgresSemaphoreService : ISemaphoreService
                     FROM {leaseTable}
                     WHERE "Name" = @Name AND "LeaseUntilUtc" > @Now;
                     """,
-                    new { Name = name, Now = now },
+                    new { Name = name, Now = nowUtc },
                     transaction).ConfigureAwait(false);
 
                 if (activeCount >= limit.Value)
@@ -142,7 +143,7 @@ internal sealed class PostgresSemaphoreService : ISemaphoreService
                     return SemaphoreAcquireResult.NotAcquired();
                 }
 
-                var until = now.AddSeconds(ttlSeconds);
+                var until = nowUtc.AddSeconds(ttlSeconds);
                 var token = Guid.NewGuid();
 
                 var fencing = await connection.ExecuteScalarAsync<long>(
@@ -153,7 +154,7 @@ internal sealed class PostgresSemaphoreService : ISemaphoreService
                     WHERE "Name" = @Name
                     RETURNING "NextFencingCounter" - 1;
                     """,
-                    new { Name = name, Now = now },
+                    new { Name = name, Now = nowUtc },
                     transaction).ConfigureAwait(false);
 
                 await connection.ExecuteAsync(
@@ -170,13 +171,13 @@ internal sealed class PostgresSemaphoreService : ISemaphoreService
                         Fencing = fencing,
                         OwnerId = ownerId,
                         LeaseUntilUtc = until,
-                        CreatedUtc = now,
+                        CreatedUtc = nowUtc,
                         ClientRequestId = clientRequestId,
                     },
                     transaction).ConfigureAwait(false);
 
                 await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
-                return SemaphoreAcquireResult.Acquired(token, fencing, until.UtcDateTime);
+                return SemaphoreAcquireResult.Acquired(token, fencing, until);
             }
             catch
             {
@@ -212,10 +213,11 @@ internal sealed class PostgresSemaphoreService : ISemaphoreService
             using var connection = new NpgsqlConnection(options.ConnectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-            var now = await connection.ExecuteScalarAsync<DateTimeOffset>("SELECT CURRENT_TIMESTAMP;").ConfigureAwait(false);
-            var until = now.AddSeconds(ttlSeconds);
+            var now = await connection.ExecuteScalarAsync<DateTime>("SELECT CURRENT_TIMESTAMP;").ConfigureAwait(false);
+            var nowUtc = DateTime.SpecifyKind(now, DateTimeKind.Utc);
+            var until = nowUtc.AddSeconds(ttlSeconds);
 
-            var currentExpiry = await connection.ExecuteScalarAsync<DateTimeOffset?>(
+            var currentExpiry = await connection.ExecuteScalarAsync<DateTime?>(
                 $"""
                 SELECT "LeaseUntilUtc"
                 FROM {leaseTable}
@@ -223,7 +225,7 @@ internal sealed class PostgresSemaphoreService : ISemaphoreService
                 """,
                 new { Name = name, Token = token }).ConfigureAwait(false);
 
-            if (currentExpiry == null || currentExpiry <= now)
+            if (currentExpiry == null || currentExpiry <= nowUtc)
             {
                 return SemaphoreRenewResult.Lost();
             }
@@ -242,10 +244,10 @@ internal sealed class PostgresSemaphoreService : ISemaphoreService
                     Name = name,
                     Token = token,
                     LeaseUntilUtc = newExpiry,
-                    RenewedUtc = now,
+                    RenewedUtc = nowUtc,
                 }).ConfigureAwait(false);
 
-            return SemaphoreRenewResult.Renewed(newExpiry.UtcDateTime);
+            return SemaphoreRenewResult.Renewed(newExpiry);
         }
         catch (Exception ex)
         {

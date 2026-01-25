@@ -249,10 +249,10 @@ public class OutboxWorkerTests : PostgresTestBase
             await connection.ExecuteAsync(
                 $"""
                 INSERT INTO {qualifiedTableName}
-                ("Id", "Topic", "Payload", "Status", "CreatedAt")
-                VALUES (@Id, @Topic, @Payload, @Status, CURRENT_TIMESTAMP)
+                ("Id", "Topic", "Payload", "Status", "CreatedAt", "MessageId")
+                VALUES (@Id, @Topic, @Payload, @Status, CURRENT_TIMESTAMP, @MessageId)
                 """,
-                new { Id = id, Topic = "test", Payload = $"payload{i}", Status = OutboxStatus.Ready }).ConfigureAwait(false);
+                new { Id = id, Topic = "test", Payload = $"payload{i}", Status = OutboxStatus.Ready, MessageId = Guid.NewGuid() }).ConfigureAwait(false);
         }
 
         return ids;

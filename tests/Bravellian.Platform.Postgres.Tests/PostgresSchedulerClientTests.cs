@@ -72,7 +72,7 @@ public class PostgresSchedulerClientTests : PostgresTestBase
         command.Parameters.AddWithValue("@Id", timerGuid);
         command.Parameters.AddWithValue("@Topic", topic);
 
-        var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
+        var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken));
         count.ShouldBe(1);
     }
 
@@ -113,7 +113,7 @@ public class PostgresSchedulerClientTests : PostgresTestBase
         command.Parameters.AddWithValue("@Id", timerGuid);
         command.Parameters.AddWithValue("@Topic", topic);
 
-        var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
+        var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken));
         count.ShouldBe(1);
     }
 
@@ -132,7 +132,7 @@ public class PostgresSchedulerClientTests : PostgresTestBase
         await using var command = new NpgsqlCommand(sql, connection);
         command.Parameters.AddWithValue("@JobName", jobName);
 
-        var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
+        var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken));
         count.ShouldBe(1);
     }
 
@@ -173,7 +173,7 @@ public class PostgresSchedulerClientTests : PostgresTestBase
         await using var countCommand = new NpgsqlCommand(countSql, connection);
         countCommand.Parameters.AddWithValue("@JobName", jobName);
 
-        var count = (int)await countCommand.ExecuteScalarAsync(TestContext.Current.CancellationToken);
+        var count = Convert.ToInt32(await countCommand.ExecuteScalarAsync(TestContext.Current.CancellationToken));
         count.ShouldBe(1);
 
         var topicSql = $"SELECT \"Topic\" FROM {qualifiedJobsTable} WHERE \"JobName\" = @JobName";
@@ -201,7 +201,7 @@ public class PostgresSchedulerClientTests : PostgresTestBase
         await using var command = new NpgsqlCommand(sql, connection);
         command.Parameters.AddWithValue("@JobName", jobName);
 
-        var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
+        var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken));
         count.ShouldBe(0);
     }
 
@@ -222,7 +222,7 @@ public class PostgresSchedulerClientTests : PostgresTestBase
         await using var command = new NpgsqlCommand(sql, connection);
         command.Parameters.AddWithValue("@JobName", jobName);
 
-        var count = (int)await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
+        var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken));
         count.ShouldBeGreaterThan(0);
     }
 }

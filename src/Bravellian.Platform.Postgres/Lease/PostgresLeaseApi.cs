@@ -52,37 +52,41 @@ public sealed class PostgresLeaseApi
 
         try
         {
-            var sql = $"""
-                WITH now_cte AS (
-                    SELECT CURRENT_TIMESTAMP AS "now"
-                ),
-                ins AS (
-                    INSERT INTO {leaseTable} ("Name", "Owner", "LeaseUntilUtc", "LastGrantedUtc")
-                    VALUES (@Name, NULL, NULL, NULL)
-                    ON CONFLICT ("Name") DO NOTHING
-                ),
-                upd AS (
-                    UPDATE {leaseTable}
-                    SET "Owner" = @Owner,
-                        "LeaseUntilUtc" = (SELECT "now" FROM now_cte) + (@LeaseSeconds || ' seconds')::interval,
-                        "LastGrantedUtc" = (SELECT "now" FROM now_cte)
-                    WHERE "Name" = @Name
-                        AND ("Owner" IS NULL OR "LeaseUntilUtc" IS NULL OR "LeaseUntilUtc" <= (SELECT "now" FROM now_cte))
-                    RETURNING "LeaseUntilUtc"
-                )
-                SELECT
-                    EXISTS (SELECT 1 FROM upd) AS "acquired",
-                    (SELECT "now" FROM now_cte) AS "serverUtcNow",
-                    (SELECT "LeaseUntilUtc" FROM upd) AS "leaseUntilUtc";
-                """;
+            var now = await connection.ExecuteScalarAsync<DateTime>(
+                "SELECT CURRENT_TIMESTAMP;",
+                transaction).ConfigureAwait(false);
+            var nowUtc = DateTime.SpecifyKind(now, DateTimeKind.Utc);
 
-            var result = await connection.QuerySingleAsync<LeaseAcquireResult>(
-                sql,
-                new { Name = name, Owner = owner, LeaseSeconds = leaseSeconds },
+            await connection.ExecuteAsync(
+                $"""
+                INSERT INTO {leaseTable} ("Name", "Owner", "LeaseUntilUtc", "LastGrantedUtc")
+                VALUES (@Name, NULL, NULL, NULL)
+                ON CONFLICT ("Name") DO NOTHING;
+                """,
+                new { Name = name },
+                transaction).ConfigureAwait(false);
+
+            var leaseUntilUtc = await connection.ExecuteScalarAsync<DateTime?>(
+                $"""
+                UPDATE {leaseTable}
+                SET "Owner" = @Owner,
+                    "LeaseUntilUtc" = @LeaseUntilUtc,
+                    "LastGrantedUtc" = @Now
+                WHERE "Name" = @Name
+                    AND ("Owner" IS NULL OR "LeaseUntilUtc" IS NULL OR "LeaseUntilUtc" <= @Now)
+                RETURNING "LeaseUntilUtc";
+                """,
+                new
+                {
+                    Name = name,
+                    Owner = owner,
+                    Now = nowUtc,
+                    LeaseUntilUtc = nowUtc.AddSeconds(leaseSeconds),
+                },
                 transaction).ConfigureAwait(false);
 
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
-            return result;
+            return new LeaseAcquireResult(leaseUntilUtc.HasValue, nowUtc, leaseUntilUtc);
         }
         catch
         {
@@ -103,27 +107,27 @@ public sealed class PostgresLeaseApi
         using var connection = new NpgsqlConnection(connectionString);
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-        var sql = $"""
-            WITH now_cte AS (
-                SELECT CURRENT_TIMESTAMP AS "now"
-            ),
-            upd AS (
-                UPDATE {leaseTable}
-                SET "LeaseUntilUtc" = (SELECT "now" FROM now_cte) + (@LeaseSeconds || ' seconds')::interval,
-                    "LastGrantedUtc" = (SELECT "now" FROM now_cte)
-                WHERE "Name" = @Name
-                    AND "Owner" = @Owner
-                    AND "LeaseUntilUtc" > (SELECT "now" FROM now_cte)
-                RETURNING "LeaseUntilUtc"
-            )
-            SELECT
-                EXISTS (SELECT 1 FROM upd) AS "renewed",
-                (SELECT "now" FROM now_cte) AS "serverUtcNow",
-                (SELECT "LeaseUntilUtc" FROM upd) AS "leaseUntilUtc";
-            """;
+        var now = await connection.ExecuteScalarAsync<DateTime>("SELECT CURRENT_TIMESTAMP;").ConfigureAwait(false);
+        var nowUtc = DateTime.SpecifyKind(now, DateTimeKind.Utc);
 
-        return await connection.QuerySingleAsync<LeaseRenewResult>(
-            sql,
-            new { Name = name, Owner = owner, LeaseSeconds = leaseSeconds }).ConfigureAwait(false);
+        var leaseUntilUtc = await connection.ExecuteScalarAsync<DateTime?>(
+            $"""
+            UPDATE {leaseTable}
+            SET "LeaseUntilUtc" = @LeaseUntilUtc,
+                "LastGrantedUtc" = @Now
+            WHERE "Name" = @Name
+                AND "Owner" = @Owner
+                AND "LeaseUntilUtc" > @Now
+            RETURNING "LeaseUntilUtc";
+            """,
+            new
+            {
+                Name = name,
+                Owner = owner,
+                Now = nowUtc,
+                LeaseUntilUtc = nowUtc.AddSeconds(leaseSeconds),
+            }).ConfigureAwait(false);
+
+        return new LeaseRenewResult(leaseUntilUtc.HasValue, nowUtc, leaseUntilUtc);
     }
 }

@@ -325,8 +325,8 @@ internal sealed class PostgresOutboxService : IOutbox
                 {
                     OwnerToken = ownerToken.Value,
                     Ids = idList,
-                    LastError = DBNull.Value,
-                    DueTimeUtc = DBNull.Value,
+                    LastError = (string?)null,
+                    DueTimeUtc = (DateTime?)null,
                 }).ConfigureAwait(false);
 
             logger.LogDebug("Abandoned {Count} outbox items with owner {OwnerToken}", idList.Length, ownerToken);
@@ -392,7 +392,7 @@ internal sealed class PostgresOutboxService : IOutbox
                 {
                     OwnerToken = ownerToken.Value,
                     Ids = idList,
-                    LastError = DBNull.Value,
+                    LastError = (string?)null,
                     ProcessedBy = $"{Environment.MachineName}:FAILED",
                 }).ConfigureAwait(false);
 
