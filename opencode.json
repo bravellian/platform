@@ -1,0 +1,72 @@
+{
+  "agents": {
+    "path": ".opencode/agents"
+  },
+  "tools": {
+    "skill": true
+  },
+  "permissions": {
+    "default": {
+      "mode": "autonomous-safe",
+      "allow": [
+        "read",
+        "skill",
+        "bash:git status",
+        "bash:git diff",
+        "bash:git log",
+        "bash:rg",
+        "bash:grep",
+        "bash:dotnet build",
+        "bash:dotnet test",
+        "bash:dotnet list package",
+        "bash:dotnet format --verify-no-changes",
+        "bash:dotnet tool restore",
+        "bash:ls",
+        "bash:cat",
+        "bash:find",
+        "powershell:git status",
+        "powershell:git diff",
+        "powershell:git log",
+        "powershell:rg",
+        "powershell:grep",
+        "powershell:dotnet build",
+        "powershell:dotnet test",
+        "powershell:dotnet list package",
+        "powershell:dotnet format --verify-no-changes",
+        "powershell:dotnet tool restore",
+        "powershell:ls",
+        "powershell:cat",
+        "powershell:find"
+      ],
+      "ask": [
+        "git commit",
+        "git push",
+        "git tag",
+        "edit ci pipelines",
+        "deploy",
+        "publish",
+        "docker build",
+        "docker push",
+        "kubectl",
+        "helm",
+        "terraform",
+        "az",
+        "aws",
+        "gcloud",
+        "rm -rf",
+        "chmod",
+        "chown",
+        "secrets",
+        "credentials",
+        "apply migrations to real database"
+      ],
+      "deny": [
+        "webfetch"
+      ]
+    }
+  },
+  "artifacts": {
+    "defaultRoot": "artifacts",
+    "diagnosticsOnly": true
+  }
+}
