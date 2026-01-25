@@ -35,6 +35,18 @@ public class DynamicInboxWorkStoreProviderTests
         return new TestLoggerFactory(testOutputHelper);
     }
 
+    /// <summary>
+    /// When the dynamic inbox provider performs initial discovery, then it returns stores for all configured databases.
+    /// </summary>
+    /// <intent>
+    /// Verify initial discovery populates inbox work stores from discovery results.
+    /// </intent>
+    /// <scenario>
+    /// Given a SampleInboxDatabaseDiscovery returning Customer1 and Customer2 configs.
+    /// </scenario>
+    /// <behavior>
+    /// Then GetAllStoresAsync returns two stores with identifiers matching the discovered customers.
+    /// </behavior>
     [Fact]
     public async Task DynamicProvider_DiscoversInitialDatabases()
     {
@@ -76,6 +88,18 @@ public class DynamicInboxWorkStoreProviderTests
         provider.GetStoreIdentifier(stores[1]).ShouldBeOneOf("Customer1", "Customer2");
     }
 
+    /// <summary>
+    /// When a new inbox database is added to discovery, then RefreshAsync updates the store list.
+    /// </summary>
+    /// <intent>
+    /// Ensure the provider detects newly added inbox databases.
+    /// </intent>
+    /// <scenario>
+    /// Given discovery initially returns Customer1 and later adds Customer2 before RefreshAsync.
+    /// </scenario>
+    /// <behavior>
+    /// Then GetAllStoresAsync returns two stores with identifiers for both customers.
+    /// </behavior>
     [Fact]
     public async Task DynamicProvider_DetectsNewDatabases()
     {
@@ -120,6 +144,18 @@ public class DynamicInboxWorkStoreProviderTests
         provider.GetStoreIdentifier(updatedStores[1]).ShouldBeOneOf("Customer1", "Customer2");
     }
 
+    /// <summary>
+    /// When an inbox database is removed from discovery, then RefreshAsync removes its store.
+    /// </summary>
+    /// <intent>
+    /// Ensure the provider drops stores for removed inbox databases.
+    /// </intent>
+    /// <scenario>
+    /// Given discovery initially returns Customer1 and Customer2, then Customer2 is removed before RefreshAsync.
+    /// </scenario>
+    /// <behavior>
+    /// Then GetAllStoresAsync returns one store identified as Customer1.
+    /// </behavior>
     [Fact]
     public async Task DynamicProvider_DetectsRemovedDatabases()
     {
@@ -164,6 +200,18 @@ public class DynamicInboxWorkStoreProviderTests
         provider.GetStoreIdentifier(updatedStores[0]).ShouldBe("Customer1");
     }
 
+    /// <summary>
+    /// When the refresh interval elapses, then the provider automatically refreshes discovery results.
+    /// </summary>
+    /// <intent>
+    /// Validate time-based automatic refresh behavior for inbox work stores.
+    /// </intent>
+    /// <scenario>
+    /// Given a FakeTimeProvider, one initial database, and a second database added before time advances.
+    /// </scenario>
+    /// <behavior>
+    /// Then advancing time past the interval causes GetAllStoresAsync to return two stores.
+    /// </behavior>
     [Fact]
     public async Task DynamicProvider_RefreshesAutomaticallyAfterInterval()
     {

@@ -27,6 +27,18 @@ namespace Bravellian.Platform.Tests.Modularity;
 [Collection("ModuleRegistryTests")]
 public sealed class RazorPagesConfigurationTests
 {
+    /// <summary>
+    /// When ConfigureRazorModulePages is invoked for a registered Razor module, then its assembly is added to the Razor application parts.
+    /// </summary>
+    /// <intent>
+    /// Verify that Razor module assemblies are registered with Razor pages.
+    /// </intent>
+    /// <scenario>
+    /// Given a module registry containing TestRazorModule and services configured with the required configuration key.
+    /// </scenario>
+    /// <behavior>
+    /// Then the MVC ApplicationPartManager includes an AssemblyPart for the module assembly.
+    /// </behavior>
     [Fact]
     public void ConfigureRazorModulePages_registers_application_parts()
     {
@@ -53,6 +65,18 @@ public sealed class RazorPagesConfigurationTests
         assemblyPart.ShouldNotBeNull();
     }
 
+    /// <summary>
+    /// When ConfigureRazorModulePages runs for a registered module, then RazorPagesOptions can be resolved from the service provider.
+    /// </summary>
+    /// <intent>
+    /// Confirm that module Razor configuration wires up Razor pages options in DI.
+    /// </intent>
+    /// <scenario>
+    /// Given TestRazorModule is registered and services are configured with its required configuration key.
+    /// </scenario>
+    /// <behavior>
+    /// Then an IOptionsMonitor<RazorPagesOptions> is available from the built service provider.
+    /// </behavior>
     [Fact]
     public void ConfigureRazorModulePages_invokes_module_configuration()
     {

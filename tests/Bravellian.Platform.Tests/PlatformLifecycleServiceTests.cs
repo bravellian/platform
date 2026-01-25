@@ -21,6 +21,18 @@ namespace Bravellian.Platform.Tests;
 /// </summary>
 public class PlatformLifecycleServiceTests
 {
+    /// <summary>
+    /// When dynamic discovery is enabled and startup does not require databases, then StartAsync completes without throwing.
+    /// </summary>
+    /// <intent>
+    /// Allow zero databases at startup for dynamic discovery.
+    /// </intent>
+    /// <scenario>
+    /// Given a configuration with UsesDiscovery true, RequiresDatabaseAtStartup false, and an EmptyDatabaseDiscovery.
+    /// </scenario>
+    /// <behavior>
+    /// Then StartAsync returns without exceptions.
+    /// </behavior>
     [Fact]
     public async Task StartAsync_WithDynamicDiscovery_AndNoDatabases_DoesNotThrowException()
     {
@@ -41,6 +53,18 @@ public class PlatformLifecycleServiceTests
         await service.StartAsync(CancellationToken.None);
     }
 
+    /// <summary>
+    /// When list-based discovery requires databases but none are found, then StartAsync throws with a missing database message.
+    /// </summary>
+    /// <intent>
+    /// Enforce startup database requirements for list-based discovery.
+    /// </intent>
+    /// <scenario>
+    /// Given UsesDiscovery false, RequiresDatabaseAtStartup true, and an EmptyDatabaseDiscovery.
+    /// </scenario>
+    /// <behavior>
+    /// Then StartAsync throws an InvalidOperationException containing "At least one database is required".
+    /// </behavior>
     [Fact]
     public async Task StartAsync_WithListBasedDiscovery_AndNoDatabases_ThrowsException()
     {
@@ -64,6 +88,18 @@ public class PlatformLifecycleServiceTests
         exception.Message.ShouldContain("At least one database is required");
     }
 
+    /// <summary>
+    /// When dynamic discovery uses a control plane and no app databases exist yet, then StartAsync fails for control plane validation rather than missing databases.
+    /// </summary>
+    /// <intent>
+    /// Ensure control plane validation is reported distinctly from discovery emptiness.
+    /// </intent>
+    /// <scenario>
+    /// Given UsesDiscovery true, a control plane connection string, and an EmptyDatabaseDiscovery.
+    /// </scenario>
+    /// <behavior>
+    /// Then StartAsync throws an InvalidOperationException mentioning the control plane and not the missing database requirement.
+    /// </behavior>
     [Fact]
     public async Task StartAsync_WithDynamicDiscoveryAndControlPlane_AndNoDatabases_DoesNotThrowException()
     {
@@ -91,6 +127,18 @@ public class PlatformLifecycleServiceTests
         exception.Message.ShouldNotContain("At least one database is required");
     }
 
+    /// <summary>
+    /// When dynamic discovery returns at least one database, then StartAsync completes without throwing.
+    /// </summary>
+    /// <intent>
+    /// Allow startup with dynamic discovery when a database is discoverable.
+    /// </intent>
+    /// <scenario>
+    /// Given UsesDiscovery true and a TestDatabaseDiscovery that returns one database.
+    /// </scenario>
+    /// <behavior>
+    /// Then StartAsync completes successfully.
+    /// </behavior>
     [Fact]
     public async Task StartAsync_WithDynamicDiscovery_AndOneDatabase_Succeeds()
     {
@@ -119,6 +167,18 @@ public class PlatformLifecycleServiceTests
         await service.StartAsync(CancellationToken.None);
     }
 
+    /// <summary>
+    /// When list-based discovery provides at least one database, then StartAsync completes without throwing.
+    /// </summary>
+    /// <intent>
+    /// Allow startup with list-based discovery when a database is configured.
+    /// </intent>
+    /// <scenario>
+    /// Given UsesDiscovery false and a TestDatabaseDiscovery that returns one database.
+    /// </scenario>
+    /// <behavior>
+    /// Then StartAsync completes successfully.
+    /// </behavior>
     [Fact]
     public async Task StartAsync_WithListBasedDiscovery_AndOneDatabase_Succeeds()
     {

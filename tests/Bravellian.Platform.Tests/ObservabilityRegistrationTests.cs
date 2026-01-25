@@ -21,6 +21,10 @@ namespace Bravellian.Platform.Tests;
 
 public class ObservabilityRegistrationTests
 {
+    /// <summary>When AddPlatformObservability is called, then watchdog services are registered in DI.</summary>
+    /// <intent>Verify basic observability wiring registers the watchdog and hosted service.</intent>
+    /// <scenario>Given a ServiceCollection with logging and AddPlatformObservability applied.</scenario>
+    /// <behavior>Then IWatchdog resolves and WatchdogService is present among hosted services.</behavior>
     [Fact]
     public void AddPlatformObservability_RegistersRequiredServices()
     {
@@ -40,6 +44,10 @@ public class ObservabilityRegistrationTests
         hostedServices.ShouldContain(s => s is WatchdogService);
     }
 
+    /// <summary>When AddPlatformObservability is configured, then the options reflect the provided settings.</summary>
+    /// <intent>Ensure custom observability options are bound into IOptions.</intent>
+    /// <scenario>Given AddPlatformObservability invoked with a configuration delegate.</scenario>
+    /// <behavior>Then ObservabilityOptions exposes the configured metrics, logging, and scan period values.</behavior>
     [Fact]
     public void AddPlatformObservability_AllowsConfiguration()
     {
@@ -64,6 +72,10 @@ public class ObservabilityRegistrationTests
         options.Value.Watchdog.ScanPeriod.ShouldBe(TimeSpan.FromSeconds(60));
     }
 
+    /// <summary>When an alert sink is added via the builder, then it is registered for resolution.</summary>
+    /// <intent>Verify watchdog alert sinks can be registered through the builder.</intent>
+    /// <scenario>Given AddPlatformObservability followed by AddWatchdogAlertSink with a delegate.</scenario>
+    /// <behavior>Then IWatchdogAlertSink services are present in DI.</behavior>
     [Fact]
     public void ObservabilityBuilder_CanAddAlertSink()
     {
@@ -85,6 +97,10 @@ public class ObservabilityRegistrationTests
         sinks.ShouldNotBeEmpty();
     }
 
+    /// <summary>When a heartbeat sink is added via the builder, then it is registered for resolution.</summary>
+    /// <intent>Verify heartbeat sinks can be registered through the observability builder.</intent>
+    /// <scenario>Given AddPlatformObservability followed by AddHeartbeatSink with a delegate.</scenario>
+    /// <behavior>Then IHeartbeatSink services are present in DI.</behavior>
     [Fact]
     public void ObservabilityBuilder_CanAddHeartbeatSink()
     {
@@ -103,6 +119,10 @@ public class ObservabilityRegistrationTests
         sinks.ShouldNotBeEmpty();
     }
 
+    /// <summary>When platform health checks are added via the builder, then the health check service is registered.</summary>
+    /// <intent>Confirm health check registration is wired through observability setup.</intent>
+    /// <scenario>Given AddPlatformObservability followed by AddPlatformHealthChecks.</scenario>
+    /// <behavior>Then HealthCheckService resolves from the service provider.</behavior>
     [Fact]
     public void ObservabilityBuilder_CanAddHealthChecks()
     {
@@ -122,6 +142,10 @@ public class ObservabilityRegistrationTests
         healthCheckService.ShouldNotBeNull();
     }
 
+    /// <summary>When a WatchdogAlertContext is created, then all supplied fields are preserved.</summary>
+    /// <intent>Verify alert context carries kind, component, timestamps, and attributes.</intent>
+    /// <scenario>Given a WatchdogAlertContext constructed with explicit values and attributes.</scenario>
+    /// <behavior>Then the properties match the provided inputs, including attribute entries.</behavior>
     [Fact]
     public void WatchdogAlertContext_ContainsAllRequiredFields()
     {
@@ -152,6 +176,10 @@ public class ObservabilityRegistrationTests
         context.Attributes["test_key"].ShouldBe("test_value");
     }
 
+    /// <summary>When a WatchdogSnapshot is created with alerts, then those alerts are retained.</summary>
+    /// <intent>Ensure watchdog snapshots surface alert payloads and timestamps.</intent>
+    /// <scenario>Given a WatchdogSnapshot constructed with one ActiveAlert and timestamps.</scenario>
+    /// <behavior>Then the snapshot contains the alert and preserves LastScanAt/LastHeartbeatAt.</behavior>
     [Fact]
     public void WatchdogSnapshot_ContainsAlerts()
     {

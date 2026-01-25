@@ -39,6 +39,10 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         schedulerClient = new SqlSchedulerClient(Options.Create(defaultOptions), TimeProvider.System);
     }
 
+    /// <summary>When constructing the scheduler client, then it provides an ISchedulerClient implementation.</summary>
+    /// <intent>Verify SqlSchedulerClient instantiation succeeds.</intent>
+    /// <scenario>Create a SqlSchedulerClient with default options and TimeProvider.System.</scenario>
+    /// <behavior>The client is not null and is assignable to ISchedulerClient.</behavior>
     [Fact]
     public void Constructor_WithValidConnectionString_CreatesInstance()
     {
@@ -51,6 +55,10 @@ public class SqlSchedulerClientTests : SqlServerTestBase
     }
 
     // Timer Tests
+    /// <summary>When scheduling a timer, then a timer row with the topic is inserted.</summary>
+    /// <intent>Validate ScheduleTimerAsync persists timers.</intent>
+    /// <scenario>Schedule a timer with topic, payload, and due time.</scenario>
+    /// <behavior>The returned id is a Guid and one matching timer row exists.</behavior>
     [Fact]
     public async Task ScheduleTimerAsync_WithValidParameters_InsertsTimerToDatabase()
     {
@@ -78,6 +86,10 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         count.ShouldBe(1);
     }
 
+    /// <summary>When custom scheduler table names are used, then timers are stored in the custom table.</summary>
+    /// <intent>Ensure ScheduleTimerAsync honors custom table options.</intent>
+    /// <scenario>Create custom schema/tables and schedule a timer with the custom client.</scenario>
+    /// <behavior>The custom timers table contains one matching row.</behavior>
     [Fact]
     public async Task ScheduleTimerAsync_WithCustomTableNames_InsertsToCorrectTable()
     {
@@ -126,6 +138,10 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         count.ShouldBe(1);
     }
 
+    /// <summary>When scheduling a timer, then default timer columns are initialized.</summary>
+    /// <intent>Verify default status and metadata values on insert.</intent>
+    /// <scenario>Schedule a timer and read the stored row.</scenario>
+    /// <behavior>Status is Pending, ClaimedBy/ClaimedAt are null, RetryCount is 0, and CreatedAt is recent.</behavior>
     [Fact]
     public async Task ScheduleTimerAsync_WithValidParameters_SetsCorrectDefaults()
     {
@@ -157,6 +173,10 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         reader.GetDateTimeOffset(4).ShouldBeGreaterThan(DateTimeOffset.UtcNow.AddMinutes(-1)); // CreatedAt
     }
 
+    /// <summary>When cancelling an existing timer, then CancelTimerAsync returns true and status is Cancelled.</summary>
+    /// <intent>Verify cancellation updates stored timer status.</intent>
+    /// <scenario>Schedule a timer, then cancel it by id.</scenario>
+    /// <behavior>CancelTimerAsync returns true and the timer status is Cancelled.</behavior>
     [Fact]
     public async Task CancelTimerAsync_WithValidTimerId_UpdatesTimerStatus()
     {
@@ -184,6 +204,10 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         status.ShouldBe("Cancelled");
     }
 
+    /// <summary>When cancelling a missing timer id, then CancelTimerAsync returns false.</summary>
+    /// <intent>Confirm cancel is a no-op for unknown timers.</intent>
+    /// <scenario>Call CancelTimerAsync with a random Guid string.</scenario>
+    /// <behavior>The result is false.</behavior>
     [Fact]
     public async Task CancelTimerAsync_WithNonexistentTimerId_ReturnsFalse()
     {
@@ -198,6 +222,10 @@ public class SqlSchedulerClientTests : SqlServerTestBase
     }
 
     // Job Tests
+    /// <summary>When creating a job, then a job row is inserted with name, topic, and cron schedule.</summary>
+    /// <intent>Validate CreateOrUpdateJobAsync persists new jobs.</intent>
+    /// <scenario>Create a job with name, topic, cron, and payload.</scenario>
+    /// <behavior>The jobs table contains one matching row.</behavior>
     [Fact]
     public async Task CreateOrUpdateJobAsync_WithValidParameters_InsertsJobToDatabase()
     {
@@ -224,6 +252,10 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         count.ShouldBe(1);
     }
 
+    /// <summary>When creating a job with a null payload, then the stored payload remains null.</summary>
+    /// <intent>Allow null payloads when defining jobs.</intent>
+    /// <scenario>Create a job with payload set to null.</scenario>
+    /// <behavior>The payload column is DBNull for the job.</behavior>
     [Fact]
     public async Task CreateOrUpdateJobAsync_WithNullPayload_InsertsJobSuccessfully()
     {
@@ -246,6 +278,10 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         result.ShouldBe(DBNull.Value);
     }
 
+    /// <summary>When a job already exists, then CreateOrUpdateJobAsync updates it without duplication.</summary>
+    /// <intent>Verify upsert behavior for existing jobs.</intent>
+    /// <scenario>Create a job, then call CreateOrUpdateJobAsync again with a new topic.</scenario>
+    /// <behavior>The job count remains one and the topic is updated.</behavior>
     [Fact]
     public async Task CreateOrUpdateJobAsync_ExistingJob_UpdatesJob()
     {
@@ -280,6 +316,10 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         topic.ShouldBe(updatedTopic);
     }
 
+    /// <summary>When deleting an existing job, then the job row is removed.</summary>
+    /// <intent>Verify DeleteJobAsync removes jobs by name.</intent>
+    /// <scenario>Create a job and then delete it by name.</scenario>
+    /// <behavior>The jobs table contains zero matching rows.</behavior>
     [Fact]
     public async Task DeleteJobAsync_WithValidJobName_RemovesJob()
     {
@@ -304,6 +344,10 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         count.ShouldBe(0);
     }
 
+    /// <summary>When triggering a job, then a job run is created for that job.</summary>
+    /// <intent>Ensure TriggerJobAsync records a job run.</intent>
+    /// <scenario>Create a job and trigger it by name.</scenario>
+    /// <behavior>The job runs table contains at least one row for the job.</behavior>
     [Fact]
     public async Task TriggerJobAsync_WithValidJobName_CreatesJobRun()
     {

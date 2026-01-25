@@ -50,6 +50,10 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
         await DatabaseSchemaManager.EnsureFanoutSchemaAsync(ConnectionString).ConfigureAwait(false);
     }
 
+    /// <summary>When the schema is deployed, then all required core tables exist in the infra schema.</summary>
+    /// <intent>Verify core platform tables are created in the test database.</intent>
+    /// <scenario>Given schema deployment for outbox, inbox, scheduler, and fanout modules.</scenario>
+    /// <behavior>Then the expected table names are present under infra.</behavior>
     [Fact]
     public async Task DatabaseSchema_AllRequiredTablesExist()
     {
@@ -76,6 +80,10 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
         }
     }
 
+    /// <summary>When inspecting the Outbox table, then required columns exist with expected data types.</summary>
+    /// <intent>Ensure outbox schema matches production column definitions.</intent>
+    /// <scenario>Given the Outbox table deployed in the infra schema.</scenario>
+    /// <behavior>Then all essential outbox and work-queue columns are present with correct types.</behavior>
     [Fact]
     public async Task OutboxTable_HasCorrectSchema()
     {
@@ -112,6 +120,10 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
         }
     }
 
+    /// <summary>When inspecting the Jobs table, then required columns exist with expected data types.</summary>
+    /// <intent>Ensure jobs schema matches production column definitions.</intent>
+    /// <scenario>Given the Jobs table deployed in the infra schema.</scenario>
+    /// <behavior>Then all job definition columns are present with correct types.</behavior>
     [Fact]
     public async Task JobsTable_HasCorrectSchema()
     {
@@ -140,6 +152,10 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
         }
     }
 
+    /// <summary>When inspecting the Timers table, then required columns exist with expected data types.</summary>
+    /// <intent>Ensure timers schema matches production column definitions.</intent>
+    /// <scenario>Given the Timers table deployed in the infra schema.</scenario>
+    /// <behavior>Then all timer and work-queue columns are present with correct types.</behavior>
     [Fact]
     public async Task TimersTable_HasCorrectSchema()
     {
@@ -174,6 +190,10 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
         }
     }
 
+    /// <summary>When inspecting the JobRuns table, then required columns exist with expected data types.</summary>
+    /// <intent>Ensure job run schema matches production column definitions.</intent>
+    /// <scenario>Given the JobRuns table deployed in the infra schema.</scenario>
+    /// <behavior>Then all job run and work-queue columns are present with correct types.</behavior>
     [Fact]
     public async Task JobRunsTable_HasCorrectSchema()
     {
@@ -207,6 +227,10 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
         }
     }
 
+    /// <summary>When inspecting the Inbox table, then required columns exist with expected data types.</summary>
+    /// <intent>Ensure inbox schema matches production column definitions.</intent>
+    /// <scenario>Given the Inbox table deployed in the infra schema.</scenario>
+    /// <behavior>Then all inbox columns are present with correct types.</behavior>
     [Fact]
     public async Task InboxTable_HasCorrectSchema()
     {
@@ -234,6 +258,10 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
         }
     }
 
+    /// <summary>When required indexes are inspected, then core tables have the expected indexes.</summary>
+    /// <intent>Verify production index definitions are present in tests.</intent>
+    /// <scenario>Given the infra schema with deployed tables and indexes.</scenario>
+    /// <behavior>Then the outbox, jobs, timers, and job runs indexes exist.</behavior>
     [Fact]
     public async Task RequiredIndexes_ExistOnAllTables()
     {
@@ -255,6 +283,10 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
         indexExists.ShouldBeTrue("JobRuns should have IX_JobRuns_WorkQueue index");
     }
 
+    /// <summary>When a custom schema name is used, then scheduler tables and indexes are created in that schema.</summary>
+    /// <intent>Ensure schema customization works for scheduler artifacts.</intent>
+    /// <scenario>Given DatabaseSchemaManager.EnsureSchedulerSchemaAsync called with a custom schema and table names.</scenario>
+    /// <behavior>Then the custom tables exist and the expected index name is present.</behavior>
     [Fact]
     public async Task CustomSchemaNames_WorkCorrectly()
     {
@@ -293,6 +325,10 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
         indexExists.ShouldBeTrue("Custom Jobs table should have correctly named unique index");
     }
 
+    /// <summary>When work-queue migrations are applied, then work-queue columns and types exist.</summary>
+    /// <intent>Verify work-queue migration adds required columns and table types.</intent>
+    /// <scenario>Given the Outbox table after schema deployment.</scenario>
+    /// <behavior>Then Status, LockedUntil, OwnerToken, and the GuidIdList type exist.</behavior>
     [Fact]
     public async Task WorkQueueColumns_ExistAfterMigration()
     {
@@ -314,6 +350,10 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
         typeExists.ShouldBeGreaterThan(0, "Work queue type infra.GuidIdList should exist");
     }
 
+    /// <summary>When work-queue procedures are inspected, then they use SYSUTCDATETIME for timing.</summary>
+    /// <intent>Ensure stored procedures rely on database-authoritative time.</intent>
+    /// <scenario>Given the Outbox and Inbox work-queue procedures deployed in infra.</scenario>
+    /// <behavior>Then procedure definitions include SYSUTCDATETIME.</behavior>
     [Fact]
     public async Task WorkQueueProcedures_UseDatabaseUtcTime()
     {

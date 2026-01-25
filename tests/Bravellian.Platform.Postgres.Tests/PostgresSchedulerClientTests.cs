@@ -44,6 +44,10 @@ public class PostgresSchedulerClientTests : PostgresTestBase
         qualifiedTimersTable = PostgresSqlHelper.Qualify(defaultOptions.SchemaName, defaultOptions.TimersTableName);
     }
 
+    /// <summary>When constructed with valid options, then the client is created and implements ISchedulerClient.</summary>
+    /// <intent>Verify the scheduler client can be instantiated with valid options.</intent>
+    /// <scenario>Given PostgresSchedulerOptions with a valid connection string.</scenario>
+    /// <behavior>The instance is non-null and assignable to ISchedulerClient.</behavior>
     [Fact]
     public void Constructor_WithValidConnectionString_CreatesInstance()
     {
@@ -53,6 +57,10 @@ public class PostgresSchedulerClientTests : PostgresTestBase
         client.ShouldBeAssignableTo<ISchedulerClient>();
     }
 
+    /// <summary>When scheduling a timer, then a timer row is inserted into the database.</summary>
+    /// <intent>Verify ScheduleTimerAsync persists timers to the Timers table.</intent>
+    /// <scenario>Given a topic, payload, and due time in the near future.</scenario>
+    /// <behavior>The Timers table contains one row for the returned timer id and topic.</behavior>
     [Fact]
     public async Task ScheduleTimerAsync_WithValidParameters_InsertsTimerToDatabase()
     {
@@ -76,6 +84,10 @@ public class PostgresSchedulerClientTests : PostgresTestBase
         count.ShouldBe(1);
     }
 
+    /// <summary>When scheduling with custom table names, then the timer is inserted into the custom table.</summary>
+    /// <intent>Verify custom schema/table names are honored for timers.</intent>
+    /// <scenario>Given a scheduler client configured with custom schema and table names.</scenario>
+    /// <behavior>The custom timers table contains one row for the scheduled timer.</behavior>
     [Fact]
     public async Task ScheduleTimerAsync_WithCustomTableNames_InsertsToCorrectTable()
     {
@@ -117,6 +129,10 @@ public class PostgresSchedulerClientTests : PostgresTestBase
         count.ShouldBe(1);
     }
 
+    /// <summary>When creating a new job, then a job row is inserted.</summary>
+    /// <intent>Verify CreateOrUpdateJobAsync inserts new jobs.</intent>
+    /// <scenario>Given a job name, topic, and cron schedule that do not yet exist.</scenario>
+    /// <behavior>The Jobs table contains one row for the job name.</behavior>
     [Fact]
     public async Task CreateOrUpdateJobAsync_NewJob_InsertsJob()
     {
@@ -136,6 +152,10 @@ public class PostgresSchedulerClientTests : PostgresTestBase
         count.ShouldBe(1);
     }
 
+    /// <summary>When a job is created without a payload, then the payload column is null.</summary>
+    /// <intent>Verify null payloads are persisted as NULL.</intent>
+    /// <scenario>Given CreateOrUpdateJobAsync called without a payload for a new job.</scenario>
+    /// <behavior>The Jobs row payload column is NULL.</behavior>
     [Fact]
     public async Task CreateOrUpdateJobAsync_WithNullPayload_SetsPayloadToNull()
     {
@@ -155,6 +175,10 @@ public class PostgresSchedulerClientTests : PostgresTestBase
         result.ShouldBe(DBNull.Value);
     }
 
+    /// <summary>When updating an existing job, then the job is updated without duplication.</summary>
+    /// <intent>Verify CreateOrUpdateJobAsync updates existing jobs.</intent>
+    /// <scenario>Given a job created once and then updated with a new topic.</scenario>
+    /// <behavior>The Jobs table has one row and the topic matches the update.</behavior>
     [Fact]
     public async Task CreateOrUpdateJobAsync_ExistingJob_UpdatesJob()
     {
@@ -184,6 +208,10 @@ public class PostgresSchedulerClientTests : PostgresTestBase
         topic.ShouldBe(updatedTopic);
     }
 
+    /// <summary>When deleting a job by name, then the job row is removed.</summary>
+    /// <intent>Verify DeleteJobAsync removes jobs.</intent>
+    /// <scenario>Given a job created and then deleted by name.</scenario>
+    /// <behavior>The Jobs table contains zero rows for the job name.</behavior>
     [Fact]
     public async Task DeleteJobAsync_WithValidJobName_RemovesJob()
     {
@@ -205,6 +233,10 @@ public class PostgresSchedulerClientTests : PostgresTestBase
         count.ShouldBe(0);
     }
 
+    /// <summary>When triggering a job by name, then a job run row is created.</summary>
+    /// <intent>Verify TriggerJobAsync creates job runs.</intent>
+    /// <scenario>Given an existing job and a trigger call.</scenario>
+    /// <behavior>The JobRuns table contains at least one row for the job.</behavior>
     [Fact]
     public async Task TriggerJobAsync_WithValidJobName_CreatesJobRun()
     {

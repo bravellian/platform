@@ -60,6 +60,10 @@ public class SemaphoreServiceTests : SqlServerTestBase
 
     #region Basic Correctness Tests
 
+    /// <summary>When acquiring a semaphore that has not been created, then status is NotAcquired.</summary>
+    /// <intent>Confirm missing semaphores are not implicitly created.</intent>
+    /// <scenario>Use a new semaphore name without calling EnsureExistsAsync.</scenario>
+    /// <behavior>TryAcquireAsync returns NotAcquired.</behavior>
     [Fact]
     public async Task TryAcquire_WithNonExistentSemaphore_ReturnsNotAcquired()
     {
@@ -77,6 +81,10 @@ public class SemaphoreServiceTests : SqlServerTestBase
         result.Status.ShouldBe(SemaphoreAcquireStatus.NotAcquired);
     }
 
+    /// <summary>When acquiring up to the configured limit, then each acquisition succeeds with unique tokens.</summary>
+    /// <intent>Verify limit enforcement allows acquisitions up to capacity.</intent>
+    /// <scenario>Ensure a semaphore with limit 3 and acquire three times with different owners.</scenario>
+    /// <behavior>All results are Acquired with unique tokens and fencing values.</behavior>
     [Fact]
     public async Task TryAcquire_UpToLimit_AllAcquiresSucceed()
     {
@@ -103,6 +111,10 @@ public class SemaphoreServiceTests : SqlServerTestBase
         results.Select(r => r.Fencing).Distinct().Count().ShouldBe(limit); // All unique fencing counters
     }
 
+    /// <summary>When acquisitions exceed the limit, then additional acquire attempts return NotAcquired.</summary>
+    /// <intent>Ensure the semaphore blocks acquisitions beyond capacity.</intent>
+    /// <scenario>Ensure a semaphore with limit 2, acquire twice, then attempt a third acquire.</scenario>
+    /// <behavior>The third attempt returns NotAcquired.</behavior>
     [Fact]
     public async Task TryAcquire_BeyondLimit_ReturnsNotAcquired()
     {
@@ -132,6 +144,10 @@ public class SemaphoreServiceTests : SqlServerTestBase
         result.Status.ShouldBe(SemaphoreAcquireStatus.NotAcquired);
     }
 
+    /// <summary>When a lease is released, then a new acquire can succeed.</summary>
+    /// <intent>Verify ReleaseAsync frees capacity for new leases.</intent>
+    /// <scenario>Acquire a lease on a limit-1 semaphore, release it, then attempt another acquire.</scenario>
+    /// <behavior>The release succeeds and the second acquire is Acquired.</behavior>
     [Fact]
     public async Task Release_FreesCapacity()
     {
@@ -164,6 +180,10 @@ public class SemaphoreServiceTests : SqlServerTestBase
         secondAcquire.Status.ShouldBe(SemaphoreAcquireStatus.Acquired);
     }
 
+    /// <summary>When the same token is released twice, then the second release reports NotFound.</summary>
+    /// <intent>Ensure ReleaseAsync is idempotent.</intent>
+    /// <scenario>Acquire a lease and call ReleaseAsync twice with the same token.</scenario>
+    /// <behavior>The first release is Released and the second is NotFound.</behavior>
     [Fact]
     public async Task Release_IdempotentWhenCalledTwice()
     {
@@ -193,6 +213,10 @@ public class SemaphoreServiceTests : SqlServerTestBase
         secondRelease.Status.ShouldBe(SemaphoreReleaseStatus.NotFound);
     }
 
+    /// <summary>When renewing an active lease, then the expiry moves forward.</summary>
+    /// <intent>Verify RenewAsync extends the lease expiration.</intent>
+    /// <scenario>Acquire a lease, wait briefly, then renew with the same TTL.</scenario>
+    /// <behavior>The renew result is Renewed and ExpiresAtUtc is later than the original.</behavior>
     [Fact]
     public async Task Renew_ExtendsLeaseExpiry()
     {
@@ -222,6 +246,10 @@ public class SemaphoreServiceTests : SqlServerTestBase
         renewResult.ExpiresAtUtc!.Value.ShouldBeGreaterThan(originalExpiry);
     }
 
+    /// <summary>When renewing after a release, then the lease is reported as lost.</summary>
+    /// <intent>Ensure released tokens cannot be renewed.</intent>
+    /// <scenario>Acquire a lease, release it, then attempt to renew the same token.</scenario>
+    /// <behavior>The renew result status is Lost.</behavior>
     [Fact]
     public async Task Renew_AfterRelease_ReturnsLost()
     {
@@ -251,6 +279,10 @@ public class SemaphoreServiceTests : SqlServerTestBase
         renewResult.Status.ShouldBe(SemaphoreRenewStatus.Lost);
     }
 
+    /// <summary>When multiple leases are acquired, then fencing counters strictly increase.</summary>
+    /// <intent>Verify fencing counters are monotonic across acquires.</intent>
+    /// <scenario>Acquire five leases sequentially and record fencing counters.</scenario>
+    /// <behavior>Each fencing counter is greater than the previous one.</behavior>
     [Fact]
     public async Task Fencing_StrictlyIncreases()
     {
@@ -277,6 +309,10 @@ public class SemaphoreServiceTests : SqlServerTestBase
         }
     }
 
+    /// <summary>When renewing with a shorter TTL, then the expiry does not move backward.</summary>
+    /// <intent>Ensure RenewAsync enforces a monotonic expiry.</intent>
+    /// <scenario>Acquire a lease with TTL 60 and renew it with TTL 10.</scenario>
+    /// <behavior>The renewed ExpiresAtUtc is greater than or equal to the original.</behavior>
     [Fact]
     public async Task Renew_MonotonicExtension_NeverShortensExpiry()
     {
@@ -308,6 +344,10 @@ public class SemaphoreServiceTests : SqlServerTestBase
 
     #region Expiry and Reaping Tests
 
+    /// <summary>When a lease expires, then a subsequent acquire succeeds.</summary>
+    /// <intent>Verify expired leases free capacity for new acquisitions.</intent>
+    /// <scenario>Acquire with a short TTL, wait for expiry, then attempt another acquire.</scenario>
+    /// <behavior>The second acquire returns Acquired.</behavior>
     [Fact]
     public async Task TryAcquire_AfterExpiry_Succeeds()
     {
@@ -338,6 +378,10 @@ public class SemaphoreServiceTests : SqlServerTestBase
         secondAcquire.Status.ShouldBe(SemaphoreAcquireStatus.Acquired);
     }
 
+    /// <summary>When reaping expired leases, then expired rows are deleted.</summary>
+    /// <intent>Validate ReapExpiredAsync removes expired leases.</intent>
+    /// <scenario>Acquire multiple leases with short TTLs, wait for expiry, then reap.</scenario>
+    /// <behavior>The deleted count equals the number of expired leases.</behavior>
     [Fact]
     public async Task ReapExpired_RemovesExpiredLeases()
     {
@@ -368,6 +412,10 @@ public class SemaphoreServiceTests : SqlServerTestBase
         deletedCount.ShouldBe(3);
     }
 
+    /// <summary>When reaping with a max row limit, then deletions are capped to that limit.</summary>
+    /// <intent>Ensure ReapExpiredAsync respects the maxRows parameter.</intent>
+    /// <scenario>Acquire several short-lived leases, wait for expiry, then reap with maxRows 2.</scenario>
+    /// <behavior>The first reap deletes 2 leases and the next reap deletes the remainder.</behavior>
     [Fact]
     public async Task ReapExpired_WithMaxRows_LimitsDeletions()
     {
@@ -409,6 +457,10 @@ public class SemaphoreServiceTests : SqlServerTestBase
 
     #region Limit Changes Tests
 
+    /// <summary>When the limit is increased, then additional acquires can succeed.</summary>
+    /// <intent>Verify UpdateLimitAsync expands capacity.</intent>
+    /// <scenario>Acquire at limit 1, update limit to 2, then acquire again.</scenario>
+    /// <behavior>The second acquire returns Acquired.</behavior>
     [Fact]
     public async Task UpdateLimit_Increase_EnablesMoreAcquires()
     {
@@ -441,6 +493,10 @@ public class SemaphoreServiceTests : SqlServerTestBase
         second.Status.ShouldBe(SemaphoreAcquireStatus.Acquired);
     }
 
+    /// <summary>When the limit is decreased below active count, then new acquires are blocked until capacity frees.</summary>
+    /// <intent>Ensure UpdateLimitAsync enforces the lowered limit.</intent>
+    /// <scenario>Acquire two leases, lower limit to one, attempt acquires after each release.</scenario>
+    /// <behavior>Acquires are NotAcquired while at the limit and succeed after both releases.</behavior>
     [Fact]
     public async Task UpdateLimit_Decrease_BlocksNewAcquires()
     {
@@ -504,6 +560,10 @@ public class SemaphoreServiceTests : SqlServerTestBase
 
     #region Idempotency Tests
 
+    /// <summary>When acquiring twice with the same client request id, then the same lease is returned.</summary>
+    /// <intent>Verify TryAcquireAsync is idempotent by client request id.</intent>
+    /// <scenario>Call TryAcquireAsync twice with the same clientRequestId.</scenario>
+    /// <behavior>The second result matches the first token and fencing values.</behavior>
     [Fact]
     public async Task TryAcquire_WithSameClientRequestId_ReturnsExistingLease()
     {
@@ -539,6 +599,10 @@ public class SemaphoreServiceTests : SqlServerTestBase
 
     #region Validation Tests
 
+    /// <summary>When the semaphore name is empty or whitespace, then TryAcquireAsync throws ArgumentException.</summary>
+    /// <intent>Validate semaphore name input is required.</intent>
+    /// <scenario>Call TryAcquireAsync with invalid name inputs from InlineData.</scenario>
+    /// <behavior>An ArgumentException is thrown.</behavior>
     [Theory]
     [InlineData("")]
     [InlineData("   ")]
@@ -554,6 +618,10 @@ public class SemaphoreServiceTests : SqlServerTestBase
         });
     }
 
+    /// <summary>When the semaphore name exceeds the maximum length, then TryAcquireAsync throws ArgumentException.</summary>
+    /// <intent>Enforce maximum semaphore name length.</intent>
+    /// <scenario>Call TryAcquireAsync with a 201-character name.</scenario>
+    /// <behavior>An ArgumentException is thrown.</behavior>
     [Fact]
     public async Task TryAcquire_NameTooLong_ThrowsArgumentException()
     {
@@ -569,6 +637,10 @@ public class SemaphoreServiceTests : SqlServerTestBase
         });
     }
 
+    /// <summary>When the semaphore name uses allowed characters, then TryAcquireAsync succeeds.</summary>
+    /// <intent>Verify valid name patterns are accepted.</intent>
+    /// <scenario>Ensure semaphores exist for valid names and call TryAcquireAsync.</scenario>
+    /// <behavior>Each attempt returns Acquired.</behavior>
     [Theory]
     [InlineData("test-semaphore")]
     [InlineData("test_semaphore")]
@@ -592,6 +664,10 @@ public class SemaphoreServiceTests : SqlServerTestBase
         result.Status.ShouldBe(SemaphoreAcquireStatus.Acquired);
     }
 
+    /// <summary>When the semaphore name contains invalid characters, then TryAcquireAsync throws ArgumentException.</summary>
+    /// <intent>Reject invalid semaphore name characters.</intent>
+    /// <scenario>Call TryAcquireAsync with names containing spaces or punctuation like @ or #.</scenario>
+    /// <behavior>An ArgumentException is thrown.</behavior>
     [Theory]
     [InlineData("test semaphore")] // Space not allowed
     [InlineData("test@semaphore")] // @ not allowed
@@ -608,6 +684,10 @@ public class SemaphoreServiceTests : SqlServerTestBase
         });
     }
 
+    /// <summary>When the TTL is below the minimum, then TryAcquireAsync throws ArgumentException.</summary>
+    /// <intent>Validate minimum TTL constraints.</intent>
+    /// <scenario>Ensure a semaphore exists and call TryAcquireAsync with TTL 0.</scenario>
+    /// <behavior>An ArgumentException is thrown.</behavior>
     [Fact]
     public async Task TryAcquire_TtlBelowMinimum_ThrowsArgumentException()
     {
@@ -624,6 +704,10 @@ public class SemaphoreServiceTests : SqlServerTestBase
         });
     }
 
+    /// <summary>When the TTL exceeds the maximum, then TryAcquireAsync throws ArgumentException.</summary>
+    /// <intent>Validate maximum TTL constraints.</intent>
+    /// <scenario>Ensure a semaphore exists and call TryAcquireAsync with TTL 3601.</scenario>
+    /// <behavior>An ArgumentException is thrown.</behavior>
     [Fact]
     public async Task TryAcquire_TtlAboveMaximum_ThrowsArgumentException()
     {
@@ -640,6 +724,10 @@ public class SemaphoreServiceTests : SqlServerTestBase
         });
     }
 
+    /// <summary>When EnsureExistsAsync receives a limit below minimum, then it throws ArgumentException.</summary>
+    /// <intent>Enforce minimum semaphore limit.</intent>
+    /// <scenario>Call EnsureExistsAsync with limit 0.</scenario>
+    /// <behavior>An ArgumentException is thrown.</behavior>
     [Fact]
     public async Task EnsureExists_LimitBelowMinimum_ThrowsArgumentException()
     {
@@ -654,6 +742,10 @@ public class SemaphoreServiceTests : SqlServerTestBase
         });
     }
 
+    /// <summary>When EnsureExistsAsync receives a limit above maximum, then it throws ArgumentException.</summary>
+    /// <intent>Enforce maximum semaphore limit.</intent>
+    /// <scenario>Call EnsureExistsAsync with limit 10001.</scenario>
+    /// <behavior>An ArgumentException is thrown.</behavior>
     [Fact]
     public async Task EnsureExists_LimitAboveMaximum_ThrowsArgumentException()
     {
@@ -672,6 +764,10 @@ public class SemaphoreServiceTests : SqlServerTestBase
 
     #region Multi-Name Isolation Tests
 
+    /// <summary>When acquiring leases for different semaphore names, then each name is isolated.</summary>
+    /// <intent>Verify semaphore names do not share capacity.</intent>
+    /// <scenario>Create two named semaphores and acquire one lease from each.</scenario>
+    /// <behavior>Both acquisitions succeed and tokens differ.</behavior>
     [Fact]
     public async Task MultipleNames_AreIsolated()
     {

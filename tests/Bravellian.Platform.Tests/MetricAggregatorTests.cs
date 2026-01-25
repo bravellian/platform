@@ -21,6 +21,10 @@ namespace Bravellian.Platform.Tests;
 /// </summary>
 public sealed class MetricAggregatorTests
 {
+    /// <summary>When values are recorded, then the snapshot returns the correct sum and count.</summary>
+    /// <intent>Verify aggregation totals across multiple recorded values.</intent>
+    /// <scenario>Given a MetricAggregator that records three numeric values.</scenario>
+    /// <behavior>Then GetSnapshotAndReset reports sum 60 and count 3.</behavior>
     [Fact]
     public void Aggregator_Should_Calculate_Sum_And_Count()
     {
@@ -36,6 +40,10 @@ public sealed class MetricAggregatorTests
         Assert.Equal(3, snapshot.Count);
     }
 
+    /// <summary>When values are recorded, then the snapshot reports the minimum and maximum correctly.</summary>
+    /// <intent>Ensure min/max tracking reflects the recorded range.</intent>
+    /// <scenario>Given a MetricAggregator that records values 5, 15, 3, and 20.</scenario>
+    /// <behavior>Then GetSnapshotAndReset returns Min = 3 and Max = 20.</behavior>
     [Fact]
     public void Aggregator_Should_Track_Min_And_Max()
     {
@@ -52,6 +60,10 @@ public sealed class MetricAggregatorTests
         Assert.Equal(20, snapshot.Max);
     }
 
+    /// <summary>When values are recorded, then the snapshot keeps the last recorded value.</summary>
+    /// <intent>Verify the aggregator tracks the most recent observation.</intent>
+    /// <scenario>Given a MetricAggregator that records 10, 20, then 15.</scenario>
+    /// <behavior>Then GetSnapshotAndReset returns Last = 15.</behavior>
     [Fact]
     public void Aggregator_Should_Track_Last_Value()
     {
@@ -66,6 +78,10 @@ public sealed class MetricAggregatorTests
         Assert.Equal(15, snapshot.Last);
     }
 
+    /// <summary>When a distribution of values is recorded, then percentile estimates are populated and within expected ranges.</summary>
+    /// <intent>Validate percentile calculation for a known 1..100 data set.</intent>
+    /// <scenario>Given a MetricAggregator that records integers 1 through 100.</scenario>
+    /// <behavior>Then P50, P95, and P99 are non-null and fall within expected ranges.</behavior>
     [Fact]
     public void Aggregator_Should_Calculate_Percentiles()
     {
@@ -93,6 +109,10 @@ public sealed class MetricAggregatorTests
         Assert.InRange(snapshot.P99.Value, 95, 100);
     }
 
+    /// <summary>When a snapshot is taken, then the aggregator resets its state for subsequent readings.</summary>
+    /// <intent>Ensure GetSnapshotAndReset clears accumulated values.</intent>
+    /// <scenario>Given a MetricAggregator that records two values and then snapshots twice.</scenario>
+    /// <behavior>Then the second snapshot returns zeros and nulls for all aggregates.</behavior>
     [Fact]
     public void Aggregator_Should_Reset_After_Snapshot()
     {
@@ -113,6 +133,10 @@ public sealed class MetricAggregatorTests
         Assert.Null(snapshot2.Max);
     }
 
+    /// <summary>When no values are recorded, then the snapshot reports zeros and null percentiles.</summary>
+    /// <intent>Verify the empty state snapshot uses default aggregate values.</intent>
+    /// <scenario>Given a new MetricAggregator with no recorded values.</scenario>
+    /// <behavior>Then GetSnapshotAndReset returns zero sum/count and null min/max/percentiles.</behavior>
     [Fact]
     public void Aggregator_Should_Handle_Empty_State()
     {

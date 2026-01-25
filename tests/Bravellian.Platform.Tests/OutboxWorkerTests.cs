@@ -90,6 +90,10 @@ public class OutboxWorkerTests : SqlServerTestBase
         }
     }
 
+    /// <summary>When the worker processes claimed items, then it acknowledges them and they become Done.</summary>
+    /// <intent>Validate the outbox worker completes and acknowledges messages.</intent>
+    /// <scenario>Given three ready outbox items and a running TestOutboxWorker.</scenario>
+    /// <behavior>Then all items are processed and marked Done in the database.</behavior>
     [Fact]
     public async Task Worker_ProcessesClaimedItems_AndAcknowledgesThem()
     {
@@ -112,6 +116,10 @@ public class OutboxWorkerTests : SqlServerTestBase
         await VerifyOutboxStatusAsync(testIds, 2); // Status = Done
     }
 
+    /// <summary>When the worker fails to process items, then it abandons them back to Ready.</summary>
+    /// <intent>Ensure failures result in abandon operations rather than acknowledgements.</intent>
+    /// <scenario>Given a TestOutboxWorker configured to fail processing and a short processing delay.</scenario>
+    /// <behavior>Then the claimed items return to Ready status.</behavior>
     [Fact]
     public async Task Worker_WithProcessingFailure_AbandonsItems()
     {
@@ -134,6 +142,10 @@ public class OutboxWorkerTests : SqlServerTestBase
         await VerifyOutboxStatusAsync(testIds, 0); // Status = Ready
     }
 
+    /// <summary>When items are claimed directly, then they enter InProgress and the claims match existing ids.</summary>
+    /// <intent>Validate ClaimAsync returns known items and updates status.</intent>
+    /// <scenario>Given two ready outbox items and a generated owner token.</scenario>
+    /// <behavior>Then the returned ids match the inserted items and have Status = InProgress.</behavior>
     [Fact]
     public async Task Worker_ClaimsItemsCorrectly()
     {
@@ -151,6 +163,10 @@ public class OutboxWorkerTests : SqlServerTestBase
         await VerifyOutboxStatusAsync(claimedIds, 1); // Status = InProgress
     }
 
+    /// <summary>When AbandonAsync is called manually, then claimed items return to Ready.</summary>
+    /// <intent>Ensure manual abandon resets outbox item state.</intent>
+    /// <scenario>Given claimed outbox items and the owning token.</scenario>
+    /// <behavior>Then the items have Status = Ready.</behavior>
     [Fact]
     public async Task Manual_AbandonOperation_Works()
     {
@@ -168,6 +184,10 @@ public class OutboxWorkerTests : SqlServerTestBase
         await VerifyOutboxStatusAsync(claimedIds, 0); // Status = Ready
     }
 
+    /// <summary>When a claim lease expires and is reaped, then another owner can reclaim the item.</summary>
+    /// <intent>Verify lease expiration allows subsequent claims.</intent>
+    /// <scenario>Given a 1-second lease, a reap after expiry, and a second owner token.</scenario>
+    /// <behavior>Then the second owner claims the same item successfully.</behavior>
     [Fact]
     public async Task WorkQueue_LeaseExpiration_AllowsReclaim()
     {
@@ -194,6 +214,10 @@ public class OutboxWorkerTests : SqlServerTestBase
         claimed2[0].ShouldBe(claimed1[0]); // Same item
     }
 
+    /// <summary>When a lease is reaped and re-claimed, then the new owner token is persisted.</summary>
+    /// <intent>Ensure owner token updates after lease expiration and re-claim.</intent>
+    /// <scenario>Given a claim by owner1, a reap after expiry, and a new claim by owner2.</scenario>
+    /// <behavior>Then the database OwnerToken reflects owner2 for the reclaimed item.</behavior>
     [Fact]
     public async Task WorkQueue_RestartUsesNewOwnerTokenAfterReap()
     {
@@ -218,6 +242,10 @@ public class OutboxWorkerTests : SqlServerTestBase
         claimed1[0].ShouldBe(claimed2[0]);
     }
 
+    /// <summary>When AckAsync is called multiple times for the same items, then no errors occur and status remains Done.</summary>
+    /// <intent>Verify acknowledgements are idempotent.</intent>
+    /// <scenario>Given claimed items and multiple AckAsync calls with the same owner token.</scenario>
+    /// <behavior>Then the items remain in Status = Done.</behavior>
     [Fact]
     public async Task WorkQueue_IdempotentOperations_NoErrors()
     {
@@ -235,6 +263,10 @@ public class OutboxWorkerTests : SqlServerTestBase
         await VerifyOutboxStatusAsync(claimedIds, 2); // Status = Done
     }
 
+    /// <summary>When a non-owner tries to acknowledge items, then the items remain InProgress.</summary>
+    /// <intent>Ensure owner token enforcement prevents unauthorized modifications.</intent>
+    /// <scenario>Given claimed items owned by owner1 and AckAsync called by owner2.</scenario>
+    /// <behavior>Then the items stay InProgress under owner1.</behavior>
     [Fact]
     public async Task WorkQueue_UnauthorizedOwner_CannotModify()
     {
@@ -251,6 +283,10 @@ public class OutboxWorkerTests : SqlServerTestBase
         await VerifyOutboxStatusAsync(claimedIds, 1); // Status = InProgress
     }
 
+    /// <summary>When AckAsync, AbandonAsync, or FailAsync are called with empty id lists, then they complete without error.</summary>
+    /// <intent>Verify empty batch operations are safe no-ops.</intent>
+    /// <scenario>Given an empty list of OutboxWorkItemIdentifier values.</scenario>
+    /// <behavior>Then the operations complete without throwing.</behavior>
     [Fact]
     public async Task WorkQueue_EmptyIdLists_NoErrors()
     {
@@ -264,6 +300,10 @@ public class OutboxWorkerTests : SqlServerTestBase
         await outboxService.FailAsync(ownerToken, emptyIds, TestContext.Current.CancellationToken);
     }
 
+    /// <summary>When multiple workers claim concurrently, then no outbox item is claimed more than once.</summary>
+    /// <intent>Validate concurrency safety of the claim operation.</intent>
+    /// <scenario>Given ten ready items and five concurrent ClaimAsync calls.</scenario>
+    /// <behavior>Then all claimed ids are unique and do not exceed available items.</behavior>
     [Fact]
     public async Task WorkQueue_ConcurrentClaims_NoOverlap()
     {
@@ -288,6 +328,10 @@ public class OutboxWorkerTests : SqlServerTestBase
         uniqueClaimed.Count.ShouldBeLessThanOrEqualTo(10); // Can't claim more than available
     }
 
+    /// <summary>When cancellation is requested, then the worker stops promptly.</summary>
+    /// <intent>Ensure the outbox worker cooperates with cancellation tokens.</intent>
+    /// <scenario>Given a TestOutboxWorker with a long processing delay and a short cancellation timeout.</scenario>
+    /// <behavior>Then the worker stops in under five seconds.</behavior>
     [Fact]
     public async Task Worker_RespectsCancellationToken()
     {

@@ -58,6 +58,18 @@ public class DynamicSchedulerStoreProviderTests
         }
     }
 
+    /// <summary>
+    /// When the dynamic scheduler provider performs initial discovery, then it returns stores for all configured databases.
+    /// </summary>
+    /// <intent>
+    /// Verify initial discovery populates scheduler stores from discovery results.
+    /// </intent>
+    /// <scenario>
+    /// Given a SampleSchedulerDatabaseDiscovery returning Customer1 and Customer2 configs.
+    /// </scenario>
+    /// <behavior>
+    /// Then GetAllStoresAsync returns two stores with identifiers matching the discovered customers.
+    /// </behavior>
     [Fact]
     public async Task DynamicProvider_DiscoversInitialDatabases()
     {
@@ -103,6 +115,18 @@ public class DynamicSchedulerStoreProviderTests
         provider.GetStoreIdentifier(stores[1]).ShouldBeOneOf("Customer1", "Customer2");
     }
 
+    /// <summary>
+    /// When a new database appears in discovery, then RefreshAsync updates the store list.
+    /// </summary>
+    /// <intent>
+    /// Ensure the provider detects newly added scheduler databases.
+    /// </intent>
+    /// <scenario>
+    /// Given discovery initially returns Customer1 and later adds Customer2 before RefreshAsync.
+    /// </scenario>
+    /// <behavior>
+    /// Then GetAllStoresAsync returns two stores with identifiers for both customers.
+    /// </behavior>
     [Fact]
     public async Task DynamicProvider_DetectsNewDatabases()
     {
@@ -146,6 +170,18 @@ public class DynamicSchedulerStoreProviderTests
         provider.GetStoreIdentifier(updatedStores[1]).ShouldBeOneOf("Customer1", "Customer2");
     }
 
+    /// <summary>
+    /// When a database is removed from discovery, then RefreshAsync removes its store.
+    /// </summary>
+    /// <intent>
+    /// Ensure the provider drops stores for removed scheduler databases.
+    /// </intent>
+    /// <scenario>
+    /// Given discovery initially returns Customer1 and Customer2, then Customer2 is removed before RefreshAsync.
+    /// </scenario>
+    /// <behavior>
+    /// Then GetAllStoresAsync returns one store identified as Customer1.
+    /// </behavior>
     [Fact]
     public async Task DynamicProvider_DetectsRemovedDatabases()
     {
@@ -189,6 +225,18 @@ public class DynamicSchedulerStoreProviderTests
         provider.GetStoreIdentifier(updatedStores[0]).ShouldBe("Customer1");
     }
 
+    /// <summary>
+    /// When a known scheduler key is requested, then GetSchedulerClientByKey returns a client instance.
+    /// </summary>
+    /// <intent>
+    /// Verify keyed scheduler client lookup works after discovery.
+    /// </intent>
+    /// <scenario>
+    /// Given discovery provides Customer1 and initial discovery has completed.
+    /// </scenario>
+    /// <behavior>
+    /// Then GetSchedulerClientByKey("Customer1") returns a non-null client.
+    /// </behavior>
     [Fact]
     public async Task DynamicProvider_GetSchedulerClientByKey_ReturnsCorrectClient()
     {
@@ -221,6 +269,18 @@ public class DynamicSchedulerStoreProviderTests
         client.ShouldNotBeNull();
     }
 
+    /// <summary>
+    /// When an unknown scheduler key is requested, then GetSchedulerClientByKey returns null.
+    /// </summary>
+    /// <intent>
+    /// Ensure missing scheduler keys are reported as null lookups.
+    /// </intent>
+    /// <scenario>
+    /// Given discovery provides Customer1 and initial discovery has completed.
+    /// </scenario>
+    /// <behavior>
+    /// Then GetSchedulerClientByKey("UnknownCustomer") returns null.
+    /// </behavior>
     [Fact]
     public async Task DynamicProvider_GetSchedulerClientByKey_ReturnsNullForUnknownKey()
     {

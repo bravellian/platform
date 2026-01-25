@@ -41,6 +41,10 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         outboxService = new SqlOutboxService(Options.Create(defaultOptions), NullLogger<SqlOutboxService>.Instance);
     }
 
+    /// <summary>When constructing the outbox service, then it provides an IOutbox implementation.</summary>
+    /// <intent>Verify SqlOutboxService instantiation succeeds.</intent>
+    /// <scenario>Create a SqlOutboxService with default options and a null logger.</scenario>
+    /// <behavior>The service is not null and is assignable to IOutbox.</behavior>
     [Fact]
     public void Constructor_CreatesInstance()
     {
@@ -52,6 +56,10 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         service.ShouldBeAssignableTo<IOutbox>();
     }
 
+    /// <summary>When enqueueing with a transaction, then a matching outbox row is inserted.</summary>
+    /// <intent>Validate enqueue persists messages within a transaction.</intent>
+    /// <scenario>Open a SQL transaction, enqueue a message with topic, payload, and correlation id.</scenario>
+    /// <behavior>The outbox table contains exactly one matching row.</behavior>
     [Fact]
     public async Task EnqueueAsync_WithValidParameters_InsertsMessageToDatabase()
     {
@@ -82,6 +90,10 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         transaction.Rollback();
     }
 
+    /// <summary>When using custom schema and table options, then the message is inserted into that table.</summary>
+    /// <intent>Ensure custom outbox table routing is honored.</intent>
+    /// <scenario>Create a custom schema/table and enqueue a message using a custom outbox service.</scenario>
+    /// <behavior>The custom table contains one matching row.</behavior>
     [Fact]
     public async Task EnqueueAsync_WithCustomSchemaAndTable_InsertsMessageToCorrectTable()
     {
@@ -130,6 +142,10 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         transaction.Rollback();
     }
 
+    /// <summary>When enqueueing with a null correlation id, then the message is still inserted.</summary>
+    /// <intent>Allow null correlation ids during transactional enqueue.</intent>
+    /// <scenario>Enqueue a message with topic and payload and a null correlation id.</scenario>
+    /// <behavior>The outbox table contains one matching row.</behavior>
     [Fact]
     public async Task EnqueueAsync_WithNullCorrelationId_InsertsMessageSuccessfully()
     {
@@ -159,6 +175,10 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         transaction.Rollback();
     }
 
+    /// <summary>When enqueueing a message, then default outbox columns are initialized.</summary>
+    /// <intent>Verify insert defaults for processing metadata.</intent>
+    /// <scenario>Enqueue a message in a transaction and read the inserted row.</scenario>
+    /// <behavior>IsProcessed is false, ProcessedAt is null, RetryCount is 0, CreatedAt is recent, and MessageId is set.</behavior>
     [Fact]
     public async Task EnqueueAsync_WithValidParameters_SetsDefaultValues()
     {
@@ -200,6 +220,10 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         }
     }
 
+    /// <summary>When enqueueing multiple messages in one transaction, then all rows are inserted.</summary>
+    /// <intent>Verify batch inserts within a transaction.</intent>
+    /// <scenario>Enqueue three messages using the same transaction.</scenario>
+    /// <behavior>The outbox table contains three rows.</behavior>
     [Fact]
     public async Task EnqueueAsync_MultipleMessages_AllInsertedSuccessfully()
     {
@@ -225,6 +249,10 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         transaction.Rollback();
     }
 
+    /// <summary>When the transaction is null, then EnqueueAsync throws ArgumentNullException.</summary>
+    /// <intent>Enforce a non-null transaction for transactional enqueue.</intent>
+    /// <scenario>Call EnqueueAsync with a null IDbTransaction.</scenario>
+    /// <behavior>An ArgumentNullException is thrown.</behavior>
     [Fact]
     public async Task EnqueueAsync_WithNullTransaction_ThrowsNullReferenceException()
     {
@@ -241,6 +269,10 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         exception.ShouldNotBeNull();
     }
 
+    /// <summary>When enqueueing without an explicit transaction, then the message is inserted.</summary>
+    /// <intent>Verify standalone enqueue creates an outbox record.</intent>
+    /// <scenario>Call EnqueueAsync with topic, payload, and correlation id.</scenario>
+    /// <behavior>The outbox table contains one matching row.</behavior>
     [Fact]
     public async Task EnqueueAsync_Standalone_WithValidParameters_InsertsMessageToDatabase()
     {
@@ -274,6 +306,10 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         await deleteCommand.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
     }
 
+    /// <summary>When standalone enqueue uses a null correlation id, then the message is inserted.</summary>
+    /// <intent>Allow null correlation ids in standalone enqueue.</intent>
+    /// <scenario>Call EnqueueAsync with topic, payload, and a null correlation id.</scenario>
+    /// <behavior>The outbox table contains one matching row.</behavior>
     [Fact]
     public async Task EnqueueAsync_Standalone_WithNullCorrelationId_InsertsMessageSuccessfully()
     {
@@ -305,6 +341,10 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         await deleteCommand.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
     }
 
+    /// <summary>When enqueueing multiple standalone messages, then all rows are inserted.</summary>
+    /// <intent>Verify standalone enqueue handles multiple writes.</intent>
+    /// <scenario>Enqueue three messages with unique topic/payload suffixes.</scenario>
+    /// <behavior>The outbox table contains three matching rows.</behavior>
     [Fact]
     public async Task EnqueueAsync_Standalone_MultipleMessages_AllInsertedSuccessfully()
     {
@@ -343,6 +383,10 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         }
     }
 
+    /// <summary>When standalone enqueue targets a missing table, then the table is created and the message is inserted.</summary>
+    /// <intent>Ensure standalone enqueue creates the outbox table if needed.</intent>
+    /// <scenario>Drop the custom table, then enqueue using a service pointing at that table.</scenario>
+    /// <behavior>The custom table exists and contains one matching row.</behavior>
     [Fact]
     public async Task EnqueueAsync_Standalone_EnsuresTableExists()
     {

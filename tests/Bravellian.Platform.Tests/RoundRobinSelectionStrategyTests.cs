@@ -35,6 +35,10 @@ public class RoundRobinSelectionStrategyTests
         };
     }
 
+    /// <summary>When SelectNext is called with no stores, then it returns null.</summary>
+    /// <intent>Verify the round-robin strategy handles empty inputs safely.</intent>
+    /// <scenario>Given an empty store list and a new RoundRobinOutboxSelectionStrategy instance.</scenario>
+    /// <behavior>Then SelectNext returns null.</behavior>
     [Fact]
     public void SelectNext_WithNoStores_ReturnsNull()
     {
@@ -49,6 +53,10 @@ public class RoundRobinSelectionStrategyTests
         result.ShouldBeNull();
     }
 
+    /// <summary>When SelectNext is called repeatedly, then it cycles through stores in order and wraps around.</summary>
+    /// <intent>Ensure round-robin selection advances deterministically through the store list.</intent>
+    /// <scenario>Given three mock stores and successive SelectNext calls with the previously selected store.</scenario>
+    /// <behavior>Then the strategy returns store1, store2, store3, then wraps back to store1.</behavior>
     [Fact]
     public void SelectNext_CyclesThroughStores()
     {
@@ -70,6 +78,10 @@ public class RoundRobinSelectionStrategyTests
         fourth.ShouldBe(mockStores[0]);
     }
 
+    /// <summary>When Reset is called, then the next selection starts from the first store.</summary>
+    /// <intent>Validate that reset clears the round-robin cursor.</intent>
+    /// <scenario>Given a strategy that has already advanced through mock stores.</scenario>
+    /// <behavior>Then SelectNext returns the first store after Reset.</behavior>
     [Fact]
     public void Reset_ResetsToFirstStore()
     {

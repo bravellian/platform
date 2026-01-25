@@ -29,6 +29,10 @@ public class SqlScriptDeploymentTests
         this.fixture = fixture;
     }
 
+    /// <summary>When SQL artifacts are applied in order, then all scripts execute without errors.</summary>
+    /// <intent>Verify the ordered SQL script set can be deployed sequentially.</intent>
+    /// <scenario>Given a new test database and the ordered SQL script list from the database folder.</scenario>
+    /// <behavior>Then each script batch executes successfully in sequence.</behavior>
     [Fact]
     public async Task SqlArtifacts_DeployInOrder()
     {

@@ -21,6 +21,10 @@ namespace Bravellian.Platform.Tests;
 
 public class PlatformRegistrationTests
 {
+    /// <summary>When a single database is registered via AddPlatformMultiDatabaseWithList, then core configuration and time abstractions are registered.</summary>
+    /// <intent>Verify the multi-database list registration sets configuration, discovery, and timing services.</intent>
+    /// <scenario>Given a service collection configured with one PlatformDatabase entry.</scenario>
+    /// <behavior>Then PlatformConfiguration, IPlatformDatabaseDiscovery, TimeProvider, and IMonotonicClock resolve with expected flags.</behavior>
     [Fact]
     public void AddPlatformMultiDatabaseWithList_SingleDatabase_RegistersRequiredServices()
     {
@@ -52,6 +56,10 @@ public class PlatformRegistrationTests
         Assert.NotNull(clock);
     }
 
+    /// <summary>When AddPlatformMultiDatabaseWithList is called twice, then it throws an InvalidOperationException.</summary>
+    /// <intent>Prevent duplicate multi-database list registration.</intent>
+    /// <scenario>Given a service collection that already called AddPlatformMultiDatabaseWithList once.</scenario>
+    /// <behavior>Then the second call throws and the message mentions it was already called.</behavior>
     [Fact]
     public void AddPlatformMultiDatabaseWithList_CalledTwice_ThrowsException()
     {
@@ -72,6 +80,10 @@ public class PlatformRegistrationTests
         Assert.Contains("already been called", ex.Message, StringComparison.Ordinal);
     }
 
+    /// <summary>When multiple databases are registered via AddPlatformMultiDatabaseWithList, then platform configuration and discovery are registered.</summary>
+    /// <intent>Ensure list-based registration sets multi-database configuration without discovery mode.</intent>
+    /// <scenario>Given two PlatformDatabase entries passed to AddPlatformMultiDatabaseWithList.</scenario>
+    /// <behavior>Then PlatformConfiguration is set for multi-database without control and discovery resolves.</behavior>
     [Fact]
     public void AddPlatformMultiDatabaseWithList_RegistersRequiredServices()
     {
@@ -96,6 +108,10 @@ public class PlatformRegistrationTests
         Assert.NotNull(discovery);
     }
 
+    /// <summary>When AddPlatformMultiDatabaseWithList receives an empty list, then it throws an ArgumentException.</summary>
+    /// <intent>Guard against registering multi-database services without any databases.</intent>
+    /// <scenario>Given an empty PlatformDatabase array passed to AddPlatformMultiDatabaseWithList.</scenario>
+    /// <behavior>Then an ArgumentException is thrown with a message indicating the list must not be empty.</behavior>
     [Fact]
     public void AddPlatformMultiDatabaseWithList_EmptyList_ThrowsException()
     {
@@ -110,6 +126,10 @@ public class PlatformRegistrationTests
         Assert.Contains("must not be empty", ex.Message, StringComparison.Ordinal);
     }
 
+    /// <summary>When AddPlatformMultiDatabaseWithList receives duplicate database names, then it throws an ArgumentException.</summary>
+    /// <intent>Ensure database identifiers are unique in list-based registration.</intent>
+    /// <scenario>Given two PlatformDatabase entries with the same Name value.</scenario>
+    /// <behavior>Then AddPlatformMultiDatabaseWithList throws during discovery setup.</behavior>
     [Fact]
     public void AddPlatformMultiDatabaseWithList_DuplicateNames_ThrowsException()
     {
@@ -126,6 +146,10 @@ public class PlatformRegistrationTests
             () => services.AddPlatformMultiDatabaseWithList(databases));
     }
 
+    /// <summary>When AddPlatformMultiDatabaseWithDiscovery is used, then configuration is set for discovery-based multi-database mode.</summary>
+    /// <intent>Verify discovery-based registration flips the UsesDiscovery flag.</intent>
+    /// <scenario>Given a service collection with a test IPlatformDatabaseDiscovery implementation.</scenario>
+    /// <behavior>Then PlatformConfiguration indicates multi-database without control and UsesDiscovery is true.</behavior>
     [Fact]
     public void AddPlatformMultiDatabaseWithDiscovery_RegistersRequiredServices()
     {
@@ -145,6 +169,10 @@ public class PlatformRegistrationTests
         Assert.True(config.UsesDiscovery);
     }
 
+    /// <summary>When ListBasedDatabaseDiscovery is queried, then it returns the configured databases as-is.</summary>
+    /// <intent>Confirm list-based discovery surfaces the configured database metadata.</intent>
+    /// <scenario>Given a ListBasedDatabaseDiscovery initialized with two database entries.</scenario>
+    /// <behavior>Then DiscoverDatabasesAsync returns both entries with matching names and connection strings.</behavior>
     [Fact]
     public async Task ListBasedDatabaseDiscovery_ReturnsConfiguredDatabasesAsync()
     {
@@ -188,6 +216,10 @@ public class PlatformRegistrationTests
         }
     }
 
+    /// <summary>When control-plane discovery registration finds a direct IOutboxStore registration, then it throws an InvalidOperationException.</summary>
+    /// <intent>Prevent mixing direct outbox store registrations with platform discovery mode.</intent>
+    /// <scenario>Given a service collection with a discovery implementation and a dummy IOutboxStore registered.</scenario>
+    /// <behavior>Then AddPlatformMultiDatabaseWithControlPlaneAndDiscovery throws with a message about direct stores.</behavior>
     [Fact]
     public void AddPlatformMultiDatabaseWithControlPlaneAndDiscovery_ThrowsWhenDirectOutboxStoreRegistered()
     {
@@ -208,6 +240,10 @@ public class PlatformRegistrationTests
         Assert.Contains("Direct IOutboxStore registrations are not supported", ex.Message, StringComparison.Ordinal);
     }
 
+    /// <summary>When control-plane discovery registration finds a direct IInboxWorkStore registration, then it throws an InvalidOperationException.</summary>
+    /// <intent>Prevent mixing direct inbox store registrations with platform discovery mode.</intent>
+    /// <scenario>Given a service collection with a discovery implementation and a dummy IInboxWorkStore registered.</scenario>
+    /// <behavior>Then AddPlatformMultiDatabaseWithControlPlaneAndDiscovery throws with a message about direct stores.</behavior>
     [Fact]
     public void AddPlatformMultiDatabaseWithControlPlaneAndDiscovery_ThrowsWhenDirectInboxStoreRegistered()
     {
@@ -228,6 +264,10 @@ public class PlatformRegistrationTests
         Assert.Contains("Direct IInboxWorkStore registrations are not supported", ex.Message, StringComparison.Ordinal);
     }
 
+    /// <summary>When control-plane discovery registration finds a direct IOutbox registration, then it throws an InvalidOperationException.</summary>
+    /// <intent>Ensure direct outbox services are not registered alongside platform discovery.</intent>
+    /// <scenario>Given a service collection with a discovery implementation and a dummy IOutbox registered.</scenario>
+    /// <behavior>Then AddPlatformMultiDatabaseWithControlPlaneAndDiscovery throws with a message about direct outboxes.</behavior>
     [Fact]
     public void AddPlatformMultiDatabaseWithControlPlaneAndDiscovery_ThrowsWhenDirectOutboxRegistered()
     {

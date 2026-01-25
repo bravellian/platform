@@ -46,6 +46,10 @@ public class PostgresOutboxStoreTests : PostgresTestBase
         outboxStore = new PostgresOutboxStore(Options.Create(defaultOptions), timeProvider, logger);
     }
 
+    /// <summary>When no messages are due, then ClaimDueAsync returns an empty list.</summary>
+    /// <intent>Verify empty outboxes yield no claims.</intent>
+    /// <scenario>Given an outbox table with no rows.</scenario>
+    /// <behavior>The claimed message list is empty.</behavior>
     [Fact]
     public async Task ClaimDueAsync_WithNoMessages_ReturnsEmptyList()
     {
@@ -54,6 +58,10 @@ public class PostgresOutboxStoreTests : PostgresTestBase
         messages.Count.ShouldBe(0);
     }
 
+    /// <summary>When a ready message is due, then ClaimDueAsync returns it.</summary>
+    /// <intent>Verify due messages are claimed.</intent>
+    /// <scenario>Given one ready message with a past CreatedAt and no future DueTimeUtc.</scenario>
+    /// <behavior>The claimed list contains the message with expected id, topic, and payload.</behavior>
     [Fact]
     public async Task ClaimDueAsync_WithDueMessages_ReturnsMessages()
     {
@@ -85,6 +93,10 @@ public class PostgresOutboxStoreTests : PostgresTestBase
         messages.First().Payload.ShouldBe("test payload");
     }
 
+    /// <summary>When a message is scheduled in the future, then ClaimDueAsync returns empty.</summary>
+    /// <intent>Verify future-due messages are not claimed early.</intent>
+    /// <scenario>Given a ready message with DueTimeUtc set in the future.</scenario>
+    /// <behavior>The claimed message list is empty.</behavior>
     [Fact]
     public async Task ClaimDueAsync_WithFutureMessages_ReturnsEmpty()
     {
@@ -114,6 +126,10 @@ public class PostgresOutboxStoreTests : PostgresTestBase
         messages.Count.ShouldBe(0);
     }
 
+    /// <summary>When MarkDispatchedAsync is called, then the message is marked done and processed.</summary>
+    /// <intent>Verify dispatch updates status and IsProcessed flags.</intent>
+    /// <scenario>Given a claimed outbox message.</scenario>
+    /// <behavior>Status becomes Done and IsProcessed is true for the message row.</behavior>
     [Fact]
     public async Task MarkDispatchedAsync_UpdatesMessage()
     {
@@ -152,6 +168,10 @@ public class PostgresOutboxStoreTests : PostgresTestBase
         ((bool)result.IsProcessed).ShouldBeTrue();
     }
 
+    /// <summary>When RescheduleAsync is called, then RetryCount increments and the error is recorded.</summary>
+    /// <intent>Verify rescheduling records errors and bumps retry count.</intent>
+    /// <scenario>Given a claimed message with RetryCount 2 and a reschedule delay.</scenario>
+    /// <behavior>RetryCount becomes 3, LastError is set, and Status is Ready.</behavior>
     [Fact]
     public async Task RescheduleAsync_UpdatesRetryCountAndNextAttempt()
     {
@@ -194,6 +214,10 @@ public class PostgresOutboxStoreTests : PostgresTestBase
         ((short)result.Status).ShouldBe((short)OutboxStatus.Ready);
     }
 
+    /// <summary>When FailAsync is called, then the message is marked failed with an error.</summary>
+    /// <intent>Verify permanent failure updates status and error fields.</intent>
+    /// <scenario>Given a claimed message and a failure reason.</scenario>
+    /// <behavior>Status becomes Failed, LastError is set, and ProcessedBy indicates failure.</behavior>
     [Fact]
     public async Task FailAsync_MarksMessageAsFailed()
     {

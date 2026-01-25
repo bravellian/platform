@@ -20,6 +20,10 @@ namespace Bravellian.Platform.Tests;
 
 public class TimeAbstractionTests
 {
+    /// <summary>When MonotonicClock ticks are read twice, then the second value is not less than the first.</summary>
+    /// <intent>Verify monotonic ticks do not move backwards.</intent>
+    /// <scenario>Given a new MonotonicClock instance.</scenario>
+    /// <behavior>Then the second tick reading is greater than or equal to the first.</behavior>
     [Fact]
     public void MonotonicClock_Ticks_ReturnsIncreasingValues()
     {
@@ -34,6 +38,10 @@ public class TimeAbstractionTests
         ticks2.ShouldBeGreaterThanOrEqualTo(ticks1);
     }
 
+    /// <summary>When MonotonicClock seconds are read, then the value is positive.</summary>
+    /// <intent>Ensure the monotonic clock exposes a positive elapsed seconds value.</intent>
+    /// <scenario>Given a new MonotonicClock instance.</scenario>
+    /// <behavior>Then Seconds is greater than zero.</behavior>
     [Fact]
     public void MonotonicClock_Seconds_ReturnsPositiveValue()
     {
@@ -47,6 +55,10 @@ public class TimeAbstractionTests
         seconds.ShouldBeGreaterThan(0);
     }
 
+    /// <summary>When a deadline is in the future, then Expired returns false.</summary>
+    /// <intent>Verify MonoDeadline reports not expired before the deadline.</intent>
+    /// <scenario>Given a MonoDeadline one hour in the future and the same clock.</scenario>
+    /// <behavior>Then Expired returns false.</behavior>
     [Fact]
     public void MonoDeadline_Expired_ReturnsFalseWhenNotReached()
     {
@@ -61,6 +73,10 @@ public class TimeAbstractionTests
         expired.ShouldBeFalse();
     }
 
+    /// <summary>When a deadline is in the past, then Expired returns true.</summary>
+    /// <intent>Verify MonoDeadline reports expired once the deadline is reached.</intent>
+    /// <scenario>Given a MonoDeadline set to one second before the current clock time.</scenario>
+    /// <behavior>Then Expired returns true.</behavior>
     [Fact]
     public void MonoDeadline_Expired_ReturnsTrueWhenReached()
     {
@@ -75,6 +91,10 @@ public class TimeAbstractionTests
         expired.ShouldBeTrue();
     }
 
+    /// <summary>When FakeTimeProvider is advanced, then GetUtcNow reflects the new time.</summary>
+    /// <intent>Demonstrate deterministic time control with FakeTimeProvider.</intent>
+    /// <scenario>Given a FakeTimeProvider initialized to a fixed instant.</scenario>
+    /// <behavior>Then advancing by one hour updates GetUtcNow by one hour.</behavior>
     [Fact]
     public void FakeTimeProvider_CanBeUsedForTesting()
     {
@@ -91,6 +111,10 @@ public class TimeAbstractionTests
         advancedTime.ShouldBe(DateTimeOffset.Parse("2024-01-01T01:00:00Z", System.Globalization.CultureInfo.InvariantCulture));
     }
 
+    /// <summary>When a fake monotonic clock advances past a deadline, then Expired flips to true.</summary>
+    /// <intent>Verify MonoDeadline works with a controllable monotonic clock.</intent>
+    /// <scenario>Given a FakeMonotonicClock and a deadline 10 seconds in the future.</scenario>
+    /// <behavior>Then Expired is false before the advance and true after advancing 15 seconds.</behavior>
     [Fact]
     public void MonoDeadline_WorksWithFakeMonotonicClock()
     {

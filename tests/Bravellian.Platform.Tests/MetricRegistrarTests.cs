@@ -20,6 +20,10 @@ namespace Bravellian.Platform.Tests;
 
 public class MetricRegistrarTests
 {
+    /// <summary>When a valid metric is registered, then it appears in the registry.</summary>
+    /// <intent>Verify MetricRegistrar stores new metric registrations.</intent>
+    /// <scenario>Given a MetricRegistrar and a MetricRegistration for "test.metric".</scenario>
+    /// <behavior>Then GetAll returns a single entry that matches the registered metric.</behavior>
     [Fact]
     public void Register_WithValidMetric_AddsToRegistry()
     {
@@ -42,6 +46,10 @@ public class MetricRegistrarTests
         all.Count.ShouldBe(1);
     }
 
+    /// <summary>When the same metric is registered twice, then the registry keeps a single entry.</summary>
+    /// <intent>Ensure duplicate registration does not create duplicate entries.</intent>
+    /// <scenario>Given a MetricRegistrar that registers the same metric twice.</scenario>
+    /// <behavior>Then GetAll returns one registration for the metric.</behavior>
     [Fact]
     public void Register_WithDuplicateMetric_LogsWarning()
     {
@@ -64,6 +72,10 @@ public class MetricRegistrarTests
         all.Count.ShouldBe(1);
     }
 
+    /// <summary>When multiple metrics are registered in bulk, then all of them appear in the registry.</summary>
+    /// <intent>Verify RegisterRange registers each provided metric.</intent>
+    /// <scenario>Given three MetricRegistration instances passed to RegisterRange.</scenario>
+    /// <behavior>Then GetAll returns three entries matching the metric names.</behavior>
     [Fact]
     public void RegisterRange_WithMultipleMetrics_AddsAllToRegistry()
     {
@@ -88,6 +100,10 @@ public class MetricRegistrarTests
         all.ShouldContain(m => m.Name == "metric3");
     }
 
+    /// <summary>When a registered metric allows a tag, then IsTagAllowed returns true.</summary>
+    /// <intent>Confirm allowed tags are honored for registered metrics.</intent>
+    /// <scenario>Given a registered metric that includes the "allowed_tag" value.</scenario>
+    /// <behavior>Then IsTagAllowed returns true for that tag.</behavior>
     [Fact]
     public void IsTagAllowed_WithRegisteredMetricAndAllowedTag_ReturnsTrue()
     {
@@ -109,6 +125,10 @@ public class MetricRegistrarTests
         result.ShouldBeTrue();
     }
 
+    /// <summary>When a registered metric does not allow a tag, then IsTagAllowed returns false.</summary>
+    /// <intent>Ensure disallowed tags are rejected even for registered metrics.</intent>
+    /// <scenario>Given a registered metric that only allows "allowed_tag".</scenario>
+    /// <behavior>Then IsTagAllowed returns false for a different tag value.</behavior>
     [Fact]
     public void IsTagAllowed_WithRegisteredMetricAndDisallowedTag_ReturnsFalse()
     {
@@ -130,6 +150,10 @@ public class MetricRegistrarTests
         result.ShouldBeFalse();
     }
 
+    /// <summary>When a metric is not registered, then IsTagAllowed returns false for any tag.</summary>
+    /// <intent>Verify tag checks fail for unknown metrics.</intent>
+    /// <scenario>Given a MetricRegistrar with no registration for "unknown.metric".</scenario>
+    /// <behavior>Then IsTagAllowed returns false for the requested tag.</behavior>
     [Fact]
     public void IsTagAllowed_WithUnregisteredMetric_ReturnsFalse()
     {

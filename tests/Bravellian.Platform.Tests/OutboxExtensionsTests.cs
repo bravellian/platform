@@ -58,6 +58,10 @@ public class OutboxExtensionsTests : SqlServerTestBase
             joinStore);
     }
 
+    /// <summary>When EnqueueJoinWaitAsync is called with all parameters, then the join.wait payload persists those values.</summary>
+    /// <intent>Verify join wait enqueue serializes all provided topics, payloads, and flags.</intent>
+    /// <scenario>Given an outbox service with join support and explicit on-complete/on-fail details.</scenario>
+    /// <behavior>Then the persisted join.wait payload matches all provided parameters.</behavior>
     [Fact]
     public async Task EnqueueJoinWaitAsync_WithAllParameters_EnqueuesCorrectMessage()
     {
@@ -97,6 +101,10 @@ public class OutboxExtensionsTests : SqlServerTestBase
         payload.OnFailPayload.ShouldBe(onFailPayload);
     }
 
+    /// <summary>When EnqueueJoinWaitAsync is called with only a join id, then defaults are applied in the payload.</summary>
+    /// <intent>Confirm minimal arguments still produce a valid join.wait payload.</intent>
+    /// <scenario>Given an outbox service and a generated JoinIdentifier.</scenario>
+    /// <behavior>Then the payload has FailIfAnyStepFailed = true and null on-complete/on-fail fields.</behavior>
     [Fact]
     public async Task EnqueueJoinWaitAsync_WithMinimalParameters_EnqueuesCorrectMessage()
     {
@@ -127,6 +135,10 @@ public class OutboxExtensionsTests : SqlServerTestBase
         payload.OnFailPayload.ShouldBeNull();
     }
 
+    /// <summary>When failIfAnyStepFailed is false, then the payload preserves the false flag and provided completion topic.</summary>
+    /// <intent>Ensure the fail-if-any-step flag is stored as provided.</intent>
+    /// <scenario>Given an outbox service and EnqueueJoinWaitAsync called with failIfAnyStepFailed = false.</scenario>
+    /// <behavior>Then the join.wait payload has FailIfAnyStepFailed = false and the completion topic set.</behavior>
     [Fact]
     public async Task EnqueueJoinWaitAsync_WithFailIfAnyStepFailedFalse_EnqueuesCorrectMessage()
     {

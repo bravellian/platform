@@ -53,6 +53,10 @@ public sealed class PostgresDapperTypeHandlerTests : PostgresTestBase
         ", commandTimeout: 30).ConfigureAwait(false);
     }
 
+    /// <summary>When a row is inserted with an OwnerToken, then Dapper returns the same token.</summary>
+    /// <intent>Confirm the OwnerToken handler maps UUID values losslessly.</intent>
+    /// <scenario>Given handlers are registered and a row is inserted with OwnerTokenColumn plus other GUID fields.</scenario>
+    /// <behavior>The OwnerToken query result matches the inserted token.</behavior>
     [Fact]
     public async Task OwnerToken_RoundTrip_WorksCorrectly()
     {
@@ -81,6 +85,10 @@ public sealed class PostgresDapperTypeHandlerTests : PostgresTestBase
         Assert.Equal(ownerToken, result);
     }
 
+    /// <summary>When a nullable OwnerToken is stored in a nullable column, then it is read back intact.</summary>
+    /// <intent>Confirm nullable OwnerToken values are materialized correctly.</intent>
+    /// <scenario>Given handlers are registered and a row is inserted with NullableOwnerTokenColumn set.</scenario>
+    /// <behavior>The nullable query result equals the inserted OwnerToken.</behavior>
     [Fact]
     public async Task NullableOwnerToken_RoundTrip_WorksCorrectly()
     {
@@ -110,6 +118,10 @@ public sealed class PostgresDapperTypeHandlerTests : PostgresTestBase
         Assert.Equal(ownerToken, result);
     }
 
+    /// <summary>When an InboxMessageIdentifier is inserted, then Dapper reads the same identifier.</summary>
+    /// <intent>Verify Dapper mapping for InboxMessageIdentifier UUIDs.</intent>
+    /// <scenario>Given handlers are registered and a row is inserted with InboxMessageIdColumn set.</scenario>
+    /// <behavior>The queried InboxMessageIdentifier matches the inserted value.</behavior>
     [Fact]
     public async Task InboxMessageIdentifier_RoundTrip_WorksCorrectly()
     {
@@ -138,6 +150,10 @@ public sealed class PostgresDapperTypeHandlerTests : PostgresTestBase
         Assert.Equal(inboxMessageId, result);
     }
 
+    /// <summary>When an OutboxMessageIdentifier is inserted, then Dapper returns the same identifier.</summary>
+    /// <intent>Verify Dapper mapping for OutboxMessageIdentifier UUIDs.</intent>
+    /// <scenario>Given handlers are registered and a row is inserted with OutboxMessageIdColumn set.</scenario>
+    /// <behavior>The queried OutboxMessageIdentifier matches the inserted value.</behavior>
     [Fact]
     public async Task OutboxMessageIdentifier_RoundTrip_WorksCorrectly()
     {
@@ -166,6 +182,10 @@ public sealed class PostgresDapperTypeHandlerTests : PostgresTestBase
         Assert.Equal(outboxMessageId, result);
     }
 
+    /// <summary>When an OutboxWorkItemIdentifier is stored, then Dapper reads it back unchanged.</summary>
+    /// <intent>Verify Dapper mapping for OutboxWorkItemIdentifier UUIDs.</intent>
+    /// <scenario>Given handlers are registered and a row is inserted with OutboxWorkItemIdColumn set.</scenario>
+    /// <behavior>The queried OutboxWorkItemIdentifier matches the inserted value.</behavior>
     [Fact]
     public async Task OutboxWorkItemIdentifier_RoundTrip_WorksCorrectly()
     {
@@ -194,6 +214,10 @@ public sealed class PostgresDapperTypeHandlerTests : PostgresTestBase
         Assert.Equal(outboxWorkItemId, result);
     }
 
+    /// <summary>When a JoinIdentifier is stored, then Dapper returns the same join id.</summary>
+    /// <intent>Verify Dapper mapping for JoinIdentifier UUIDs.</intent>
+    /// <scenario>Given handlers are registered and a row is inserted with JoinIdColumn set.</scenario>
+    /// <behavior>The queried JoinIdentifier matches the inserted value.</behavior>
     [Fact]
     public async Task JoinIdentifier_RoundTrip_WorksCorrectly()
     {
@@ -222,6 +246,10 @@ public sealed class PostgresDapperTypeHandlerTests : PostgresTestBase
         Assert.Equal(joinId, result);
     }
 
+    /// <summary>When an InstanceIdentifier is stored, then Dapper reads the same instance id.</summary>
+    /// <intent>Verify Dapper mapping for InstanceIdentifier UUIDs.</intent>
+    /// <scenario>Given handlers are registered and a row is inserted with InstanceIdColumn set.</scenario>
+    /// <behavior>The queried InstanceIdentifier matches the inserted value.</behavior>
     [Fact]
     public async Task InstanceIdentifier_RoundTrip_WorksCorrectly()
     {
@@ -250,6 +278,10 @@ public sealed class PostgresDapperTypeHandlerTests : PostgresTestBase
         Assert.Equal(instanceId, result);
     }
 
+    /// <summary>When a DatabaseIdentifier is stored, then Dapper returns the same database id.</summary>
+    /// <intent>Verify Dapper mapping for DatabaseIdentifier UUIDs.</intent>
+    /// <scenario>Given handlers are registered and a row is inserted with DatabaseIdColumn set.</scenario>
+    /// <behavior>The queried DatabaseIdentifier matches the inserted value.</behavior>
     [Fact]
     public async Task DatabaseIdentifier_RoundTrip_WorksCorrectly()
     {
@@ -278,6 +310,10 @@ public sealed class PostgresDapperTypeHandlerTests : PostgresTestBase
         Assert.Equal(databaseId, result);
     }
 
+    /// <summary>When all identifier columns are queried together, then each property matches its inserted value.</summary>
+    /// <intent>Confirm multi-column mapping across all identifier type handlers.</intent>
+    /// <scenario>Given handlers are registered and one row contains each identifier value.</scenario>
+    /// <behavior>The projected record returns every identifier unchanged.</behavior>
     [Fact]
     public async Task AllTypesInSingleQuery_RoundTrip_WorksCorrectly()
     {

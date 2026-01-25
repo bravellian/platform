@@ -35,6 +35,10 @@ public class OutboxRouterTests
         return new TestLoggerFactory(testOutputHelper);
     }
 
+    /// <summary>When configured tenant keys are requested, then distinct outbox instances are returned.</summary>
+    /// <intent>Verify routing by string key across multiple configured outbox stores.</intent>
+    /// <scenario>Given two SqlOutboxOptions entries and a ConfiguredOutboxStoreProvider with a FakeTimeProvider.</scenario>
+    /// <behavior>Then GetOutbox returns non-null, distinct outbox instances for each tenant key.</behavior>
     [Fact]
     public void GetOutbox_WithStringKey_ReturnsOutbox()
     {
@@ -69,6 +73,10 @@ public class OutboxRouterTests
         outbox1.ShouldNotBe(outbox2);
     }
 
+    /// <summary>When a Guid tenant key is requested, then the router resolves the matching outbox.</summary>
+    /// <intent>Validate Guid overload routes by converting to string identifier.</intent>
+    /// <scenario>Given a single SqlOutboxOptions entry keyed by a Guid string.</scenario>
+    /// <behavior>Then GetOutbox(Guid) returns a non-null outbox instance.</behavior>
     [Fact]
     public void GetOutbox_WithGuidKey_ReturnsOutbox()
     {
@@ -95,6 +103,10 @@ public class OutboxRouterTests
         outbox.ShouldNotBeNull();
     }
 
+    /// <summary>When an unknown tenant key is requested, then the router throws an InvalidOperationException.</summary>
+    /// <intent>Ensure the router fails for missing outbox keys.</intent>
+    /// <scenario>Given a provider with one configured tenant and a non-existent key.</scenario>
+    /// <behavior>Then GetOutbox throws and the message mentions the key.</behavior>
     [Fact]
     public void GetOutbox_WithNonExistentKey_ThrowsInvalidOperationException()
     {
@@ -118,6 +130,10 @@ public class OutboxRouterTests
         ex.Message.ShouldContain("NonExistent");
     }
 
+    /// <summary>When a null key is provided, then GetOutbox throws an ArgumentException.</summary>
+    /// <intent>Validate input guarding for outbox routing.</intent>
+    /// <scenario>Given a configured router and a null string key.</scenario>
+    /// <behavior>Then GetOutbox throws ArgumentException.</behavior>
     [Fact]
     public void GetOutbox_WithNullKey_ThrowsArgumentException()
     {
@@ -140,6 +156,10 @@ public class OutboxRouterTests
         Should.Throw<ArgumentException>(() => router.GetOutbox((string)null!));
     }
 
+    /// <summary>When an empty key is provided, then GetOutbox throws an ArgumentException.</summary>
+    /// <intent>Validate input guarding for outbox routing.</intent>
+    /// <scenario>Given a configured router and an empty string key.</scenario>
+    /// <behavior>Then GetOutbox throws ArgumentException.</behavior>
     [Fact]
     public void GetOutbox_WithEmptyKey_ThrowsArgumentException()
     {
@@ -162,6 +182,10 @@ public class OutboxRouterTests
         Should.Throw<ArgumentException>(() => router.GetOutbox(string.Empty));
     }
 
+    /// <summary>When dynamic discovery is used, then routing returns distinct outboxes per discovered tenant.</summary>
+    /// <intent>Verify DynamicOutboxStoreProvider works with the router after discovery.</intent>
+    /// <scenario>Given a SampleOutboxDatabaseDiscovery with two tenants and an initial provider refresh.</scenario>
+    /// <behavior>Then GetOutbox returns distinct non-null outboxes for both tenant identifiers.</behavior>
     [Fact]
     public async Task DynamicProvider_GetOutboxByKey_ReturnsCorrectOutbox()
     {
@@ -209,6 +233,10 @@ public class OutboxRouterTests
         outbox1.ShouldNotBe(outbox2);
     }
 
+    /// <summary>When discovery is refreshed after adding a tenant, then the new outbox becomes available.</summary>
+    /// <intent>Ensure provider refresh picks up newly discovered databases.</intent>
+    /// <scenario>Given a DynamicOutboxStoreProvider that refreshes after adding Tenant2.</scenario>
+    /// <behavior>Then GetOutbox returns a non-null outbox for the new tenant.</behavior>
     [Fact]
     public async Task DynamicProvider_AfterRefresh_NewOutboxIsAvailable()
     {
@@ -253,6 +281,10 @@ public class OutboxRouterTests
         outbox2.ShouldNotBeNull();
     }
 
+    /// <summary>When GetOutbox is called multiple times for the same key, then it returns the same instance.</summary>
+    /// <intent>Confirm outbox instances are cached per key.</intent>
+    /// <scenario>Given a router configured with a single tenant key.</scenario>
+    /// <behavior>Then repeated GetOutbox calls return the same object instance.</behavior>
     [Fact]
     public void GetOutbox_MultipleCallsForSameKey_ReturnsSameInstance()
     {
@@ -281,6 +313,10 @@ public class OutboxRouterTests
         outbox1.ShouldBe(outbox2); // Same instance
     }
 
+    /// <summary>When a Guid key does not match any configured identifier, then GetOutbox throws with the key in the message.</summary>
+    /// <intent>Verify Guid-based lookup reports missing identifiers clearly.</intent>
+    /// <scenario>Given a router configured for "Customer1" and a different Guid key.</scenario>
+    /// <behavior>Then GetOutbox(Guid) throws InvalidOperationException containing the Guid string.</behavior>
     [Fact]
     public void GetOutbox_GuidKeyConvertsToString_ReturnsOutbox()
     {

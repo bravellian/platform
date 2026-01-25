@@ -42,6 +42,10 @@ public class PostgresOutboxServiceTests : PostgresTestBase
         outboxService = new PostgresOutboxService(Options.Create(defaultOptions), NullLogger<PostgresOutboxService>.Instance);
     }
 
+    /// <summary>When constructed with valid options, then the service is created and implements IOutbox.</summary>
+    /// <intent>Verify the outbox service can be instantiated with valid options.</intent>
+    /// <scenario>Given PostgresOutboxOptions and a null logger instance.</scenario>
+    /// <behavior>The instance is non-null and assignable to IOutbox.</behavior>
     [Fact]
     public void Constructor_CreatesInstance()
     {
@@ -51,6 +55,10 @@ public class PostgresOutboxServiceTests : PostgresTestBase
         service.ShouldBeAssignableTo<IOutbox>();
     }
 
+    /// <summary>When EnqueueAsync is called in a transaction, then a message row is inserted.</summary>
+    /// <intent>Verify transactional enqueue inserts a row with topic and payload.</intent>
+    /// <scenario>Given an open connection, a transaction, and topic/payload/correlation id values.</scenario>
+    /// <behavior>The outbox table contains one row matching the topic and payload.</behavior>
     [Fact]
     public async Task EnqueueAsync_WithValidParameters_InsertsMessageToDatabase()
     {
@@ -76,6 +84,10 @@ public class PostgresOutboxServiceTests : PostgresTestBase
         transaction.Rollback();
     }
 
+    /// <summary>When using a custom schema and table, then EnqueueAsync inserts into the custom table.</summary>
+    /// <intent>Verify custom schema/table options are honored by enqueue.</intent>
+    /// <scenario>Given a custom outbox service and a transaction scoped to the custom table.</scenario>
+    /// <behavior>The custom outbox table contains one row matching the topic and payload.</behavior>
     [Fact]
     public async Task EnqueueAsync_WithCustomSchemaAndTable_InsertsMessageToCorrectTable()
     {
@@ -113,6 +125,10 @@ public class PostgresOutboxServiceTests : PostgresTestBase
         transaction.Rollback();
     }
 
+    /// <summary>When EnqueueAsync is called with a null correlation id, then the message is inserted.</summary>
+    /// <intent>Verify null correlation ids do not block insertion.</intent>
+    /// <scenario>Given a transaction and a message with a null correlation id.</scenario>
+    /// <behavior>The outbox table contains one row matching the topic and payload.</behavior>
     [Fact]
     public async Task EnqueueAsync_WithNullCorrelationId_InsertsMessageSuccessfully()
     {
@@ -137,6 +153,10 @@ public class PostgresOutboxServiceTests : PostgresTestBase
         transaction.Rollback();
     }
 
+    /// <summary>When EnqueueAsync inserts a message, then default fields are set.</summary>
+    /// <intent>Verify default outbox values are populated on insert.</intent>
+    /// <scenario>Given a new message enqueued in a transaction.</scenario>
+    /// <behavior>IsProcessed is false, ProcessedAt is null, RetryCount is 0, CreatedAt is recent, and MessageId is set.</behavior>
     [Fact]
     public async Task EnqueueAsync_WithValidParameters_SetsDefaultValues()
     {
@@ -171,6 +191,10 @@ public class PostgresOutboxServiceTests : PostgresTestBase
         }
     }
 
+    /// <summary>When multiple messages are enqueued in a transaction, then all rows are inserted.</summary>
+    /// <intent>Verify batch enqueues insert all messages within the transaction.</intent>
+    /// <scenario>Given three enqueue calls in the same transaction.</scenario>
+    /// <behavior>The outbox table contains three rows.</behavior>
     [Fact]
     public async Task EnqueueAsync_MultipleMessages_AllInsertedSuccessfully()
     {
@@ -191,6 +215,10 @@ public class PostgresOutboxServiceTests : PostgresTestBase
         transaction.Rollback();
     }
 
+    /// <summary>When EnqueueAsync receives a null transaction, then it throws ArgumentNullException.</summary>
+    /// <intent>Verify EnqueueAsync validates the transaction argument.</intent>
+    /// <scenario>Given a null IDbTransaction argument.</scenario>
+    /// <behavior>EnqueueAsync throws ArgumentNullException.</behavior>
     [Fact]
     public async Task EnqueueAsync_WithNullTransaction_ThrowsNullReferenceException()
     {
@@ -204,6 +232,10 @@ public class PostgresOutboxServiceTests : PostgresTestBase
         exception.ShouldNotBeNull();
     }
 
+    /// <summary>When using standalone enqueue, then the message is inserted with the correlation id.</summary>
+    /// <intent>Verify standalone enqueue persists messages without an explicit transaction.</intent>
+    /// <scenario>Given a topic, payload, and correlation id.</scenario>
+    /// <behavior>The outbox table contains one row matching the topic, payload, and correlation id.</behavior>
     [Fact]
     public async Task EnqueueAsync_Standalone_WithValidParameters_InsertsMessageToDatabase()
     {
@@ -232,6 +264,10 @@ public class PostgresOutboxServiceTests : PostgresTestBase
         await deleteCommand.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
     }
 
+    /// <summary>When standalone enqueue uses a null correlation id, then the message is inserted.</summary>
+    /// <intent>Verify standalone enqueue handles null correlation ids.</intent>
+    /// <scenario>Given a topic and payload with a null correlation id.</scenario>
+    /// <behavior>The outbox table contains one row matching the topic and payload.</behavior>
     [Fact]
     public async Task EnqueueAsync_Standalone_WithNullCorrelationId_InsertsMessageSuccessfully()
     {
@@ -258,6 +294,10 @@ public class PostgresOutboxServiceTests : PostgresTestBase
         await deleteCommand.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
     }
 
+    /// <summary>When multiple standalone enqueue calls are made, then all rows are inserted.</summary>
+    /// <intent>Verify multiple standalone enqueues insert all messages.</intent>
+    /// <scenario>Given three distinct topics/payloads enqueued without a transaction.</scenario>
+    /// <behavior>The outbox table contains three matching rows.</behavior>
     [Fact]
     public async Task EnqueueAsync_Standalone_MultipleMessages_AllInsertedSuccessfully()
     {
@@ -291,6 +331,10 @@ public class PostgresOutboxServiceTests : PostgresTestBase
         }
     }
 
+    /// <summary>When standalone enqueue runs with schema deployment enabled, then it creates the table and inserts the row.</summary>
+    /// <intent>Verify schema deployment ensures the outbox table exists before enqueue.</intent>
+    /// <scenario>Given a custom schema/table with EnableSchemaDeployment true and the table dropped.</scenario>
+    /// <behavior>The custom outbox table is created and contains the enqueued message.</behavior>
     [Fact]
     public async Task EnqueueAsync_Standalone_EnsuresTableExists()
     {

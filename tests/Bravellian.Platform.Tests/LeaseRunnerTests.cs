@@ -42,6 +42,18 @@ public class LeaseRunnerTests : SqlServerTestBase
         leaseApi = new LeaseApi(ConnectionString, "infra");
     }
 
+    /// <summary>
+    /// When a lease is available, then AcquireAsync returns a runner with initialized state.
+    /// </summary>
+    /// <intent>
+    /// Validate LeaseRunner acquisition returns a usable runner instance.
+    /// </intent>
+    /// <scenario>
+    /// Given a unique lease name, owner, and lease duration using the real LeaseApi.
+    /// </scenario>
+    /// <behavior>
+    /// Then the runner is not null, has expected name/owner, and is not marked lost.
+    /// </behavior>
     [Fact]
     public async Task AcquireAsync_WithAvailableLease_ReturnsRunnerInstance()
     {
@@ -73,6 +85,18 @@ public class LeaseRunnerTests : SqlServerTestBase
         await runner.DisposeAsync();
     }
 
+    /// <summary>
+    /// When a lease is already held, then a second AcquireAsync returns null.
+    /// </summary>
+    /// <intent>
+    /// Ensure LeaseRunner does not acquire a lease already owned by another runner.
+    /// </intent>
+    /// <scenario>
+    /// Given owner1 acquires a lease and owner2 attempts to acquire the same lease immediately after.
+    /// </scenario>
+    /// <behavior>
+    /// Then the second acquisition returns null.
+    /// </behavior>
     [Fact]
     public async Task AcquireAsync_WithUnavailableLease_ReturnsNull()
     {
@@ -116,6 +140,18 @@ public class LeaseRunnerTests : SqlServerTestBase
         await runner1.DisposeAsync();
     }
 
+    /// <summary>
+    /// When TryRenewNowAsync is called on a valid runner, then renewal succeeds and the lease is not lost.
+    /// </summary>
+    /// <intent>
+    /// Confirm manual renewal succeeds for a current lease owner.
+    /// </intent>
+    /// <scenario>
+    /// Given a LeaseRunner acquired with a valid lease and owner.
+    /// </scenario>
+    /// <behavior>
+    /// Then TryRenewNowAsync returns true and IsLost remains false.
+    /// </behavior>
     [Fact]
     public async Task TryRenewNowAsync_WithValidRunner_SucceedsAndExtendsLease()
     {
@@ -148,6 +184,18 @@ public class LeaseRunnerTests : SqlServerTestBase
         await runner.DisposeAsync();
     }
 
+    /// <summary>
+    /// When a lease is still valid, then ThrowIfLost does not throw.
+    /// </summary>
+    /// <intent>
+    /// Ensure the guard does not falsely signal a lost lease.
+    /// </intent>
+    /// <scenario>
+    /// Given a LeaseRunner acquired with a valid lease and no renewal failures.
+    /// </scenario>
+    /// <behavior>
+    /// Then calling ThrowIfLost completes without exception.
+    /// </behavior>
     [Fact]
     public async Task ThrowIfLost_WhenLeaseIsValid_DoesNotThrow()
     {
@@ -176,6 +224,18 @@ public class LeaseRunnerTests : SqlServerTestBase
         await runner.DisposeAsync();
     }
 
+    /// <summary>
+    /// When a custom renew percent is used, then automatic renewal keeps the runner valid past the threshold.
+    /// </summary>
+    /// <intent>
+    /// Validate that automatic renewal triggers early enough to avoid lease loss.
+    /// </intent>
+    /// <scenario>
+    /// Given a short lease duration with a 50% renew percent and a wait past half the duration.
+    /// </scenario>
+    /// <behavior>
+    /// Then the runner remains active and its cancellation token is not canceled.
+    /// </behavior>
     [Fact]
     public async Task MonotonicRenewal_WithCustomRenewPercent_RenewsAtCorrectInterval()
     {
@@ -210,6 +270,18 @@ public class LeaseRunnerTests : SqlServerTestBase
         await runner.DisposeAsync();
     }
 
+    /// <summary>
+    /// When a runner is disposed, then TryRenewNowAsync returns false.
+    /// </summary>
+    /// <intent>
+    /// Ensure disposed runners do not attempt renewals.
+    /// </intent>
+    /// <scenario>
+    /// Given a LeaseRunner that has been disposed after acquisition.
+    /// </scenario>
+    /// <behavior>
+    /// Then TryRenewNowAsync returns false.
+    /// </behavior>
     [Fact]
     public async Task DisposedRunner_DoesNotRenew()
     {
@@ -239,6 +311,18 @@ public class LeaseRunnerTests : SqlServerTestBase
         renewed.ShouldBeFalse();
     }
 
+    /// <summary>
+    /// When the monotonic clock jumps forward, then renewal scheduling advances based on monotonic time without over-renewing.
+    /// </summary>
+    /// <intent>
+    /// Confirm renewal scheduling relies on monotonic time even across simulated pauses.
+    /// </intent>
+    /// <scenario>
+    /// Given a LeaseRunner using a FakeMonotonicClock and reflection to inspect the next renewal timestamp.
+    /// </scenario>
+    /// <behavior>
+    /// Then the scheduled renewal time increases after the pause and remains stable on an immediate retry.
+    /// </behavior>
     [Fact]
     public async Task RenewTimer_UsesMonotonicClockAcrossClockSkewAndGcPauses()
     {

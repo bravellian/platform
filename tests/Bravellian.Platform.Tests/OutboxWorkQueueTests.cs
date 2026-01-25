@@ -49,6 +49,10 @@ public class OutboxWorkQueueTests : SqlServerTestBase
         outboxService = new SqlOutboxService(options, NullLogger<SqlOutboxService>.Instance);
     }
 
+    /// <summary>When ready outbox items exist, then ClaimAsync returns their ids.</summary>
+    /// <intent>Verify work-queue claims return the ready items.</intent>
+    /// <scenario>Given three outbox rows in Ready status and a generated owner token.</scenario>
+    /// <behavior>Then ClaimAsync returns three ids from the inserted set.</behavior>
     [Fact]
     public async Task OutboxClaim_WithReadyItems_ReturnsClaimedIds()
     {
@@ -65,6 +69,10 @@ public class OutboxWorkQueueTests : SqlServerTestBase
         claimedIds.ShouldBeSubsetOf(testIds);
     }
 
+    /// <summary>When ClaimAsync is called with a batch size, then it limits the number of claimed ids.</summary>
+    /// <intent>Ensure batch size is respected in outbox claims.</intent>
+    /// <scenario>Given five ready outbox rows and a batch size of two.</scenario>
+    /// <behavior>Then ClaimAsync returns exactly two ids.</behavior>
     [Fact]
     public async Task OutboxClaim_WithBatchSize_RespectsLimit()
     {
@@ -79,6 +87,10 @@ public class OutboxWorkQueueTests : SqlServerTestBase
         claimedIds.Count.ShouldBe(2);
     }
 
+    /// <summary>When AckAsync is called by the owner, then outbox items are marked Done and processed.</summary>
+    /// <intent>Verify successful acknowledgements update outbox status and processed flag.</intent>
+    /// <scenario>Given claimed outbox items and the owning token.</scenario>
+    /// <behavior>Then the items have Status = Done and IsProcessed = true.</behavior>
     [Fact]
     public async Task OutboxAck_WithValidOwner_MarksDoneAndProcessed()
     {
@@ -95,6 +107,10 @@ public class OutboxWorkQueueTests : SqlServerTestBase
         await VerifyOutboxProcessedAsync(claimedIds, true);
     }
 
+    /// <summary>When AbandonAsync is called by the owner, then outbox items return to Ready status.</summary>
+    /// <intent>Ensure abandoned items are made available for reprocessing.</intent>
+    /// <scenario>Given claimed outbox items and the owning token.</scenario>
+    /// <behavior>Then the items have Status = Ready.</behavior>
     [Fact]
     public async Task OutboxAbandon_WithValidOwner_ReturnsToReady()
     {
@@ -110,6 +126,10 @@ public class OutboxWorkQueueTests : SqlServerTestBase
         await VerifyOutboxStatusAsync(claimedIds, 0); // Status = Ready
     }
 
+    /// <summary>When FailAsync is called by the owner, then outbox items are marked Failed.</summary>
+    /// <intent>Verify failure paths update status correctly.</intent>
+    /// <scenario>Given claimed outbox items and the owning token.</scenario>
+    /// <behavior>Then the items have Status = Failed.</behavior>
     [Fact]
     public async Task OutboxFail_WithValidOwner_MarksAsFailed()
     {
@@ -125,6 +145,10 @@ public class OutboxWorkQueueTests : SqlServerTestBase
         await VerifyOutboxStatusAsync(claimedIds, 3); // Status = Failed
     }
 
+    /// <summary>When leases expire, then ReapExpiredAsync returns items to Ready status.</summary>
+    /// <intent>Ensure expired claims are reaped and made available again.</intent>
+    /// <scenario>Given a claimed item with a 1-second lease and a delay past expiry.</scenario>
+    /// <behavior>Then the item status is reset to Ready after reaping.</behavior>
     [Fact]
     public async Task OutboxReapExpired_WithExpiredItems_ReturnsToReady()
     {
@@ -143,6 +167,10 @@ public class OutboxWorkQueueTests : SqlServerTestBase
         await VerifyOutboxStatusAsync(testIds, 0); // Status = Ready
     }
 
+    /// <summary>When two workers claim concurrently, then the claimed sets do not overlap.</summary>
+    /// <intent>Validate exclusive claiming across concurrent workers.</intent>
+    /// <scenario>Given ten ready items and two ClaimAsync calls with different owner tokens.</scenario>
+    /// <behavior>Then the combined results have no overlapping ids.</behavior>
     [Fact]
     public async Task ConcurrentClaim_MultipleWorkers_NoOverlap()
     {
@@ -167,6 +195,10 @@ public class OutboxWorkQueueTests : SqlServerTestBase
         claimed1.Intersect(claimed2).ShouldBeEmpty();
     }
 
+    /// <summary>When a non-owner tries to acknowledge items, then the items remain InProgress.</summary>
+    /// <intent>Ensure owner token enforcement prevents unauthorized updates.</intent>
+    /// <scenario>Given claimed items and AckAsync called with a different owner token.</scenario>
+    /// <behavior>Then the items remain in Status = InProgress.</behavior>
     [Fact]
     public async Task InvalidOwnerOperations_DoNotAffectItems()
     {

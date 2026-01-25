@@ -36,6 +36,10 @@ public class MultiOutboxDispatcherLeaseTests : SqlServerTestBase
     {
     }
 
+    /// <summary>When two dispatchers run with a shared lease router, then only one processes the queued messages.</summary>
+    /// <intent>Verify the lease gate prevents concurrent processing of the same outbox.</intent>
+    /// <scenario>Given an outbox table with five messages, a lease router, and two dispatchers running concurrently.</scenario>
+    /// <behavior>Then one dispatcher processes all messages while the other processes none.</behavior>
     [Fact]
     public async Task MultiOutboxDispatcher_WithLease_PreventsConcurrentProcessing()
     {
@@ -143,6 +147,10 @@ public class MultiOutboxDispatcherLeaseTests : SqlServerTestBase
         processedMessages.Count.ShouldBe(5);
     }
 
+    /// <summary>When the dispatcher runs without a lease router, then it processes all available messages.</summary>
+    /// <intent>Ensure outbox processing proceeds without lease coordination when disabled.</intent>
+    /// <scenario>Given an outbox table with three messages and a dispatcher with no lease router.</scenario>
+    /// <behavior>Then RunOnceAsync returns three and all messages are handled.</behavior>
     [Fact]
     public async Task MultiOutboxDispatcher_WithoutLease_AllowsProcessing()
     {

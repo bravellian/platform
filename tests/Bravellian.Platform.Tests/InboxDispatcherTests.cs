@@ -38,6 +38,10 @@ public class InboxDispatcherTests : SqlServerTestBase
         await DatabaseSchemaManager.EnsureInboxWorkQueueSchemaAsync(ConnectionString).ConfigureAwait(false);
     }
 
+    /// <summary>When RunOnceAsync is called with no inbox messages, then it returns zero processed items.</summary>
+    /// <intent>Verify the dispatcher reports no work when the store is empty.</intent>
+    /// <scenario>Given a SqlInboxWorkStore with no queued messages and an empty handler resolver.</scenario>
+    /// <behavior>Then RunOnceAsync returns 0.</behavior>
     [Fact]
     public async Task RunOnceAsync_WithNoMessages_ReturnsZero()
     {
@@ -53,6 +57,10 @@ public class InboxDispatcherTests : SqlServerTestBase
         Assert.Equal(0, processedCount);
     }
 
+    /// <summary>When a message has a matching handler, then RunOnceAsync processes it and marks it Done.</summary>
+    /// <intent>Validate successful handler execution updates inbox status.</intent>
+    /// <scenario>Given an enqueued inbox message and a TestInboxHandler registered for its topic.</scenario>
+    /// <behavior>Then RunOnceAsync returns 1 and the message status is Done.</behavior>
     [Fact]
     public async Task RunOnceAsync_WithValidMessage_ProcessesSuccessfully()
     {
@@ -82,6 +90,10 @@ public class InboxDispatcherTests : SqlServerTestBase
         Assert.Equal("Done", status);
     }
 
+    /// <summary>When no handler exists for a message topic, then RunOnceAsync marks the message Dead.</summary>
+    /// <intent>Ensure unhandled topics are failed instead of retried indefinitely.</intent>
+    /// <scenario>Given an enqueued inbox message with an unknown topic and no registered handlers.</scenario>
+    /// <behavior>Then RunOnceAsync returns 1 and the message status is Dead.</behavior>
     [Fact]
     public async Task RunOnceAsync_WithNoHandlerForTopic_MarksMessageAsDead()
     {
@@ -111,6 +123,10 @@ public class InboxDispatcherTests : SqlServerTestBase
         Assert.Equal("Dead", status);
     }
 
+    /// <summary>When a handler throws, then RunOnceAsync abandons the message for retry.</summary>
+    /// <intent>Validate failure paths return messages to Seen for future retries.</intent>
+    /// <scenario>Given an enqueued message handled by a FailingInboxHandler that throws.</scenario>
+    /// <behavior>Then RunOnceAsync returns 1 and the message status is Seen.</behavior>
     [Fact]
     public async Task RunOnceAsync_WithFailingHandler_RetriesWithBackoff()
     {
@@ -141,6 +157,10 @@ public class InboxDispatcherTests : SqlServerTestBase
         Assert.Equal("Seen", status);
     }
 
+    /// <summary>When a handler fails and a backoff policy is supplied, then the message is abandoned with that delay.</summary>
+    /// <intent>Ensure dispatcher honors custom backoff delays on failure.</intent>
+    /// <scenario>Given a StubInboxWorkStore, a failing handler, and a backoff policy returning 5 seconds.</scenario>
+    /// <behavior>Then the message is abandoned with the configured delay and not failed.</behavior>
     [Fact]
     public async Task RunOnceAsync_WithFailingHandler_AbandonsWithBackoffPolicy()
     {
@@ -169,6 +189,10 @@ public class InboxDispatcherTests : SqlServerTestBase
         store.FailedMessages.ShouldBeEmpty();
     }
 
+    /// <summary>When a message exceeds max attempts, then RunOnceAsync fails it instead of retrying.</summary>
+    /// <intent>Verify poison-message handling respects maxAttempts.</intent>
+    /// <scenario>Given a StubInboxWorkStore message with attempt count at maxAttempts.</scenario>
+    /// <behavior>Then the message is marked failed and not abandoned.</behavior>
     [Fact]
     public async Task RunOnceAsync_WithPoisonMessage_FailsInsteadOfRetrying()
     {
@@ -197,6 +221,10 @@ public class InboxDispatcherTests : SqlServerTestBase
         store.AbandonedMessages.ShouldBeEmpty();
     }
 
+    /// <summary>When RunOnceAsync is called multiple times, then each run uses a new owner token.</summary>
+    /// <intent>Ensure dispatcher rotates owner tokens across separate runs.</intent>
+    /// <scenario>Given a StubInboxWorkStore and two RunOnceAsync calls.</scenario>
+    /// <behavior>Then the store captures two distinct owner tokens.</behavior>
     [Fact]
     public async Task RunOnceAsync_RotatesOwnerTokensAcrossRuns()
     {

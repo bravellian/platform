@@ -23,6 +23,10 @@ namespace Bravellian.Platform.Tests;
 
 public class WatchdogServiceTests
 {
+    /// <summary>When a new WatchdogService is created, then its snapshot is empty and timestamps equal the initial time.</summary>
+    /// <intent>Verify the watchdog snapshot starts with no alerts.</intent>
+    /// <scenario>Given a WatchdogService configured with a FakeTimeProvider and no sinks.</scenario>
+    /// <behavior>Then GetSnapshot returns empty alerts and timestamps equal the initial fake time.</behavior>
     [Fact]
     public void GetSnapshot_ReturnsInitialState()
     {
@@ -54,6 +58,10 @@ public class WatchdogServiceTests
         snapshot.LastHeartbeatAt.ShouldBe(DateTimeOffset.Parse("2024-01-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture));
     }
 
+    /// <summary>When the heartbeat period elapses, then the watchdog emits a heartbeat to sinks.</summary>
+    /// <intent>Ensure heartbeat scheduling triggers sink callbacks.</intent>
+    /// <scenario>Given a WatchdogService with a DelegateHeartbeatSink and FakeTimeProvider advanced past heartbeat period.</scenario>
+    /// <behavior>Then the heartbeat sink is invoked with a sequence number.</behavior>
     [Fact]
     public async Task WatchdogService_EmitsHeartbeat()
     {
@@ -111,6 +119,10 @@ public class WatchdogServiceTests
         sequenceNumber.ShouldBeGreaterThan(0);
     }
 
+    /// <summary>When overdue jobs are reported by the scheduler state, then the watchdog emits an overdue-job alert.</summary>
+    /// <intent>Verify job-overdue detection triggers alert sinks.</intent>
+    /// <scenario>Given a FakeSchedulerState with an overdue job and a DelegateAlertSink.</scenario>
+    /// <behavior>Then an OverdueJob alert is emitted with the job id.</behavior>
     [Fact]
     public async Task WatchdogService_DetectsOverdueJobs()
     {
@@ -170,6 +182,10 @@ public class WatchdogServiceTests
         receivedAlert.Key.ShouldContain("job-123");
     }
 
+    /// <summary>When no alerts are present, then the watchdog health check reports Healthy.</summary>
+    /// <intent>Validate health check status reflects an alert-free snapshot.</intent>
+    /// <scenario>Given a WatchdogService with no alert sinks and no active alerts.</scenario>
+    /// <behavior>Then WatchdogHealthCheck returns Healthy.</behavior>
     [Fact]
     public async Task WatchdogHealthCheck_ReturnsHealthy_WhenNoAlertsAsync()
     {

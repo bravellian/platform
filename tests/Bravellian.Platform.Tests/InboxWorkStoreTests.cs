@@ -37,6 +37,10 @@ public class InboxWorkStoreTests : SqlServerTestBase
         await DatabaseSchemaManager.EnsureInboxWorkQueueSchemaAsync(ConnectionString).ConfigureAwait(false);
     }
 
+    /// <summary>When ClaimAsync is called with no pending messages, then it returns an empty set.</summary>
+    /// <intent>Confirm the inbox work store returns no claims when there is no work.</intent>
+    /// <scenario>Given an empty inbox table and a SqlInboxWorkStore instance.</scenario>
+    /// <behavior>Then ClaimAsync returns an empty list of message ids.</behavior>
     [Fact]
     public async Task ClaimAsync_WithNoMessages_ReturnsEmpty()
     {
@@ -51,6 +55,10 @@ public class InboxWorkStoreTests : SqlServerTestBase
         Assert.Empty(claimedIds);
     }
 
+    /// <summary>When a ready message exists, then ClaimAsync claims it and marks it as processing.</summary>
+    /// <intent>Verify claims update inbox status and owner token correctly.</intent>
+    /// <scenario>Given an enqueued inbox message and a generated owner token.</scenario>
+    /// <behavior>Then ClaimAsync returns the message id and the row is marked Processing with the owner token.</behavior>
     [Fact]
     public async Task ClaimAsync_WithAvailableMessage_ClaimsSuccessfully()
     {
@@ -81,6 +89,10 @@ public class InboxWorkStoreTests : SqlServerTestBase
         Assert.Equal(ownerToken.Value, (Guid)result.OwnerToken);
     }
 
+    /// <summary>When two workers claim concurrently, then only one receives the message.</summary>
+    /// <intent>Ensure exclusive claims under concurrent callers.</intent>
+    /// <scenario>Given a single inbox message and two ClaimAsync calls with different owner tokens.</scenario>
+    /// <behavior>Then exactly one claim list contains the message id.</behavior>
     [Fact]
     public async Task ClaimAsync_WithConcurrentWorkers_EnsuresExclusiveClaims()
     {
@@ -108,6 +120,10 @@ public class InboxWorkStoreTests : SqlServerTestBase
         Assert.True((claims1.Count == 1 && claims2.Count == 0) || (claims1.Count == 0 && claims2.Count == 1));
     }
 
+    /// <summary>When AckAsync is called by the owner, then the message is marked Done and processed time is set.</summary>
+    /// <intent>Verify successful acknowledgements update inbox state.</intent>
+    /// <scenario>Given a claimed inbox message and the owning token.</scenario>
+    /// <behavior>Then the row status is Done, OwnerToken is cleared, and ProcessedUtc is set.</behavior>
     [Fact]
     public async Task AckAsync_WithClaimedMessage_MarksAsDone()
     {
@@ -137,6 +153,10 @@ public class InboxWorkStoreTests : SqlServerTestBase
         Assert.NotNull(result.ProcessedUtc);
     }
 
+    /// <summary>When AbandonAsync is called by the owner, then the message returns to Seen status.</summary>
+    /// <intent>Verify abandoning a claim resets the inbox state.</intent>
+    /// <scenario>Given a claimed inbox message and the owning token.</scenario>
+    /// <behavior>Then the row status is Seen and OwnerToken is cleared.</behavior>
     [Fact]
     public async Task AbandonAsync_WithClaimedMessage_ReturnsToSeen()
     {
@@ -165,6 +185,10 @@ public class InboxWorkStoreTests : SqlServerTestBase
         Assert.Null(result.OwnerToken);
     }
 
+    /// <summary>When FailAsync is called by the owner, then the message is marked Dead.</summary>
+    /// <intent>Verify failed processing sets the inbox message to Dead.</intent>
+    /// <scenario>Given a claimed inbox message and the owning token.</scenario>
+    /// <behavior>Then the row status is Dead and OwnerToken is cleared.</behavior>
     [Fact]
     public async Task FailAsync_WithClaimedMessage_MarksAsDead()
     {
@@ -193,6 +217,10 @@ public class InboxWorkStoreTests : SqlServerTestBase
         Assert.Null(result.OwnerToken);
     }
 
+    /// <summary>When a non-owner tries to acknowledge a claim, then the message remains in Processing.</summary>
+    /// <intent>Ensure owner token enforcement prevents unauthorized state changes.</intent>
+    /// <scenario>Given a message claimed by one owner and AckAsync called with a different owner token.</scenario>
+    /// <behavior>Then the row status remains Processing with the original owner token.</behavior>
     [Fact]
     public async Task OwnerTokenEnforcement_OnlyAllowsOperationsByOwner()
     {
@@ -222,6 +250,10 @@ public class InboxWorkStoreTests : SqlServerTestBase
         Assert.Equal(rightOwner.Value, (Guid)result.OwnerToken);
     }
 
+    /// <summary>When GetAsync is called with a valid message id, then it returns the stored message details.</summary>
+    /// <intent>Verify inbox work store retrieval returns expected fields.</intent>
+    /// <scenario>Given an enqueued inbox message with a known id.</scenario>
+    /// <behavior>Then GetAsync returns a message with matching id, source, topic, payload, and attempt.</behavior>
     [Fact]
     public async Task GetAsync_WithValidMessageId_ReturnsMessage()
     {
@@ -244,6 +276,10 @@ public class InboxWorkStoreTests : SqlServerTestBase
         Assert.Equal(1, message.Attempt); // First attempt
     }
 
+    /// <summary>When GetAsync is called with an unknown message id, then it throws an InvalidOperationException.</summary>
+    /// <intent>Ensure missing inbox messages result in a failure.</intent>
+    /// <scenario>Given a SqlInboxWorkStore with no message matching the requested id.</scenario>
+    /// <behavior>Then GetAsync throws InvalidOperationException.</behavior>
     [Fact]
     public async Task GetAsync_WithInvalidMessageId_ThrowsException()
     {

@@ -41,6 +41,10 @@ public class DatabaseSchemaConsistencyTests : PostgresTestBase
         await DatabaseSchemaManager.EnsureFanoutSchemaAsync(ConnectionString).ConfigureAwait(false);
     }
 
+    /// <summary>Given core schemas are deployed, then all required tables exist.</summary>
+    /// <intent>Verify core schema deployment creates the expected tables.</intent>
+    /// <scenario>Given Outbox, Inbox, Scheduler, and Fanout schemas ensured in the infra schema.</scenario>
+    /// <behavior>Each expected core table is present in infra.</behavior>
     [Fact]
     public async Task DatabaseSchema_AllRequiredTablesExist()
     {
@@ -65,6 +69,10 @@ public class DatabaseSchemaConsistencyTests : PostgresTestBase
         }
     }
 
+    /// <summary>When inspecting the Outbox table, then all required columns and types match.</summary>
+    /// <intent>Validate the Outbox table shape matches the expected schema.</intent>
+    /// <scenario>Given the infra.Outbox table created by schema deployment.</scenario>
+    /// <behavior>Each required Outbox column exists with the expected PostgreSQL data type.</behavior>
     [Fact]
     public async Task OutboxTable_HasCorrectSchema()
     {
@@ -96,6 +104,10 @@ public class DatabaseSchemaConsistencyTests : PostgresTestBase
         }
     }
 
+    /// <summary>When inspecting the Jobs table, then all required columns and types match.</summary>
+    /// <intent>Validate the Jobs table shape matches the expected schema.</intent>
+    /// <scenario>Given the infra.Jobs table created by schema deployment.</scenario>
+    /// <behavior>Each required Jobs column exists with the expected PostgreSQL data type.</behavior>
     [Fact]
     public async Task JobsTable_HasCorrectSchema()
     {
@@ -121,6 +133,10 @@ public class DatabaseSchemaConsistencyTests : PostgresTestBase
         }
     }
 
+    /// <summary>When inspecting the Timers table, then all required columns and types match.</summary>
+    /// <intent>Validate the Timers table shape matches the expected schema.</intent>
+    /// <scenario>Given the infra.Timers table created by schema deployment.</scenario>
+    /// <behavior>Each required Timers column exists with the expected PostgreSQL data type.</behavior>
     [Fact]
     public async Task TimersTable_HasCorrectSchema()
     {
@@ -152,6 +168,10 @@ public class DatabaseSchemaConsistencyTests : PostgresTestBase
         }
     }
 
+    /// <summary>When inspecting the JobRuns table, then all required columns and types match.</summary>
+    /// <intent>Validate the JobRuns table shape matches the expected schema.</intent>
+    /// <scenario>Given the infra.JobRuns table created by schema deployment.</scenario>
+    /// <behavior>Each required JobRuns column exists with the expected PostgreSQL data type.</behavior>
     [Fact]
     public async Task JobRunsTable_HasCorrectSchema()
     {
@@ -182,6 +202,10 @@ public class DatabaseSchemaConsistencyTests : PostgresTestBase
         }
     }
 
+    /// <summary>When inspecting the Inbox table, then all required columns and types match.</summary>
+    /// <intent>Validate the Inbox table shape matches the expected schema.</intent>
+    /// <scenario>Given the infra.Inbox table created by schema deployment.</scenario>
+    /// <behavior>Each required Inbox column exists with the expected PostgreSQL data type.</behavior>
     [Fact]
     public async Task InboxTable_HasCorrectSchema()
     {
@@ -212,6 +236,10 @@ public class DatabaseSchemaConsistencyTests : PostgresTestBase
         }
     }
 
+    /// <summary>When verifying schema indexes, then required work-queue and uniqueness indexes exist.</summary>
+    /// <intent>Validate required indexes are created for core tables.</intent>
+    /// <scenario>Given the infra schema with Outbox, Inbox, Jobs, Timers, and JobRuns tables.</scenario>
+    /// <behavior>All expected indexes are present in PostgreSQL metadata.</behavior>
     [Fact]
     public async Task DatabaseSchema_RequiredIndexesExist()
     {
@@ -243,6 +271,10 @@ public class DatabaseSchemaConsistencyTests : PostgresTestBase
         indexExists.ShouldBeTrue("JobRuns should have IX_JobRuns_WorkQueue index");
     }
 
+    /// <summary>When creating scheduler tables in a custom schema, then tables and indexes use the custom names.</summary>
+    /// <intent>Verify scheduler schema respects custom schema and table names.</intent>
+    /// <scenario>Given EnsureSchedulerSchemaAsync is called with schema custom_test and custom table names.</scenario>
+    /// <behavior>CustomJobs, CustomJobRuns, and CustomTimers tables exist with the expected index name.</behavior>
     [Fact]
     public async Task CustomSchemaNames_WorkCorrectly()
     {
@@ -271,6 +303,10 @@ public class DatabaseSchemaConsistencyTests : PostgresTestBase
         indexExists.ShouldBeTrue("Custom Jobs table should have correctly named unique index");
     }
 
+    /// <summary>When checking the Outbox table after work-queue migration, then work-queue columns exist.</summary>
+    /// <intent>Confirm work-queue columns are present after migration.</intent>
+    /// <scenario>Given the infra.Outbox table created by schema deployment.</scenario>
+    /// <behavior>Status, LockedUntil, and OwnerToken columns are present.</behavior>
     [Fact]
     public async Task WorkQueueColumns_ExistAfterMigration()
     {

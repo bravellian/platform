@@ -32,6 +32,18 @@ public class InboxIntegrationTests : PostgresTestBase
     {
     }
 
+    /// <summary>
+    /// Given a direct inbox workflow, then AlreadyProcessed transitions from false to true and the row is Done.
+    /// </summary>
+    /// <intent>
+    /// Verify end-to-end inbox processing with direct PostgresInboxService usage.
+    /// </intent>
+    /// <scenario>
+    /// Given a PostgresInboxService configured with infra.Inbox and a test message id.
+    /// </scenario>
+    /// <behavior>
+    /// The first AlreadyProcessedAsync is false, after MarkProcessing/MarkProcessed it is true, and ProcessedUtc is set.
+    /// </behavior>
     [Fact]
     public async Task CompleteInboxWorkflow_DirectServiceUsage_WorksEndToEnd()
     {
@@ -68,6 +80,18 @@ public class InboxIntegrationTests : PostgresTestBase
         await VerifyMessageState(messageId, "Done", processedUtc: true);
     }
 
+    /// <summary>
+    /// When a message is marked dead after processing starts, then its status is Dead and ProcessedUtc stays null.
+    /// </summary>
+    /// <intent>
+    /// Verify poison-message handling in the inbox workflow.
+    /// </intent>
+    /// <scenario>
+    /// Given a PostgresInboxService and a message marked Processing then Dead.
+    /// </scenario>
+    /// <behavior>
+    /// The database row shows Status Dead and no ProcessedUtc value.
+    /// </behavior>
     [Fact]
     public async Task PoisonMessageWorkflow_MarkingAsDead_WorksCorrectly()
     {
@@ -98,6 +122,18 @@ public class InboxIntegrationTests : PostgresTestBase
         await VerifyMessageState(messageId, "Dead", processedUtc: false);
     }
 
+    /// <summary>
+    /// When multiple threads call AlreadyProcessedAsync concurrently, then one row is created with attempts tracked.
+    /// </summary>
+    /// <intent>
+    /// Verify concurrent deduplication records a single row and increments Attempts.
+    /// </intent>
+    /// <scenario>
+    /// Given ten concurrent tasks invoking AlreadyProcessedAsync for the same message id.
+    /// </scenario>
+    /// <behavior>
+    /// All calls return false, only one row exists, and Attempts equals the task count.
+    /// </behavior>
     [Fact]
     public async Task ConcurrentAccess_WithMultipleThreads_HandledSafely()
     {

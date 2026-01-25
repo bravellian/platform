@@ -37,6 +37,10 @@ public class OutboxCleanupTests : SqlServerTestBase
         defaultOptions.ConnectionString = ConnectionString;
     }
 
+    /// <summary>When cleanup runs with a retention window, then only processed outbox rows older than the window are deleted.</summary>
+    /// <intent>Verify the outbox cleanup procedure removes stale processed rows.</intent>
+    /// <scenario>Given old processed, recent processed, and unprocessed outbox rows before cleanup.</scenario>
+    /// <behavior>Then only the old processed message is deleted and other rows remain.</behavior>
     [Fact]
     public async Task Cleanup_DeletesOldProcessedMessages()
     {
@@ -110,6 +114,10 @@ public class OutboxCleanupTests : SqlServerTestBase
         remainingIds.ShouldContain(unprocessedMessageId);
     }
 
+    /// <summary>When cleanup runs and no processed rows are older than retention, then nothing is deleted.</summary>
+    /// <intent>Ensure cleanup is a no-op when no rows qualify for deletion.</intent>
+    /// <scenario>Given only a recent processed outbox row before cleanup.</scenario>
+    /// <behavior>Then the cleanup procedure deletes zero rows and the message remains.</behavior>
     [Fact]
     public async Task Cleanup_WithNoOldMessages_DeletesNothing()
     {
@@ -147,6 +155,10 @@ public class OutboxCleanupTests : SqlServerTestBase
         remainingMessages.Count().ShouldBe(1);
     }
 
+    /// <summary>When cleanup runs with a 10-day retention period, then only rows older than 10 days are deleted.</summary>
+    /// <intent>Confirm retention period filtering for outbox cleanup.</intent>
+    /// <scenario>Given processed outbox rows at 30, 15, 7, 3, and 1 days old.</scenario>
+    /// <behavior>Then only the 30- and 15-day rows are deleted and newer rows remain.</behavior>
     [Fact]
     public async Task Cleanup_RespectsRetentionPeriod()
     {
@@ -201,6 +213,10 @@ public class OutboxCleanupTests : SqlServerTestBase
         remainingIds.ShouldContain(messages[4].Id);    // 1 day
     }
 
+    /// <summary>When the cleanup stored procedure is missing, then the cleanup service runs without crashing.</summary>
+    /// <intent>Ensure the outbox cleanup service tolerates missing schema deployment.</intent>
+    /// <scenario>Given the cleanup procedure dropped and a short cleanup interval.</scenario>
+    /// <behavior>Then StartAsync completes without throwing and the procedure remains missing.</behavior>
     [Fact]
     public async Task CleanupService_GracefullyHandles_MissingStoredProcedure()
     {

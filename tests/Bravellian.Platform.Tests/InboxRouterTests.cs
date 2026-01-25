@@ -26,6 +26,10 @@ public class InboxRouterTests
         this.testOutputHelper = testOutputHelper;
     }
 
+    /// <summary>When a configured tenant key is requested, then the router returns an inbox instance.</summary>
+    /// <intent>Verify inbox routing by string key for configured stores.</intent>
+    /// <scenario>Given a ConfiguredInboxWorkStoreProvider built from two SqlInboxOptions and a test logger.</scenario>
+    /// <behavior>Then GetInbox returns a non-null inbox for the matching tenant.</behavior>
     [Fact]
     public void InboxRouter_WithValidKey_ReturnsInbox()
     {
@@ -57,6 +61,10 @@ public class InboxRouterTests
         inbox.ShouldNotBeNull();
     }
 
+    /// <summary>When a Guid tenant key is requested, then the router returns an inbox instance.</summary>
+    /// <intent>Verify inbox routing by Guid key converted to string.</intent>
+    /// <scenario>Given a ConfiguredInboxWorkStoreProvider configured with a Guid-based connection string.</scenario>
+    /// <behavior>Then GetInbox(Guid) returns a non-null inbox.</behavior>
     [Fact]
     public void InboxRouter_WithGuidKey_ReturnsInbox()
     {
@@ -83,6 +91,10 @@ public class InboxRouterTests
         inbox.ShouldNotBeNull();
     }
 
+    /// <summary>When an unknown tenant key is requested, then the router throws an InvalidOperationException.</summary>
+    /// <intent>Ensure the router fails fast for missing tenant entries.</intent>
+    /// <scenario>Given a provider with one configured tenant and a non-existent tenant key.</scenario>
+    /// <behavior>Then GetInbox throws InvalidOperationException.</behavior>
     [Fact]
     public void InboxRouter_WithInvalidKey_ThrowsException()
     {
@@ -105,6 +117,10 @@ public class InboxRouterTests
         Should.Throw<InvalidOperationException>(() => router.GetInbox("NonExistentTenant"));
     }
 
+    /// <summary>When an empty tenant key is requested, then the router throws an ArgumentException.</summary>
+    /// <intent>Validate tenant key input guarding.</intent>
+    /// <scenario>Given a router configured with a single tenant and an empty key input.</scenario>
+    /// <behavior>Then GetInbox throws ArgumentException.</behavior>
     [Fact]
     public void InboxRouter_WithNullKey_ThrowsArgumentException()
     {
@@ -127,6 +143,10 @@ public class InboxRouterTests
         Should.Throw<ArgumentException>(() => router.GetInbox(string.Empty));
     }
 
+    /// <summary>When the router is constructed with a null provider, then it throws an ArgumentNullException.</summary>
+    /// <intent>Ensure InboxRouter requires a non-null store provider.</intent>
+    /// <scenario>Given an attempt to construct InboxRouter with a null IInboxWorkStoreProvider.</scenario>
+    /// <behavior>Then the constructor throws ArgumentNullException.</behavior>
     [Fact]
     public void InboxRouter_WithNullProvider_ThrowsArgumentNullException()
     {

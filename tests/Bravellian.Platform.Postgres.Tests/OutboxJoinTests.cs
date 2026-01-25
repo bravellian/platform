@@ -78,6 +78,10 @@ public class OutboxJoinTests : PostgresTestBase
         return OutboxMessageIdentifier.From(id);
     }
 
+    /// <summary>When CreateJoinAsync is called with valid parameters, then a pending join is created.</summary>
+    /// <intent>Verify join creation populates expected metadata and counters.</intent>
+    /// <scenario>Given a tenant id, expected steps, and metadata payload.</scenario>
+    /// <behavior>The join has a non-empty id, pending status, zero counts, and a recent CreatedUtc.</behavior>
     [Fact]
     public async Task CreateJoinAsync_WithValidParameters_CreatesJoin()
     {
@@ -104,6 +108,10 @@ public class OutboxJoinTests : PostgresTestBase
             DateTimeOffset.UtcNow.AddMinutes(1));
     }
 
+    /// <summary>When retrieving an existing join, then GetJoinAsync returns it.</summary>
+    /// <intent>Verify joins can be fetched by id.</intent>
+    /// <scenario>Given a join created via CreateJoinAsync.</scenario>
+    /// <behavior>The retrieved join matches the created JoinId and ExpectedSteps.</behavior>
     [Fact]
     public async Task GetJoinAsync_WithExistingJoin_ReturnsJoin()
     {
@@ -122,6 +130,10 @@ public class OutboxJoinTests : PostgresTestBase
         retrievedJoin.ExpectedSteps.ShouldBe(3);
     }
 
+    /// <summary>When retrieving a non-existent join, then GetJoinAsync returns null.</summary>
+    /// <intent>Verify unknown join ids are handled gracefully.</intent>
+    /// <scenario>Given a randomly generated JoinIdentifier.</scenario>
+    /// <behavior>The retrieved join is null.</behavior>
     [Fact]
     public async Task GetJoinAsync_WithNonExistentJoin_ReturnsNull()
     {
@@ -134,6 +146,10 @@ public class OutboxJoinTests : PostgresTestBase
         join.ShouldBeNull();
     }
 
+    /// <summary>When attaching a message to a join, then the association is stored.</summary>
+    /// <intent>Verify join member rows are created for attached messages.</intent>
+    /// <scenario>Given an existing join and a created outbox message id.</scenario>
+    /// <behavior>The join member table has one row for the join/message pair.</behavior>
     [Fact]
     public async Task AttachMessageToJoinAsync_WithValidIds_CreatesAssociation()
     {
@@ -163,6 +179,10 @@ public class OutboxJoinTests : PostgresTestBase
         count.ShouldBe(1);
     }
 
+    /// <summary>When attaching the same message twice, then only one association exists.</summary>
+    /// <intent>Verify AttachMessageToJoinAsync is idempotent.</intent>
+    /// <scenario>Given a join and a single outbox message attached twice.</scenario>
+    /// <behavior>The join member table contains a single row for that pair.</behavior>
     [Fact]
     public async Task AttachMessageToJoinAsync_CalledTwice_IsIdempotent()
     {
@@ -197,6 +217,10 @@ public class OutboxJoinTests : PostgresTestBase
         count.ShouldBe(1);
     }
 
+    /// <summary>When incrementing completion for an attached message, then CompletedSteps increases.</summary>
+    /// <intent>Verify completion updates counters and timestamps.</intent>
+    /// <scenario>Given a join with an attached message.</scenario>
+    /// <behavior>CompletedSteps is 1, FailedSteps is 0, and LastUpdatedUtc advances.</behavior>
     [Fact]
     public async Task IncrementCompletedAsync_WithValidMessage_IncrementsCount()
     {
@@ -222,6 +246,10 @@ public class OutboxJoinTests : PostgresTestBase
         updatedJoin.LastUpdatedUtc.ShouldBeGreaterThan(join.LastUpdatedUtc);
     }
 
+    /// <summary>When incrementing failure for an attached message, then FailedSteps increases.</summary>
+    /// <intent>Verify failure updates counters and timestamps.</intent>
+    /// <scenario>Given a join with an attached message.</scenario>
+    /// <behavior>FailedSteps is 1, CompletedSteps is 0, and LastUpdatedUtc advances.</behavior>
     [Fact]
     public async Task IncrementFailedAsync_WithValidMessage_IncrementsCount()
     {
@@ -247,6 +275,10 @@ public class OutboxJoinTests : PostgresTestBase
         updatedJoin.LastUpdatedUtc.ShouldBeGreaterThan(join.LastUpdatedUtc);
     }
 
+    /// <summary>When UpdateStatusAsync sets a status, then the join status is updated.</summary>
+    /// <intent>Verify status updates persist for joins.</intent>
+    /// <scenario>Given a pending join that is updated to Completed.</scenario>
+    /// <behavior>The stored join status is Completed.</behavior>
     [Fact]
     public async Task UpdateStatusAsync_WithValidStatus_UpdatesJoinStatus()
     {
@@ -269,6 +301,10 @@ public class OutboxJoinTests : PostgresTestBase
         updatedJoin!.Status.ShouldBe(JoinStatus.Completed);
     }
 
+    /// <summary>When a join has multiple attached messages, then GetJoinMessagesAsync returns all ids.</summary>
+    /// <intent>Verify join message enumeration returns every attached message.</intent>
+    /// <scenario>Given a join with three attached outbox messages.</scenario>
+    /// <behavior>The returned list contains all three message ids.</behavior>
     [Fact]
     public async Task GetJoinMessagesAsync_WithMultipleMessages_ReturnsAllMessageIds()
     {
@@ -296,6 +332,10 @@ public class OutboxJoinTests : PostgresTestBase
         messageIds.ShouldContain(messageId3);
     }
 
+    /// <summary>When all steps complete, then the join reports completed status and counts.</summary>
+    /// <intent>Verify the full join workflow records completion for every step.</intent>
+    /// <scenario>Given a join expecting three steps with three attached messages all completed.</scenario>
+    /// <behavior>CompletedSteps is 3, FailedSteps is 0, and Status is Completed.</behavior>
     [Fact]
     public async Task CompleteJoinWorkflow_WithAllStepsCompleted_WorksCorrectly()
     {
@@ -336,6 +376,10 @@ public class OutboxJoinTests : PostgresTestBase
         finalJoin.FailedSteps.ShouldBe(0);
     }
 
+    /// <summary>When some steps fail, then the join reports failed status and counts.</summary>
+    /// <intent>Verify the join workflow records failures alongside completions.</intent>
+    /// <scenario>Given a join expecting three steps with two completed and one failed.</scenario>
+    /// <behavior>Status is Failed with CompletedSteps 2 and FailedSteps 1.</behavior>
     [Fact]
     public async Task CompleteJoinWorkflow_WithSomeStepsFailed_WorksCorrectly()
     {
@@ -370,6 +414,10 @@ public class OutboxJoinTests : PostgresTestBase
         finalJoin.FailedSteps.ShouldBe(1);
     }
 
+    /// <summary>When IncrementCompletedAsync is called twice for the same message, then counts are not duplicated.</summary>
+    /// <intent>Verify completion increments are idempotent per message.</intent>
+    /// <scenario>Given a join with one attached message completed twice.</scenario>
+    /// <behavior>CompletedSteps remains 1 and FailedSteps remains 0.</behavior>
     [Fact]
     public async Task IncrementCompletedAsync_CalledTwiceForSameMessage_IsIdempotent()
     {
@@ -391,6 +439,10 @@ public class OutboxJoinTests : PostgresTestBase
         updatedJoin.FailedSteps.ShouldBe(0);
     }
 
+    /// <summary>When IncrementFailedAsync is called twice for the same message, then counts are not duplicated.</summary>
+    /// <intent>Verify failure increments are idempotent per message.</intent>
+    /// <scenario>Given a join with one attached message failed twice.</scenario>
+    /// <behavior>FailedSteps remains 1 and CompletedSteps remains 0.</behavior>
     [Fact]
     public async Task IncrementFailedAsync_CalledTwiceForSameMessage_IsIdempotent()
     {
@@ -412,6 +464,10 @@ public class OutboxJoinTests : PostgresTestBase
         updatedJoin.FailedSteps.ShouldBe(1);
     }
 
+    /// <summary>When completed steps would exceed expected, then counts do not overrun expected steps.</summary>
+    /// <intent>Verify completion counting is capped at ExpectedSteps.</intent>
+    /// <scenario>Given a join expecting two steps with three attached messages completed.</scenario>
+    /// <behavior>CompletedSteps remains at 2 and FailedSteps remains 0.</behavior>
     [Fact]
     public async Task IncrementCompletedAsync_WhenTotalWouldExceedExpected_DoesNotOverCount()
     {
@@ -443,6 +499,10 @@ public class OutboxJoinTests : PostgresTestBase
         updatedJoin.FailedSteps.ShouldBe(0);
     }
 
+    /// <summary>When outbox messages are acked, then join completion counts are incremented.</summary>
+    /// <intent>Verify outbox acknowledgements report join completion automatically.</intent>
+    /// <scenario>Given a join expecting two messages attached to the outbox.</scenario>
+    /// <behavior>CompletedSteps moves from 1 after the first ack to 2 after the second.</behavior>
     [Fact]
     public async Task OutboxAck_AutomaticallyReportsJoinCompletion()
     {
@@ -477,6 +537,10 @@ public class OutboxJoinTests : PostgresTestBase
         joinAfterSecond.FailedSteps.ShouldBe(0);
     }
 
+    /// <summary>When outbox messages fail, then join failure counts are incremented.</summary>
+    /// <intent>Verify outbox failures report join failures automatically.</intent>
+    /// <scenario>Given a join expecting two messages where one is acked and one fails.</scenario>
+    /// <behavior>CompletedSteps is 1 and FailedSteps is 1.</behavior>
     [Fact]
     public async Task OutboxFail_AutomaticallyReportsJoinFailure()
     {
@@ -506,6 +570,10 @@ public class OutboxJoinTests : PostgresTestBase
         finalJoin.FailedSteps.ShouldBe(1);
     }
 
+    /// <summary>When the same message is acked multiple times, then join counts are not over-incremented.</summary>
+    /// <intent>Verify outbox ack reporting is idempotent per message.</intent>
+    /// <scenario>Given a join expecting one message that is acked twice.</scenario>
+    /// <behavior>CompletedSteps remains 1 and FailedSteps remains 0.</behavior>
     [Fact]
     public async Task OutboxAck_MultipleAcksForSameMessage_IsIdempotent()
     {

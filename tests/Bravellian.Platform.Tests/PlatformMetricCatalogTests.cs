@@ -19,6 +19,18 @@ namespace Bravellian.Platform.Tests;
 
 public class PlatformMetricCatalogTests
 {
+    /// <summary>
+    /// When the platform metric catalog is enumerated, then it returns a non-empty list.
+    /// </summary>
+    /// <intent>
+    /// Ensure the catalog exposes at least one metric.
+    /// </intent>
+    /// <scenario>
+    /// Given PlatformMetricCatalog.All is accessed without additional setup.
+    /// </scenario>
+    /// <behavior>
+    /// Then the returned list is not null and contains entries.
+    /// </behavior>
     [Fact]
     public void All_ReturnsNonEmptyList()
     {
@@ -30,6 +42,18 @@ public class PlatformMetricCatalogTests
         metrics.Count.ShouldBeGreaterThan(0);
     }
 
+    /// <summary>
+    /// When the platform metric catalog is enumerated, then it contains the expected outbox metrics.
+    /// </summary>
+    /// <intent>
+    /// Verify that outbox metrics are registered in the catalog.
+    /// </intent>
+    /// <scenario>
+    /// Given PlatformMetricCatalog.All is evaluated.
+    /// </scenario>
+    /// <behavior>
+    /// Then the list includes outbox published, pending, oldest age, and latency metrics.
+    /// </behavior>
     [Fact]
     public void All_ContainsOutboxMetrics()
     {
@@ -43,6 +67,18 @@ public class PlatformMetricCatalogTests
         metrics.ShouldContain(m => m.Name == "outbox.publish_latency.ms");
     }
 
+    /// <summary>
+    /// When the platform metric catalog is enumerated, then it contains the expected inbox metrics.
+    /// </summary>
+    /// <intent>
+    /// Verify that inbox metrics are registered in the catalog.
+    /// </intent>
+    /// <scenario>
+    /// Given PlatformMetricCatalog.All is evaluated.
+    /// </scenario>
+    /// <behavior>
+    /// Then the list includes inbox processed, retry, failed, and processing latency metrics.
+    /// </behavior>
     [Fact]
     public void All_ContainsInboxMetrics()
     {
@@ -56,6 +92,18 @@ public class PlatformMetricCatalogTests
         metrics.ShouldContain(m => m.Name == "inbox.processing_latency.ms");
     }
 
+    /// <summary>
+    /// When the platform metric catalog is enumerated, then it contains the expected DLQ metrics.
+    /// </summary>
+    /// <intent>
+    /// Verify that dead-letter queue metrics are registered in the catalog.
+    /// </intent>
+    /// <scenario>
+    /// Given PlatformMetricCatalog.All is evaluated.
+    /// </scenario>
+    /// <behavior>
+    /// Then the list includes DLQ depth and oldest age metrics.
+    /// </behavior>
     [Fact]
     public void All_ContainsDlqMetrics()
     {
@@ -67,6 +115,18 @@ public class PlatformMetricCatalogTests
         metrics.ShouldContain(m => m.Name == "dlq.oldest_age.seconds");
     }
 
+    /// <summary>
+    /// When the platform metric catalog is enumerated, then each metric has required metadata populated.
+    /// </summary>
+    /// <intent>
+    /// Ensure metric definitions have valid names, units, descriptions, tags, and aggregation kinds.
+    /// </intent>
+    /// <scenario>
+    /// Given PlatformMetricCatalog.All is evaluated.
+    /// </scenario>
+    /// <behavior>
+    /// Then each metric has non-empty name/unit/description, non-null tags, and a defined aggregation kind.
+    /// </behavior>
     [Fact]
     public void All_MetricsHaveValidProperties()
     {
@@ -86,6 +146,18 @@ public class PlatformMetricCatalogTests
         }
     }
 
+    /// <summary>
+    /// When counter metrics are selected from the catalog, then their units are count except for latency or age metrics.
+    /// </summary>
+    /// <intent>
+    /// Validate unit conventions for counter metrics.
+    /// </intent>
+    /// <scenario>
+    /// Given PlatformMetricCatalog.All is filtered to counter aggregation metrics.
+    /// </scenario>
+    /// <behavior>
+    /// Then non-latency and non-age counters use the Count unit.
+    /// </behavior>
     [Fact]
     public void All_CounterMetricsHaveCountUnit()
     {
@@ -105,6 +177,18 @@ public class PlatformMetricCatalogTests
         }
     }
 
+    /// <summary>
+    /// When histogram metrics are selected from the catalog, then their units are time-based.
+    /// </summary>
+    /// <intent>
+    /// Ensure histogram metrics report timing in milliseconds or seconds.
+    /// </intent>
+    /// <scenario>
+    /// Given PlatformMetricCatalog.All is filtered to histogram aggregation metrics.
+    /// </scenario>
+    /// <behavior>
+    /// Then each histogram metric uses Milliseconds or Seconds units.
+    /// </behavior>
     [Fact]
     public void All_HistogramMetricsHaveTimeUnits()
     {

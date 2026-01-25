@@ -24,6 +24,18 @@ namespace Bravellian.Platform.Tests.Modularity;
 [Collection("ModuleRegistryTests")]
 public sealed class RequiredServiceValidationTests
 {
+    /// <summary>
+    /// When a UI engine declares required services and no validator is registered, then ExecuteAsync fails and mentions IRequiredServiceValidator.
+    /// </summary>
+    /// <intent>
+    /// Ensure required service validation is enforced when engines declare dependencies.
+    /// </intent>
+    /// <scenario>
+    /// Given RequiredServiceModule is registered and the service collection omits an IRequiredServiceValidator.
+    /// </scenario>
+    /// <behavior>
+    /// Then ExecuteAsync throws an InvalidOperationException whose message references IRequiredServiceValidator.
+    /// </behavior>
     [Fact]
     public async Task Ui_adapter_requires_required_service_validator_when_engine_declares_required_services()
     {
@@ -46,6 +58,18 @@ public sealed class RequiredServiceValidationTests
         ex.Message.ShouldContain(nameof(IRequiredServiceValidator));
     }
 
+    /// <summary>
+    /// When required services are missing, then ExecuteAsync throws with missing service details.
+    /// </summary>
+    /// <intent>
+    /// Validate that required service checks surface missing dependencies in the error message.
+    /// </intent>
+    /// <scenario>
+    /// Given RequiredServiceModule is registered and a TestRequiredServiceValidator reports no available services.
+    /// </scenario>
+    /// <behavior>
+    /// Then ExecuteAsync throws and the message contains the missing service name and summary text.
+    /// </behavior>
     [Fact]
     public async Task Ui_adapter_throws_when_required_services_are_missing()
     {
@@ -70,6 +94,18 @@ public sealed class RequiredServiceValidationTests
         ex.Message.ShouldContain("cache");
     }
 
+    /// <summary>
+    /// When required services are satisfied, then ExecuteAsync returns the engine result.
+    /// </summary>
+    /// <intent>
+    /// Confirm successful execution when required services are available.
+    /// </intent>
+    /// <scenario>
+    /// Given RequiredServiceModule is registered and a TestRequiredServiceValidator lists cache and telemetry as available.
+    /// </scenario>
+    /// <behavior>
+    /// Then the returned view model contains the expected "ok" value.
+    /// </behavior>
     [Fact]
     public async Task Ui_adapter_executes_when_required_services_are_satisfied()
     {
@@ -92,6 +128,18 @@ public sealed class RequiredServiceValidationTests
         response.ViewModel.Value.ShouldBe("ok");
     }
 
+    /// <summary>
+    /// When an engine descriptor factory returns null, then ResolveEngine throws and identifies the module/engine key.
+    /// </summary>
+    /// <intent>
+    /// Guard against null engine factories during discovery resolution.
+    /// </intent>
+    /// <scenario>
+    /// Given a ModuleEngineDescriptor whose factory returns null and an empty service provider.
+    /// </scenario>
+    /// <behavior>
+    /// Then ResolveEngine throws an InvalidOperationException mentioning "returned null" and the descriptor key.
+    /// </behavior>
     [Fact]
     public void Discovery_service_resolve_engine_throws_when_factory_returns_null()
     {

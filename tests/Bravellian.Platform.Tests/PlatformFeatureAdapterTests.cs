@@ -19,6 +19,10 @@ namespace Bravellian.Platform.Tests;
 
 public class PlatformFeatureAdapterTests
 {
+    /// <summary>When AddPlatformOutbox is registered, then the outbox store provider resolves as the platform implementation.</summary>
+    /// <intent>Confirm platform outbox registration binds the provider to the platform adapter.</intent>
+    /// <scenario>Given a service collection configured with a stub discovery and platform configuration.</scenario>
+    /// <behavior>Then resolving IOutboxStoreProvider yields PlatformOutboxStoreProvider.</behavior>
     [Fact]
     public void AddPlatformOutbox_RegistersPlatformProvider()
     {
@@ -32,6 +36,10 @@ public class PlatformFeatureAdapterTests
         Assert.IsType<PlatformOutboxStoreProvider>(storeProvider);
     }
 
+    /// <summary>When AddPlatformInbox is registered, then the inbox work store provider resolves as the platform implementation.</summary>
+    /// <intent>Confirm platform inbox registration binds the provider to the platform adapter.</intent>
+    /// <scenario>Given a service collection configured with a stub discovery and platform configuration.</scenario>
+    /// <behavior>Then resolving IInboxWorkStoreProvider yields PlatformInboxWorkStoreProvider.</behavior>
     [Fact]
     public void AddPlatformInbox_RegistersPlatformProvider()
     {
@@ -45,6 +53,10 @@ public class PlatformFeatureAdapterTests
         Assert.IsType<PlatformInboxWorkStoreProvider>(storeProvider);
     }
 
+    /// <summary>When AddPlatformScheduler is registered, then the scheduler store provider resolves as the platform implementation.</summary>
+    /// <intent>Confirm platform scheduler registration binds the provider to the platform adapter.</intent>
+    /// <scenario>Given a service collection configured with a stub discovery and platform configuration.</scenario>
+    /// <behavior>Then resolving ISchedulerStoreProvider yields PlatformSchedulerStoreProvider.</behavior>
     [Fact]
     public void AddPlatformScheduler_RegistersPlatformProvider()
     {
@@ -58,6 +70,10 @@ public class PlatformFeatureAdapterTests
         Assert.IsType<PlatformSchedulerStoreProvider>(storeProvider);
     }
 
+    /// <summary>When AddPlatformFanout is registered, then the fanout repository provider resolves as the platform implementation.</summary>
+    /// <intent>Confirm platform fanout registration binds the provider to the platform adapter.</intent>
+    /// <scenario>Given a service collection configured with a stub discovery and platform configuration.</scenario>
+    /// <behavior>Then resolving IFanoutRepositoryProvider yields PlatformFanoutRepositoryProvider.</behavior>
     [Fact]
     public void AddPlatformFanout_RegistersPlatformProvider()
     {
@@ -71,6 +87,10 @@ public class PlatformFeatureAdapterTests
         Assert.IsType<PlatformFanoutRepositoryProvider>(repositoryProvider);
     }
 
+    /// <summary>When AddPlatformLeases is registered, then the lease factory provider resolves as the platform implementation.</summary>
+    /// <intent>Confirm platform lease registration binds the provider to the platform adapter.</intent>
+    /// <scenario>Given a service collection configured with a stub discovery and platform configuration.</scenario>
+    /// <behavior>Then resolving ILeaseFactoryProvider yields PlatformLeaseFactoryProvider.</behavior>
     [Fact]
     public void AddPlatformLeases_RegistersPlatformProvider()
     {

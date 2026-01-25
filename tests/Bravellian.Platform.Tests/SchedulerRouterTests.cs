@@ -32,6 +32,10 @@ public class SchedulerRouterTests
         return new TestLoggerFactory(testOutputHelper);
     }
 
+    /// <summary>When a known scheduler key is requested, then the router returns a scheduler client.</summary>
+    /// <intent>Verify routing to a configured scheduler store by string key.</intent>
+    /// <scenario>Given a ConfiguredSchedulerStoreProvider with two database configs and a test logger.</scenario>
+    /// <behavior>Then GetSchedulerClient returns a SqlSchedulerClient for the matching identifier.</behavior>
     [Fact]
     public void SchedulerRouter_WithValidKey_ReturnsSchedulerClient()
     {
@@ -65,6 +69,10 @@ public class SchedulerRouterTests
         client.ShouldBeOfType<SqlSchedulerClient>();
     }
 
+    /// <summary>When an unknown scheduler key is requested, then the router throws an InvalidOperationException.</summary>
+    /// <intent>Ensure invalid identifiers fail fast when no scheduler is configured.</intent>
+    /// <scenario>Given a ConfiguredSchedulerStoreProvider with one configured database.</scenario>
+    /// <behavior>Then GetSchedulerClient throws for an unknown key.</behavior>
     [Fact]
     public void SchedulerRouter_WithInvalidKey_ThrowsException()
     {
@@ -89,6 +97,10 @@ public class SchedulerRouterTests
         Should.Throw<InvalidOperationException>(() => router.GetSchedulerClient("UnknownCustomer"));
     }
 
+    /// <summary>When an empty scheduler key is requested, then the router throws an ArgumentException.</summary>
+    /// <intent>Validate key input guarding for scheduler routing.</intent>
+    /// <scenario>Given a router configured with one scheduler store.</scenario>
+    /// <behavior>Then GetSchedulerClient throws for an empty string key.</behavior>
     [Fact]
     public void SchedulerRouter_WithNullKey_ThrowsException()
     {
@@ -113,6 +125,10 @@ public class SchedulerRouterTests
         Should.Throw<ArgumentException>(() => router.GetSchedulerClient(string.Empty));
     }
 
+    /// <summary>When a Guid key is requested, then the router returns a scheduler client for the matching identifier string.</summary>
+    /// <intent>Verify Guid overload routes by string conversion.</intent>
+    /// <scenario>Given a scheduler config with an Identifier set to a Guid string.</scenario>
+    /// <behavior>Then GetSchedulerClient returns a SqlSchedulerClient for that Guid.</behavior>
     [Fact]
     public void SchedulerRouter_WithGuidKey_ReturnsSchedulerClient()
     {

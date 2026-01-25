@@ -32,6 +32,15 @@ public class ConfiguredLeaseFactoryProviderTests
         return new TestLoggerFactory(testOutputHelper);
     }
 
+    /// <summary>
+    /// When lease factory configs are provided, then the provider creates a factory for each configuration.
+    /// </summary>
+    /// <intent>
+    /// Verify configured provider materializes lease factories from config entries.</intent>
+    /// <scenario>
+    /// Given two LeaseDatabaseConfig entries and a test logger factory.</scenario>
+    /// <behavior>
+    /// Then GetAllFactoriesAsync returns two factories with identifiers matching the configs.</behavior>
     [Fact]
     public async Task ConfiguredProvider_CreatesFactoriesFromConfigsAsync()
     {
@@ -66,6 +75,11 @@ public class ConfiguredLeaseFactoryProviderTests
         provider.GetFactoryIdentifier(factories[1]).ShouldBeOneOf("Customer1", "Customer2");
     }
 
+    /// <summary>
+    /// When a factory is requested by key, then the provider returns the matching factory or null.</summary>
+    /// <intent>Ensure key-based lookup resolves known factories and rejects unknown keys.</intent>
+    /// <scenario>Given two LeaseDatabaseConfig entries and a ConfiguredLeaseFactoryProvider instance.</scenario>
+    /// <behavior>Then known keys return factories with matching identifiers and an unknown key returns null.</behavior>
     [Fact]
     public async Task ConfiguredProvider_GetFactoryByKey_ReturnsCorrectFactoryAsync()
     {
@@ -104,6 +118,11 @@ public class ConfiguredLeaseFactoryProviderTests
         provider.GetFactoryIdentifier(factory2).ShouldBe("Customer2");
     }
 
+    /// <summary>
+    /// When a factory not created by the provider is inspected, then its identifier is reported as "Unknown".</summary>
+    /// <intent>Confirm identifier lookup only recognizes provider-managed factories.</intent>
+    /// <scenario>Given an external SqlLeaseFactory not created by ConfiguredLeaseFactoryProvider.</scenario>
+    /// <behavior>Then GetFactoryIdentifier returns "Unknown".</behavior>
     [Fact]
     public void ConfiguredProvider_GetFactoryIdentifier_ReturnsUnknownForInvalidFactory()
     {

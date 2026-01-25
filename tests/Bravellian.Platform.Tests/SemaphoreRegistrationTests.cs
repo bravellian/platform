@@ -47,6 +47,10 @@ public class SemaphoreRegistrationTests : IAsyncLifetime
         await msSqlContainer.DisposeAsync().ConfigureAwait(false);
     }
 
+    /// <summary>When multi-database registration omits a control plane, then ISemaphoreService is not registered.</summary>
+    /// <intent>Ensure semaphore services remain global and require a control plane.</intent>
+    /// <scenario>Given AddPlatformMultiDatabaseWithList called without control-plane options.</scenario>
+    /// <behavior>Then ISemaphoreService is not present in the service provider.</behavior>
     [Fact]
     public void SemaphoreService_NotRegistered_InMultiDatabaseWithoutControlPlane()
     {

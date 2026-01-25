@@ -77,6 +77,18 @@ public class FanoutCoordinatorIntegrationTests : PostgresTestBase
             joinStore);
     }
 
+    /// <summary>
+    /// When a lease is already held, then the coordinator skips dispatch until the lease expires.
+    /// </summary>
+    /// <intent>
+    /// Verify lease gating and recovery behavior for fanout coordination.
+    /// </intent>
+    /// <scenario>
+    /// Given a pre-acquired lease for fanout:billing and a planner with one slice.
+    /// </scenario>
+    /// <behavior>
+    /// The first run dispatches 0, a later run dispatches 1, and one outbox row is created.
+    /// </behavior>
     [Fact]
     public async Task RunAsync_RespectsActiveLeaseAndRecoversAfterExpiry()
     {
@@ -102,6 +114,18 @@ public class FanoutCoordinatorIntegrationTests : PostgresTestBase
         messageCount.ShouldBe(1);
     }
 
+    /// <summary>
+    /// When slices are abandoned, then subsequent runs redispatch them.
+    /// </summary>
+    /// <intent>
+    /// Verify abandoned slices are eligible for redispatch.
+    /// </intent>
+    /// <scenario>
+    /// Given a static planner with one analytics slice and an in-memory lease factory.
+    /// </scenario>
+    /// <behavior>
+    /// Two runs dispatch two messages and payloads include tenant-7.
+    /// </behavior>
     [Fact]
     public async Task RunAsync_RedispatchesAbandonedSlices()
     {
@@ -124,6 +148,18 @@ public class FanoutCoordinatorIntegrationTests : PostgresTestBase
         payloads.ShouldAllBe(p => p.Contains("tenant-7", StringComparison.OrdinalIgnoreCase));
     }
 
+    /// <summary>
+    /// When cursors are marked completed, then subsequent runs skip those slices.
+    /// </summary>
+    /// <intent>
+    /// Verify cursor advancement prevents redispatch of completed slices.
+    /// </intent>
+    /// <scenario>
+    /// Given a sharded planner with two shards and cursors marked completed for both.
+    /// </scenario>
+    /// <behavior>
+    /// The initial run dispatches two slices and the follow-up run dispatches zero.
+    /// </behavior>
     [Fact]
     public async Task RunAsync_SkipsCompletedSlicesAfterCursorAdvances()
     {
@@ -149,6 +185,18 @@ public class FanoutCoordinatorIntegrationTests : PostgresTestBase
         afterCompletion.ShouldBe(0);
     }
 
+    /// <summary>
+    /// When fanout slices are joined, then completed steps are idempotent and correlation ids remain consistent.
+    /// </summary>
+    /// <intent>
+    /// Verify join-store idempotency for downstream fan-in tracking.
+    /// </intent>
+    /// <scenario>
+    /// Given three fanout slices sharing one correlation id and a join expecting three steps.
+    /// </scenario>
+    /// <behavior>
+    /// CompletedSteps stays at three after replay and all outbox messages share the same correlation id.
+    /// </behavior>
     [Fact]
     public async Task FanoutSlices_CanJoinDownstreamMessagesIdempotently()
     {

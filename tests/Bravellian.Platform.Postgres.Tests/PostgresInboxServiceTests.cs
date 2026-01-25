@@ -31,6 +31,10 @@ public class PostgresInboxServiceTests : PostgresTestBase
     {
     }
 
+    /// <summary>When AlreadyProcessedAsync is called for a new message, then it returns false and records the row.</summary>
+    /// <intent>Verify new messages are inserted and reported as not processed.</intent>
+    /// <scenario>Given a PostgresInboxService and a new message id/source.</scenario>
+    /// <behavior>AlreadyProcessedAsync returns false and one inbox row exists for the message id.</behavior>
     [Fact]
     public async Task AlreadyProcessedAsync_WithNewMessage_ReturnsFalseAndRecordsMessage()
     {
@@ -52,6 +56,10 @@ public class PostgresInboxServiceTests : PostgresTestBase
         Assert.Equal(1, count);
     }
 
+    /// <summary>When a message has been marked processed, then AlreadyProcessedAsync returns true.</summary>
+    /// <intent>Verify processed messages are detected as already processed.</intent>
+    /// <scenario>Given a message recorded via AlreadyProcessedAsync and then marked processed.</scenario>
+    /// <behavior>A subsequent AlreadyProcessedAsync call returns true.</behavior>
     [Fact]
     public async Task AlreadyProcessedAsync_WithProcessedMessage_ReturnsTrue()
     {
@@ -67,6 +75,10 @@ public class PostgresInboxServiceTests : PostgresTestBase
         Assert.True(alreadyProcessed);
     }
 
+    /// <summary>When MarkProcessedAsync is called, then ProcessedUtc is set and Status is Done.</summary>
+    /// <intent>Verify MarkProcessedAsync updates completion fields.</intent>
+    /// <scenario>Given a message recorded via AlreadyProcessedAsync.</scenario>
+    /// <behavior>ProcessedUtc is non-null and Status is Done in the inbox row.</behavior>
     [Fact]
     public async Task MarkProcessedAsync_SetsProcessedUtcAndStatus()
     {
@@ -89,6 +101,10 @@ public class PostgresInboxServiceTests : PostgresTestBase
         Assert.Equal("Done", result.Status);
     }
 
+    /// <summary>When MarkProcessingAsync is called, then Status becomes Processing.</summary>
+    /// <intent>Verify MarkProcessingAsync moves the message into processing state.</intent>
+    /// <scenario>Given a message recorded via AlreadyProcessedAsync.</scenario>
+    /// <behavior>The inbox row Status is Processing.</behavior>
     [Fact]
     public async Task MarkProcessingAsync_UpdatesStatus()
     {
@@ -110,6 +126,10 @@ public class PostgresInboxServiceTests : PostgresTestBase
         Assert.Equal("Processing", status);
     }
 
+    /// <summary>When MarkDeadAsync is called, then Status becomes Dead.</summary>
+    /// <intent>Verify MarkDeadAsync marks messages as dead.</intent>
+    /// <scenario>Given a message recorded via AlreadyProcessedAsync.</scenario>
+    /// <behavior>The inbox row Status is Dead.</behavior>
     [Fact]
     public async Task MarkDeadAsync_UpdatesStatus()
     {
@@ -131,6 +151,10 @@ public class PostgresInboxServiceTests : PostgresTestBase
         Assert.Equal("Dead", status);
     }
 
+    /// <summary>When multiple AlreadyProcessedAsync calls run concurrently, then one row exists with attempts tracked.</summary>
+    /// <intent>Verify concurrent checks create a single inbox row and increment attempts.</intent>
+    /// <scenario>Given five concurrent AlreadyProcessedAsync calls for the same message id.</scenario>
+    /// <behavior>All calls return false, one row exists, and Attempts equals 5.</behavior>
     [Fact]
     public async Task ConcurrentAlreadyProcessedAsync_WithSameMessage_HandledCorrectly()
     {
@@ -164,6 +188,10 @@ public class PostgresInboxServiceTests : PostgresTestBase
         Assert.Equal(5, attempts);
     }
 
+    /// <summary>When AlreadyProcessedAsync is called with a hash, then the hash is stored.</summary>
+    /// <intent>Verify the message hash is persisted with the inbox row.</intent>
+    /// <scenario>Given a message id/source and a byte[] hash passed to AlreadyProcessedAsync.</scenario>
+    /// <behavior>The stored Hash value matches the provided hash.</behavior>
     [Fact]
     public async Task AlreadyProcessedAsync_WithHash_StoresHashCorrectly()
     {
@@ -184,6 +212,10 @@ public class PostgresInboxServiceTests : PostgresTestBase
         Assert.Equal(hash, storedHash);
     }
 
+    /// <summary>When AlreadyProcessedAsync receives a null or empty message id, then it throws ArgumentException.</summary>
+    /// <intent>Verify invalid message ids are rejected.</intent>
+    /// <scenario>Given null or empty messageId inputs.</scenario>
+    /// <behavior>AlreadyProcessedAsync throws ArgumentException.</behavior>
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -195,6 +227,10 @@ public class PostgresInboxServiceTests : PostgresTestBase
             inbox.AlreadyProcessedAsync(invalidMessageId!, "test-source", cancellationToken: TestContext.Current.CancellationToken));
     }
 
+    /// <summary>When AlreadyProcessedAsync receives a null or empty source, then it throws ArgumentException.</summary>
+    /// <intent>Verify invalid sources are rejected.</intent>
+    /// <scenario>Given null or empty source inputs.</scenario>
+    /// <behavior>AlreadyProcessedAsync throws ArgumentException.</behavior>
     [Theory]
     [InlineData(null)]
     [InlineData("")]

@@ -36,6 +36,18 @@ public class LeaseTests : SqlServerTestBase
         leaseApi = new LeaseApi(ConnectionString, "infra");
     }
 
+    /// <summary>
+    /// When a free lease is acquired, then the acquisition succeeds and returns server time with a calculated expiry.
+    /// </summary>
+    /// <intent>
+    /// Verify successful acquisition returns timing data from the server.
+    /// </intent>
+    /// <scenario>
+    /// Given a new lease name, owner, and lease duration against the lease schema.
+    /// </scenario>
+    /// <behavior>
+    /// Then AcquireAsync returns acquired true with a non-default server time and an expiry near the expected duration.
+    /// </behavior>
     [Fact]
     public async Task AcquireAsync_WithFreeResource_SucceedsAndReturnsServerTime()
     {
@@ -58,6 +70,18 @@ public class LeaseTests : SqlServerTestBase
         timeDiff.ShouldBeLessThan(1); // Allow for small timing differences
     }
 
+    /// <summary>
+    /// When a lease is already held, then a second acquisition attempt fails and returns server time without an expiry.
+    /// </summary>
+    /// <intent>
+    /// Ensure AcquireAsync reports contention without granting a lease.
+    /// </intent>
+    /// <scenario>
+    /// Given owner1 acquires the lease and owner2 attempts to acquire it before expiry.
+    /// </scenario>
+    /// <behavior>
+    /// Then AcquireAsync returns acquired false with server time set and a null lease expiry.
+    /// </behavior>
     [Fact]
     public async Task AcquireAsync_WithOccupiedResource_FailsAndReturnsServerTime()
     {
@@ -80,6 +104,18 @@ public class LeaseTests : SqlServerTestBase
         secondResult.leaseUntilUtc.ShouldBeNull();
     }
 
+    /// <summary>
+    /// When a prior lease has expired, then a new owner can acquire it and receives a fresh expiry.
+    /// </summary>
+    /// <intent>
+    /// Confirm expired leases can be reacquired by another owner.
+    /// </intent>
+    /// <scenario>
+    /// Given a short lease acquired by owner1 and allowed to expire before owner2 acquires it.
+    /// </scenario>
+    /// <behavior>
+    /// Then AcquireAsync returns acquired true with a new lease expiry after server time.
+    /// </behavior>
     [Fact]
     public async Task AcquireAsync_WithExpiredLease_SucceedsAndReturnsNewExpiry()
     {
@@ -106,6 +142,18 @@ public class LeaseTests : SqlServerTestBase
         secondResult.leaseUntilUtc.Value.ShouldBeGreaterThan(secondResult.serverUtcNow);
     }
 
+    /// <summary>
+    /// When the current lease owner renews, then the lease is extended and server time advances.
+    /// </summary>
+    /// <intent>
+    /// Validate successful renewals extend the lease window.
+    /// </intent>
+    /// <scenario>
+    /// Given a lease acquired by a specific owner and a short delay before renewal.
+    /// </scenario>
+    /// <behavior>
+    /// Then RenewAsync returns renewed true with a later server time and a later lease expiry.
+    /// </behavior>
     [Fact]
     public async Task RenewAsync_WithValidOwner_SucceedsAndExtendsLease()
     {
@@ -132,6 +180,18 @@ public class LeaseTests : SqlServerTestBase
         renewResult.leaseUntilUtc.Value.ShouldBeGreaterThan(acquireResult.leaseUntilUtc!.Value);
     }
 
+    /// <summary>
+    /// When a non-owner attempts to renew a lease, then renewal fails and no expiry is returned.
+    /// </summary>
+    /// <intent>
+    /// Prevent renewals from unauthorized owners.
+    /// </intent>
+    /// <scenario>
+    /// Given owner1 acquires the lease and owner2 attempts to renew it.
+    /// </scenario>
+    /// <behavior>
+    /// Then RenewAsync returns renewed false with server time set and a null lease expiry.
+    /// </behavior>
     [Fact]
     public async Task RenewAsync_WithWrongOwner_FailsAndReturnsServerTime()
     {
@@ -154,6 +214,18 @@ public class LeaseTests : SqlServerTestBase
         renewResult.leaseUntilUtc.ShouldBeNull();
     }
 
+    /// <summary>
+    /// When a lease has already expired, then renewal fails and no expiry is returned.
+    /// </summary>
+    /// <intent>
+    /// Ensure expired leases cannot be renewed.
+    /// </intent>
+    /// <scenario>
+    /// Given a short lease for an owner that is allowed to expire before renewal.
+    /// </scenario>
+    /// <behavior>
+    /// Then RenewAsync returns renewed false with server time set and a null lease expiry.
+    /// </behavior>
     [Fact]
     public async Task RenewAsync_WithExpiredLease_FailsAndReturnsServerTime()
     {

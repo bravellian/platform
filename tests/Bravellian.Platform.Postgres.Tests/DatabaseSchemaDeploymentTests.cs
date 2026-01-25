@@ -21,6 +21,10 @@ namespace Bravellian.Platform.Tests;
 
 public class DatabaseSchemaDeploymentTests
 {
+    /// <summary>When schema deployment is enabled, then Postgres outbox registers schema completion and background services.</summary>
+    /// <intent>Validate service registration for the outbox schema deployment path.</intent>
+    /// <scenario>Given a ServiceCollection and PostgresOutboxOptions with EnableSchemaDeployment set to true.</scenario>
+    /// <behavior>The service collection contains IDatabaseSchemaCompletion and DatabaseSchemaBackgroundService registrations.</behavior>
     [Fact]
     public void AddPostgresOutbox_WithSchemaDeploymentEnabled_RegistersSchemaService()
     {
@@ -40,6 +44,10 @@ public class DatabaseSchemaDeploymentTests
         Assert.NotNull(hostedServiceDescriptor);
     }
 
+    /// <summary>When schema deployment is disabled, then Postgres outbox does not register schema services.</summary>
+    /// <intent>Validate service registration is skipped when schema deployment is off.</intent>
+    /// <scenario>Given a ServiceCollection and PostgresOutboxOptions with EnableSchemaDeployment set to false.</scenario>
+    /// <behavior>The service collection lacks IDatabaseSchemaCompletion and DatabaseSchemaBackgroundService registrations.</behavior>
     [Fact]
     public void AddPostgresOutbox_WithSchemaDeploymentDisabled_DoesNotRegisterSchemaService()
     {
@@ -59,6 +67,10 @@ public class DatabaseSchemaDeploymentTests
         Assert.Null(hostedServiceDescriptor);
     }
 
+    /// <summary>When schema deployment is enabled, then schema completion is registered separately from the background service.</summary>
+    /// <intent>Ensure completion services are singletons independent of the hosted service registration.</intent>
+    /// <scenario>Given AddPostgresOutbox is called with EnableSchemaDeployment set to true.</scenario>
+    /// <behavior>IDatabaseSchemaCompletion and DatabaseSchemaCompletion are singletons and the background service is registered.</behavior>
     [Fact]
     public void SchemaCompletion_RegisteredSeparatelyFromBackgroundService()
     {
@@ -88,6 +100,10 @@ public class DatabaseSchemaDeploymentTests
         Assert.Equal(typeof(DatabaseSchemaCompletion), databaseSchemaCompletionDescriptor.ImplementationType);
     }
 
+    /// <summary>When SetCompleted is called, then SchemaDeploymentCompleted finishes successfully.</summary>
+    /// <intent>Verify schema completion signaling transitions the task to a completed state.</intent>
+    /// <scenario>Given a new DatabaseSchemaCompletion instance with an incomplete task.</scenario>
+    /// <behavior>The completion task becomes completed with status RanToCompletion.</behavior>
     [Fact]
     public void DatabaseSchemaCompletion_CoordinatesStateCorrectly()
     {
@@ -101,6 +117,10 @@ public class DatabaseSchemaDeploymentTests
         Assert.Equal(TaskStatus.RanToCompletion, completion.SchemaDeploymentCompleted.Status);
     }
 
+    /// <summary>When list-based multi-database schema deployment is enabled, then schema services are registered.</summary>
+    /// <intent>Confirm list-based multi-database registration wires schema deployment services.</intent>
+    /// <scenario>Given a ServiceCollection, one PlatformDatabase entry, and enableSchemaDeployment set to true.</scenario>
+    /// <behavior>IDatabaseSchemaCompletion and DatabaseSchemaBackgroundService are registered.</behavior>
     [Fact]
     public void AddPlatformMultiDatabaseWithList_WithSchemaDeploymentEnabled_RegistersSchemaService()
     {
@@ -126,6 +146,10 @@ public class DatabaseSchemaDeploymentTests
         Assert.NotNull(hostedServiceDescriptor);
     }
 
+    /// <summary>When control-plane schema deployment is enabled, then schema services are registered.</summary>
+    /// <intent>Confirm control-plane multi-database registration wires schema deployment services.</intent>
+    /// <scenario>Given a ServiceCollection, tenant list, and control-plane options with EnableSchemaDeployment set to true.</scenario>
+    /// <behavior>IDatabaseSchemaCompletion and DatabaseSchemaBackgroundService are registered.</behavior>
     [Fact]
     public void AddPlatformMultiDatabaseWithControlPlane_WithSchemaDeploymentEnabled_RegistersSchemaService()
     {
@@ -158,6 +182,10 @@ public class DatabaseSchemaDeploymentTests
         Assert.NotNull(hostedServiceDescriptor);
     }
 
+    /// <summary>When list-based schema deployment is disabled, then schema services are not registered.</summary>
+    /// <intent>Confirm list-based multi-database registration skips schema deployment services.</intent>
+    /// <scenario>Given a ServiceCollection, one PlatformDatabase entry, and enableSchemaDeployment set to false.</scenario>
+    /// <behavior>IDatabaseSchemaCompletion and DatabaseSchemaBackgroundService are absent.</behavior>
     [Fact]
     public void AddPlatformMultiDatabaseWithList_WithSchemaDeploymentDisabled_DoesNotRegisterSchemaService()
     {

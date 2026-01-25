@@ -59,6 +59,10 @@ public class SemaphoreConcurrencyTests : PostgresTestBase
             NullLogger<PostgresSemaphoreService>.Instance);
     }
 
+    /// <summary>When many workers acquire in parallel, then successes never exceed the limit.</summary>
+    /// <intent>Verify concurrent acquisitions respect the configured capacity.</intent>
+    /// <scenario>Given limit 10 and 50 parallel acquire attempts.</scenario>
+    /// <behavior>The acquired count is greater than zero and no more than the limit.</behavior>
     [Fact]
     public async Task ParallelAcquires_NeverExceedsLimit()
     {
@@ -102,6 +106,10 @@ public class SemaphoreConcurrencyTests : PostgresTestBase
         acquired.ShouldBeGreaterThan(0); // At least some should succeed
     }
 
+    /// <summary>When workers acquire and release in parallel, then every successful acquire is released.</summary>
+    /// <intent>Verify acquire/release concurrency preserves invariants.</intent>
+    /// <scenario>Given limit 5 and 20 workers that acquire, hold briefly, and release.</scenario>
+    /// <behavior>The count of successful releases equals the count of successful acquires.</behavior>
     [Fact]
     public async Task ParallelAcquireAndRelease_MaintainsInvariant()
     {
@@ -156,6 +164,10 @@ public class SemaphoreConcurrencyTests : PostgresTestBase
         successfulReleases.ShouldBe(successfulAcquires);
     }
 
+    /// <summary>When acquisitions retry under high contention, then most workers eventually succeed.</summary>
+    /// <intent>Verify retry loops allow progress under contention.</intent>
+    /// <scenario>Given limit 2, 10 workers, and up to 15 retries with short TTLs.</scenario>
+    /// <behavior>More than half of the workers eventually acquire the semaphore.</behavior>
     [Fact]
     public async Task HighContentionAcquire_EventuallySucceeds()
     {
@@ -202,6 +214,10 @@ public class SemaphoreConcurrencyTests : PostgresTestBase
         successCount.ShouldBeGreaterThan(workerCount / 2); // At least half should succeed
     }
 
+    /// <summary>When limits are updated concurrently, then state remains usable for acquiring.</summary>
+    /// <intent>Verify concurrent limit updates do not corrupt semaphore state.</intent>
+    /// <scenario>Given multiple concurrent UpdateLimitAsync calls with different values.</scenario>
+    /// <behavior>A subsequent TryAcquireAsync returns Acquired.</behavior>
     [Fact]
     public async Task ConcurrentUpdateLimit_DoesNotCorruptState()
     {
@@ -237,6 +253,10 @@ public class SemaphoreConcurrencyTests : PostgresTestBase
         result.Status.ShouldBe(SemaphoreAcquireStatus.Acquired);
     }
 
+    /// <summary>When reaping and acquiring occur concurrently, then deletions and acquires stay within limits.</summary>
+    /// <intent>Verify concurrent reaping and acquisition maintains correctness.</intent>
+    /// <scenario>Given three expired leases, a reap task, and concurrent acquire attempts up to the limit.</scenario>
+    /// <behavior>Deleted count is at most 3 and acquired count does not exceed the limit.</behavior>
     [Fact]
     public async Task ConcurrentReapAndAcquire_MaintainsCorrectness()
     {
@@ -290,6 +310,10 @@ public class SemaphoreConcurrencyTests : PostgresTestBase
         acquired.ShouldBeLessThanOrEqualTo(limit); // Never exceed limit
     }
 
+    /// <summary>When acquiring concurrently, then fencing counters are unique and strictly increasing.</summary>
+    /// <intent>Verify fencing counters remain monotonic under concurrency.</intent>
+    /// <scenario>Given 20 concurrent acquire attempts on a semaphore with limit 20.</scenario>
+    /// <behavior>The fencing counters are unique and strictly increasing when ordered.</behavior>
     [Fact]
     public async Task FencingCounters_StrictlyIncreasingUnderConcurrency()
     {
@@ -331,6 +355,10 @@ public class SemaphoreConcurrencyTests : PostgresTestBase
         }
     }
 
+    /// <summary>When renewals run with jitter and pauses, then leases remain renewed.</summary>
+    /// <intent>Verify renewals succeed despite intermittent delays.</intent>
+    /// <scenario>Given three acquired leases renewed multiple times with jitter and a simulated pause.</scenario>
+    /// <behavior>All renewal results return Renewed.</behavior>
     [Fact]
     public async Task Renewals_WithIntermittentGcPausesMaintainLeases()
     {
@@ -395,6 +423,10 @@ public class SemaphoreConcurrencyTests : PostgresTestBase
         }
     }
 
+    /// <summary>When capacity is saturated, then contenders see NotAcquired until capacity returns.</summary>
+    /// <intent>Verify backpressure occurs while a semaphore slot is held.</intent>
+    /// <scenario>Given limit 1, a holder lease, and contenders polling for acquisition.</scenario>
+    /// <behavior>NotAcquired counts increase and acquisition succeeds after release.</behavior>
     [Fact]
     public async Task StarvedAcquisition_AppliesBackpressureUntilCapacityReturns()
     {

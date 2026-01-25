@@ -36,6 +36,18 @@ public class MultiInboxDispatcherLeaseTests : SqlServerTestBase
     {
     }
 
+    /// <summary>
+    /// When two dispatchers share a lease router, then only one processes all inbox messages while the other is blocked.
+    /// </summary>
+    /// <intent>
+    /// Confirm that lease-based coordination prevents concurrent processing across dispatchers.
+    /// </intent>
+    /// <scenario>
+    /// Given an inbox table with five messages, a TestLeaseRouter, and two MultiInboxDispatcher instances using the same store.
+    /// </scenario>
+    /// <behavior>
+    /// Then one dispatcher processes all five messages and the other processes none, with a total of five processed.
+    /// </behavior>
     [Fact]
     public async Task MultiInboxDispatcher_WithLease_PreventsConcurrentProcessing()
     {
@@ -144,6 +156,18 @@ public class MultiInboxDispatcherLeaseTests : SqlServerTestBase
         processedMessages.Count.ShouldBe(5);
     }
 
+    /// <summary>
+    /// When a dispatcher has no lease router, then it processes all available inbox messages.
+    /// </summary>
+    /// <intent>
+    /// Validate that processing is unrestricted when lease coordination is disabled.
+    /// </intent>
+    /// <scenario>
+    /// Given an inbox table with three messages and a MultiInboxDispatcher configured with a null lease router.
+    /// </scenario>
+    /// <behavior>
+    /// Then RunOnceAsync returns a count of three and the handler records three processed messages.
+    /// </behavior>
     [Fact]
     public async Task MultiInboxDispatcher_WithoutLease_AllowsProcessing()
     {

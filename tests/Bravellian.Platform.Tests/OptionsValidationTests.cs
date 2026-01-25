@@ -19,6 +19,10 @@ namespace Bravellian.Platform.Tests;
 
 public class OptionsValidationTests
 {
+    /// <summary>When AddSqlOutbox is called with a missing connection string, then it throws an OptionsValidationException.</summary>
+    /// <intent>Ensure outbox registration validates required connection string settings.</intent>
+    /// <scenario>Given a ServiceCollection and SqlOutboxOptions with an empty ConnectionString.</scenario>
+    /// <behavior>Then AddSqlOutbox throws OptionsValidationException.</behavior>
     [Fact]
     public void AddSqlOutbox_ThrowsForMissingConnectionString()
     {
@@ -31,6 +35,10 @@ public class OptionsValidationTests
             }));
     }
 
+    /// <summary>When AddSqlInbox is called with cleanup enabled and a zero interval, then it throws an OptionsValidationException.</summary>
+    /// <intent>Validate inbox cleanup interval must be greater than zero when enabled.</intent>
+    /// <scenario>Given SqlInboxOptions with EnableAutomaticCleanup true and CleanupInterval set to TimeSpan.Zero.</scenario>
+    /// <behavior>Then AddSqlInbox throws OptionsValidationException.</behavior>
     [Fact]
     public void AddSqlInbox_ThrowsForZeroCleanupInterval()
     {
@@ -45,6 +53,10 @@ public class OptionsValidationTests
             }));
     }
 
+    /// <summary>When AddSqlOutbox is called with cleanup enabled and a zero interval, then it throws an OptionsValidationException.</summary>
+    /// <intent>Validate outbox cleanup interval must be greater than zero when enabled.</intent>
+    /// <scenario>Given SqlOutboxOptions with EnableAutomaticCleanup true and CleanupInterval set to TimeSpan.Zero.</scenario>
+    /// <behavior>Then AddSqlOutbox throws OptionsValidationException.</behavior>
     [Fact]
     public void AddSqlOutbox_ThrowsForZeroCleanupInterval()
     {
@@ -59,6 +71,10 @@ public class OptionsValidationTests
             }));
     }
 
+    /// <summary>When AddSqlInbox is called with a missing connection string, then it throws an OptionsValidationException.</summary>
+    /// <intent>Ensure inbox registration validates required connection string settings.</intent>
+    /// <scenario>Given a ServiceCollection and SqlInboxOptions with an empty ConnectionString.</scenario>
+    /// <behavior>Then AddSqlInbox throws OptionsValidationException.</behavior>
     [Fact]
     public void AddSqlInbox_ThrowsForMissingConnectionString()
     {
@@ -71,6 +87,10 @@ public class OptionsValidationTests
             }));
     }
 
+    /// <summary>When AddSqlInbox is called with a missing schema name, then it throws an OptionsValidationException.</summary>
+    /// <intent>Ensure inbox registration requires a non-empty schema name.</intent>
+    /// <scenario>Given SqlInboxOptions with a valid connection string and an empty SchemaName.</scenario>
+    /// <behavior>Then AddSqlInbox throws OptionsValidationException.</behavior>
     [Fact]
     public void AddSqlInbox_ThrowsForMissingSchemaName()
     {
@@ -84,6 +104,10 @@ public class OptionsValidationTests
             }));
     }
 
+    /// <summary>When AddSqlOutbox is called with a missing schema name, then it throws an OptionsValidationException.</summary>
+    /// <intent>Ensure outbox registration requires a non-empty schema name.</intent>
+    /// <scenario>Given SqlOutboxOptions with a valid connection string and an empty SchemaName.</scenario>
+    /// <behavior>Then AddSqlOutbox throws OptionsValidationException.</behavior>
     [Fact]
     public void AddSqlOutbox_ThrowsForMissingSchemaName()
     {
@@ -97,6 +121,10 @@ public class OptionsValidationTests
             }));
     }
 
+    /// <summary>When AddSqlFanout is called with a missing connection string, then it throws an OptionsValidationException.</summary>
+    /// <intent>Ensure fanout registration validates required connection string settings.</intent>
+    /// <scenario>Given a ServiceCollection and SqlFanoutOptions with a whitespace ConnectionString.</scenario>
+    /// <behavior>Then AddSqlFanout throws OptionsValidationException.</behavior>
     [Fact]
     public void AddSqlFanout_ThrowsForMissingConnectionString()
     {
@@ -109,6 +137,10 @@ public class OptionsValidationTests
             }));
     }
 
+    /// <summary>When AddSqlFanout is called with a missing schema name, then it throws an OptionsValidationException.</summary>
+    /// <intent>Ensure fanout registration requires a non-empty schema name.</intent>
+    /// <scenario>Given SqlFanoutOptions with a valid connection string and an empty SchemaName.</scenario>
+    /// <behavior>Then AddSqlFanout throws OptionsValidationException.</behavior>
     [Fact]
     public void AddSqlFanout_ThrowsForMissingSchemaName()
     {

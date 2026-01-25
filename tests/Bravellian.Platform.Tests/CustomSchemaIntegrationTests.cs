@@ -34,6 +34,16 @@ public class CustomSchemaIntegrationTests : SqlServerTestBase
     {
     }
 
+    /// <summary>
+    /// When the distributed lock schema is ensured with a custom schema, then all lock objects are created under that schema.
+    /// </summary>
+    /// <intent>
+    /// Verify distributed lock tables and procedures honor a non-default schema name.
+    /// </intent>
+    /// <scenario>
+    /// Given EnsureDistributedLockSchemaAsync called with the CustomSchema value.</scenario>
+    /// <behavior>
+    /// Then the DistributedLock table and Lock_* procedures exist in the custom schema.</behavior>
     [Fact]
     public async Task EnsureDistributedLockSchema_WithCustomSchema_CreatesObjectsInCorrectSchema()
     {
@@ -64,6 +74,16 @@ public class CustomSchemaIntegrationTests : SqlServerTestBase
         Assert.True(lockCleanupExists, $"Lock_CleanupExpired procedure should exist in {CustomSchema} schema");
     }
 
+    /// <summary>
+    /// When the lease schema is ensured with a custom schema, then lease tables and procedures are created under that schema.
+    /// </summary>
+    /// <intent>
+    /// Verify lease schema deployment respects custom schema names.
+    /// </intent>
+    /// <scenario>
+    /// Given EnsureLeaseSchemaAsync called with the CustomSchema value.</scenario>
+    /// <behavior>
+    /// Then the Lease table and Lease_* procedures exist in the custom schema.</behavior>
     [Fact]
     public async Task EnsureLeaseSchema_WithCustomSchema_CreatesObjectsInCorrectSchema()
     {
@@ -88,6 +108,16 @@ public class CustomSchemaIntegrationTests : SqlServerTestBase
         Assert.True(leaseRenewExists, $"Lease_Renew procedure should exist in {CustomSchema} schema");
     }
 
+    /// <summary>
+    /// When the outbox schema is ensured with a custom schema, then outbox tables are created under that schema.
+    /// </summary>
+    /// <intent>
+    /// Verify outbox table deployment honors custom schema configuration.
+    /// </intent>
+    /// <scenario>
+    /// Given EnsureOutboxSchemaAsync called with the CustomSchema value.</scenario>
+    /// <behavior>
+    /// Then the Outbox and OutboxState tables exist in the custom schema.</behavior>
     [Fact]
     public async Task EnsureOutboxSchema_WithCustomSchema_CreatesObjectsInCorrectSchema()
     {
@@ -108,6 +138,16 @@ public class CustomSchemaIntegrationTests : SqlServerTestBase
         Assert.True(stateExists, $"OutboxState table should exist in {CustomSchema} schema");
     }
 
+    /// <summary>
+    /// When the inbox schema is ensured with a custom schema, then the inbox table is created under that schema.
+    /// </summary>
+    /// <intent>
+    /// Verify inbox schema deployment uses the configured schema name.
+    /// </intent>
+    /// <scenario>
+    /// Given EnsureInboxSchemaAsync called with the CustomSchema value.</scenario>
+    /// <behavior>
+    /// Then the Inbox table exists in the custom schema.</behavior>
     [Fact]
     public async Task EnsureInboxSchema_WithCustomSchema_CreatesObjectsInCorrectSchema()
     {
@@ -125,6 +165,16 @@ public class CustomSchemaIntegrationTests : SqlServerTestBase
         Assert.True(tableExists, $"Inbox table should exist in {CustomSchema} schema");
     }
 
+    /// <summary>
+    /// When the scheduler schema is ensured with a custom schema, then scheduler tables are created under that schema.
+    /// </summary>
+    /// <intent>
+    /// Verify scheduler schema deployment honors custom schema names.
+    /// </intent>
+    /// <scenario>
+    /// Given EnsureSchedulerSchemaAsync called with the CustomSchema value.</scenario>
+    /// <behavior>
+    /// Then Jobs, Timers, JobRuns, and SchedulerState tables exist in the custom schema.</behavior>
     [Fact]
     public async Task EnsureSchedulerSchema_WithCustomSchema_CreatesObjectsInCorrectSchema()
     {
@@ -153,6 +203,15 @@ public class CustomSchemaIntegrationTests : SqlServerTestBase
         Assert.True(stateExists, $"SchedulerState table should exist in {CustomSchema} schema");
     }
 
+    /// <summary>
+    /// When the work queue schema is ensured with a custom schema, then work-queue types and procedures are created there.
+    /// </summary>
+    /// <intent>
+    /// Verify work queue deployment uses custom schema names after outbox setup.</intent>
+    /// <scenario>
+    /// Given an outbox table exists and EnsureWorkQueueSchemaAsync is run with the CustomSchema value.</scenario>
+    /// <behavior>
+    /// Then the GuidIdList type and Outbox_* procedures exist in the custom schema.</behavior>
     [Fact]
     public async Task EnsureWorkQueueSchema_WithCustomSchema_CreatesObjectsInCorrectSchema()
     {
@@ -191,6 +250,15 @@ public class CustomSchemaIntegrationTests : SqlServerTestBase
         Assert.True(reapExists, $"Outbox_ReapExpired procedure should exist in {CustomSchema} schema");
     }
 
+    /// <summary>
+    /// When the inbox work queue schema is ensured with a custom schema, then inbox work-queue objects are created there.
+    /// </summary>
+    /// <intent>
+    /// Verify inbox work queue deployment uses custom schema names after inbox setup.</intent>
+    /// <scenario>
+    /// Given an inbox table exists and EnsureInboxWorkQueueSchemaAsync is run with the CustomSchema value.</scenario>
+    /// <behavior>
+    /// Then the StringIdList type and Inbox_* procedures exist in the custom schema.</behavior>
     [Fact]
     public async Task EnsureInboxWorkQueueSchema_WithCustomSchema_CreatesObjectsInCorrectSchema()
     {
@@ -229,6 +297,15 @@ public class CustomSchemaIntegrationTests : SqlServerTestBase
         Assert.True(reapExists, $"Inbox_ReapExpired procedure should exist in {CustomSchema} schema");
     }
 
+    /// <summary>
+    /// When the fanout schema is ensured with a custom schema, then fanout tables are created under that schema.
+    /// </summary>
+    /// <intent>
+    /// Verify fanout schema deployment respects custom schema configuration.</intent>
+    /// <scenario>
+    /// Given EnsureFanoutSchemaAsync called with the CustomSchema value.</scenario>
+    /// <behavior>
+    /// Then FanoutPolicy and FanoutCursor tables exist in the custom schema.</behavior>
     [Fact]
     public async Task EnsureFanoutSchema_WithCustomSchema_CreatesObjectsInCorrectSchema()
     {

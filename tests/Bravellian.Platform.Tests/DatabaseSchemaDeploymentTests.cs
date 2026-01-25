@@ -22,6 +22,18 @@ namespace Bravellian.Platform.Tests
 {
     public class DatabaseSchemaDeploymentTests
     {
+        /// <summary>
+        /// When AddSqlOutbox enables schema deployment, then schema completion and background services are registered.
+        /// </summary>
+        /// <intent>
+        /// Ensure schema deployment wiring is added when enabled.
+        /// </intent>
+        /// <scenario>
+        /// Given SqlOutboxOptions with EnableSchemaDeployment set to true.
+        /// </scenario>
+        /// <behavior>
+        /// Then IDatabaseSchemaCompletion and DatabaseSchemaBackgroundService are registered in the service collection.
+        /// </behavior>
         [Fact]
         public void AddSqlOutbox_WithSchemaDeploymentEnabled_RegistersSchemaService()
         {
@@ -44,6 +56,18 @@ namespace Bravellian.Platform.Tests
             Assert.NotNull(hostedServiceDescriptor);
         }
 
+        /// <summary>
+        /// When AddSqlOutbox disables schema deployment, then schema completion and background services are not registered.
+        /// </summary>
+        /// <intent>
+        /// Avoid schema deployment services when deployment is disabled.
+        /// </intent>
+        /// <scenario>
+        /// Given SqlOutboxOptions with EnableSchemaDeployment set to false.
+        /// </scenario>
+        /// <behavior>
+        /// Then IDatabaseSchemaCompletion and DatabaseSchemaBackgroundService are absent from the service collection.
+        /// </behavior>
         [Fact]
         public void AddSqlOutbox_WithSchemaDeploymentDisabled_DoesNotRegisterSchemaService()
         {
@@ -66,6 +90,18 @@ namespace Bravellian.Platform.Tests
             Assert.Null(hostedServiceDescriptor);
         }
 
+        /// <summary>
+        /// When schema deployment is enabled, then IDatabaseSchemaCompletion and DatabaseSchemaCompletion are registered separately.
+        /// </summary>
+        /// <intent>
+        /// Verify schema completion registrations use the expected lifetimes and factories.
+        /// </intent>
+        /// <scenario>
+        /// Given AddSqlOutbox with schema deployment enabled.
+        /// </scenario>
+        /// <behavior>
+        /// Then IDatabaseSchemaCompletion is a singleton factory and DatabaseSchemaCompletion is registered directly.
+        /// </behavior>
         [Fact]
         public void SchemaCompletion_RegisteredSeparatelyFromBackgroundService()
         {
@@ -101,6 +137,18 @@ namespace Bravellian.Platform.Tests
             Assert.Equal(typeof(DatabaseSchemaCompletion), databaseSchemaCompletionDescriptor.ImplementationType);
         }
 
+        /// <summary>
+        /// When DatabaseSchemaCompletion is completed, then its completion task transitions to RanToCompletion.
+        /// </summary>
+        /// <intent>
+        /// Ensure schema completion state tracking works as expected.
+        /// </intent>
+        /// <scenario>
+        /// Given a new DatabaseSchemaCompletion instance.
+        /// </scenario>
+        /// <behavior>
+        /// Then SchemaDeploymentCompleted is initially incomplete and becomes completed after SetCompleted.
+        /// </behavior>
         [Fact]
         public void DatabaseSchemaCompletion_CoordinatesStateCorrectly()
         {
@@ -118,6 +166,18 @@ namespace Bravellian.Platform.Tests
             Assert.Equal(TaskStatus.RanToCompletion, completion.SchemaDeploymentCompleted.Status);
         }
 
+        /// <summary>
+        /// When multi-database list registration enables schema deployment, then schema services are registered.
+        /// </summary>
+        /// <intent>
+        /// Ensure schema deployment services are added for list-based registration.
+        /// </intent>
+        /// <scenario>
+        /// Given AddPlatformMultiDatabaseWithList with enableSchemaDeployment set to true.
+        /// </scenario>
+        /// <behavior>
+        /// Then IDatabaseSchemaCompletion and DatabaseSchemaBackgroundService are registered.
+        /// </behavior>
         [Fact]
         public void AddPlatformMultiDatabaseWithList_WithSchemaDeploymentEnabled_RegistersSchemaService()
         {
@@ -146,6 +206,18 @@ namespace Bravellian.Platform.Tests
             Assert.NotNull(hostedServiceDescriptor);
         }
 
+        /// <summary>
+        /// When control-plane registration enables schema deployment, then schema services are registered.
+        /// </summary>
+        /// <intent>
+        /// Ensure schema deployment services are added for control-plane registration.
+        /// </intent>
+        /// <scenario>
+        /// Given AddPlatformMultiDatabaseWithControlPlaneAndList with EnableSchemaDeployment set to true.
+        /// </scenario>
+        /// <behavior>
+        /// Then IDatabaseSchemaCompletion and DatabaseSchemaBackgroundService are registered.
+        /// </behavior>
         [Fact]
         public void AddPlatformMultiDatabaseWithControlPlane_WithSchemaDeploymentEnabled_RegistersSchemaService()
         {
@@ -181,6 +253,18 @@ namespace Bravellian.Platform.Tests
             Assert.NotNull(hostedServiceDescriptor);
         }
 
+        /// <summary>
+        /// When multi-database list registration disables schema deployment, then schema services are not registered.
+        /// </summary>
+        /// <intent>
+        /// Avoid schema deployment services when list-based registration disables deployment.
+        /// </intent>
+        /// <scenario>
+        /// Given AddPlatformMultiDatabaseWithList with enableSchemaDeployment set to false.
+        /// </scenario>
+        /// <behavior>
+        /// Then IDatabaseSchemaCompletion and DatabaseSchemaBackgroundService are absent.
+        /// </behavior>
         [Fact]
         public void AddPlatformMultiDatabaseWithList_WithSchemaDeploymentDisabled_DoesNotRegisterSchemaService()
         {
@@ -209,6 +293,18 @@ namespace Bravellian.Platform.Tests
             Assert.Null(hostedServiceDescriptor);
         }
 
+        /// <summary>
+        /// When the schema snapshot manifest is expected, then the snapshot file exists on disk.
+        /// </summary>
+        /// <intent>
+        /// Ensure the schema snapshot artifact is tracked in the repository.
+        /// </intent>
+        /// <scenario>
+        /// Given the expected schema snapshot file path from SchemaVersionSnapshot.
+        /// </scenario>
+        /// <behavior>
+        /// Then the snapshot file exists at the expected location.
+        /// </behavior>
         [Fact]
         public void SchemaSnapshotManifest_IsTracked()
         {

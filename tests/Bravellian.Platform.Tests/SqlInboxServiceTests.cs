@@ -29,6 +29,10 @@ public class SqlInboxServiceTests : SqlServerTestBase
     {
     }
 
+    /// <summary>When a new message id is checked, then AlreadyProcessedAsync returns false and records it.</summary>
+    /// <intent>Verify first-time inbox checks persist the message record.</intent>
+    /// <scenario>Given a SqlInboxService and a new message id/source pair.</scenario>
+    /// <behavior>Then AlreadyProcessedAsync returns false and a row exists in infra.Inbox.</behavior>
     [Fact]
     public async Task AlreadyProcessedAsync_WithNewMessage_ReturnsFalseAndRecordsMessage()
     {
@@ -54,6 +58,10 @@ public class SqlInboxServiceTests : SqlServerTestBase
         Assert.Equal(1, count);
     }
 
+    /// <summary>When a message has been marked processed, then AlreadyProcessedAsync returns true.</summary>
+    /// <intent>Confirm processed messages are reported as already processed.</intent>
+    /// <scenario>Given a message recorded and marked processed via MarkProcessedAsync.</scenario>
+    /// <behavior>Then a subsequent AlreadyProcessedAsync returns true.</behavior>
     [Fact]
     public async Task AlreadyProcessedAsync_WithProcessedMessage_ReturnsTrue()
     {
@@ -73,6 +81,10 @@ public class SqlInboxServiceTests : SqlServerTestBase
         Assert.True(alreadyProcessed);
     }
 
+    /// <summary>When MarkProcessedAsync is called, then ProcessedUtc is set and status becomes Done.</summary>
+    /// <intent>Verify processed state updates both timestamp and status.</intent>
+    /// <scenario>Given a recorded inbox message.</scenario>
+    /// <behavior>Then the database row has non-null ProcessedUtc and Status = Done.</behavior>
     [Fact]
     public async Task MarkProcessedAsync_SetsProcessedUtcAndStatus()
     {
@@ -99,6 +111,10 @@ public class SqlInboxServiceTests : SqlServerTestBase
         Assert.Equal("Done", result.Status);
     }
 
+    /// <summary>When MarkProcessingAsync is called, then the message status becomes Processing.</summary>
+    /// <intent>Confirm processing state transitions update the status field.</intent>
+    /// <scenario>Given a recorded inbox message.</scenario>
+    /// <behavior>Then the database row status is Processing.</behavior>
     [Fact]
     public async Task MarkProcessingAsync_UpdatesStatus()
     {
@@ -124,6 +140,10 @@ public class SqlInboxServiceTests : SqlServerTestBase
         Assert.Equal("Processing", status);
     }
 
+    /// <summary>When MarkDeadAsync is called, then the message status becomes Dead.</summary>
+    /// <intent>Confirm dead-lettering updates the status field.</intent>
+    /// <scenario>Given a recorded inbox message.</scenario>
+    /// <behavior>Then the database row status is Dead.</behavior>
     [Fact]
     public async Task MarkDeadAsync_UpdatesStatus()
     {
@@ -149,6 +169,10 @@ public class SqlInboxServiceTests : SqlServerTestBase
         Assert.Equal("Dead", status);
     }
 
+    /// <summary>When AlreadyProcessedAsync is called concurrently for the same message, then one row is created and attempts increment.</summary>
+    /// <intent>Ensure concurrent checks remain idempotent and track attempts.</intent>
+    /// <scenario>Given five concurrent AlreadyProcessedAsync calls for the same message id.</scenario>
+    /// <behavior>Then all calls return false, only one row exists, and Attempts equals five.</behavior>
     [Fact]
     public async Task ConcurrentAlreadyProcessedAsync_WithSameMessage_HandledCorrectly()
     {
@@ -187,6 +211,10 @@ public class SqlInboxServiceTests : SqlServerTestBase
         Assert.Equal(5, attempts);
     }
 
+    /// <summary>When AlreadyProcessedAsync is called with a hash, then the hash is persisted in the inbox row.</summary>
+    /// <intent>Verify the optional hash is stored for deduplication checks.</intent>
+    /// <scenario>Given a message id, source, and a 32-byte hash.</scenario>
+    /// <behavior>Then the stored Hash column matches the provided bytes.</behavior>
     [Fact]
     public async Task AlreadyProcessedAsync_WithHash_StoresHashCorrectly()
     {
@@ -210,6 +238,10 @@ public class SqlInboxServiceTests : SqlServerTestBase
         Assert.Equal(hash, storedHash);
     }
 
+    /// <summary>When an invalid message id is provided, then AlreadyProcessedAsync throws an ArgumentException.</summary>
+    /// <intent>Ensure inbox checks validate message id inputs.</intent>
+    /// <scenario>Given null or empty message id values.</scenario>
+    /// <behavior>Then AlreadyProcessedAsync throws ArgumentException.</behavior>
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -223,6 +255,10 @@ public class SqlInboxServiceTests : SqlServerTestBase
             inbox.AlreadyProcessedAsync(invalidMessageId!, "test-source", cancellationToken: TestContext.Current.CancellationToken));
     }
 
+    /// <summary>When an invalid source is provided, then AlreadyProcessedAsync throws an ArgumentException.</summary>
+    /// <intent>Ensure inbox checks validate source inputs.</intent>
+    /// <scenario>Given null or empty source values.</scenario>
+    /// <behavior>Then AlreadyProcessedAsync throws ArgumentException.</behavior>
     [Theory]
     [InlineData(null)]
     [InlineData("")]

@@ -16,6 +16,10 @@ namespace Bravellian.Platform.Tests;
 
 public sealed class SchedulerMetricsTests
 {
+    /// <summary>When SchedulerMetrics is referenced, then all work-queue metric definitions are initialized.</summary>
+    /// <intent>Verify scheduler work-queue metrics are registered and available.</intent>
+    /// <scenario>Given access to the SchedulerMetrics static properties.</scenario>
+    /// <behavior>Then all inbox/outbox and timing metrics are non-null.</behavior>
     [Fact]
     public void WorkQueueMetrics_Should_Be_Registered()
     {

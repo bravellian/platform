@@ -51,6 +51,10 @@ public class SystemLeaseTests : PostgresTestBase
             config.SchemaName).ConfigureAwait(false);
     }
 
+    /// <summary>When acquiring a lease for a valid resource, then a lease is returned with expected metadata.</summary>
+    /// <intent>Verify successful lease acquisition populates owner and fencing tokens.</intent>
+    /// <scenario>Given a PostgresLeaseFactory, a new resource name, and a 30-second lease duration.</scenario>
+    /// <behavior>The lease is non-null with the resource name, non-empty owner token, and active cancellation token.</behavior>
     [Fact]
     public async Task AcquireAsync_WithValidResource_CanAcquireLease()
     {
@@ -72,6 +76,10 @@ public class SystemLeaseTests : PostgresTestBase
         await lease.DisposeAsync();
     }
 
+    /// <summary>When acquiring the same resource twice, then the second call returns null.</summary>
+    /// <intent>Verify lease acquisition is exclusive per resource.</intent>
+    /// <scenario>Given one resource acquired and a second acquisition attempt for the same resource.</scenario>
+    /// <behavior>The second acquisition returns null.</behavior>
     [Fact]
     public async Task AcquireAsync_SameResourceTwice_SecondCallReturnsNull()
     {
@@ -91,6 +99,10 @@ public class SystemLeaseTests : PostgresTestBase
         await firstLease.DisposeAsync();
     }
 
+    /// <summary>When a lease is released, then acquiring the resource again succeeds.</summary>
+    /// <intent>Verify release allows a new lease with a higher fencing token.</intent>
+    /// <scenario>Given a resource acquired, disposed, and then acquired again.</scenario>
+    /// <behavior>The second lease is non-null with a fencing token greater than the first.</behavior>
     [Fact]
     public async Task AcquireAsync_AfterLeaseReleased_CanAcquireAgain()
     {
@@ -116,6 +128,10 @@ public class SystemLeaseTests : PostgresTestBase
         await secondLease.DisposeAsync();
     }
 
+    /// <summary>When TryRenewNowAsync is called on a valid lease, then it succeeds and increments the fencing token.</summary>
+    /// <intent>Verify renewal updates fencing token for a held lease.</intent>
+    /// <scenario>Given a lease acquired for a resource with a 30-second duration.</scenario>
+    /// <behavior>TryRenewNowAsync returns true and the fencing token increases.</behavior>
     [Fact]
     public async Task TryRenewNowAsync_WithValidLease_SucceedsAndIncrementsFencingToken()
     {
@@ -139,6 +155,10 @@ public class SystemLeaseTests : PostgresTestBase
         await lease.DisposeAsync();
     }
 
+    /// <summary>When a lease is valid, then ThrowIfLost does not throw.</summary>
+    /// <intent>Verify loss checks are no-ops for active leases.</intent>
+    /// <scenario>Given a lease acquired for a resource.</scenario>
+    /// <behavior>ThrowIfLost completes without exception.</behavior>
     [Fact]
     public async Task ThrowIfLost_WhenLeaseIsValid_DoesNotThrow()
     {
@@ -156,6 +176,10 @@ public class SystemLeaseTests : PostgresTestBase
         await lease.DisposeAsync();
     }
 
+    /// <summary>When acquiring leases for different resources, then both acquisitions succeed.</summary>
+    /// <intent>Verify resource isolation across independent leases.</intent>
+    /// <scenario>Given two distinct resource names and one lease factory.</scenario>
+    /// <behavior>Both leases are non-null with different resource names and owner tokens.</behavior>
     [Fact]
     public async Task AcquireAsync_WithDifferentResources_BothSucceed()
     {
@@ -180,6 +204,10 @@ public class SystemLeaseTests : PostgresTestBase
         await lease2.DisposeAsync();
     }
 
+    /// <summary>When acquiring with a custom owner token, then the lease uses the provided token.</summary>
+    /// <intent>Verify caller-supplied owner tokens are honored.</intent>
+    /// <scenario>Given a custom OwnerToken and a new resource name.</scenario>
+    /// <behavior>The acquired lease reports the provided owner token.</behavior>
     [Fact]
     public async Task AcquireAsync_WithCustomOwnerToken_UsesProvidedToken()
     {
@@ -201,6 +229,10 @@ public class SystemLeaseTests : PostgresTestBase
         await lease.DisposeAsync();
     }
 
+    /// <summary>When acquiring the same resource with the same owner token, then both acquisitions succeed.</summary>
+    /// <intent>Verify reentrant acquisition with the same owner token is permitted.</intent>
+    /// <scenario>Given two AcquireAsync calls for the same resource using the same owner token.</scenario>
+    /// <behavior>Both leases are non-null and the second fencing token exceeds the first.</behavior>
     [Fact]
     public async Task AcquireAsync_ReentrantWithSameOwnerToken_Succeeds()
     {

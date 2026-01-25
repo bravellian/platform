@@ -34,6 +34,18 @@ public class FanoutRouterIntegrationTests
         return new TestLoggerFactory(testOutputHelper);
     }
 
+    /// <summary>
+    /// When fanout is configured with multiple option entries, then repositories are created per tenant and routed correctly.
+    /// </summary>
+    /// <intent>
+    /// Validate list-based fanout configuration builds distinct policy and cursor repositories.
+    /// </intent>
+    /// <scenario>
+    /// Given two SqlFanoutOptions entries and a ConfiguredFanoutRepositoryProvider.
+    /// </scenario>
+    /// <behavior>
+    /// Then repository counts match the option entries and router returns distinct repositories per tenant.
+    /// </behavior>
     [Fact]
     public async Task AddMultiSqlFanout_WithListOfOptions_RegistersServicesCorrectly()
     {
@@ -91,6 +103,18 @@ public class FanoutRouterIntegrationTests
         testOutputHelper.WriteLine("AddMultiSqlFanout pattern successfully creates functional components");
     }
 
+    /// <summary>
+    /// When repository identifiers are requested, then each repository returns a unique non-empty identifier.
+    /// </summary>
+    /// <intent>
+    /// Ensure repository identifiers map uniquely to configured tenants.
+    /// </intent>
+    /// <scenario>
+    /// Given a ConfiguredFanoutRepositoryProvider created from two SqlFanoutOptions entries.
+    /// </scenario>
+    /// <behavior>
+    /// Then the repository identifiers are populated and distinct.
+    /// </behavior>
     [Fact]
     public async Task AddMultiSqlFanout_RepositoryProvider_ReturnsCorrectIdentifiers()
     {
@@ -132,6 +156,18 @@ public class FanoutRouterIntegrationTests
         testOutputHelper.WriteLine($"Repository identifiers: {identifier1}, {identifier2}");
     }
 
+    /// <summary>
+    /// When a known tenant key is requested, then FanoutRouter returns the policy and cursor repositories.
+    /// </summary>
+    /// <intent>
+    /// Verify router lookup returns repositories for configured tenants.
+    /// </intent>
+    /// <scenario>
+    /// Given a single SqlFanoutOptions entry for Tenant1 and a FanoutRouter built from it.
+    /// </scenario>
+    /// <behavior>
+    /// Then GetPolicyRepository and GetCursorRepository return non-null repositories.
+    /// </behavior>
     [Fact]
     public void FanoutRouter_GetPolicyRepository_ReturnsCorrectRepository()
     {
@@ -159,6 +195,18 @@ public class FanoutRouterIntegrationTests
         cursorRepo.ShouldNotBeNull();
     }
 
+    /// <summary>
+    /// When a tenant key is missing, then FanoutRouter throws an InvalidOperationException containing the key.
+    /// </summary>
+    /// <intent>
+    /// Ensure invalid fanout keys are rejected with actionable errors.
+    /// </intent>
+    /// <scenario>
+    /// Given a FanoutRouter configured for Tenant1 only and a lookup for "NonExistentKey".
+    /// </scenario>
+    /// <behavior>
+    /// Then both policy and cursor repository lookups throw and mention the missing key.
+    /// </behavior>
     [Fact]
     public void FanoutRouter_GetPolicyRepository_ThrowsWhenKeyNotFound()
     {
@@ -187,6 +235,18 @@ public class FanoutRouterIntegrationTests
             .Message.ShouldContain("NonExistentKey");
     }
 
+    /// <summary>
+    /// When dynamic fanout discovery loads tenants, then policy and cursor repositories are created for each tenant.
+    /// </summary>
+    /// <intent>
+    /// Validate discovery-based fanout configuration builds repositories from discovered databases.
+    /// </intent>
+    /// <scenario>
+    /// Given a MockFanoutDatabaseDiscovery returning two tenants and a DynamicFanoutRepositoryProvider.
+    /// </scenario>
+    /// <behavior>
+    /// Then repository lists contain two policy repositories and two cursor repositories.
+    /// </behavior>
     [Fact]
     public async Task AddDynamicMultiSqlFanout_RegistersServicesCorrectly()
     {

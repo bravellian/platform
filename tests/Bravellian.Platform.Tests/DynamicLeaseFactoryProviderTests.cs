@@ -35,6 +35,18 @@ public class DynamicLeaseFactoryProviderTests
         return new TestLoggerFactory(testOutputHelper);
     }
 
+    /// <summary>
+    /// When the dynamic lease provider performs initial discovery, then it returns factories for all configured databases.
+    /// </summary>
+    /// <intent>
+    /// Verify initial discovery populates lease factories from discovery results.
+    /// </intent>
+    /// <scenario>
+    /// Given a SampleLeaseDatabaseDiscovery returning Customer1 and Customer2 configs.
+    /// </scenario>
+    /// <behavior>
+    /// Then GetAllFactoriesAsync returns two factories with identifiers matching the discovered customers.
+    /// </behavior>
     [Fact]
     public async Task DynamicProvider_DiscoversInitialDatabases()
     {
@@ -76,6 +88,18 @@ public class DynamicLeaseFactoryProviderTests
         provider.GetFactoryIdentifier(factories[1]).ShouldBeOneOf("Customer1", "Customer2");
     }
 
+    /// <summary>
+    /// When a new lease database is added to discovery, then RefreshAsync updates the factory list.
+    /// </summary>
+    /// <intent>
+    /// Ensure the provider detects newly added lease databases.
+    /// </intent>
+    /// <scenario>
+    /// Given discovery initially returns Customer1 and later adds Customer2 before RefreshAsync.
+    /// </scenario>
+    /// <behavior>
+    /// Then GetAllFactoriesAsync returns two factories with identifiers for both customers.
+    /// </behavior>
     [Fact]
     public async Task DynamicProvider_DetectsNewDatabases()
     {
@@ -121,6 +145,18 @@ public class DynamicLeaseFactoryProviderTests
         provider.GetFactoryIdentifier(updatedFactories[1]).ShouldBeOneOf("Customer1", "Customer2");
     }
 
+    /// <summary>
+    /// When a lease database is removed from discovery, then RefreshAsync removes its factory.
+    /// </summary>
+    /// <intent>
+    /// Ensure the provider drops factories for removed lease databases.
+    /// </intent>
+    /// <scenario>
+    /// Given discovery initially returns Customer1 and Customer2, then Customer2 is removed before RefreshAsync.
+    /// </scenario>
+    /// <behavior>
+    /// Then GetAllFactoriesAsync returns one factory identified as Customer1.
+    /// </behavior>
     [Fact]
     public async Task DynamicProvider_DetectsRemovedDatabases()
     {
@@ -166,6 +202,18 @@ public class DynamicLeaseFactoryProviderTests
         provider.GetFactoryIdentifier(updatedFactories[0]).ShouldBe("Customer1");
     }
 
+    /// <summary>
+    /// When the refresh interval elapses, then the provider automatically refreshes discovery results.
+    /// </summary>
+    /// <intent>
+    /// Validate time-based automatic refresh behavior for lease factories.
+    /// </intent>
+    /// <scenario>
+    /// Given a FakeTimeProvider, one initial database, and a second database added before time advances.
+    /// </scenario>
+    /// <behavior>
+    /// Then advancing time past the interval causes GetAllFactoriesAsync to return two factories.
+    /// </behavior>
     [Fact]
     public async Task DynamicProvider_RefreshesAutomaticallyAfterInterval()
     {
@@ -209,6 +257,18 @@ public class DynamicLeaseFactoryProviderTests
         updatedFactories.Count.ShouldBe(2);
     }
 
+    /// <summary>
+    /// When known lease keys are requested, then GetFactoryByKeyAsync returns the matching factories.
+    /// </summary>
+    /// <intent>
+    /// Verify keyed lease factory lookup works after discovery.
+    /// </intent>
+    /// <scenario>
+    /// Given discovery provides Customer1 and Customer2 and initial discovery has completed.
+    /// </scenario>
+    /// <behavior>
+    /// Then known keys return factories and an unknown key returns null.
+    /// </behavior>
     [Fact]
     public async Task DynamicProvider_GetFactoryByKey_ReturnsCorrectFactory()
     {
@@ -257,6 +317,18 @@ public class DynamicLeaseFactoryProviderTests
         provider.GetFactoryIdentifier(factory2).ShouldBe("Customer2");
     }
 
+    /// <summary>
+    /// When a connection string changes for an existing key, then RefreshAsync recreates the factory.
+    /// </summary>
+    /// <intent>
+    /// Ensure the provider detects connection string changes and refreshes factories.
+    /// </intent>
+    /// <scenario>
+    /// Given Customer1 is removed and re-added with a new connection string before RefreshAsync.
+    /// </scenario>
+    /// <behavior>
+    /// Then the factory for Customer1 is replaced with a new instance.
+    /// </behavior>
     [Fact]
     public async Task DynamicProvider_DetectsConnectionStringChanges()
     {

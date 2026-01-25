@@ -26,6 +26,18 @@ namespace Bravellian.Platform.Tests.Modularity;
 [Collection("ModuleRegistryTests")]
 public sealed class ModuleSystemTests
 {
+    /// <summary>
+    /// When a module is registered with its required configuration, then its services and health checks are added to DI.
+    /// </summary>
+    /// <intent>
+    /// Verify that module registration wires up services and health checks.
+    /// </intent>
+    /// <scenario>
+    /// Given SampleModule is registered and configuration provides its required key.
+    /// </scenario>
+    /// <behavior>
+    /// Then MarkerService is resolvable and the health check registration includes "sample_module".
+    /// </behavior>
     [Fact]
     public void Modules_register_services_and_health()
     {
@@ -49,6 +61,18 @@ public sealed class ModuleSystemTests
         healthOptions.Registrations.ShouldContain(r => r.Name == "sample_module");
     }
 
+    /// <summary>
+    /// When module services are added, then the module definition is registered in DI.
+    /// </summary>
+    /// <intent>
+    /// Ensure module definitions are accessible through the service provider.
+    /// </intent>
+    /// <scenario>
+    /// Given SampleModule is registered and configuration includes its required key.
+    /// </scenario>
+    /// <behavior>
+    /// Then resolving IModuleDefinition returns a module with key "sample-module".
+    /// </behavior>
     [Fact]
     public void Modules_are_registered_in_di()
     {
@@ -70,6 +94,18 @@ public sealed class ModuleSystemTests
         module.Key.ShouldBe("sample-module");
     }
 
+    /// <summary>
+    /// When multiple modules share the same key, then AddModuleServices throws an InvalidOperationException.
+    /// </summary>
+    /// <intent>
+    /// Enforce unique module keys during registration.
+    /// </intent>
+    /// <scenario>
+    /// Given SampleModule and ConflictingModule are registered with the same key and required configuration is provided.
+    /// </scenario>
+    /// <behavior>
+    /// Then AddModuleServices throws due to the duplicate module key.
+    /// </behavior>
     [Fact]
     public void Module_keys_must_be_unique()
     {
@@ -90,6 +126,18 @@ public sealed class ModuleSystemTests
             services.AddModuleServices(configuration, NullLoggerFactory.Instance));
     }
 
+    /// <summary>
+    /// When a module key contains a slash, then AddModuleServices throws with a URL-safety message.
+    /// </summary>
+    /// <intent>
+    /// Ensure module keys are URL-safe for routing and metadata.
+    /// </intent>
+    /// <scenario>
+    /// Given ModuleWithInvalidKey is registered and its required configuration key is supplied.
+    /// </scenario>
+    /// <behavior>
+    /// Then AddModuleServices throws and the error mentions that keys cannot contain slashes.
+    /// </behavior>
     [Fact]
     public void Module_keys_must_be_url_safe()
     {
@@ -110,6 +158,18 @@ public sealed class ModuleSystemTests
         ex.Message.ShouldContain("cannot contain slashes");
     }
 
+    /// <summary>
+    /// When an engine descriptor uses a different module key, then AddModuleServices throws.
+    /// </summary>
+    /// <intent>
+    /// Guard against mismatched module and engine descriptor keys.
+    /// </intent>
+    /// <scenario>
+    /// Given ModuleWithMismatchedEngineDescriptor is registered and no required configuration is needed.
+    /// </scenario>
+    /// <behavior>
+    /// Then AddModuleServices throws and the error references the engine descriptor module key.
+    /// </behavior>
     [Fact]
     public void Engine_descriptors_must_use_module_key()
     {
@@ -124,6 +184,18 @@ public sealed class ModuleSystemTests
         ex.Message.ShouldContain("Engine descriptor module key");
     }
 
+    /// <summary>
+    /// When two modules register identical webhook metadata, then AddModuleServices throws.
+    /// </summary>
+    /// <intent>
+    /// Prevent conflicting webhook metadata registrations across modules.
+    /// </intent>
+    /// <scenario>
+    /// Given WebhookModuleOne and WebhookModuleTwo declare the same webhook metadata.
+    /// </scenario>
+    /// <behavior>
+    /// Then AddModuleServices throws and the message indicates the webhook is already handled.
+    /// </behavior>
     [Fact]
     public void Webhook_metadata_must_be_unique()
     {
@@ -139,6 +211,18 @@ public sealed class ModuleSystemTests
         ex.Message.ShouldContain("already handled");
     }
 
+    /// <summary>
+    /// When the same module type is registered twice, then the second registration is ignored without error.
+    /// </summary>
+    /// <intent>
+    /// Confirm ModuleRegistry.RegisterModule is idempotent for identical types.
+    /// </intent>
+    /// <scenario>
+    /// Given ModuleRegistry already contains SampleModule.
+    /// </scenario>
+    /// <behavior>
+    /// Then registering SampleModule again does not throw.
+    /// </behavior>
     [Fact]
     public void Registering_module_type_is_idempotent()
     {

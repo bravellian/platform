@@ -49,6 +49,10 @@ public class OutboxWorkQueueTests : PostgresTestBase
         outboxService = new PostgresOutboxService(options, NullLogger<PostgresOutboxService>.Instance);
     }
 
+    /// <summary>When ready items are available, then ClaimAsync returns their ids.</summary>
+    /// <intent>Verify ready outbox work items can be claimed.</intent>
+    /// <scenario>Given three ready outbox items and a new owner token.</scenario>
+    /// <behavior>ClaimAsync returns all three ids and they match the inserted items.</behavior>
     [Fact]
     public async Task OutboxClaim_WithReadyItems_ReturnsClaimedIds()
     {
@@ -62,6 +66,10 @@ public class OutboxWorkQueueTests : PostgresTestBase
         claimedIds.ShouldBeSubsetOf(testIds);
     }
 
+    /// <summary>When batch size is smaller than ready items, then ClaimAsync respects the limit.</summary>
+    /// <intent>Verify ClaimAsync honors the requested batch size.</intent>
+    /// <scenario>Given five ready outbox items and a batch size of two.</scenario>
+    /// <behavior>ClaimAsync returns exactly two ids.</behavior>
     [Fact]
     public async Task OutboxClaim_WithBatchSize_RespectsLimit()
     {
@@ -73,6 +81,10 @@ public class OutboxWorkQueueTests : PostgresTestBase
         claimedIds.Count.ShouldBe(2);
     }
 
+    /// <summary>When acking claimed items with the correct owner, then they are marked done and processed.</summary>
+    /// <intent>Verify acknowledgements update status and processing flags.</intent>
+    /// <scenario>Given claimed items and the matching owner token.</scenario>
+    /// <behavior>Status becomes Done and IsProcessed is true for each claimed item.</behavior>
     [Fact]
     public async Task OutboxAck_WithValidOwner_MarksDoneAndProcessed()
     {
@@ -86,6 +98,10 @@ public class OutboxWorkQueueTests : PostgresTestBase
         await VerifyOutboxProcessedAsync(claimedIds, true);
     }
 
+    /// <summary>When abandoning claimed items with the correct owner, then they return to Ready.</summary>
+    /// <intent>Verify abandon resets status for claimed items.</intent>
+    /// <scenario>Given claimed items and the matching owner token.</scenario>
+    /// <behavior>Status returns to Ready for each claimed item.</behavior>
     [Fact]
     public async Task OutboxAbandon_WithValidOwner_ReturnsToReady()
     {
@@ -98,6 +114,10 @@ public class OutboxWorkQueueTests : PostgresTestBase
         await VerifyOutboxStatusAsync(claimedIds, OutboxStatus.Ready);
     }
 
+    /// <summary>When failing claimed items with the correct owner, then they are marked Failed.</summary>
+    /// <intent>Verify failure marks the work items as failed.</intent>
+    /// <scenario>Given claimed items and the matching owner token.</scenario>
+    /// <behavior>Status becomes Failed for each claimed item.</behavior>
     [Fact]
     public async Task OutboxFail_WithValidOwner_MarksAsFailed()
     {
@@ -110,6 +130,10 @@ public class OutboxWorkQueueTests : PostgresTestBase
         await VerifyOutboxStatusAsync(claimedIds, OutboxStatus.Failed);
     }
 
+    /// <summary>When a claim expires, then ReapExpired returns items to Ready.</summary>
+    /// <intent>Verify expired leases are reaped back to Ready.</intent>
+    /// <scenario>Given a claimed item with a 1-second lease that is allowed to expire.</scenario>
+    /// <behavior>ReapExpiredAsync resets the item status to Ready.</behavior>
     [Fact]
     public async Task OutboxReapExpired_WithExpiredItems_ReturnsToReady()
     {
@@ -124,6 +148,10 @@ public class OutboxWorkQueueTests : PostgresTestBase
         await VerifyOutboxStatusAsync(testIds, OutboxStatus.Ready);
     }
 
+    /// <summary>When two workers claim concurrently, then claimed sets do not overlap.</summary>
+    /// <intent>Verify concurrent claims are exclusive per work item.</intent>
+    /// <scenario>Given ten ready items and two workers claiming up to five each.</scenario>
+    /// <behavior>Claimed ids are disjoint and total claimed does not exceed ten.</behavior>
     [Fact]
     public async Task ConcurrentClaim_MultipleWorkers_NoOverlap()
     {
@@ -144,6 +172,10 @@ public class OutboxWorkQueueTests : PostgresTestBase
         claimed1.Intersect(claimed2).ShouldBeEmpty();
     }
 
+    /// <summary>When a non-owner attempts to ack items, then item status is unchanged.</summary>
+    /// <intent>Verify owner token enforcement for state changes.</intent>
+    /// <scenario>Given claimed items owned by one token and an ack attempt with another token.</scenario>
+    /// <behavior>Status remains InProgress for the claimed items.</behavior>
     [Fact]
     public async Task InvalidOwnerOperations_DoNotAffectItems()
     {

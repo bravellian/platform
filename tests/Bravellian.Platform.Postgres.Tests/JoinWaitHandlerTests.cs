@@ -79,6 +79,10 @@ public class JoinWaitHandlerTests : PostgresTestBase
         return OutboxMessageIdentifier.From(id);
     }
 
+    /// <summary>When the join has incomplete steps, then the handler throws JoinNotReadyException.</summary>
+    /// <intent>Validate that the wait handler blocks until the join is complete.</intent>
+    /// <scenario>Given a join expecting three steps with only one completed and FailIfAnyStepFailed enabled.</scenario>
+    /// <behavior>HandleAsync raises JoinNotReadyException.</behavior>
     [Fact]
     public async Task HandleAsync_WhenJoinNotReady_ThrowsJoinNotReadyException()
     {
@@ -111,6 +115,10 @@ public class JoinWaitHandlerTests : PostgresTestBase
             await handler!.HandleAsync(message, CancellationToken.None).ConfigureAwait(false));
     }
 
+    /// <summary>When all join steps are completed, then the join remains in a completed state.</summary>
+    /// <intent>Confirm the wait handler leaves a completed join unchanged.</intent>
+    /// <scenario>Given a join expecting two steps with both steps marked completed.</scenario>
+    /// <behavior>CompletedSteps equals ExpectedSteps after handling the wait message.</behavior>
     [Fact]
     public async Task HandleAsync_WhenAllStepsCompleted_MarksJoinAsCompleted()
     {
@@ -152,6 +160,10 @@ public class JoinWaitHandlerTests : PostgresTestBase
         updated.ExpectedSteps.ShouldBe(2);
     }
 
+    /// <summary>When any join step fails and failure propagation is enabled, then the join is marked failed.</summary>
+    /// <intent>Validate failure propagation for join steps.</intent>
+    /// <scenario>Given a join with one completed step, one failed step, and FailIfAnyStepFailed enabled.</scenario>
+    /// <behavior>The join status is updated to Failed.</behavior>
     [Fact]
     public async Task HandleAsync_WhenAnyStepFailed_MarksJoinFailed()
     {

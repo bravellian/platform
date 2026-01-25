@@ -36,6 +36,18 @@ public sealed class MetricsSchemaTests : PostgresTestBase
         await DatabaseSchemaManager.EnsureMetricsSchemaAsync(ConnectionString).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Given the metrics schema is deployed, then the MetricDef table exists.
+    /// </summary>
+    /// <intent>
+    /// Verify MetricDef is created by the metrics schema deployment.
+    /// </intent>
+    /// <scenario>
+    /// Given a database initialized with EnsureMetricsSchemaAsync.
+    /// </scenario>
+    /// <behavior>
+    /// INFORMATION_SCHEMA reports one MetricDef table in the infra schema.
+    /// </behavior>
     [Fact]
     public async Task MetricDef_Table_Should_Exist()
     {
@@ -48,6 +60,18 @@ public sealed class MetricsSchemaTests : PostgresTestBase
         Assert.Equal(1, exists);
     }
 
+    /// <summary>
+    /// Given the metrics schema is deployed, then the MetricSeries table exists.
+    /// </summary>
+    /// <intent>
+    /// Verify MetricSeries is created by the metrics schema deployment.
+    /// </intent>
+    /// <scenario>
+    /// Given a database initialized with EnsureMetricsSchemaAsync.
+    /// </scenario>
+    /// <behavior>
+    /// INFORMATION_SCHEMA reports one MetricSeries table in the infra schema.
+    /// </behavior>
     [Fact]
     public async Task MetricSeries_Table_Should_Exist()
     {
@@ -60,6 +84,18 @@ public sealed class MetricsSchemaTests : PostgresTestBase
         Assert.Equal(1, exists);
     }
 
+    /// <summary>
+    /// Given the metrics schema is deployed, then the MetricPointMinute table exists.
+    /// </summary>
+    /// <intent>
+    /// Verify MetricPointMinute is created by the metrics schema deployment.
+    /// </intent>
+    /// <scenario>
+    /// Given a database initialized with EnsureMetricsSchemaAsync.
+    /// </scenario>
+    /// <behavior>
+    /// INFORMATION_SCHEMA reports one MetricPointMinute table in the infra schema.
+    /// </behavior>
     [Fact]
     public async Task MetricPointMinute_Table_Should_Exist()
     {

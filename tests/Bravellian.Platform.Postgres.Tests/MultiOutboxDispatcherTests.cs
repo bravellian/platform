@@ -34,6 +34,10 @@ public class MultiOutboxDispatcherTests : PostgresTestBase
     {
     }
 
+    /// <summary>When dispatching across multiple stores, then messages are processed from each store.</summary>
+    /// <intent>Verify the dispatcher iterates across store providers and handles messages from each.</intent>
+    /// <scenario>Given two schemas with one ready outbox message each and a shared handler.</scenario>
+    /// <behavior>Two runs process both messages and both outbox rows are marked processed.</behavior>
     [Fact]
     public async Task MultiOutboxDispatcher_ProcessesMessagesFromMultipleStores()
     {
@@ -147,6 +151,10 @@ public class MultiOutboxDispatcherTests : PostgresTestBase
         processed2.ShouldBeTrue();
     }
 
+    /// <summary>When using the drain-first strategy, then one store is drained before moving on.</summary>
+    /// <intent>Verify the drain-first selection strategy exhausts one store before switching.</intent>
+    /// <scenario>Given one store with three ready messages and a drain-first strategy.</scenario>
+    /// <behavior>Three runs process messages and the fourth run finds no work.</behavior>
     [Fact]
     public async Task MultiOutboxDispatcher_WithDrainFirstStrategy_DrainsOneStoreBeforeMoving()
     {

@@ -30,6 +30,18 @@ public sealed class DynamicDiscoveryEnforcementTests
     /// do NOT have services.Configure<TOptions>() called (they should use discovery instead).
     /// Only global features (Semaphores) should have Configure<TOptions>() called.
     /// </summary>
+    /// <summary>
+    /// When the platform is registered with discovery and a control plane, then customer database options are not configured while global options are.
+    /// </summary>
+    /// <intent>
+    /// Enforce discovery-driven configuration for tenant features while allowing global options.
+    /// </intent>
+    /// <scenario>
+    /// Given AddPlatformMultiDatabaseWithControlPlaneAndDiscovery with a discovery implementation and control plane options.
+    /// </scenario>
+    /// <behavior>
+    /// Then Outbox/Inbox/Scheduler/Fanout options remain default while Semaphore options are configured.
+    /// </behavior>
     [Fact]
     public void PlatformWithDiscovery_ShouldNotConfigureCustomerDatabaseOptions()
     {
@@ -74,6 +86,18 @@ public sealed class DynamicDiscoveryEnforcementTests
     /// Verifies that when using platform registration with a list,
     /// customer database features do NOT have services.Configure<TOptions>() called.
     /// </summary>
+    /// <summary>
+    /// When the platform is registered with a database list, then customer database options are not configured.
+    /// </summary>
+    /// <intent>
+    /// Ensure list-based registration still relies on discovery providers rather than direct options.
+    /// </intent>
+    /// <scenario>
+    /// Given AddPlatformMultiDatabaseWithList with two tenant databases and schema deployment disabled.
+    /// </scenario>
+    /// <behavior>
+    /// Then Outbox/Inbox/Scheduler/Fanout options remain default.
+    /// </behavior>
     [Fact]
     public void PlatformWithList_ShouldNotConfigureCustomerDatabaseOptions()
     {
@@ -115,6 +139,18 @@ public sealed class DynamicDiscoveryEnforcementTests
     /// Verifies that all customer database features have their providers registered
     /// when using platform registration.
     /// </summary>
+    /// <summary>
+    /// When the platform is registered with discovery, then all customer feature providers are registered in DI.
+    /// </summary>
+    /// <intent>
+    /// Validate provider registration for outbox, inbox, scheduler, fanout, and leases.
+    /// </intent>
+    /// <scenario>
+    /// Given AddPlatformMultiDatabaseWithDiscovery and a discovery implementation.
+    /// </scenario>
+    /// <behavior>
+    /// Then the outbox, inbox, scheduler, fanout, and lease providers resolve from the service provider.
+    /// </behavior>
     [Fact]
     public void PlatformWithDiscovery_ShouldRegisterAllProviders()
     {
@@ -153,6 +189,18 @@ public sealed class DynamicDiscoveryEnforcementTests
     /// <summary>
     /// Verifies that providers use the correct discovery instance.
     /// </summary>
+    /// <summary>
+    /// When providers are resolved with discovery-based registration, then each provider discovers all configured databases.
+    /// </summary>
+    /// <intent>
+    /// Ensure providers use IPlatformDatabaseDiscovery results for tenant enumeration.
+    /// </intent>
+    /// <scenario>
+    /// Given discovery returns two tenant databases and AddPlatformMultiDatabaseWithDiscovery is used.
+    /// </scenario>
+    /// <behavior>
+    /// Then outbox, inbox, scheduler, lease, and fanout providers each return two entries.
+    /// </behavior>
     [Fact]
     public async Task PlatformProviders_ShouldUseDiscoveryAsync()
     {

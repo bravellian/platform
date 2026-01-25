@@ -38,6 +38,10 @@ public class OutboxRouterIntegrationTests
         return new TestLoggerFactory(testOutputHelper);
     }
 
+    /// <summary>When tenant keys are routed, then each key resolves to a distinct outbox instance.</summary>
+    /// <intent>Demonstrate multi-tenant routing for configured outbox stores.</intent>
+    /// <scenario>Given two SqlOutboxOptions entries and a ConfiguredOutboxStoreProvider with FakeTimeProvider.</scenario>
+    /// <behavior>Then the router returns non-null, distinct outboxes for Tenant1 and Tenant2.</behavior>
     [Fact]
     public void MultiTenantScenario_CreateMessagesInDifferentDatabases()
     {
@@ -79,6 +83,10 @@ public class OutboxRouterIntegrationTests
         testOutputHelper.WriteLine($"Successfully routed to Tenant2 outbox: {tenant2Outbox.GetType().Name}");
     }
 
+    /// <summary>When dynamic discovery loads tenants, then the router resolves distinct outboxes per tenant.</summary>
+    /// <intent>Validate dynamic discovery works with outbox routing.</intent>
+    /// <scenario>Given a SampleOutboxDatabaseDiscovery with two tenants and an initial provider refresh.</scenario>
+    /// <behavior>Then GetOutbox returns non-null, distinct outboxes for both tenant identifiers.</behavior>
     [Fact]
     public async Task DynamicDiscovery_RoutesToCorrectDatabase()
     {
@@ -123,6 +131,10 @@ public class OutboxRouterIntegrationTests
         testOutputHelper.WriteLine("Successfully demonstrated dynamic discovery routing");
     }
 
+    /// <summary>When a typical application requests outboxes by tenant, then it receives distinct tenant outboxes.</summary>
+    /// <intent>Illustrate the routing pattern used by application services.</intent>
+    /// <scenario>Given an OrderService using an OutboxRouter backed by configured tenant options.</scenario>
+    /// <behavior>Then TenantA and TenantB resolve to different outbox instances.</behavior>
     [Fact]
     public void TypicalApplicationUsage_DemonstratesPattern()
     {

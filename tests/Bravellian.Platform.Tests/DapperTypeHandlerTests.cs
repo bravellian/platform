@@ -59,6 +59,18 @@ public sealed class DapperTypeHandlerTests : SqlServerTestBase
         }
     }
 
+    /// <summary>
+    /// When an OwnerToken is inserted and retrieved via Dapper, then it round-trips to the same value.
+    /// </summary>
+    /// <intent>
+    /// Validate the Dapper type handler for OwnerToken.
+    /// </intent>
+    /// <scenario>
+    /// Given a test table and a generated OwnerToken value.
+    /// </scenario>
+    /// <behavior>
+    /// Then the retrieved OwnerToken equals the original value.
+    /// </behavior>
     [Fact]
     public async Task OwnerToken_RoundTrip_WorksCorrectly()
     {
@@ -91,6 +103,18 @@ public sealed class DapperTypeHandlerTests : SqlServerTestBase
         Assert.Equal(ownerToken, result);
     }
 
+    /// <summary>
+    /// When a nullable OwnerToken is stored and retrieved, then values round-trip and nulls remain null.
+    /// </summary>
+    /// <intent>
+    /// Validate nullable OwnerToken handling in Dapper.
+    /// </intent>
+    /// <scenario>
+    /// Given a test table and a nullable OwnerToken value inserted once with a value and once with null.
+    /// </scenario>
+    /// <behavior>
+    /// Then the first row returns the original OwnerToken and the second row returns null.
+    /// </behavior>
     [Fact]
     public async Task NullableOwnerToken_RoundTrip_WorksCorrectly()
     {
@@ -147,6 +171,18 @@ public sealed class DapperTypeHandlerTests : SqlServerTestBase
         Assert.Null(resultWithNull);
     }
 
+    /// <summary>
+    /// When an InboxMessageIdentifier is inserted and retrieved via Dapper, then it round-trips to the same value.
+    /// </summary>
+    /// <intent>
+    /// Validate the Dapper type handler for InboxMessageIdentifier.
+    /// </intent>
+    /// <scenario>
+    /// Given a test table and a generated InboxMessageIdentifier value.
+    /// </scenario>
+    /// <behavior>
+    /// Then the retrieved InboxMessageIdentifier equals the original value.
+    /// </behavior>
     [Fact]
     public async Task InboxMessageIdentifier_RoundTrip_WorksCorrectly()
     {
@@ -179,6 +215,18 @@ public sealed class DapperTypeHandlerTests : SqlServerTestBase
         Assert.Equal(messageId, result);
     }
 
+    /// <summary>
+    /// When an OutboxMessageIdentifier is inserted and retrieved via Dapper, then it round-trips to the same value.
+    /// </summary>
+    /// <intent>
+    /// Validate the Dapper type handler for OutboxMessageIdentifier.
+    /// </intent>
+    /// <scenario>
+    /// Given a test table and a generated OutboxMessageIdentifier value.
+    /// </scenario>
+    /// <behavior>
+    /// Then the retrieved OutboxMessageIdentifier equals the original value.
+    /// </behavior>
     [Fact]
     public async Task OutboxMessageIdentifier_RoundTrip_WorksCorrectly()
     {
@@ -211,6 +259,18 @@ public sealed class DapperTypeHandlerTests : SqlServerTestBase
         Assert.Equal(messageId, result);
     }
 
+    /// <summary>
+    /// When an OutboxWorkItemIdentifier is inserted and retrieved via Dapper, then it round-trips to the same value.
+    /// </summary>
+    /// <intent>
+    /// Validate the Dapper type handler for OutboxWorkItemIdentifier.
+    /// </intent>
+    /// <scenario>
+    /// Given a test table and a generated OutboxWorkItemIdentifier value.
+    /// </scenario>
+    /// <behavior>
+    /// Then the retrieved OutboxWorkItemIdentifier equals the original value.
+    /// </behavior>
     [Fact]
     public async Task OutboxWorkItemIdentifier_RoundTrip_WorksCorrectly()
     {
@@ -243,6 +303,18 @@ public sealed class DapperTypeHandlerTests : SqlServerTestBase
         Assert.Equal(workItemId, result);
     }
 
+    /// <summary>
+    /// When a JoinIdentifier is inserted and retrieved via Dapper, then it round-trips to the same value.
+    /// </summary>
+    /// <intent>
+    /// Validate the Dapper type handler for JoinIdentifier.
+    /// </intent>
+    /// <scenario>
+    /// Given a test table and a generated JoinIdentifier value.
+    /// </scenario>
+    /// <behavior>
+    /// Then the retrieved JoinIdentifier equals the original value.
+    /// </behavior>
     [Fact]
     public async Task JoinIdentifier_RoundTrip_WorksCorrectly()
     {
@@ -275,6 +347,18 @@ public sealed class DapperTypeHandlerTests : SqlServerTestBase
         Assert.Equal(joinId, result);
     }
 
+    /// <summary>
+    /// When an InstanceIdentifier is inserted and retrieved via Dapper, then it round-trips to the same value.
+    /// </summary>
+    /// <intent>
+    /// Validate the Dapper type handler for InstanceIdentifier.
+    /// </intent>
+    /// <scenario>
+    /// Given a test table and a generated InstanceIdentifier value.
+    /// </scenario>
+    /// <behavior>
+    /// Then the retrieved InstanceIdentifier equals the original value.
+    /// </behavior>
     [Fact]
     public async Task InstanceIdentifier_RoundTrip_WorksCorrectly()
     {
@@ -307,6 +391,18 @@ public sealed class DapperTypeHandlerTests : SqlServerTestBase
         Assert.Equal(instanceId, result);
     }
 
+    /// <summary>
+    /// When a DatabaseIdentifier is inserted and retrieved via Dapper, then it round-trips to the same value.
+    /// </summary>
+    /// <intent>
+    /// Validate the Dapper type handler for DatabaseIdentifier.
+    /// </intent>
+    /// <scenario>
+    /// Given a test table and a generated DatabaseIdentifier value.
+    /// </scenario>
+    /// <behavior>
+    /// Then the retrieved DatabaseIdentifier equals the original value.
+    /// </behavior>
     [Fact]
     public async Task DatabaseIdentifier_RoundTrip_WorksCorrectly()
     {
@@ -339,6 +435,18 @@ public sealed class DapperTypeHandlerTests : SqlServerTestBase
         Assert.Equal(databaseId, result);
     }
 
+    /// <summary>
+    /// When all strongly-typed IDs are inserted in one row, then Dapper retrieves each value correctly.
+    /// </summary>
+    /// <intent>
+    /// Validate multiple type handlers in a single query.
+    /// </intent>
+    /// <scenario>
+    /// Given a test row containing OwnerToken and various identifier types.
+    /// </scenario>
+    /// <behavior>
+    /// Then each retrieved identifier matches its original value.
+    /// </behavior>
     [Fact]
     public async Task AllTypesInSingleQuery_RoundTrip_WorksCorrectly()
     {

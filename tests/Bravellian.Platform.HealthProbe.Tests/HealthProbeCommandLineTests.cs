@@ -4,6 +4,10 @@ namespace Bravellian.Platform.HealthProbe.Tests;
 
 public sealed class HealthProbeCommandLineTests
 {
+    /// <summary>Given only the base command, then parsing leaves EndpointName null and JsonOutput false.</summary>
+    /// <intent>Describe default parsing with no endpoint or flags.</intent>
+    /// <scenario>Given arguments containing only "healthcheck".</scenario>
+    /// <behavior>EndpointName remains null and JsonOutput stays false.</behavior>
     [Fact]
     public void Parse_DefaultsToConfiguredEndpoint()
     {
@@ -13,6 +17,10 @@ public sealed class HealthProbeCommandLineTests
         commandLine.JsonOutput.ShouldBeFalse();
     }
 
+    /// <summary>Given an explicit endpoint argument, then parsing uses it as EndpointName.</summary>
+    /// <intent>Describe parsing of a positional endpoint argument.</intent>
+    /// <scenario>Given arguments "healthcheck" and "deploy".</scenario>
+    /// <behavior>EndpointName is "deploy".</behavior>
     [Fact]
     public void Parse_ExplicitEndpointName()
     {
@@ -21,6 +29,10 @@ public sealed class HealthProbeCommandLineTests
         commandLine.EndpointName.ShouldBe("deploy");
     }
 
+    /// <summary>When override flags are provided, then parsing populates each override option.</summary>
+    /// <intent>Describe parsing of URL, timeout, header, API key, TLS, and JSON flags.</intent>
+    /// <scenario>Given arguments with url, timeout, header, apikey, insecure, and json options.</scenario>
+    /// <behavior>EndpointName and all override properties match the provided values.</behavior>
     [Fact]
     public void Parse_Overrides()
     {
@@ -50,6 +62,10 @@ public sealed class HealthProbeCommandLineTests
         commandLine.JsonOutput.ShouldBeTrue();
     }
 
+    /// <summary>Given no URL override, then running the health check returns InvalidArguments.</summary>
+    /// <intent>Describe validation when required URL input is missing.</intent>
+    /// <scenario>Given a service provider and a command line containing only "healthcheck".</scenario>
+    /// <behavior>The returned exit code is InvalidArguments.</behavior>
     [Fact]
     public async Task TryRun_ReturnsInvalidWhenUrlMissing()
     {
@@ -65,6 +81,10 @@ public sealed class HealthProbeCommandLineTests
         exitCode.ShouldBe(HealthProbeExitCodes.InvalidArguments);
     }
 
+    /// <summary>When an unknown flag is provided, then parsing throws a HealthProbeArgumentException.</summary>
+    /// <intent>Describe parsing failure for unsupported command line options.</intent>
+    /// <scenario>Given arguments including an unrecognized "--nope" option.</scenario>
+    /// <behavior>Parsing throws and the message mentions an unknown option.</behavior>
     [Fact]
     public void Parse_ThrowsForUnknownFlag()
     {

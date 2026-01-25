@@ -63,6 +63,18 @@ public class ManualSchemaExportTests : IAsyncLifetime
     /// Note: This test is skipped by default to prevent it from running in CI.
     /// To run it, remove the Skip parameter or run it explicitly using the test filter.
     /// </summary>
+    /// <summary>
+    /// When DeploySchemaAndExportToSqlProject runs against a fresh SQL Server container, then schemas are deployed and DACPACs are exported to the SQL project.
+    /// </summary>
+    /// <intent>
+    /// Provide a manual workflow for updating the SQL Server project from deployed schema.
+    /// </intent>
+    /// <scenario>
+    /// Given an initialized SQL Server container and a valid connection string for schema deployment.
+    /// </scenario>
+    /// <behavior>
+    /// Then control plane and multi-database schemas are deployed and the extraction steps complete without error.
+    /// </behavior>
     [Fact(Skip = "Manual test only - run explicitly when you want to update the SQL Server project")]
     public async Task DeploySchemaAndExportToSqlProject()
     {

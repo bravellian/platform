@@ -39,6 +39,18 @@ public class InboxCleanupTests : PostgresTestBase
         qualifiedTableName = PostgresSqlHelper.Qualify(defaultOptions.SchemaName, defaultOptions.TableName);
     }
 
+    /// <summary>
+    /// When cleanup runs with a seven-day retention period, then only old processed messages are deleted.
+    /// </summary>
+    /// <intent>
+    /// Verify cleanup deletes processed rows older than the retention window.
+    /// </intent>
+    /// <scenario>
+    /// Given one processed message older than 7 days, one recent processed message, and one unprocessed message.
+    /// </scenario>
+    /// <behavior>
+    /// Cleanup deletes only the old processed row and leaves the recent and unprocessed rows intact.
+    /// </behavior>
     [Fact]
     public async Task Cleanup_DeletesOldProcessedMessages()
     {
@@ -109,6 +121,18 @@ public class InboxCleanupTests : PostgresTestBase
         remainingIds.ShouldContain(unprocessedMessageId);
     }
 
+    /// <summary>
+    /// Given only recent processed messages, then cleanup deletes nothing.
+    /// </summary>
+    /// <intent>
+    /// Verify cleanup leaves processed rows inside the retention window.
+    /// </intent>
+    /// <scenario>
+    /// Given a single processed message with ProcessedUtc within the retention window.
+    /// </scenario>
+    /// <behavior>
+    /// Deleted count is 0 and the row remains.
+    /// </behavior>
     [Fact]
     public async Task Cleanup_WithNoOldMessages_DeletesNothing()
     {
@@ -145,6 +169,18 @@ public class InboxCleanupTests : PostgresTestBase
         remainingMessages.Count().ShouldBe(1);
     }
 
+    /// <summary>
+    /// When cleanup uses a 10-day retention period, then only messages older than 10 days are deleted.
+    /// </summary>
+    /// <intent>
+    /// Verify cleanup uses the retention cutoff to select deletions.
+    /// </intent>
+    /// <scenario>
+    /// Given processed messages at 30, 15, 7, 3, and 1 days old.
+    /// </scenario>
+    /// <behavior>
+    /// Two oldest rows are deleted and the three newest rows remain.
+    /// </behavior>
     [Fact]
     public async Task Cleanup_RespectsRetentionPeriod()
     {
@@ -197,6 +233,18 @@ public class InboxCleanupTests : PostgresTestBase
         remainingIds.ShouldContain(messages[4].MessageId);
     }
 
+    /// <summary>
+    /// When the inbox table is missing, then the cleanup service runs without recreating it.
+    /// </summary>
+    /// <intent>
+    /// Verify cleanup handles missing tables without side effects.
+    /// </intent>
+    /// <scenario>
+    /// Given the inbox table is dropped and the cleanup service runs with a short interval.
+    /// </scenario>
+    /// <behavior>
+    /// The service completes and the inbox table still does not exist.
+    /// </behavior>
     [Fact]
     public async Task CleanupService_GracefullyHandles_MissingTable()
     {

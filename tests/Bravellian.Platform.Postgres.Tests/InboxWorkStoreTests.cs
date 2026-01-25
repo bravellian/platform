@@ -38,6 +38,18 @@ public class InboxWorkStoreTests : PostgresTestBase
         await DatabaseSchemaManager.EnsureInboxWorkQueueSchemaAsync(ConnectionString).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Given an empty inbox, then ClaimAsync returns no message ids.
+    /// </summary>
+    /// <intent>
+    /// Verify claim behavior when no work is available.
+    /// </intent>
+    /// <scenario>
+    /// Given an inbox work store with no enqueued messages.
+    /// </scenario>
+    /// <behavior>
+    /// The claimed id list is empty.
+    /// </behavior>
     [Fact]
     public async Task ClaimAsync_WithNoMessages_ReturnsEmpty()
     {
@@ -49,6 +61,18 @@ public class InboxWorkStoreTests : PostgresTestBase
         Assert.Empty(claimedIds);
     }
 
+    /// <summary>
+    /// When a message is available, then ClaimAsync claims it and marks it Processing.
+    /// </summary>
+    /// <intent>
+    /// Verify claims update inbox status and ownership.
+    /// </intent>
+    /// <scenario>
+    /// Given one enqueued message and a new owner token.
+    /// </scenario>
+    /// <behavior>
+    /// The message id is returned and the row shows Status Processing with the owner token.
+    /// </behavior>
     [Fact]
     public async Task ClaimAsync_WithAvailableMessage_ClaimsSuccessfully()
     {
@@ -74,6 +98,18 @@ public class InboxWorkStoreTests : PostgresTestBase
         Assert.Equal(ownerToken.Value, (Guid)result.OwnerToken);
     }
 
+    /// <summary>
+    /// When two workers claim concurrently, then only one receives the message.
+    /// </summary>
+    /// <intent>
+    /// Verify claim exclusivity under concurrent workers.
+    /// </intent>
+    /// <scenario>
+    /// Given one enqueued message and two owner tokens claiming at the same time.
+    /// </scenario>
+    /// <behavior>
+    /// Exactly one claim result contains the message id.
+    /// </behavior>
     [Fact]
     public async Task ClaimAsync_WithConcurrentWorkers_EnsuresExclusiveClaims()
     {
@@ -93,6 +129,18 @@ public class InboxWorkStoreTests : PostgresTestBase
         Assert.True((claims1.Count == 1 && claims2.Count == 0) || (claims1.Count == 0 && claims2.Count == 1));
     }
 
+    /// <summary>
+    /// When acknowledging a claimed message, then its status becomes Done.
+    /// </summary>
+    /// <intent>
+    /// Verify acknowledgements finalize the inbox row.
+    /// </intent>
+    /// <scenario>
+    /// Given a message claimed by an owner token.
+    /// </scenario>
+    /// <behavior>
+    /// Status is Done, OwnerToken is cleared, and ProcessedUtc is set.
+    /// </behavior>
     [Fact]
     public async Task AckAsync_WithClaimedMessage_MarksAsDone()
     {
@@ -118,6 +166,18 @@ public class InboxWorkStoreTests : PostgresTestBase
         Assert.NotNull(result.ProcessedUtc);
     }
 
+    /// <summary>
+    /// When abandoning a claimed message, then its status returns to Seen.
+    /// </summary>
+    /// <intent>
+    /// Verify abandon releases the claim and resets the status.
+    /// </intent>
+    /// <scenario>
+    /// Given a message claimed by an owner token.
+    /// </scenario>
+    /// <behavior>
+    /// Status is Seen and OwnerToken is cleared.
+    /// </behavior>
     [Fact]
     public async Task AbandonAsync_WithClaimedMessage_ReturnsToSeen()
     {
@@ -142,6 +202,18 @@ public class InboxWorkStoreTests : PostgresTestBase
         Assert.Null(result.OwnerToken);
     }
 
+    /// <summary>
+    /// When failing a claimed message, then its status becomes Dead.
+    /// </summary>
+    /// <intent>
+    /// Verify failure handling marks the message as Dead.
+    /// </intent>
+    /// <scenario>
+    /// Given a message claimed by an owner token and a failure reason.
+    /// </scenario>
+    /// <behavior>
+    /// Status is Dead and OwnerToken is cleared.
+    /// </behavior>
     [Fact]
     public async Task FailAsync_WithClaimedMessage_MarksAsDead()
     {
@@ -166,6 +238,18 @@ public class InboxWorkStoreTests : PostgresTestBase
         Assert.Null(result.OwnerToken);
     }
 
+    /// <summary>
+    /// When a non-owner attempts to acknowledge a claim, then the row remains Processing.
+    /// </summary>
+    /// <intent>
+    /// Verify owner token enforcement for state transitions.
+    /// </intent>
+    /// <scenario>
+    /// Given a message claimed by one owner and an ack attempt by a different owner.
+    /// </scenario>
+    /// <behavior>
+    /// Status stays Processing and the OwnerToken remains the original owner.
+    /// </behavior>
     [Fact]
     public async Task OwnerTokenEnforcement_OnlyAllowsOperationsByOwner()
     {
@@ -191,6 +275,18 @@ public class InboxWorkStoreTests : PostgresTestBase
         Assert.Equal(rightOwner.Value, (Guid)result.OwnerToken);
     }
 
+    /// <summary>
+    /// Given a valid message id, then GetAsync returns the stored inbox message.
+    /// </summary>
+    /// <intent>
+    /// Verify message retrieval by id returns stored fields.
+    /// </intent>
+    /// <scenario>
+    /// Given one enqueued message with id "msg-1".
+    /// </scenario>
+    /// <behavior>
+    /// The returned message matches the stored fields and has Attempt 1.
+    /// </behavior>
     [Fact]
     public async Task GetAsync_WithValidMessageId_ReturnsMessage()
     {
@@ -209,6 +305,18 @@ public class InboxWorkStoreTests : PostgresTestBase
         Assert.Equal(1, message.Attempt);
     }
 
+    /// <summary>
+    /// When requesting a missing message id, then GetAsync throws InvalidOperationException.
+    /// </summary>
+    /// <intent>
+    /// Verify missing messages raise an exception.
+    /// </intent>
+    /// <scenario>
+    /// Given an inbox store with no message matching "non-existent".
+    /// </scenario>
+    /// <behavior>
+    /// An InvalidOperationException is thrown.
+    /// </behavior>
     [Fact]
     public async Task GetAsync_WithInvalidMessageId_ThrowsException()
     {

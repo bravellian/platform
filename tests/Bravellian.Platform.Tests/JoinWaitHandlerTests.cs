@@ -81,6 +81,18 @@ public class JoinWaitHandlerTests : SqlServerTestBase
         }
     }
 
+    /// <summary>
+    /// When a join has incomplete steps, then HandleAsync throws JoinNotReadyException.
+    /// </summary>
+    /// <intent>
+    /// Prevent completion handling until all expected steps are finished.
+    /// </intent>
+    /// <scenario>
+    /// Given a join expecting three steps with only one step marked complete and FailIfAnyStepFailed enabled.
+    /// </scenario>
+    /// <behavior>
+    /// Then the handler throws JoinNotReadyException.
+    /// </behavior>
     [Fact]
     public async Task HandleAsync_WhenJoinNotReady_ThrowsJoinNotReadyException()
     {
@@ -116,6 +128,18 @@ public class JoinWaitHandlerTests : SqlServerTestBase
             await handler!.HandleAsync(message, CancellationToken.None).ConfigureAwait(false));
     }
 
+    /// <summary>
+    /// When all join steps are completed, then HandleAsync marks the join as completed.
+    /// </summary>
+    /// <intent>
+    /// Ensure successful joins transition to the Completed status.
+    /// </intent>
+    /// <scenario>
+    /// Given a join expecting two steps with both steps marked complete.
+    /// </scenario>
+    /// <behavior>
+    /// Then the join status is updated to Completed.
+    /// </behavior>
     [Fact]
     public async Task HandleAsync_WhenAllStepsCompleted_MarksJoinAsCompleted()
     {
@@ -158,6 +182,18 @@ public class JoinWaitHandlerTests : SqlServerTestBase
         updatedJoin!.Status.ShouldBe(JoinStatus.Completed);
     }
 
+    /// <summary>
+    /// When any join step fails and failures are not allowed, then HandleAsync marks the join as failed.
+    /// </summary>
+    /// <intent>
+    /// Enforce failure propagation when FailIfAnyStepFailed is true.
+    /// </intent>
+    /// <scenario>
+    /// Given a join with one completed step, one failed step, and FailIfAnyStepFailed enabled.
+    /// </scenario>
+    /// <behavior>
+    /// Then the join status is updated to Failed.
+    /// </behavior>
     [Fact]
     public async Task HandleAsync_WhenSomeStepsFailed_MarksJoinAsFailed()
     {
@@ -200,6 +236,18 @@ public class JoinWaitHandlerTests : SqlServerTestBase
         updatedJoin!.Status.ShouldBe(JoinStatus.Failed);
     }
 
+    /// <summary>
+    /// When a join completes with follow-up settings, then HandleAsync enqueues the follow-up outbox message.
+    /// </summary>
+    /// <intent>
+    /// Verify that completion triggers an additional outbox message when configured.
+    /// </intent>
+    /// <scenario>
+    /// Given a completed join and a JoinWaitPayload containing OnCompleteTopic and OnCompletePayload.
+    /// </scenario>
+    /// <behavior>
+    /// Then the outbox table contains a message with the follow-up topic.
+    /// </behavior>
     [Fact]
     public async Task HandleAsync_WhenCompletedSuccessfully_EnqueuesFollowUpMessage()
     {
@@ -245,6 +293,18 @@ public class JoinWaitHandlerTests : SqlServerTestBase
         count.ShouldBeGreaterThan(0);
     }
 
+    /// <summary>
+    /// When a join is already completed, then repeated HandleAsync calls leave it completed.
+    /// </summary>
+    /// <intent>
+    /// Ensure join completion handling is idempotent.
+    /// </intent>
+    /// <scenario>
+    /// Given a join already marked Completed and a join.wait message handled twice.
+    /// </scenario>
+    /// <behavior>
+    /// Then the join status remains Completed after both calls.
+    /// </behavior>
     [Fact]
     public async Task HandleAsync_WhenJoinAlreadyCompleted_IsIdempotent()
     {
@@ -285,6 +345,18 @@ public class JoinWaitHandlerTests : SqlServerTestBase
         updatedJoin!.Status.ShouldBe(JoinStatus.Completed);
     }
 
+    /// <summary>
+    /// When FailIfAnyStepFailed is false, then HandleAsync completes the join even if some steps failed.
+    /// </summary>
+    /// <intent>
+    /// Allow joins to complete successfully when failure tolerance is enabled.
+    /// </intent>
+    /// <scenario>
+    /// Given a join with one completed step, one failed step, and FailIfAnyStepFailed set to false.
+    /// </scenario>
+    /// <behavior>
+    /// Then the join status is updated to Completed.
+    /// </behavior>
     [Fact]
     public async Task HandleAsync_WhenFailIfAnyStepFailedIsFalse_CompletesEvenWithFailures()
     {

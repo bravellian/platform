@@ -36,6 +36,18 @@ public class MultiInboxDispatcherLeaseTests : PostgresTestBase
     {
     }
 
+    /// <summary>
+    /// When two dispatchers share a lease router, then only one processes the inbox batch.
+    /// </summary>
+    /// <intent>
+    /// Verify lease-based coordination prevents concurrent processing.
+    /// </intent>
+    /// <scenario>
+    /// Given five inbox messages, a Postgres lease factory, and two dispatchers running concurrently.
+    /// </scenario>
+    /// <behavior>
+    /// One dispatcher processes all five messages while the other processes none, totaling five handled messages.
+    /// </behavior>
     [Fact]
     public async Task MultiInboxDispatcher_WithLease_PreventsConcurrentProcessing()
     {
@@ -148,6 +160,18 @@ public class MultiInboxDispatcherLeaseTests : PostgresTestBase
         processedMessages.Count.ShouldBe(5);
     }
 
+    /// <summary>
+    /// When no lease router is configured, then the dispatcher processes all available messages.
+    /// </summary>
+    /// <intent>
+    /// Verify processing continues without lease coordination.
+    /// </intent>
+    /// <scenario>
+    /// Given three inbox messages and a dispatcher created without a lease router.
+    /// </scenario>
+    /// <behavior>
+    /// The dispatcher processes all three messages and the handler records three payloads.
+    /// </behavior>
     [Fact]
     public async Task MultiInboxDispatcher_WithoutLease_AllowsProcessing()
     {

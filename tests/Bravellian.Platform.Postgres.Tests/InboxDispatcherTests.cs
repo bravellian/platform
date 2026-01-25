@@ -40,6 +40,18 @@ public class InboxDispatcherTests : PostgresTestBase
         qualifiedInboxTableName = PostgresSqlHelper.Qualify("infra", "Inbox");
     }
 
+    /// <summary>
+    /// Given no inbox messages, then RunOnceAsync returns 0 processed items.
+    /// </summary>
+    /// <intent>
+    /// Verify the dispatcher reports zero when no work is available.
+    /// </intent>
+    /// <scenario>
+    /// Given an inbox work store and resolver with no enqueued messages.
+    /// </scenario>
+    /// <behavior>
+    /// The processed count is 0.
+    /// </behavior>
     [Fact]
     public async Task RunOnceAsync_WithNoMessages_ReturnsZero()
     {
@@ -55,6 +67,18 @@ public class InboxDispatcherTests : PostgresTestBase
         Assert.Equal(0, processedCount);
     }
 
+    /// <summary>
+    /// When a queued message has a matching handler, then RunOnceAsync processes it and marks it Done.
+    /// </summary>
+    /// <intent>
+    /// Verify successful dispatch updates the inbox status to Done.
+    /// </intent>
+    /// <scenario>
+    /// Given an enqueued test-topic message and a resolver with a matching handler.
+    /// </scenario>
+    /// <behavior>
+    /// The processed count is 1 and the database status is Done for msg-1.
+    /// </behavior>
     [Fact]
     public async Task RunOnceAsync_WithValidMessage_ProcessesSuccessfully()
     {
@@ -84,6 +108,18 @@ public class InboxDispatcherTests : PostgresTestBase
         Assert.Equal("Done", status);
     }
 
+    /// <summary>
+    /// When no handler exists for a message topic, then RunOnceAsync marks the message Dead.
+    /// </summary>
+    /// <intent>
+    /// Verify missing handlers move the message to Dead.
+    /// </intent>
+    /// <scenario>
+    /// Given an enqueued unknown-topic message and a resolver with no handlers.
+    /// </scenario>
+    /// <behavior>
+    /// The processed count is 1 and the database status is Dead for msg-2.
+    /// </behavior>
     [Fact]
     public async Task RunOnceAsync_WithNoHandlerForTopic_MarksMessageAsDead()
     {
@@ -113,6 +149,18 @@ public class InboxDispatcherTests : PostgresTestBase
         Assert.Equal("Dead", status);
     }
 
+    /// <summary>
+    /// When a handler throws, then RunOnceAsync abandons the message back to Seen.
+    /// </summary>
+    /// <intent>
+    /// Verify handler failures result in a retryable abandon.
+    /// </intent>
+    /// <scenario>
+    /// Given an enqueued failing-topic message and a handler that throws.
+    /// </scenario>
+    /// <behavior>
+    /// The processed count is 1 and the message status returns to Seen.
+    /// </behavior>
     [Fact]
     public async Task RunOnceAsync_WithFailingHandler_RetriesWithBackoff()
     {
@@ -143,6 +191,18 @@ public class InboxDispatcherTests : PostgresTestBase
         Assert.Equal("Seen", status);
     }
 
+    /// <summary>
+    /// When a handler fails and a backoff policy is configured, then the message is abandoned with that delay.
+    /// </summary>
+    /// <intent>
+    /// Verify backoff delays are applied during abandon.
+    /// </intent>
+    /// <scenario>
+    /// Given a stub work store, a failing handler, and a backoff policy returning five seconds.
+    /// </scenario>
+    /// <behavior>
+    /// The message is abandoned once with the configured delay and no failures are recorded.
+    /// </behavior>
     [Fact]
     public async Task RunOnceAsync_WithFailingHandler_AbandonsWithBackoffPolicy()
     {
@@ -171,6 +231,18 @@ public class InboxDispatcherTests : PostgresTestBase
         store.FailedMessages.ShouldBeEmpty();
     }
 
+    /// <summary>
+    /// When a message exceeds max attempts, then RunOnceAsync fails it instead of retrying.
+    /// </summary>
+    /// <intent>
+    /// Verify poison messages are failed once they exceed the retry limit.
+    /// </intent>
+    /// <scenario>
+    /// Given a failing handler, a stub message at attempt 5, and maxAttempts set to 5.
+    /// </scenario>
+    /// <behavior>
+    /// The message is recorded as failed and no abandon entries are created.
+    /// </behavior>
     [Fact]
     public async Task RunOnceAsync_WithPoisonMessage_FailsInsteadOfRetrying()
     {
@@ -199,6 +271,18 @@ public class InboxDispatcherTests : PostgresTestBase
         store.AbandonedMessages.ShouldBeEmpty();
     }
 
+    /// <summary>
+    /// When RunOnceAsync executes across multiple runs, then owner tokens rotate between runs.
+    /// </summary>
+    /// <intent>
+    /// Verify each dispatch run uses a new owner token.
+    /// </intent>
+    /// <scenario>
+    /// Given a stub store with two messages and two sequential dispatcher runs.
+    /// </scenario>
+    /// <behavior>
+    /// Two distinct owner tokens are recorded across the runs.
+    /// </behavior>
     [Fact]
     public async Task RunOnceAsync_RotatesOwnerTokensAcrossRuns()
     {

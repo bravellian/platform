@@ -77,6 +77,18 @@ public class FanoutCoordinatorIntegrationTests : SqlServerTestBase
             joinStore);
     }
 
+    /// <summary>
+    /// When a lease is active, then RunAsync returns no dispatches, and after the lease expires it dispatches the slice once.
+    /// </summary>
+    /// <intent>
+    /// Verify lease gating and recovery behavior for the fanout coordinator.
+    /// </intent>
+    /// <scenario>
+    /// Given an active in-memory lease for the fanout topic and a planner with a single slice.
+    /// </scenario>
+    /// <behavior>
+    /// Then the first RunAsync returns zero and the later RunAsync dispatches one message into the outbox.
+    /// </behavior>
     [Fact]
     public async Task RunAsync_RespectsActiveLeaseAndRecoversAfterExpiry()
     {
@@ -102,6 +114,18 @@ public class FanoutCoordinatorIntegrationTests : SqlServerTestBase
         messageCount.ShouldBe(1);
     }
 
+    /// <summary>
+    /// When cursors do not advance, then RunAsync redispatches the same slice on subsequent runs.
+    /// </summary>
+    /// <intent>
+    /// Ensure abandoned slices can be redispatched.
+    /// </intent>
+    /// <scenario>
+    /// Given a static planner with one slice and an in-memory lease factory.
+    /// </scenario>
+    /// <behavior>
+    /// Then two consecutive runs each dispatch one message and outbox payloads match the slice shard.
+    /// </behavior>
     [Fact]
     public async Task RunAsync_RedispatchesAbandonedSlices()
     {
@@ -124,6 +148,18 @@ public class FanoutCoordinatorIntegrationTests : SqlServerTestBase
         payloads.ShouldAllBe(p => p.Contains("tenant-7", StringComparison.OrdinalIgnoreCase));
     }
 
+    /// <summary>
+    /// When fanout cursors are marked completed, then RunAsync skips dispatching completed slices.
+    /// </summary>
+    /// <intent>
+    /// Confirm cursor advancement prevents duplicate dispatches.
+    /// </intent>
+    /// <scenario>
+    /// Given a sharded planner that dispatches two shards and cursors marked completed for both shards.
+    /// </scenario>
+    /// <behavior>
+    /// Then a subsequent RunAsync returns zero dispatched slices.
+    /// </behavior>
     [Fact]
     public async Task RunAsync_SkipsCompletedSlicesAfterCursorAdvances()
     {
@@ -149,6 +185,18 @@ public class FanoutCoordinatorIntegrationTests : SqlServerTestBase
         afterCompletion.ShouldBe(0);
     }
 
+    /// <summary>
+    /// When fanout slices share a correlation ID, then join completion is idempotent and correlation IDs match.
+    /// </summary>
+    /// <intent>
+    /// Validate downstream join tracking for fanout-dispatched messages.
+    /// </intent>
+    /// <scenario>
+    /// Given three slices dispatched with the same correlation ID and a join expecting three steps.
+    /// </scenario>
+    /// <behavior>
+    /// Then completed steps remain at three after replay and all outbox messages share one correlation ID.
+    /// </behavior>
     [Fact]
     public async Task FanoutSlices_CanJoinDownstreamMessagesIdempotently()
     {

@@ -51,6 +51,10 @@ public class SystemLeaseTests : SqlServerTestBase
             config.SchemaName).ConfigureAwait(false);
     }
 
+    /// <summary>When a lease is acquired for a new resource, then a valid lease instance is returned.</summary>
+    /// <intent>Verify AcquireAsync produces a lease with expected identifiers and fencing token.</intent>
+    /// <scenario>Given a SqlLeaseFactory and a unique resource name.</scenario>
+    /// <behavior>Then the lease has a non-empty owner token, positive fencing token, and matching resource name.</behavior>
     [Fact]
     public async Task AcquireAsync_WithValidResource_CanAcquireLease()
     {
@@ -72,6 +76,10 @@ public class SystemLeaseTests : SqlServerTestBase
         await lease.DisposeAsync();
     }
 
+    /// <summary>When AcquireAsync is called twice for the same resource, then the second call returns null.</summary>
+    /// <intent>Ensure a lease cannot be acquired concurrently for the same resource.</intent>
+    /// <scenario>Given a SqlLeaseFactory and two sequential AcquireAsync calls for the same resource.</scenario>
+    /// <behavior>Then the first lease is non-null and the second result is null.</behavior>
     [Fact]
     public async Task AcquireAsync_SameResourceTwice_SecondCallReturnsNull()
     {
@@ -91,6 +99,10 @@ public class SystemLeaseTests : SqlServerTestBase
         await firstLease.DisposeAsync();
     }
 
+    /// <summary>When a lease is released, then the resource can be acquired again with a higher fencing token.</summary>
+    /// <intent>Validate lease release frees the resource for subsequent acquisition.</intent>
+    /// <scenario>Given a resource acquired once, then disposed, and acquired again.</scenario>
+    /// <behavior>Then the second lease succeeds and has a higher fencing token.</behavior>
     [Fact]
     public async Task AcquireAsync_AfterLeaseReleased_CanAcquireAgain()
     {
@@ -116,6 +128,10 @@ public class SystemLeaseTests : SqlServerTestBase
         await secondLease.DisposeAsync();
     }
 
+    /// <summary>When TryRenewNowAsync is called on an active lease, then it succeeds and increments the fencing token.</summary>
+    /// <intent>Ensure renewals advance the fencing token for valid leases.</intent>
+    /// <scenario>Given an acquired lease and its initial fencing token value.</scenario>
+    /// <behavior>Then TryRenewNowAsync returns true and the fencing token increases.</behavior>
     [Fact]
     public async Task TryRenewNowAsync_WithValidLease_SucceedsAndIncrementsFencingToken()
     {
@@ -139,6 +155,10 @@ public class SystemLeaseTests : SqlServerTestBase
         await lease.DisposeAsync();
     }
 
+    /// <summary>When a lease is still valid, then ThrowIfLost does not throw.</summary>
+    /// <intent>Verify lost-lease guard does not trigger for active leases.</intent>
+    /// <scenario>Given an acquired lease that has not expired or been released.</scenario>
+    /// <behavior>Then calling ThrowIfLost completes without exception.</behavior>
     [Fact]
     public async Task ThrowIfLost_WhenLeaseIsValid_DoesNotThrow()
     {
@@ -156,6 +176,10 @@ public class SystemLeaseTests : SqlServerTestBase
         await lease.DisposeAsync();
     }
 
+    /// <summary>When acquiring leases for different resources, then both acquisitions succeed independently.</summary>
+    /// <intent>Ensure leases are isolated per resource name.</intent>
+    /// <scenario>Given two distinct resource names acquired sequentially.</scenario>
+    /// <behavior>Then both leases are non-null with matching resource names and distinct owner tokens.</behavior>
     [Fact]
     public async Task AcquireAsync_WithDifferentResources_BothSucceed()
     {
@@ -180,6 +204,10 @@ public class SystemLeaseTests : SqlServerTestBase
         await lease2.DisposeAsync();
     }
 
+    /// <summary>When a custom owner token is provided, then the acquired lease uses that token.</summary>
+    /// <intent>Verify custom owner tokens are honored by AcquireAsync.</intent>
+    /// <scenario>Given AcquireAsync invoked with a specific OwnerToken value.</scenario>
+    /// <behavior>Then the lease OwnerToken equals the supplied token.</behavior>
     [Fact]
     public async Task AcquireAsync_WithCustomOwnerToken_UsesProvidedToken()
     {
@@ -201,6 +229,10 @@ public class SystemLeaseTests : SqlServerTestBase
         await lease.DisposeAsync();
     }
 
+    /// <summary>When the same owner token acquires a lease twice, then both acquisitions succeed with increasing fencing tokens.</summary>
+    /// <intent>Validate re-entrant acquisition with the same owner token.</intent>
+    /// <scenario>Given two AcquireAsync calls for the same resource using the same OwnerToken.</scenario>
+    /// <behavior>Then both leases are non-null and the second fencing token is greater than the first.</behavior>
     [Fact]
     public async Task AcquireAsync_ReentrantWithSameOwnerToken_Succeeds()
     {

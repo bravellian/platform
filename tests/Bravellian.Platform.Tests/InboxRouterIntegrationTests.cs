@@ -38,6 +38,10 @@ public class InboxRouterIntegrationTests
         return new TestLoggerFactory(testOutputHelper);
     }
 
+    /// <summary>When a list of inbox options is used, then the provider and router resolve inboxes for each tenant.</summary>
+    /// <intent>Validate configured multi-inbox wiring produces usable stores and router outputs.</intent>
+    /// <scenario>Given two SqlInboxOptions and a ConfiguredInboxWorkStoreProvider with a test logger.</scenario>
+    /// <behavior>Then GetAllStoresAsync returns two stores and the router returns distinct inboxes.</behavior>
     [Fact]
     public async Task AddMultiSqlInbox_WithListOfOptions_RegistersServicesCorrectlyAsync()
     {
@@ -82,6 +86,10 @@ public class InboxRouterIntegrationTests
         testOutputHelper.WriteLine("AddMultiSqlInbox pattern successfully creates functional components");
     }
 
+    /// <summary>When a custom selection strategy is supplied, then a dispatcher can be built with it.</summary>
+    /// <intent>Ensure the multi-inbox pattern supports replacing the selection strategy.</intent>
+    /// <scenario>Given a DrainFirstInboxSelectionStrategy and a configured inbox provider.</scenario>
+    /// <behavior>Then a MultiInboxDispatcher is constructed successfully with the custom strategy.</behavior>
     [Fact]
     public void AddMultiSqlInbox_WithCustomSelectionStrategy_UsesProvidedStrategy()
     {
@@ -115,6 +123,10 @@ public class InboxRouterIntegrationTests
         testOutputHelper.WriteLine("Custom selection strategy pattern is supported");
     }
 
+    /// <summary>When the provider factory pattern is used, then a configured inbox store provider is created.</summary>
+    /// <intent>Verify the factory produces a ConfiguredInboxWorkStoreProvider with expected stores.</intent>
+    /// <scenario>Given a single SqlInboxOptions entry and a test logger factory.</scenario>
+    /// <behavior>Then GetAllStoresAsync returns one store from the configured provider.</behavior>
     [Fact]
     public async Task AddMultiSqlInbox_WithStoreProviderFactory_CreatesProviderCorrectlyAsync()
     {
@@ -144,6 +156,10 @@ public class InboxRouterIntegrationTests
         testOutputHelper.WriteLine("Store provider factory pattern works correctly");
     }
 
+    /// <summary>When dynamic discovery is used, then a dynamic inbox provider and router can be created.</summary>
+    /// <intent>Confirm the dynamic provider pattern constructs functional components.</intent>
+    /// <scenario>Given a SampleInboxDatabaseDiscovery and a FakeTimeProvider with test logging.</scenario>
+    /// <behavior>Then a DynamicInboxWorkStoreProvider and InboxRouter are constructed successfully.</behavior>
     [Fact]
     public void AddDynamicMultiSqlInbox_CreatesProviderCorrectly()
     {
@@ -169,6 +185,10 @@ public class InboxRouterIntegrationTests
         testOutputHelper.WriteLine("AddDynamicMultiSqlInbox pattern creates functional components");
     }
 
+    /// <summary>When a custom refresh interval is supplied, then the dynamic provider is created with that setting.</summary>
+    /// <intent>Ensure dynamic inbox discovery supports custom refresh intervals.</intent>
+    /// <scenario>Given a SampleInboxDatabaseDiscovery and a custom refresh interval value.</scenario>
+    /// <behavior>Then a DynamicInboxWorkStoreProvider is constructed successfully using that interval.</behavior>
     [Fact]
     public void AddDynamicMultiSqlInbox_WithCustomRefreshInterval_ConfiguresCorrectly()
     {
@@ -193,6 +213,10 @@ public class InboxRouterIntegrationTests
         testOutputHelper.WriteLine("Custom refresh interval is supported in pattern");
     }
 
+    /// <summary>When tenant keys are routed, then each key maps to a distinct inbox instance.</summary>
+    /// <intent>Demonstrate multi-tenant routing using configured inbox options.</intent>
+    /// <scenario>Given two SqlInboxOptions entries for Tenant1 and Tenant2.</scenario>
+    /// <behavior>Then the router returns two different inbox instances for each tenant.</behavior>
     [Fact]
     public void MultiTenantScenario_RoutesToCorrectInbox()
     {
@@ -232,6 +256,10 @@ public class InboxRouterIntegrationTests
         testOutputHelper.WriteLine($"Successfully routed to Tenant2 inbox: {tenant2Inbox.GetType().Name}");
     }
 
+    /// <summary>When dynamic discovery loads tenant configurations, then routing returns distinct inboxes per tenant.</summary>
+    /// <intent>Validate router behavior with dynamically discovered tenants.</intent>
+    /// <scenario>Given a SampleInboxDatabaseDiscovery returning two tenant configs and an initial provider refresh.</scenario>
+    /// <behavior>Then GetInbox returns non-null, distinct inboxes for both tenant identifiers.</behavior>
     [Fact]
     public async Task DynamicDiscovery_RoutesToCorrectDatabase()
     {

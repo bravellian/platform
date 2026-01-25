@@ -53,6 +53,10 @@ public class OutboxWorkerTests : PostgresTestBase
         worker = new TestOutboxWorker(outboxService, new TestLogger<TestOutboxWorker>(TestOutputHelper));
     }
 
+    /// <summary>When the worker processes claimed items, then it acknowledges them and marks them Done.</summary>
+    /// <intent>Verify the worker processes and acknowledges all claimed items.</intent>
+    /// <scenario>Given three ready outbox items and a running worker.</scenario>
+    /// <behavior>ProcessedItems contains all ids and their status is Done.</behavior>
     [Fact]
     public async Task Worker_ProcessesClaimedItems_AndAcknowledgesThem()
     {
@@ -70,6 +74,10 @@ public class OutboxWorkerTests : PostgresTestBase
         await VerifyOutboxStatusAsync(testIds, OutboxStatus.Done);
     }
 
+    /// <summary>When processing fails, then the worker abandons items back to Ready.</summary>
+    /// <intent>Verify failures result in abandon rather than ack.</intent>
+    /// <scenario>Given a worker configured to fail processing with two ready items.</scenario>
+    /// <behavior>Outbox items return to Ready status.</behavior>
     [Fact]
     public async Task Worker_WithProcessingFailure_AbandonsItems()
     {
@@ -87,6 +95,10 @@ public class OutboxWorkerTests : PostgresTestBase
         await VerifyOutboxStatusAsync(testIds, OutboxStatus.Ready);
     }
 
+    /// <summary>When items are claimed, then they are marked InProgress.</summary>
+    /// <intent>Verify claim operations update item status.</intent>
+    /// <scenario>Given two ready outbox items and a claim call.</scenario>
+    /// <behavior>Claimed ids match the inserted items and their status is InProgress.</behavior>
     [Fact]
     public async Task Worker_ClaimsItemsCorrectly()
     {
@@ -104,6 +116,10 @@ public class OutboxWorkerTests : PostgresTestBase
         await VerifyOutboxStatusAsync(claimedIds, OutboxStatus.InProgress);
     }
 
+    /// <summary>When AbandonAsync is called manually, then items return to Ready.</summary>
+    /// <intent>Verify manual abandon resets item status.</intent>
+    /// <scenario>Given claimed items and the matching owner token.</scenario>
+    /// <behavior>Item status is Ready after abandon.</behavior>
     [Fact]
     public async Task Manual_AbandonOperation_Works()
     {
@@ -118,6 +134,10 @@ public class OutboxWorkerTests : PostgresTestBase
         await VerifyOutboxStatusAsync(claimedIds, OutboxStatus.Ready);
     }
 
+    /// <summary>When a lease expires, then another owner can reclaim the item after reaping.</summary>
+    /// <intent>Verify expired leases allow reclamation.</intent>
+    /// <scenario>Given an item claimed with a 1-second lease, then reaped after expiry.</scenario>
+    /// <behavior>A second claim returns the same item id.</behavior>
     [Fact]
     public async Task WorkQueue_LeaseExpiration_AllowsReclaim()
     {
@@ -138,6 +158,10 @@ public class OutboxWorkerTests : PostgresTestBase
         claimed2[0].ShouldBe(claimed1[0]);
     }
 
+    /// <summary>When a claim is reaped, then the new owner token is recorded on reclaim.</summary>
+    /// <intent>Verify owner tokens update when items are reclaimed after expiry.</intent>
+    /// <scenario>Given an item claimed by owner1, expired, reaped, and reclaimed by owner2.</scenario>
+    /// <behavior>The OwnerToken stored for the item matches owner2.</behavior>
     [Fact]
     public async Task WorkQueue_RestartUsesNewOwnerTokenAfterReap()
     {
@@ -159,6 +183,10 @@ public class OutboxWorkerTests : PostgresTestBase
         claimed1[0].ShouldBe(claimed2[0]);
     }
 
+    /// <summary>When AckAsync is called repeatedly, then the operation is idempotent.</summary>
+    /// <intent>Verify repeated acknowledgements leave the item done.</intent>
+    /// <scenario>Given claimed items and multiple AckAsync calls by the owner.</scenario>
+    /// <behavior>Items remain in Done status.</behavior>
     [Fact]
     public async Task WorkQueue_IdempotentOperations_NoErrors()
     {
@@ -173,6 +201,10 @@ public class OutboxWorkerTests : PostgresTestBase
         await VerifyOutboxStatusAsync(claimedIds, OutboxStatus.Done);
     }
 
+    /// <summary>When a non-owner attempts to modify items, then status remains InProgress.</summary>
+    /// <intent>Verify owner token enforcement for acknowledgements.</intent>
+    /// <scenario>Given items claimed by owner1 and an ack attempt by owner2.</scenario>
+    /// <behavior>Item status stays InProgress.</behavior>
     [Fact]
     public async Task WorkQueue_UnauthorizedOwner_CannotModify()
     {
@@ -186,6 +218,10 @@ public class OutboxWorkerTests : PostgresTestBase
         await VerifyOutboxStatusAsync(claimedIds, OutboxStatus.InProgress);
     }
 
+    /// <summary>When work-queue operations receive empty id lists, then they complete without error.</summary>
+    /// <intent>Verify empty operations are handled gracefully.</intent>
+    /// <scenario>Given empty id lists for AckAsync, AbandonAsync, and FailAsync.</scenario>
+    /// <behavior>The operations complete without throwing exceptions.</behavior>
     [Fact]
     public async Task WorkQueue_EmptyIdLists_NoErrors()
     {
@@ -197,6 +233,10 @@ public class OutboxWorkerTests : PostgresTestBase
         await outboxService.FailAsync(ownerToken, emptyIds, TestContext.Current.CancellationToken);
     }
 
+    /// <summary>When multiple concurrent claims run, then claimed ids are unique.</summary>
+    /// <intent>Verify concurrency does not allow duplicate claims.</intent>
+    /// <scenario>Given ten ready items and five concurrent claimers.</scenario>
+    /// <behavior>All claimed ids are unique and total claimed does not exceed ten.</behavior>
     [Fact]
     public async Task WorkQueue_ConcurrentClaims_NoOverlap()
     {
@@ -218,6 +258,10 @@ public class OutboxWorkerTests : PostgresTestBase
         uniqueClaimed.Count.ShouldBeLessThanOrEqualTo(10);
     }
 
+    /// <summary>When the worker is canceled, then it stops promptly.</summary>
+    /// <intent>Verify cancellation short-circuits long processing delays.</intent>
+    /// <scenario>Given a worker with a long processing delay and a cancellation token after one second.</scenario>
+    /// <behavior>StopAsync completes within five seconds.</behavior>
     [Fact]
     public async Task Worker_RespectsCancellationToken()
     {

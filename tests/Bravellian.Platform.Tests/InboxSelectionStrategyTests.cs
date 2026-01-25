@@ -19,6 +19,10 @@ namespace Bravellian.Platform.Tests;
 
 public class InboxSelectionStrategyTests
 {
+    /// <summary>When SelectNext is called repeatedly, then the round-robin strategy cycles through stores and wraps.</summary>
+    /// <intent>Verify round-robin selection advances in order across inbox stores.</intent>
+    /// <scenario>Given three MockInboxWorkStore instances and successive SelectNext calls.</scenario>
+    /// <behavior>Then the strategy returns store1, store2, store3, then wraps to store1.</behavior>
     [Fact]
     public void RoundRobin_CyclesThroughStoresEvenly()
     {
@@ -45,6 +49,10 @@ public class InboxSelectionStrategyTests
         selected4.ShouldBe(store1);
     }
 
+    /// <summary>When the round-robin strategy is given no stores, then it returns null.</summary>
+    /// <intent>Ensure empty store lists are handled safely.</intent>
+    /// <scenario>Given an empty list of IInboxWorkStore and a RoundRobinInboxSelectionStrategy.</scenario>
+    /// <behavior>Then SelectNext returns null.</behavior>
     [Fact]
     public void RoundRobin_HandlesEmptyStoreList()
     {
@@ -59,6 +67,10 @@ public class InboxSelectionStrategyTests
         selected.ShouldBeNull();
     }
 
+    /// <summary>When Reset is called, then round-robin selection starts from the first store again.</summary>
+    /// <intent>Validate reset clears the round-robin cursor.</intent>
+    /// <scenario>Given a strategy that has already advanced to a later store.</scenario>
+    /// <behavior>Then SelectNext returns the first store after Reset.</behavior>
     [Fact]
     public void RoundRobin_ResetReturnsToFirstStore()
     {
@@ -81,6 +93,10 @@ public class InboxSelectionStrategyTests
         selected.ShouldBe(store1);
     }
 
+    /// <summary>When messages are processed from a store, then the drain-first strategy stays on that store.</summary>
+    /// <intent>Ensure drain-first keeps selecting the active store while work is processed.</intent>
+    /// <scenario>Given two MockInboxWorkStore instances and non-zero processed counts.</scenario>
+    /// <behavior>Then SelectNext returns the current store repeatedly.</behavior>
     [Fact]
     public void DrainFirst_StaysOnStoreWithMessages()
     {
@@ -103,6 +119,10 @@ public class InboxSelectionStrategyTests
         selected3.ShouldBe(store1);
     }
 
+    /// <summary>When a store processes zero messages, then the drain-first strategy advances to the next store.</summary>
+    /// <intent>Verify drain-first moves on when the current store is empty.</intent>
+    /// <scenario>Given two MockInboxWorkStore instances and zero processed counts.</scenario>
+    /// <behavior>Then SelectNext advances to the next store and wraps when needed.</behavior>
     [Fact]
     public void DrainFirst_MovesToNextStoreWhenEmpty()
     {
@@ -130,6 +150,10 @@ public class InboxSelectionStrategyTests
         selected4.ShouldBe(store1);
     }
 
+    /// <summary>When the drain-first strategy is given no stores, then it returns null.</summary>
+    /// <intent>Ensure empty store lists are handled safely in drain-first selection.</intent>
+    /// <scenario>Given an empty list of IInboxWorkStore and a DrainFirstInboxSelectionStrategy.</scenario>
+    /// <behavior>Then SelectNext returns null.</behavior>
     [Fact]
     public void DrainFirst_HandlesEmptyStoreList()
     {
@@ -144,6 +168,10 @@ public class InboxSelectionStrategyTests
         selected.ShouldBeNull();
     }
 
+    /// <summary>When Reset is called, then drain-first selection starts from the first store again.</summary>
+    /// <intent>Validate reset clears the drain-first cursor.</intent>
+    /// <scenario>Given a strategy that has advanced to the second store.</scenario>
+    /// <behavior>Then SelectNext returns the first store after Reset.</behavior>
     [Fact]
     public void DrainFirst_ResetReturnsToFirstStore()
     {

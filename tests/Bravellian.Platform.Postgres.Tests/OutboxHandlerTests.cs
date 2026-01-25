@@ -55,6 +55,18 @@ public class OutboxHandlerTests : PostgresTestBase
             maxAttempts: maxAttempts);
     }
 
+    /// <summary>
+    /// Given a resolver with multiple handlers, then known topics resolve and unknown topics do not.
+    /// </summary>
+    /// <intent>
+    /// Verify resolver matching for known and unknown topics.
+    /// </intent>
+    /// <scenario>
+    /// Given handlers for Email.Send, SMS.Send, and Push.Notification.
+    /// </scenario>
+    /// <behavior>
+    /// TryGet returns true for Email.Send and SMS.Send, and false for NonExistent.
+    /// </behavior>
     [Fact]
     public void OutboxHandlerResolver_WithHandlers_ResolvesCorrectly()
     {
@@ -78,6 +90,18 @@ public class OutboxHandlerTests : PostgresTestBase
         resolver.TryGet("NonExistent", out var _).ShouldBeFalse();
     }
 
+    /// <summary>
+    /// When resolving with different casing, then the handler is still found.
+    /// </summary>
+    /// <intent>
+    /// Verify case-insensitive topic lookup in the resolver.
+    /// </intent>
+    /// <scenario>
+    /// Given a resolver with a single handler for Email.Send.
+    /// </scenario>
+    /// <behavior>
+    /// TryGet succeeds for email.send and EMAIL.SEND while preserving the handler topic.
+    /// </behavior>
     [Fact]
     public void OutboxHandlerResolver_CaseInsensitive()
     {
@@ -93,6 +117,18 @@ public class OutboxHandlerTests : PostgresTestBase
         handler2.Topic.ShouldBe("Email.Send");
     }
 
+    /// <summary>
+    /// When a message has a matching handler, then RunOnceAsync dispatches it and returns 1.
+    /// </summary>
+    /// <intent>
+    /// Verify successful single-message dispatch through the handler.
+    /// </intent>
+    /// <scenario>
+    /// Given a test store with one Test.Topic message and a resolver with a matching handler.
+    /// </scenario>
+    /// <behavior>
+    /// Processed count is 1, the handler receives the message, and the store records dispatch.
+    /// </behavior>
     [Fact]
     public async Task MultiOutboxDispatcher_ProcessSingleMessage_Success()
     {
@@ -124,6 +160,18 @@ public class OutboxHandlerTests : PostgresTestBase
         store.DispatchedMessages.First().ShouldBe(message.Id);
     }
 
+    /// <summary>
+    /// When a message has no registered handler, then RunOnceAsync marks it failed.
+    /// </summary>
+    /// <intent>
+    /// Verify missing handlers cause failures with the correct error.
+    /// </intent>
+    /// <scenario>
+    /// Given an empty resolver and a test store with one Unknown.Topic message.
+    /// </scenario>
+    /// <behavior>
+    /// Processed count is 1 and the store records a failure with a missing-handler error.
+    /// </behavior>
     [Fact]
     public async Task MultiOutboxDispatcher_NoHandler_MarksAsFailed()
     {
@@ -153,6 +201,18 @@ public class OutboxHandlerTests : PostgresTestBase
         store.FailedMessages.First().Value.ShouldContain("No handler registered for topic 'Unknown.Topic'");
     }
 
+    /// <summary>
+    /// When a handler throws and attempts remain, then RunOnceAsync reschedules with backoff.
+    /// </summary>
+    /// <intent>
+    /// Verify handler exceptions reschedule messages with delay.
+    /// </intent>
+    /// <scenario>
+    /// Given a handler configured to throw and a message with RetryCount 2.
+    /// </scenario>
+    /// <behavior>
+    /// The message is rescheduled with a positive delay and the error is captured.
+    /// </behavior>
     [Fact]
     public async Task MultiOutboxDispatcher_HandlerThrows_ReschedulesWithBackoff()
     {
@@ -188,6 +248,18 @@ public class OutboxHandlerTests : PostgresTestBase
         rescheduled.Value.Error.ShouldBe("Test exception");
     }
 
+    /// <summary>
+    /// When a failing message reaches the max attempts threshold, then it is marked failed.
+    /// </summary>
+    /// <intent>
+    /// Verify poison messages fail once the retry limit is reached.
+    /// </intent>
+    /// <scenario>
+    /// Given a dispatcher with maxAttempts 3 and a message at RetryCount 2 that throws.
+    /// </scenario>
+    /// <behavior>
+    /// The message is recorded as failed and no reschedule occurs.
+    /// </behavior>
     [Fact]
     public async Task MultiOutboxDispatcher_WithPoisonMessage_FailsWhenMaxAttemptsReached()
     {
@@ -223,6 +295,18 @@ public class OutboxHandlerTests : PostgresTestBase
         store.RescheduledMessages.ShouldBeEmpty();
     }
 
+    /// <summary>
+    /// When a message is processed successfully, then the handler and store record dispatch.
+    /// </summary>
+    /// <intent>
+    /// Verify the success path invokes handlers and records dispatch.
+    /// </intent>
+    /// <scenario>
+    /// Given a dispatcher with a matching handler and a test store containing one message.
+    /// </scenario>
+    /// <behavior>
+    /// Processed count is 1, the handler is invoked, and the store records dispatch.
+    /// </behavior>
     [Fact]
     public async Task MultiOutboxDispatcher_LogsCorrectly()
     {
@@ -256,6 +340,18 @@ public class OutboxHandlerTests : PostgresTestBase
         store.DispatchedMessages.Count.ShouldBe(1);
     }
 
+    /// <summary>
+    /// When a handler fails, then the dispatcher captures the error and reschedules the message.
+    /// </summary>
+    /// <intent>
+    /// Verify handler failures produce reschedule entries with errors.
+    /// </intent>
+    /// <scenario>
+    /// Given a handler configured to throw and a test store with one message.
+    /// </scenario>
+    /// <behavior>
+    /// The handler is invoked and the store records a reschedule with the exception message.
+    /// </behavior>
     [Fact]
     public async Task MultiOutboxDispatcher_LogsErrors_WhenHandlerFails()
     {
@@ -289,6 +385,18 @@ public class OutboxHandlerTests : PostgresTestBase
         store.RescheduledMessages.First().Value.Error.ShouldBe("Test exception");
     }
 
+    /// <summary>
+    /// When processing a mix of success and missing-handler messages, then logs include info, debug, and warning entries.
+    /// </summary>
+    /// <intent>
+    /// Verify log levels reflect batch, message, and missing-handler outcomes.
+    /// </intent>
+    /// <scenario>
+    /// Given a capturing logger, one handled Test.Topic message, and one Unknown.Topic message.
+    /// </scenario>
+    /// <behavior>
+    /// The batch is processed and logs include Information for batch work, Debug for message processing, and Warning for missing handlers.
+    /// </behavior>
     [Fact]
     public async Task MultiOutboxDispatcher_LogsAtCorrectLevels()
     {
@@ -354,6 +462,18 @@ public class OutboxHandlerTests : PostgresTestBase
         }
     }
 
+    /// <summary>
+    /// When computing default backoff delays, then ranges grow exponentially with jitter and remain bounded.
+    /// </summary>
+    /// <intent>
+    /// Verify the default backoff timing policy and caps.
+    /// </intent>
+    /// <scenario>
+    /// Given backoff calculations for attempts 1, 2, 3, and 10.
+    /// </scenario>
+    /// <behavior>
+    /// Early attempts fall within expected jitter ranges and the maximum stays under two minutes.
+    /// </behavior>
     [Fact]
     public void MultiOutboxDispatcher_DefaultBackoff_ExponentialWithJitter()
     {
@@ -380,6 +500,18 @@ public class OutboxHandlerTests : PostgresTestBase
         delay10.ShouldBeLessThan(TimeSpan.FromMinutes(2));
     }
 
+    /// <summary>
+    /// When adding an outbox handler type, then it is registered as a singleton IOutboxHandler.
+    /// </summary>
+    /// <intent>
+    /// Verify handler type registration uses singleton lifetime.
+    /// </intent>
+    /// <scenario>
+    /// Given a ServiceCollection configured with time abstractions.
+    /// </scenario>
+    /// <behavior>
+    /// The registration uses TestHandler as the implementation type with singleton lifetime.
+    /// </behavior>
     [Fact]
     public void ServiceCollection_AddOutboxHandler_RegistersHandler()
     {
@@ -397,6 +529,18 @@ public class OutboxHandlerTests : PostgresTestBase
         serviceDescriptor.Lifetime.ShouldBe(ServiceLifetime.Singleton);
     }
 
+    /// <summary>
+    /// When adding an outbox handler factory, then it is registered as a singleton IOutboxHandler.
+    /// </summary>
+    /// <intent>
+    /// Verify handler factory registration uses singleton lifetime.
+    /// </intent>
+    /// <scenario>
+    /// Given a ServiceCollection configured with time abstractions and a factory delegate.
+    /// </scenario>
+    /// <behavior>
+    /// The registration stores an implementation factory with singleton lifetime.
+    /// </behavior>
     [Fact]
     public void ServiceCollection_AddOutboxHandler_Factory_RegistersHandler()
     {

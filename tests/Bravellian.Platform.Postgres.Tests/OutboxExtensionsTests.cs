@@ -60,6 +60,10 @@ public class OutboxExtensionsTests : PostgresTestBase
             joinStore);
     }
 
+    /// <summary>When EnqueueJoinWaitAsync is called with full parameters, then the join.wait message contains them.</summary>
+    /// <intent>Verify join-wait payload fields are populated from all provided parameters.</intent>
+    /// <scenario>Given a join id with on-complete and on-fail topics/payloads.</scenario>
+    /// <behavior>The stored payload matches the join id, flags, and on-complete/on-fail values.</behavior>
     [Fact]
     public async Task EnqueueJoinWaitAsync_WithAllParameters_EnqueuesCorrectMessage()
     {
@@ -96,6 +100,10 @@ public class OutboxExtensionsTests : PostgresTestBase
         payload.OnFailPayload.ShouldBe(onFailPayload);
     }
 
+    /// <summary>When EnqueueJoinWaitAsync is called with minimal parameters, then optional fields remain null.</summary>
+    /// <intent>Verify defaults are applied when optional join-wait parameters are omitted.</intent>
+    /// <scenario>Given only a join id passed to EnqueueJoinWaitAsync.</scenario>
+    /// <behavior>The payload has the join id, FailIfAnyStepFailed true, and null optional fields.</behavior>
     [Fact]
     public async Task EnqueueJoinWaitAsync_WithMinimalParameters_EnqueuesCorrectMessage()
     {

@@ -60,6 +60,10 @@ public class SemaphoreServiceTests : PostgresTestBase
 
     #region Basic Correctness Tests
 
+    /// <summary>When TryAcquire is called for a non-existent semaphore, then it returns NotAcquired.</summary>
+    /// <intent>Verify acquisition fails if the semaphore has not been created.</intent>
+    /// <scenario>Given a random semaphore name with no prior EnsureExistsAsync call.</scenario>
+    /// <behavior>The acquire result status is NotAcquired.</behavior>
     [Fact]
     public async Task TryAcquire_WithNonExistentSemaphore_ReturnsNotAcquired()
     {
@@ -77,6 +81,10 @@ public class SemaphoreServiceTests : PostgresTestBase
         result.Status.ShouldBe(SemaphoreAcquireStatus.NotAcquired);
     }
 
+    /// <summary>When acquiring up to the semaphore limit, then all acquires succeed.</summary>
+    /// <intent>Verify capacity enforcement allows up to the configured limit.</intent>
+    /// <scenario>Given a semaphore with limit 3 and three acquire attempts.</scenario>
+    /// <behavior>All results are Acquired with unique tokens and fencing counters.</behavior>
     [Fact]
     public async Task TryAcquire_UpToLimit_AllAcquiresSucceed()
     {
@@ -103,6 +111,10 @@ public class SemaphoreServiceTests : PostgresTestBase
         results.Select(r => r.Fencing).Distinct().Count().ShouldBe(limit); // All unique fencing counters
     }
 
+    /// <summary>When acquiring beyond the limit, then the extra acquire returns NotAcquired.</summary>
+    /// <intent>Verify acquisitions beyond capacity are rejected.</intent>
+    /// <scenario>Given a semaphore with limit 2 already fully acquired.</scenario>
+    /// <behavior>The extra acquire result status is NotAcquired.</behavior>
     [Fact]
     public async Task TryAcquire_BeyondLimit_ReturnsNotAcquired()
     {
@@ -132,6 +144,10 @@ public class SemaphoreServiceTests : PostgresTestBase
         result.Status.ShouldBe(SemaphoreAcquireStatus.NotAcquired);
     }
 
+    /// <summary>When a lease is released, then capacity becomes available for another acquire.</summary>
+    /// <intent>Verify release frees a slot for a new owner.</intent>
+    /// <scenario>Given a semaphore with limit 1 and one acquired token that is released.</scenario>
+    /// <behavior>Release returns Released and the next acquire succeeds.</behavior>
     [Fact]
     public async Task Release_FreesCapacity()
     {
@@ -164,6 +180,10 @@ public class SemaphoreServiceTests : PostgresTestBase
         secondAcquire.Status.ShouldBe(SemaphoreAcquireStatus.Acquired);
     }
 
+    /// <summary>When the same token is released twice, then the second release reports NotFound.</summary>
+    /// <intent>Verify releases are idempotent for the same token.</intent>
+    /// <scenario>Given a semaphore token released twice.</scenario>
+    /// <behavior>The first release is Released and the second is NotFound.</behavior>
     [Fact]
     public async Task Release_IdempotentWhenCalledTwice()
     {
@@ -193,6 +213,10 @@ public class SemaphoreServiceTests : PostgresTestBase
         secondRelease.Status.ShouldBe(SemaphoreReleaseStatus.NotFound);
     }
 
+    /// <summary>When renewing a valid token, then the expiry is extended.</summary>
+    /// <intent>Verify renew updates ExpiresAtUtc for active leases.</intent>
+    /// <scenario>Given an acquired token that is renewed after a short delay.</scenario>
+    /// <behavior>Renew returns Renewed and ExpiresAtUtc is later than the original value.</behavior>
     [Fact]
     public async Task Renew_ExtendsLeaseExpiry()
     {
@@ -222,6 +246,10 @@ public class SemaphoreServiceTests : PostgresTestBase
         renewResult.ExpiresAtUtc!.Value.ShouldBeGreaterThan(originalExpiry);
     }
 
+    /// <summary>When renewing after a release, then the renewal returns Lost.</summary>
+    /// <intent>Verify renew fails once the lease has been released.</intent>
+    /// <scenario>Given an acquired token that has been released before renew.</scenario>
+    /// <behavior>The renew result status is Lost.</behavior>
     [Fact]
     public async Task Renew_AfterRelease_ReturnsLost()
     {
@@ -251,6 +279,10 @@ public class SemaphoreServiceTests : PostgresTestBase
         renewResult.Status.ShouldBe(SemaphoreRenewStatus.Lost);
     }
 
+    /// <summary>When acquiring sequentially, then fencing counters strictly increase.</summary>
+    /// <intent>Verify fencing tokens are monotonically increasing for each acquisition.</intent>
+    /// <scenario>Given five successive acquire calls for the same semaphore.</scenario>
+    /// <behavior>Each fencing counter is greater than the previous one.</behavior>
     [Fact]
     public async Task Fencing_StrictlyIncreases()
     {
@@ -277,6 +309,10 @@ public class SemaphoreServiceTests : PostgresTestBase
         }
     }
 
+    /// <summary>When renewing with a shorter TTL, then expiry is not shortened.</summary>
+    /// <intent>Verify renewal does not reduce the existing expiration time.</intent>
+    /// <scenario>Given a lease acquired with a 60-second TTL and renewed with 10 seconds.</scenario>
+    /// <behavior>The renew result is Renewed and ExpiresAtUtc is not earlier than the original expiry.</behavior>
     [Fact]
     public async Task Renew_MonotonicExtension_NeverShortensExpiry()
     {
@@ -308,6 +344,10 @@ public class SemaphoreServiceTests : PostgresTestBase
 
     #region Expiry and Reaping Tests
 
+    /// <summary>When a lease expires, then a new acquire succeeds.</summary>
+    /// <intent>Verify expired leases free capacity for new owners.</intent>
+    /// <scenario>Given a semaphore acquired with a short TTL that is allowed to expire.</scenario>
+    /// <behavior>The subsequent acquire returns Acquired.</behavior>
     [Fact]
     public async Task TryAcquire_AfterExpiry_Succeeds()
     {
@@ -338,6 +378,10 @@ public class SemaphoreServiceTests : PostgresTestBase
         secondAcquire.Status.ShouldBe(SemaphoreAcquireStatus.Acquired);
     }
 
+    /// <summary>When ReapExpired runs after expiry, then expired leases are deleted.</summary>
+    /// <intent>Verify reaping removes expired lease rows.</intent>
+    /// <scenario>Given three short-lived leases that have expired.</scenario>
+    /// <behavior>ReapExpired deletes three rows.</behavior>
     [Fact]
     public async Task ReapExpired_RemovesExpiredLeases()
     {
@@ -368,6 +412,10 @@ public class SemaphoreServiceTests : PostgresTestBase
         deletedCount.ShouldBe(3);
     }
 
+    /// <summary>When ReapExpired uses maxRows, then deletions are capped.</summary>
+    /// <intent>Verify maxRows limits the number of deleted rows per reaper run.</intent>
+    /// <scenario>Given five expired leases and a reap call with maxRows set to 2.</scenario>
+    /// <behavior>The first reap deletes 2 rows and the subsequent reap deletes the remaining 3.</behavior>
     [Fact]
     public async Task ReapExpired_WithMaxRows_LimitsDeletions()
     {
@@ -409,6 +457,10 @@ public class SemaphoreServiceTests : PostgresTestBase
 
     #region Limit Changes Tests
 
+    /// <summary>When the limit is increased, then additional acquires succeed.</summary>
+    /// <intent>Verify limit increases open capacity for new leases.</intent>
+    /// <scenario>Given a semaphore at limit 1 with one active lease, then limit raised to 2.</scenario>
+    /// <behavior>The next acquire returns Acquired.</behavior>
     [Fact]
     public async Task UpdateLimit_Increase_EnablesMoreAcquires()
     {
@@ -441,6 +493,10 @@ public class SemaphoreServiceTests : PostgresTestBase
         second.Status.ShouldBe(SemaphoreAcquireStatus.Acquired);
     }
 
+    /// <summary>When the limit is decreased below the active count, then new acquires are blocked.</summary>
+    /// <intent>Verify limit decreases enforce the new capacity immediately.</intent>
+    /// <scenario>Given two active leases and a limit reduced to one.</scenario>
+    /// <behavior>Acquires remain NotAcquired until the active count drops below the new limit.</behavior>
     [Fact]
     public async Task UpdateLimit_Decrease_BlocksNewAcquires()
     {
@@ -504,6 +560,10 @@ public class SemaphoreServiceTests : PostgresTestBase
 
     #region Idempotency Tests
 
+    /// <summary>When the same clientRequestId is reused, then TryAcquire returns the existing lease.</summary>
+    /// <intent>Verify idempotent acquisition by client request id.</intent>
+    /// <scenario>Given two TryAcquire calls with the same clientRequestId.</scenario>
+    /// <behavior>The second result matches the first token and fencing counter.</behavior>
     [Fact]
     public async Task TryAcquire_WithSameClientRequestId_ReturnsExistingLease()
     {
@@ -539,6 +599,10 @@ public class SemaphoreServiceTests : PostgresTestBase
 
     #region Validation Tests
 
+    /// <summary>When TryAcquire is called with a blank name, then it throws ArgumentException.</summary>
+    /// <intent>Verify semaphore name validation rejects empty or whitespace names.</intent>
+    /// <scenario>Given empty or whitespace semaphore names.</scenario>
+    /// <behavior>TryAcquireAsync throws ArgumentException.</behavior>
     [Theory]
     [InlineData("")]
     [InlineData("   ")]
@@ -554,6 +618,10 @@ public class SemaphoreServiceTests : PostgresTestBase
         });
     }
 
+    /// <summary>When the semaphore name exceeds the maximum length, then TryAcquire throws ArgumentException.</summary>
+    /// <intent>Verify name length validation for semaphore operations.</intent>
+    /// <scenario>Given a semaphore name longer than 200 characters.</scenario>
+    /// <behavior>TryAcquireAsync throws ArgumentException.</behavior>
     [Fact]
     public async Task TryAcquire_NameTooLong_ThrowsArgumentException()
     {
@@ -569,6 +637,10 @@ public class SemaphoreServiceTests : PostgresTestBase
         });
     }
 
+    /// <summary>When the semaphore name uses allowed characters, then TryAcquire succeeds.</summary>
+    /// <intent>Verify allowed name characters are accepted.</intent>
+    /// <scenario>Given valid semaphore names that are ensured and acquired.</scenario>
+    /// <behavior>The acquire result status is Acquired.</behavior>
     [Theory]
     [InlineData("test-semaphore")]
     [InlineData("test_semaphore")]
@@ -592,6 +664,10 @@ public class SemaphoreServiceTests : PostgresTestBase
         result.Status.ShouldBe(SemaphoreAcquireStatus.Acquired);
     }
 
+    /// <summary>When the semaphore name has invalid characters, then TryAcquire throws ArgumentException.</summary>
+    /// <intent>Verify disallowed characters are rejected.</intent>
+    /// <scenario>Given semaphore names containing spaces or forbidden symbols.</scenario>
+    /// <behavior>TryAcquireAsync throws ArgumentException.</behavior>
     [Theory]
     [InlineData("test semaphore")] // Space not allowed
     [InlineData("test@semaphore")] // @ not allowed
@@ -608,6 +684,10 @@ public class SemaphoreServiceTests : PostgresTestBase
         });
     }
 
+    /// <summary>When ttlSeconds is below the minimum, then TryAcquire throws ArgumentException.</summary>
+    /// <intent>Verify TTL lower bound enforcement.</intent>
+    /// <scenario>Given ttlSeconds set to 0.</scenario>
+    /// <behavior>TryAcquireAsync throws ArgumentException.</behavior>
     [Fact]
     public async Task TryAcquire_TtlBelowMinimum_ThrowsArgumentException()
     {
@@ -624,6 +704,10 @@ public class SemaphoreServiceTests : PostgresTestBase
         });
     }
 
+    /// <summary>When ttlSeconds exceeds the maximum, then TryAcquire throws ArgumentException.</summary>
+    /// <intent>Verify TTL upper bound enforcement.</intent>
+    /// <scenario>Given ttlSeconds set to 3601.</scenario>
+    /// <behavior>TryAcquireAsync throws ArgumentException.</behavior>
     [Fact]
     public async Task TryAcquire_TtlAboveMaximum_ThrowsArgumentException()
     {
@@ -640,6 +724,10 @@ public class SemaphoreServiceTests : PostgresTestBase
         });
     }
 
+    /// <summary>When EnsureExists is called with a limit below minimum, then it throws ArgumentException.</summary>
+    /// <intent>Verify semaphore limit lower bound validation.</intent>
+    /// <scenario>Given a limit value of 0.</scenario>
+    /// <behavior>EnsureExistsAsync throws ArgumentException.</behavior>
     [Fact]
     public async Task EnsureExists_LimitBelowMinimum_ThrowsArgumentException()
     {
@@ -654,6 +742,10 @@ public class SemaphoreServiceTests : PostgresTestBase
         });
     }
 
+    /// <summary>When EnsureExists is called with a limit above maximum, then it throws ArgumentException.</summary>
+    /// <intent>Verify semaphore limit upper bound validation.</intent>
+    /// <scenario>Given a limit value of 10001.</scenario>
+    /// <behavior>EnsureExistsAsync throws ArgumentException.</behavior>
     [Fact]
     public async Task EnsureExists_LimitAboveMaximum_ThrowsArgumentException()
     {
@@ -672,6 +764,10 @@ public class SemaphoreServiceTests : PostgresTestBase
 
     #region Multi-Name Isolation Tests
 
+    /// <summary>When acquiring different semaphore names, then each name is isolated.</summary>
+    /// <intent>Verify independent capacity for different semaphore names.</intent>
+    /// <scenario>Given two distinct semaphore names, each ensured with limit 1.</scenario>
+    /// <behavior>Both acquires succeed with different tokens.</behavior>
     [Fact]
     public async Task MultipleNames_AreIsolated()
     {

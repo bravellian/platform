@@ -31,6 +31,10 @@ public class InboxIntegrationTests : SqlServerTestBase
     {
     }
 
+    /// <summary>When the inbox service is used end-to-end, then a message transitions to Done and is reported as processed.</summary>
+    /// <intent>Validate the core inbox workflow from first check through completion.</intent>
+    /// <scenario>Given a SqlInboxService created with options and a test logger.</scenario>
+    /// <behavior>Then the first AlreadyProcessedAsync returns false, the second returns true, and the DB status is Done.</behavior>
     [Fact]
     public async Task CompleteInboxWorkflow_DirectServiceUsage_WorksEndToEnd()
     {
@@ -67,6 +71,10 @@ public class InboxIntegrationTests : SqlServerTestBase
         await VerifyMessageState(messageId, "Done", processedUtc: true);
     }
 
+    /// <summary>When a message is marked dead, then its inbox status is Dead and processed time remains null.</summary>
+    /// <intent>Verify poison-message handling sets the expected state.</intent>
+    /// <scenario>Given a SqlInboxService that marks a message as processing and then dead.</scenario>
+    /// <behavior>Then the database row status is Dead and ProcessedUtc is null.</behavior>
     [Fact]
     public async Task PoisonMessageWorkflow_MarkingAsDead_WorksCorrectly()
     {
@@ -97,6 +105,10 @@ public class InboxIntegrationTests : SqlServerTestBase
         await VerifyMessageState(messageId, "Dead", processedUtc: false);
     }
 
+    /// <summary>When multiple threads call AlreadyProcessedAsync concurrently, then only one record is created and attempts are tracked.</summary>
+    /// <intent>Ensure inbox deduplication remains safe under concurrent access.</intent>
+    /// <scenario>Given ten concurrent SqlInboxService instances calling AlreadyProcessedAsync for the same message id.</scenario>
+    /// <behavior>Then all calls return false, one record exists, and Attempts equals the task count.</behavior>
     [Fact]
     public async Task ConcurrentAccess_WithMultipleThreads_HandledSafely()
     {

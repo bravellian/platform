@@ -35,6 +35,10 @@ public class DrainFirstSelectionStrategyTests
         };
     }
 
+    /// <summary>When SelectNext is called with no stores, then it returns null.</summary>
+    /// <intent>Verify drain-first selection handles empty inputs safely.</intent>
+    /// <scenario>Given an empty store list and a new DrainFirstOutboxSelectionStrategy.</scenario>
+    /// <behavior>Then SelectNext returns null.</behavior>
     [Fact]
     public void SelectNext_WithNoStores_ReturnsNull()
     {
@@ -49,6 +53,10 @@ public class DrainFirstSelectionStrategyTests
         result.ShouldBeNull();
     }
 
+    /// <summary>When a store processes messages, then SelectNext keeps returning the same store.</summary>
+    /// <intent>Ensure drain-first strategy sticks to the current store while work is processed.</intent>
+    /// <scenario>Given three mock stores and non-zero processed counts for the current store.</scenario>
+    /// <behavior>Then SelectNext continues to return the first store.</behavior>
     [Fact]
     public void SelectNext_SticksToSameStoreWhenMessagesProcessed()
     {
@@ -67,6 +75,10 @@ public class DrainFirstSelectionStrategyTests
         third.ShouldBe(mockStores[0]); // Should still be Store1
     }
 
+    /// <summary>When no messages are processed, then SelectNext advances to the next store.</summary>
+    /// <intent>Verify drain-first advances when a store has no work.</intent>
+    /// <scenario>Given three mock stores and zero processed counts on each call.</scenario>
+    /// <behavior>Then SelectNext moves to the next store and wraps around.</behavior>
     [Fact]
     public void SelectNext_MovesToNextStoreWhenNoMessagesProcessed()
     {
@@ -90,6 +102,10 @@ public class DrainFirstSelectionStrategyTests
         fourth.ShouldBe(mockStores[0]);
     }
 
+    /// <summary>When processed counts vary across calls, then SelectNext sticks to busy stores and advances when empty.</summary>
+    /// <intent>Validate mixed drain-first behavior across multiple stores.</intent>
+    /// <scenario>Given three mock stores with alternating non-zero and zero processed counts.</scenario>
+    /// <behavior>Then SelectNext stays on active stores and moves on when processed count is zero.</behavior>
     [Fact]
     public void SelectNext_MixedBehavior()
     {

@@ -55,6 +55,10 @@ public class OutboxHandlerTests : SqlServerTestBase
             maxAttempts: maxAttempts);
     }
 
+    /// <summary>When the resolver is given handlers, then it resolves matching topics and rejects unknown ones.</summary>
+    /// <intent>Validate handler lookup works for registered topics.</intent>
+    /// <scenario>Given an OutboxHandlerResolver initialized with three TestHandler instances.</scenario>
+    /// <behavior>Then TryGet returns true for known topics and false for an unknown topic.</behavior>
     [Fact]
     public void OutboxHandlerResolver_WithHandlers_ResolvesCorrectly()
     {
@@ -78,6 +82,10 @@ public class OutboxHandlerTests : SqlServerTestBase
         resolver.TryGet("NonExistent", out var _).ShouldBeFalse();
     }
 
+    /// <summary>When handler topics are looked up with different casing, then the resolver still matches them.</summary>
+    /// <intent>Ensure topic matching is case-insensitive.</intent>
+    /// <scenario>Given a resolver with a handler for "Email.Send" and lookups using different casing.</scenario>
+    /// <behavior>Then TryGet succeeds for lower-case and upper-case topic strings.</behavior>
     [Fact]
     public void OutboxHandlerResolver_CaseInsensitive()
     {
@@ -93,6 +101,10 @@ public class OutboxHandlerTests : SqlServerTestBase
         handler2.Topic.ShouldBe("Email.Send");
     }
 
+    /// <summary>When a single outbox message has a matching handler, then it is processed and dispatched.</summary>
+    /// <intent>Verify successful message handling marks the item as dispatched.</intent>
+    /// <scenario>Given a TestOutboxStore with one message and a handler for its topic.</scenario>
+    /// <behavior>Then RunOnceAsync returns 1 and the store records a dispatched id.</behavior>
     [Fact]
     public async Task MultiOutboxDispatcher_ProcessSingleMessage_Success()
     {
@@ -124,6 +136,10 @@ public class OutboxHandlerTests : SqlServerTestBase
         store.DispatchedMessages.First().ShouldBe(message.Id);
     }
 
+    /// <summary>When no handler exists for a message topic, then the dispatcher marks the message as failed.</summary>
+    /// <intent>Ensure unknown topics fail fast instead of being rescheduled.</intent>
+    /// <scenario>Given a TestOutboxStore with one message and an empty resolver.</scenario>
+    /// <behavior>Then RunOnceAsync records a failed message with a no-handler error.</behavior>
     [Fact]
     public async Task MultiOutboxDispatcher_NoHandler_MarksAsFailed()
     {
@@ -153,6 +169,10 @@ public class OutboxHandlerTests : SqlServerTestBase
         store.FailedMessages.First().Value.ShouldContain("No handler registered for topic 'Unknown.Topic'");
     }
 
+    /// <summary>When a handler throws, then the dispatcher reschedules the message with a backoff delay.</summary>
+    /// <intent>Verify failing handlers trigger reschedule with an error message.</intent>
+    /// <scenario>Given a TestHandler configured to throw and a message with RetryCount > 0.</scenario>
+    /// <behavior>Then the store records a reschedule with a positive delay and the handler error.</behavior>
     [Fact]
     public async Task MultiOutboxDispatcher_HandlerThrows_ReschedulesWithBackoff()
     {
@@ -188,6 +208,10 @@ public class OutboxHandlerTests : SqlServerTestBase
         rescheduled.Value.Error.ShouldBe("Test exception");
     }
 
+    /// <summary>When a message hits max attempts, then the dispatcher fails it instead of rescheduling.</summary>
+    /// <intent>Ensure poison messages are failed when retries are exhausted.</intent>
+    /// <scenario>Given a message with RetryCount = 2 and maxAttempts = 3 with a failing handler.</scenario>
+    /// <behavior>Then the message is added to FailedMessages and not rescheduled.</behavior>
     [Fact]
     public async Task MultiOutboxDispatcher_WithPoisonMessage_FailsWhenMaxAttemptsReached()
     {
@@ -223,6 +247,10 @@ public class OutboxHandlerTests : SqlServerTestBase
         store.RescheduledMessages.ShouldBeEmpty();
     }
 
+    /// <summary>When a message is processed successfully, then the dispatcher completes and dispatches it.</summary>
+    /// <intent>Confirm the successful path results in handler execution and dispatch.</intent>
+    /// <scenario>Given a TestOutboxStore with one message and a matching handler.</scenario>
+    /// <behavior>Then the handler is invoked once and the message is marked dispatched.</behavior>
     [Fact]
     public async Task MultiOutboxDispatcher_LogsCorrectly()
     {
@@ -256,6 +284,10 @@ public class OutboxHandlerTests : SqlServerTestBase
         store.DispatchedMessages.Count.ShouldBe(1);
     }
 
+    /// <summary>When a handler fails, then the dispatcher records an error and reschedules the message.</summary>
+    /// <intent>Ensure handler exceptions result in reschedule entries with errors.</intent>
+    /// <scenario>Given a TestHandler that throws and a TestOutboxStore with one message.</scenario>
+    /// <behavior>Then the handler is invoked and the reschedule error contains the exception message.</behavior>
     [Fact]
     public async Task MultiOutboxDispatcher_LogsErrors_WhenHandlerFails()
     {
@@ -289,6 +321,10 @@ public class OutboxHandlerTests : SqlServerTestBase
         store.RescheduledMessages.First().Value.Error.ShouldBe("Test exception");
     }
 
+    /// <summary>When processing both a handled and an unhandled message, then logs are emitted at expected levels.</summary>
+    /// <intent>Validate dispatcher logging includes information, debug, and warning entries.</intent>
+    /// <scenario>Given a capturing logger, one message with a handler, and one without a handler.</scenario>
+    /// <behavior>Then log entries include Information for batch, Debug for processing, and Warning for no handler.</behavior>
     [Fact]
     public async Task MultiOutboxDispatcher_LogsAtCorrectLevels()
     {
@@ -354,6 +390,10 @@ public class OutboxHandlerTests : SqlServerTestBase
         }
     }
 
+    /// <summary>When DefaultBackoff is computed for increasing attempts, then delays grow with jitter and are capped.</summary>
+    /// <intent>Verify the default backoff function uses exponential growth with jitter bounds.</intent>
+    /// <scenario>Given multiple attempt values passed to MultiOutboxDispatcher.DefaultBackoff.</scenario>
+    /// <behavior>Then delays fall within expected ranges and do not exceed the maximum cap.</behavior>
     [Fact]
     public void MultiOutboxDispatcher_DefaultBackoff_ExponentialWithJitter()
     {
@@ -380,6 +420,10 @@ public class OutboxHandlerTests : SqlServerTestBase
         delay10.ShouldBeLessThan(TimeSpan.FromMinutes(2));
     }
 
+    /// <summary>When AddOutboxHandler is called with a handler type, then it registers a singleton IOutboxHandler.</summary>
+    /// <intent>Confirm DI registration for handler types.</intent>
+    /// <scenario>Given a ServiceCollection and AddOutboxHandler<TestHandler> invocation.</scenario>
+    /// <behavior>Then the service descriptor registers TestHandler as a singleton IOutboxHandler.</behavior>
     [Fact]
     public void ServiceCollection_AddOutboxHandler_RegistersHandler()
     {
@@ -397,6 +441,10 @@ public class OutboxHandlerTests : SqlServerTestBase
         serviceDescriptor.Lifetime.ShouldBe(ServiceLifetime.Singleton);
     }
 
+    /// <summary>When AddOutboxHandler is called with a factory, then it registers a singleton IOutboxHandler factory.</summary>
+    /// <intent>Confirm DI registration for factory-based handler creation.</intent>
+    /// <scenario>Given a ServiceCollection and AddOutboxHandler with a factory delegate.</scenario>
+    /// <behavior>Then the service descriptor contains an implementation factory with singleton lifetime.</behavior>
     [Fact]
     public void ServiceCollection_AddOutboxHandler_Factory_RegistersHandler()
     {

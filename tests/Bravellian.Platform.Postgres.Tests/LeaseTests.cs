@@ -36,6 +36,18 @@ public class LeaseTests : PostgresTestBase
         PostgresLeaseApi = new PostgresLeaseApi(ConnectionString, "infra");
     }
 
+    /// <summary>
+    /// When acquiring a free lease, then the acquisition succeeds and returns server time and expiry.
+    /// </summary>
+    /// <intent>
+    /// Verify acquisition succeeds for an unused lease name.
+    /// </intent>
+    /// <scenario>
+    /// Given a new lease name, an owner, and a 30-second lease duration.
+    /// </scenario>
+    /// <behavior>
+    /// The lease is acquired, serverUtcNow is set, and leaseUntilUtc is shortly after server time.
+    /// </behavior>
     [Fact]
     public async Task AcquireAsync_WithFreeResource_SucceedsAndReturnsServerTime()
     {
@@ -58,6 +70,18 @@ public class LeaseTests : PostgresTestBase
         timeDiff.ShouldBeLessThan(1); // Allow for small timing differences
     }
 
+    /// <summary>
+    /// When acquiring an already-held lease, then the acquisition fails and returns server time.
+    /// </summary>
+    /// <intent>
+    /// Verify acquisition fails for an occupied lease.
+    /// </intent>
+    /// <scenario>
+    /// Given owner1 already holds the lease and owner2 attempts to acquire it.
+    /// </scenario>
+    /// <behavior>
+    /// The second acquisition fails, serverUtcNow is set, and leaseUntilUtc is null.
+    /// </behavior>
     [Fact]
     public async Task AcquireAsync_WithOccupiedResource_FailsAndReturnsServerTime()
     {
@@ -80,6 +104,18 @@ public class LeaseTests : PostgresTestBase
         secondResult.leaseUntilUtc.ShouldBeNull();
     }
 
+    /// <summary>
+    /// When a lease has expired, then a new owner can acquire it and receives a new expiry.
+    /// </summary>
+    /// <intent>
+    /// Verify acquisition succeeds after lease expiration.
+    /// </intent>
+    /// <scenario>
+    /// Given a short-lived lease is acquired, allowed to expire, and then re-acquired by a new owner.
+    /// </scenario>
+    /// <behavior>
+    /// The second acquisition succeeds with serverUtcNow set and a non-null leaseUntilUtc.
+    /// </behavior>
     [Fact]
     public async Task AcquireAsync_WithExpiredLease_SucceedsAndReturnsNewExpiry()
     {
@@ -106,6 +142,18 @@ public class LeaseTests : PostgresTestBase
         secondResult.leaseUntilUtc.Value.ShouldBeGreaterThan(secondResult.serverUtcNow);
     }
 
+    /// <summary>
+    /// When renewing with the current owner, then the lease is extended.
+    /// </summary>
+    /// <intent>
+    /// Verify renewal succeeds for the lease holder.
+    /// </intent>
+    /// <scenario>
+    /// Given a lease acquired by an owner and a subsequent renew attempt by the same owner.
+    /// </scenario>
+    /// <behavior>
+    /// Renewal succeeds, server time advances, and the lease expiry moves forward.
+    /// </behavior>
     [Fact]
     public async Task RenewAsync_WithValidOwner_SucceedsAndExtendsLease()
     {
@@ -132,6 +180,18 @@ public class LeaseTests : PostgresTestBase
         renewResult.leaseUntilUtc.Value.ShouldBeGreaterThan(acquireResult.leaseUntilUtc!.Value);
     }
 
+    /// <summary>
+    /// When renewing with a different owner, then the renewal fails and no expiry is returned.
+    /// </summary>
+    /// <intent>
+    /// Verify renewal fails for a non-owner.
+    /// </intent>
+    /// <scenario>
+    /// Given owner1 holds the lease and owner2 attempts renewal.
+    /// </scenario>
+    /// <behavior>
+    /// Renewed is false, serverUtcNow is set, and leaseUntilUtc is null.
+    /// </behavior>
     [Fact]
     public async Task RenewAsync_WithWrongOwner_FailsAndReturnsServerTime()
     {
@@ -154,6 +214,18 @@ public class LeaseTests : PostgresTestBase
         renewResult.leaseUntilUtc.ShouldBeNull();
     }
 
+    /// <summary>
+    /// When renewing after the lease expires, then the renewal fails and returns no expiry.
+    /// </summary>
+    /// <intent>
+    /// Verify renewal fails for an expired lease.
+    /// </intent>
+    /// <scenario>
+    /// Given a short lease is acquired, allowed to expire, and then renewed by the same owner.
+    /// </scenario>
+    /// <behavior>
+    /// Renewed is false, serverUtcNow is set, and leaseUntilUtc is null.
+    /// </behavior>
     [Fact]
     public async Task RenewAsync_WithExpiredLease_FailsAndReturnsServerTime()
     {

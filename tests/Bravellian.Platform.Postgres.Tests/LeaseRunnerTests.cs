@@ -42,6 +42,10 @@ public class PostgresLeaseRunnerTests : PostgresTestBase
         leaseApi = new PostgresLeaseApi(ConnectionString, "infra");
     }
 
+    /// <summary>When an available lease is acquired, then a runner is returned with valid state.</summary>
+    /// <intent>Verify a new lease acquisition initializes runner identity and state.</intent>
+    /// <scenario>Given a new lease name, owner, and a fake monotonic clock.</scenario>
+    /// <behavior>The runner is not lost, reflects the lease name/owner, and has an un-canceled token.</behavior>
     [Fact]
     public async Task AcquireAsync_WithAvailableLease_ReturnsRunnerInstance()
     {
@@ -73,6 +77,10 @@ public class PostgresLeaseRunnerTests : PostgresTestBase
         await runner.DisposeAsync();
     }
 
+    /// <summary>When a lease is already held, then a second acquisition attempt returns null.</summary>
+    /// <intent>Confirm unavailable leases are not re-acquired by another owner.</intent>
+    /// <scenario>Given owner1 holds the lease and owner2 attempts to acquire the same lease.</scenario>
+    /// <behavior>The second acquisition returns null.</behavior>
     [Fact]
     public async Task AcquireAsync_WithUnavailableLease_ReturnsNull()
     {
@@ -116,6 +124,10 @@ public class PostgresLeaseRunnerTests : PostgresTestBase
         await runner1.DisposeAsync();
     }
 
+    /// <summary>When a valid runner renews, then TryRenewNowAsync succeeds and the runner remains valid.</summary>
+    /// <intent>Verify manual renewal keeps the lease active.</intent>
+    /// <scenario>Given a runner acquired for a new lease name and owner.</scenario>
+    /// <behavior>TryRenewNowAsync returns true and IsLost stays false.</behavior>
     [Fact]
     public async Task TryRenewNowAsync_WithValidRunner_SucceedsAndExtendsLease()
     {
@@ -148,6 +160,10 @@ public class PostgresLeaseRunnerTests : PostgresTestBase
         await runner.DisposeAsync();
     }
 
+    /// <summary>Given a valid lease runner, then ThrowIfLost does not throw.</summary>
+    /// <intent>Confirm loss checks are no-ops while the lease is valid.</intent>
+    /// <scenario>Given a runner acquired with a 30-second lease duration.</scenario>
+    /// <behavior>ThrowIfLost completes without exception.</behavior>
     [Fact]
     public async Task ThrowIfLost_WhenLeaseIsValid_DoesNotThrow()
     {
@@ -176,6 +192,10 @@ public class PostgresLeaseRunnerTests : PostgresTestBase
         await runner.DisposeAsync();
     }
 
+    /// <summary>When renewal is scheduled at 50% of the lease duration, then the runner stays valid past the midpoint.</summary>
+    /// <intent>Confirm monotonic renewal timing honors a custom renew percentage.</intent>
+    /// <scenario>Given a 10-second lease and renewPercent set to 0.5.</scenario>
+    /// <behavior>After waiting past the midpoint, IsLost is false and cancellation is not requested.</behavior>
     [Fact]
     public async Task MonotonicRenewal_WithCustomRenewPercent_RenewsAtCorrectInterval()
     {
@@ -210,6 +230,10 @@ public class PostgresLeaseRunnerTests : PostgresTestBase
         await runner.DisposeAsync();
     }
 
+    /// <summary>When a runner is disposed, then TryRenewNowAsync returns false.</summary>
+    /// <intent>Verify renewal requests are rejected after disposal.</intent>
+    /// <scenario>Given a runner that has been acquired and then disposed.</scenario>
+    /// <behavior>TryRenewNowAsync returns false.</behavior>
     [Fact]
     public async Task DisposedRunner_DoesNotRenew()
     {
@@ -239,6 +263,10 @@ public class PostgresLeaseRunnerTests : PostgresTestBase
         renewed.ShouldBeFalse();
     }
 
+    /// <summary>When the monotonic clock jumps forward, then renewal scheduling advances using monotonic time.</summary>
+    /// <intent>Validate renewal scheduling resilience to wall-clock skew and GC pauses.</intent>
+    /// <scenario>Given a runner with a fake monotonic clock and access to the internal renew timer callback.</scenario>
+    /// <behavior>The next renew time advances with monotonic time and remains unchanged on immediate retry.</behavior>
     [Fact]
     public async Task RenewTimer_UsesFakeMonotonicClockAcrossClockSkewAndGcPauses()
     {

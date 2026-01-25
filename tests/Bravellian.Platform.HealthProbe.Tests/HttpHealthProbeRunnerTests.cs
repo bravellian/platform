@@ -6,6 +6,10 @@ namespace Bravellian.Platform.HealthProbe.Tests;
 
 public sealed class HttpHealthProbeRunnerTests
 {
+    /// <summary>When the probe handler returns 200 OK, then the result is healthy.</summary>
+    /// <intent>Describe how a success HTTP status maps to a healthy probe result.</intent>
+    /// <scenario>Given a runner using a stub handler that returns HttpStatusCode.OK.</scenario>
+    /// <behavior>The result is healthy and the exit code is Healthy.</behavior>
     [Fact]
     public async Task RunAsync_ReturnsHealthyForSuccessStatus()
     {
@@ -20,6 +24,10 @@ public sealed class HttpHealthProbeRunnerTests
         result.ExitCode.ShouldBe(HealthProbeExitCodes.Healthy);
     }
 
+    /// <summary>When the probe handler returns a failure status, then the result is unhealthy.</summary>
+    /// <intent>Describe how non-success HTTP status maps to an unhealthy probe result.</intent>
+    /// <scenario>Given a runner using a stub handler that returns ServiceUnavailable.</scenario>
+    /// <behavior>The result is unhealthy and the exit code is Unhealthy.</behavior>
     [Fact]
     public async Task RunAsync_ReturnsUnhealthyForFailureStatus()
     {
@@ -34,6 +42,10 @@ public sealed class HttpHealthProbeRunnerTests
         result.ExitCode.ShouldBe(HealthProbeExitCodes.Unhealthy);
     }
 
+    /// <summary>When a 200 OK response body reports Unhealthy, then the result is unhealthy.</summary>
+    /// <intent>Describe how a JSON health status maps to the probe outcome.</intent>
+    /// <scenario>Given a stubbed 200 OK response with JSON status "Unhealthy".</scenario>
+    /// <behavior>The result is unhealthy and the exit code is Unhealthy.</behavior>
     [Fact]
     public async Task RunAsync_ReturnsUnhealthyWhenJsonStatusIsUnhealthy()
     {
@@ -54,6 +66,10 @@ public sealed class HttpHealthProbeRunnerTests
         result.ExitCode.ShouldBe(HealthProbeExitCodes.Unhealthy);
     }
 
+    /// <summary>When a 200 OK response body reports Healthy, then the result is healthy.</summary>
+    /// <intent>Describe how a JSON health status maps to the probe outcome.</intent>
+    /// <scenario>Given a stubbed 200 OK response with JSON status "Healthy".</scenario>
+    /// <behavior>The result is healthy and the exit code is Healthy.</behavior>
     [Fact]
     public async Task RunAsync_ReturnsHealthyWhenJsonStatusIsHealthy()
     {
@@ -74,6 +90,10 @@ public sealed class HttpHealthProbeRunnerTests
         result.ExitCode.ShouldBe(HealthProbeExitCodes.Healthy);
     }
 
+    /// <summary>When the HTTP status is non-success, then the result is unhealthy even if JSON says Healthy.</summary>
+    /// <intent>Describe precedence of HTTP status over JSON health status.</intent>
+    /// <scenario>Given a ServiceUnavailable response whose JSON body reports "Healthy".</scenario>
+    /// <behavior>The result is unhealthy and the exit code is Unhealthy.</behavior>
     [Fact]
     public async Task RunAsync_DoesNotTreatNonSuccessStatusAsHealthyEvenWhenJsonIsHealthy()
     {
@@ -94,6 +114,10 @@ public sealed class HttpHealthProbeRunnerTests
         result.ExitCode.ShouldBe(HealthProbeExitCodes.Unhealthy);
     }
 
+    /// <summary>When the probe times out, then the result uses the exception exit code.</summary>
+    /// <intent>Describe timeout handling for HTTP probes.</intent>
+    /// <scenario>Given a runner with a short timeout and a handler that delays beyond it.</scenario>
+    /// <behavior>The result is unhealthy and the exit code is Exception.</behavior>
     [Fact]
     public async Task RunAsync_ReturnsExceptionExitCodeOnTimeout()
     {
@@ -116,6 +140,10 @@ public sealed class HttpHealthProbeRunnerTests
         result.ExitCode.ShouldBe(HealthProbeExitCodes.Exception);
     }
 
+    /// <summary>When API key settings are configured, then the probe request includes the API key header.</summary>
+    /// <intent>Describe how API key options affect probe request headers.</intent>
+    /// <scenario>Given options with ApiKey and ApiKeyHeaderName set in the runner.</scenario>
+    /// <behavior>The outgoing request contains the configured header and value.</behavior>
     [Fact]
     public async Task RunAsync_AddsApiKeyHeaderWhenConfigured()
     {

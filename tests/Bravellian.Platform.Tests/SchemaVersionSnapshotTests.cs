@@ -19,6 +19,10 @@ namespace Bravellian.Platform.Tests;
 
 public class SchemaVersionSnapshotTests
 {
+    /// <summary>When the schema snapshot is captured, then it matches the stored snapshot file.</summary>
+    /// <intent>Verify schema version snapshots remain consistent across runs.</intent>
+    /// <scenario>Given a captured schema snapshot and the existing snapshot file (or a refreshed snapshot).</scenario>
+    /// <behavior>Then the captured snapshot equals the stored snapshot content.</behavior>
     [Fact]
     public async Task SchemaVersions_MatchSnapshot()
     {

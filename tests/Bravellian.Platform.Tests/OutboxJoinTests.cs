@@ -75,6 +75,10 @@ public class OutboxJoinTests : SqlServerTestBase
         }
     }
 
+    /// <summary>When creating a join with tenant, expected steps, and metadata, then the join is pending with zero counts.</summary>
+    /// <intent>Verify CreateJoinAsync persists default join state.</intent>
+    /// <scenario>Create a join with tenantId 12345, expectedSteps 5, and metadata.</scenario>
+    /// <behavior>The join has a non-empty id, pending status, zero completed/failed, metadata, and a recent CreatedUtc.</behavior>
     [Fact]
     public async Task CreateJoinAsync_WithValidParameters_CreatesJoin()
     {
@@ -104,6 +108,10 @@ public class OutboxJoinTests : SqlServerTestBase
             DateTimeOffset.UtcNow.AddMinutes(1));
     }
 
+    /// <summary>When a join exists, then GetJoinAsync returns it with the expected steps.</summary>
+    /// <intent>Ensure joins can be retrieved by id.</intent>
+    /// <scenario>Create a join with expectedSteps 3 and fetch by JoinId.</scenario>
+    /// <behavior>The returned join is not null and matches JoinId and ExpectedSteps.</behavior>
     [Fact]
     public async Task GetJoinAsync_WithExistingJoin_ReturnsJoin()
     {
@@ -125,6 +133,10 @@ public class OutboxJoinTests : SqlServerTestBase
         retrievedJoin.ExpectedSteps.ShouldBe(3);
     }
 
+    /// <summary>When a join id is unknown, then GetJoinAsync returns null.</summary>
+    /// <intent>Confirm missing joins return no result.</intent>
+    /// <scenario>Generate a new JoinIdentifier without creating a join.</scenario>
+    /// <behavior>The retrieved join is null.</behavior>
     [Fact]
     public async Task GetJoinAsync_WithNonExistentJoin_ReturnsNull()
     {
@@ -140,6 +152,10 @@ public class OutboxJoinTests : SqlServerTestBase
         join.ShouldBeNull();
     }
 
+    /// <summary>When attaching an outbox message to a join, then a join-member row is created.</summary>
+    /// <intent>Verify join-member mappings are persisted.</intent>
+    /// <scenario>Create a join and an outbox message, then attach the message to the join.</scenario>
+    /// <behavior>The OutboxJoinMember table contains one row for the join/message pair.</behavior>
     [Fact]
     public async Task AttachMessageToJoinAsync_WithValidIds_CreatesAssociation()
     {
@@ -168,6 +184,10 @@ public class OutboxJoinTests : SqlServerTestBase
         count.ShouldBe(1);
     }
 
+    /// <summary>When attaching the same message twice, then only one join-member row exists.</summary>
+    /// <intent>Ensure attaching a message is idempotent.</intent>
+    /// <scenario>Create a join and message, then call AttachMessageToJoinAsync twice.</scenario>
+    /// <behavior>The OutboxJoinMember table still contains a single row for the pair.</behavior>
     [Fact]
     public async Task AttachMessageToJoinAsync_CalledTwice_IsIdempotent()
     {
@@ -201,6 +221,10 @@ public class OutboxJoinTests : SqlServerTestBase
         count.ShouldBe(1);
     }
 
+    /// <summary>When a joined message is marked completed, then CompletedSteps increments and FailedSteps stays zero.</summary>
+    /// <intent>Verify completed step increments update the join counters.</intent>
+    /// <scenario>Create a join with expected steps, attach a message, then increment completed.</scenario>
+    /// <behavior>The join reports CompletedSteps 1, FailedSteps 0, and a newer LastUpdatedUtc.</behavior>
     [Fact]
     public async Task IncrementCompletedAsync_WithValidMessage_IncrementsCount()
     {
@@ -229,6 +253,10 @@ public class OutboxJoinTests : SqlServerTestBase
         updatedJoin.LastUpdatedUtc.ShouldBeGreaterThan(join.LastUpdatedUtc);
     }
 
+    /// <summary>When a joined message is marked failed, then FailedSteps increments and CompletedSteps stays zero.</summary>
+    /// <intent>Verify failed step increments update the join counters.</intent>
+    /// <scenario>Create a join with expected steps, attach a message, then increment failed.</scenario>
+    /// <behavior>The join reports FailedSteps 1, CompletedSteps 0, and a newer LastUpdatedUtc.</behavior>
     [Fact]
     public async Task IncrementFailedAsync_WithValidMessage_IncrementsCount()
     {
@@ -257,6 +285,10 @@ public class OutboxJoinTests : SqlServerTestBase
         updatedJoin.LastUpdatedUtc.ShouldBeGreaterThan(join.LastUpdatedUtc);
     }
 
+    /// <summary>When updating join status, then the stored join status changes to the new value.</summary>
+    /// <intent>Verify UpdateStatusAsync persists status changes.</intent>
+    /// <scenario>Create a join, update status to Completed, then fetch the join.</scenario>
+    /// <behavior>The retrieved join has Status set to Completed.</behavior>
     [Fact]
     public async Task UpdateStatusAsync_WithValidStatus_UpdatesJoinStatus()
     {
@@ -282,6 +314,10 @@ public class OutboxJoinTests : SqlServerTestBase
         updatedJoin!.Status.ShouldBe(JoinStatus.Completed);
     }
 
+    /// <summary>When multiple messages are attached to a join, then GetJoinMessagesAsync returns all message ids.</summary>
+    /// <intent>Ensure join-member retrieval returns every attached message.</intent>
+    /// <scenario>Create a join, attach three messages, then query join messages.</scenario>
+    /// <behavior>The result contains three ids including the attached message ids.</behavior>
     [Fact]
     public async Task GetJoinMessagesAsync_WithMultipleMessages_ReturnsAllMessageIds()
     {
@@ -312,6 +348,10 @@ public class OutboxJoinTests : SqlServerTestBase
         messageIds.ShouldContain(messageId3);
     }
 
+    /// <summary>When all steps complete and status is set to Completed, then the join shows all completed and no failures.</summary>
+    /// <intent>Verify end-to-end completion updates counts and status.</intent>
+    /// <scenario>Create a join with three steps, attach three messages, increment completed for each, then set status to Completed.</scenario>
+    /// <behavior>The final join has Status Completed, CompletedSteps 3, and FailedSteps 0.</behavior>
     [Fact]
     public async Task CompleteJoinWorkflow_WithAllStepsCompleted_WorksCorrectly()
     {
@@ -356,6 +396,10 @@ public class OutboxJoinTests : SqlServerTestBase
         finalJoin.FailedSteps.ShouldBe(0);
     }
 
+    /// <summary>When some steps fail and status is set to Failed, then the join records completed and failed counts.</summary>
+    /// <intent>Verify mixed completion and failure tracking.</intent>
+    /// <scenario>Create a join with three steps, complete two, fail one, then set status to Failed.</scenario>
+    /// <behavior>The final join has Status Failed, CompletedSteps 2, and FailedSteps 1.</behavior>
     [Fact]
     public async Task CompleteJoinWorkflow_WithSomeStepsFailed_WorksCorrectly()
     {
@@ -393,6 +437,10 @@ public class OutboxJoinTests : SqlServerTestBase
         finalJoin.FailedSteps.ShouldBe(1);
     }
 
+    /// <summary>When IncrementCompletedAsync is called twice for the same message, then the completed count increases only once.</summary>
+    /// <intent>Ensure completed increments are idempotent per message.</intent>
+    /// <scenario>Create a join, attach a message, then call IncrementCompletedAsync twice.</scenario>
+    /// <behavior>The join reports CompletedSteps 1 and FailedSteps 0.</behavior>
     [Fact]
     public async Task IncrementCompletedAsync_CalledTwiceForSameMessage_IsIdempotent()
     {
@@ -417,6 +465,10 @@ public class OutboxJoinTests : SqlServerTestBase
         updatedJoin.FailedSteps.ShouldBe(0);
     }
 
+    /// <summary>When IncrementFailedAsync is called twice for the same message, then the failed count increases only once.</summary>
+    /// <intent>Ensure failed increments are idempotent per message.</intent>
+    /// <scenario>Create a join, attach a message, then call IncrementFailedAsync twice.</scenario>
+    /// <behavior>The join reports FailedSteps 1 and CompletedSteps 0.</behavior>
     [Fact]
     public async Task IncrementFailedAsync_CalledTwiceForSameMessage_IsIdempotent()
     {
@@ -441,6 +493,10 @@ public class OutboxJoinTests : SqlServerTestBase
         updatedJoin.FailedSteps.ShouldBe(1);
     }
 
+    /// <summary>When completed increments exceed expected steps, then the completed count stops at the expected total.</summary>
+    /// <intent>Ensure completed steps are capped by expected steps.</intent>
+    /// <scenario>Create a join expecting two steps, attach three messages, then increment completed for all three.</scenario>
+    /// <behavior>The join reports CompletedSteps 2 and FailedSteps 0.</behavior>
     [Fact]
     public async Task IncrementCompletedAsync_WhenTotalWouldExceedExpected_DoesNotOverCount()
     {
@@ -474,6 +530,10 @@ public class OutboxJoinTests : SqlServerTestBase
         updatedJoin.FailedSteps.ShouldBe(0);
     }
 
+    /// <summary>When outbox messages are acknowledged, then join completed counts increment per message.</summary>
+    /// <intent>Verify outbox ack integration updates join progress.</intent>
+    /// <scenario>Create a join with two messages, claim and ack each via stored procedures.</scenario>
+    /// <behavior>CompletedSteps increases to 1 after the first ack and to 2 after the second with no failures.</behavior>
     [Fact]
     public async Task OutboxAck_AutomaticallyReportsJoinCompletion()
     {
@@ -514,6 +574,10 @@ public class OutboxJoinTests : SqlServerTestBase
         joinAfterSecond.FailedSteps.ShouldBe(0);
     }
 
+    /// <summary>When an outbox message is failed, then join failure count increments alongside completed work.</summary>
+    /// <intent>Verify outbox failure integration updates join failure counts.</intent>
+    /// <scenario>Create a join with two messages, ack the first, then fail the second via stored procedure.</scenario>
+    /// <behavior>The join reports CompletedSteps 1 and FailedSteps 1.</behavior>
     [Fact]
     public async Task OutboxFail_AutomaticallyReportsJoinFailure()
     {
@@ -548,6 +612,10 @@ public class OutboxJoinTests : SqlServerTestBase
         finalJoin.FailedSteps.ShouldBe(1);
     }
 
+    /// <summary>When the same message is acknowledged twice, then the join completed count does not increment again.</summary>
+    /// <intent>Ensure duplicate acks do not double-count join completion.</intent>
+    /// <scenario>Create a join with one message, ack it once, then ack it again with the same owner token.</scenario>
+    /// <behavior>The join still reports CompletedSteps 1 and FailedSteps 0 after the second ack.</behavior>
     [Fact]
     public async Task OutboxAck_MultipleAcksForSameMessage_IsIdempotent()
     {

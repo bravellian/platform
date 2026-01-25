@@ -35,6 +35,10 @@ public class MultiOutboxDispatcherTests : SqlServerTestBase
     {
     }
 
+    /// <summary>When the dispatcher runs across multiple stores, then it processes messages from each store.</summary>
+    /// <intent>Validate multi-store dispatching with round-robin selection.</intent>
+    /// <scenario>Given two outbox schemas with one ready message each and a round-robin strategy.</scenario>
+    /// <behavior>Then two runs process both messages and mark them as processed in each schema.</behavior>
     [Fact]
     public async Task MultiOutboxDispatcher_ProcessesMessagesFromMultipleStores()
     {
@@ -145,6 +149,10 @@ public class MultiOutboxDispatcherTests : SqlServerTestBase
         processed2.ShouldBeTrue();
     }
 
+    /// <summary>When using the drain-first strategy, then the dispatcher drains one store before moving on.</summary>
+    /// <intent>Verify drain-first selection keeps working a store until it is empty.</intent>
+    /// <scenario>Given a store with three ready messages and drain-first selection with batch size one.</scenario>
+    /// <behavior>Then successive runs process three messages and the fourth run returns zero.</behavior>
     [Fact]
     public async Task MultiOutboxDispatcher_WithDrainFirstStrategy_DrainsOneStoreBeforeMoving()
     {

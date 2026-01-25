@@ -59,6 +59,10 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
             NullLogger<SqlSemaphoreService>.Instance);
     }
 
+    /// <summary>When many workers acquire in parallel, then total acquisitions do not exceed the limit.</summary>
+    /// <intent>Verify concurrent acquisition respects semaphore capacity.</intent>
+    /// <scenario>Ensure a semaphore with limit 10 and run 50 parallel acquire attempts.</scenario>
+    /// <behavior>The number of acquired tokens is at most 10 and greater than zero.</behavior>
     [Fact]
     public async Task ParallelAcquires_NeverExceedsLimit()
     {
@@ -102,6 +106,10 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
         acquired.ShouldBeGreaterThan(0); // At least some should succeed
     }
 
+    /// <summary>When workers acquire and release concurrently, then releases match successful acquires.</summary>
+    /// <intent>Ensure no leases are leaked under parallel acquire/release.</intent>
+    /// <scenario>Run 20 workers that acquire, hold briefly, and release on a limit-5 semaphore.</scenario>
+    /// <behavior>The successful release count equals the successful acquire count.</behavior>
     [Fact]
     public async Task ParallelAcquireAndRelease_MaintainsInvariant()
     {
@@ -156,6 +164,10 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
         successfulReleases.ShouldBe(successfulAcquires);
     }
 
+    /// <summary>When workers retry under contention, then most eventually acquire a lease.</summary>
+    /// <intent>Verify retries succeed with short TTLs under high contention.</intent>
+    /// <scenario>Run 10 workers with retries against a limit-2 semaphore.</scenario>
+    /// <behavior>More than half of workers report successful acquisition.</behavior>
     [Fact]
     public async Task HighContentionAcquire_EventuallySucceeds()
     {
@@ -202,6 +214,10 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
         successCount.ShouldBeGreaterThan(workerCount / 2); // At least half should succeed
     }
 
+    /// <summary>When limits are updated concurrently, then the semaphore remains usable.</summary>
+    /// <intent>Ensure concurrent limit updates do not corrupt semaphore state.</intent>
+    /// <scenario>Apply multiple UpdateLimitAsync calls in parallel, then attempt an acquire.</scenario>
+    /// <behavior>The acquire returns Acquired.</behavior>
     [Fact]
     public async Task ConcurrentUpdateLimit_DoesNotCorruptState()
     {
@@ -237,6 +253,10 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
         result.Status.ShouldBe(SemaphoreAcquireStatus.Acquired);
     }
 
+    /// <summary>When reaping and acquiring concurrently, then deletions stay within expired count and acquires stay under limit.</summary>
+    /// <intent>Verify reaping and acquiring interleave safely.</intent>
+    /// <scenario>Create expired leases, then run ReapExpiredAsync alongside new acquire attempts.</scenario>
+    /// <behavior>The deleted count is at most the expired leases and acquired count does not exceed the limit.</behavior>
     [Fact]
     public async Task ConcurrentReapAndAcquire_MaintainsCorrectness()
     {
@@ -290,6 +310,10 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
         acquired.ShouldBeLessThanOrEqualTo(limit); // Never exceed limit
     }
 
+    /// <summary>When acquiring concurrently, then fencing counters are unique and strictly increasing.</summary>
+    /// <intent>Ensure fencing counters remain ordered under concurrency.</intent>
+    /// <scenario>Run 20 parallel acquires and collect fencing counters.</scenario>
+    /// <behavior>All counters are unique and strictly increasing when ordered.</behavior>
     [Fact]
     public async Task FencingCounters_StrictlyIncreasingUnderConcurrency()
     {
@@ -331,6 +355,10 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
         }
     }
 
+    /// <summary>When leases are renewed with jitter and pauses, then all renewals succeed.</summary>
+    /// <intent>Validate renewals tolerate intermittent delays.</intent>
+    /// <scenario>Acquire three leases and renew each with jitter and a simulated GC pause.</scenario>
+    /// <behavior>Every renewal result reports Renewed.</behavior>
     [Fact]
     public async Task Renewals_WithIntermittentGcPausesMaintainLeases()
     {
@@ -395,6 +423,10 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
         }
     }
 
+    /// <summary>When the semaphore is saturated, then contenders are backpressured until capacity returns.</summary>
+    /// <intent>Ensure contention produces backpressure and recovery once released.</intent>
+    /// <scenario>Hold a lease while contenders retry, then release and attempt a recovery acquire.</scenario>
+    /// <behavior>NotAcquired attempts occur and the recovery acquire succeeds.</behavior>
     [Fact]
     public async Task StarvedAcquisition_AppliesBackpressureUntilCapacityReturns()
     {

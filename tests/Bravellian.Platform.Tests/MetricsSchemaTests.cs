@@ -36,6 +36,10 @@ public sealed class MetricsSchemaTests : SqlServerTestBase
         await DatabaseSchemaManager.EnsureMetricsSchemaAsync(ConnectionString).ConfigureAwait(false);
     }
 
+    /// <summary>When the metrics schema is deployed, then the MetricDef table exists in the infra schema.</summary>
+    /// <intent>Verify the schema deployment creates the metric definition table.</intent>
+    /// <scenario>Given EnsureMetricsSchemaAsync has run and a SQL connection is open.</scenario>
+    /// <behavior>Then the information schema query returns one MetricDef table.</behavior>
     [Fact]
     public async Task MetricDef_Table_Should_Exist()
     {
@@ -48,6 +52,10 @@ public sealed class MetricsSchemaTests : SqlServerTestBase
         Assert.Equal(1, exists);
     }
 
+    /// <summary>When the metrics schema is deployed, then the MetricSeries table exists in the infra schema.</summary>
+    /// <intent>Verify the schema deployment creates the metric series table.</intent>
+    /// <scenario>Given EnsureMetricsSchemaAsync has run and a SQL connection is open.</scenario>
+    /// <behavior>Then the information schema query returns one MetricSeries table.</behavior>
     [Fact]
     public async Task MetricSeries_Table_Should_Exist()
     {
@@ -60,6 +68,10 @@ public sealed class MetricsSchemaTests : SqlServerTestBase
         Assert.Equal(1, exists);
     }
 
+    /// <summary>When the metrics schema is deployed, then the MetricPointMinute table exists in the infra schema.</summary>
+    /// <intent>Verify the schema deployment creates the minute-bucket metric points table.</intent>
+    /// <scenario>Given EnsureMetricsSchemaAsync has run and a SQL connection is open.</scenario>
+    /// <behavior>Then the information schema query returns one MetricPointMinute table.</behavior>
     [Fact]
     public async Task MetricPointMinute_Table_Should_Exist()
     {
@@ -72,6 +84,10 @@ public sealed class MetricsSchemaTests : SqlServerTestBase
         Assert.Equal(1, exists);
     }
 
+    /// <summary>When SpUpsertSeries executes with a new series definition, then it returns a positive series id.</summary>
+    /// <intent>Confirm the series upsert procedure creates or locates a series record.</intent>
+    /// <scenario>Given a SQL connection and parameters for a new metric series.</scenario>
+    /// <behavior>Then the output @SeriesId is greater than zero.</behavior>
     [Fact]
     public async Task SpUpsertSeries_Should_Create_Series()
     {
@@ -95,6 +111,10 @@ public sealed class MetricsSchemaTests : SqlServerTestBase
         Assert.True(seriesId > 0);
     }
 
+    /// <summary>When SpUpsertMetricPointMinute is called twice for the same bucket, then the row is updated additively.</summary>
+    /// <intent>Validate the minute-bucket upsert merges sums, counts, and min/max/last values.</intent>
+    /// <scenario>Given an existing series id and two upserts for the same bucket start time.</scenario>
+    /// <behavior>Then the MetricPointMinute row reflects summed counts, min/max, and last value.</behavior>
     [Fact(Skip = "TODO: Debug SP_GETAPPLOCK behavior in test environment")]
     public async Task SpUpsertMetricPointMinute_Should_Insert_And_Update()
     {

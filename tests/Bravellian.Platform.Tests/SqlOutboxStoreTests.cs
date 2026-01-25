@@ -45,6 +45,10 @@ public class SqlOutboxStoreTests : SqlServerTestBase
         outboxStore = new SqlOutboxStore(Options.Create(defaultOptions), timeProvider, logger);
     }
 
+    /// <summary>When no due messages exist, then ClaimDueAsync returns an empty list.</summary>
+    /// <intent>Verify the outbox store does not return items when the queue is empty.</intent>
+    /// <scenario>Given an empty outbox table and a SqlOutboxStore instance.</scenario>
+    /// <behavior>Then ClaimDueAsync returns zero messages.</behavior>
     [Fact]
     public async Task ClaimDueAsync_WithNoMessages_ReturnsEmptyList()
     {
@@ -55,6 +59,10 @@ public class SqlOutboxStoreTests : SqlServerTestBase
         messages.Count.ShouldBe(0);
     }
 
+    /// <summary>When a due message exists, then ClaimDueAsync returns it with expected fields.</summary>
+    /// <intent>Ensure due outbox rows are claimed and materialized correctly.</intent>
+    /// <scenario>Given a ready outbox row created five minutes ago.</scenario>
+    /// <behavior>Then ClaimDueAsync returns one message with matching id, topic, and payload.</behavior>
     [Fact]
     public async Task ClaimDueAsync_WithDueMessages_ReturnsMessages()
     {
@@ -87,6 +95,10 @@ public class SqlOutboxStoreTests : SqlServerTestBase
         messages.First().Payload.ShouldBe("test payload");
     }
 
+    /// <summary>When a message is scheduled for the future, then ClaimDueAsync does not return it.</summary>
+    /// <intent>Verify scheduled messages are not claimed before their due time.</intent>
+    /// <scenario>Given a ready outbox row with DueTimeUtc set in the future.</scenario>
+    /// <behavior>Then ClaimDueAsync returns an empty list.</behavior>
     [Fact]
     public async Task ClaimDueAsync_WithFutureMessages_ReturnsEmpty()
     {
@@ -117,6 +129,10 @@ public class SqlOutboxStoreTests : SqlServerTestBase
         messages.Count.ShouldBe(0);
     }
 
+    /// <summary>When MarkDispatchedAsync is called, then the message is marked Done and processed.</summary>
+    /// <intent>Confirm dispatch updates status and IsProcessed.</intent>
+    /// <scenario>Given a claimed outbox message id.</scenario>
+    /// <behavior>Then the row status is Done and IsProcessed is true.</behavior>
     [Fact]
     public async Task MarkDispatchedAsync_UpdatesMessage()
     {
@@ -155,6 +171,10 @@ public class SqlOutboxStoreTests : SqlServerTestBase
         ((bool)result.IsProcessed).ShouldBeTrue();
     }
 
+    /// <summary>When RescheduleAsync is called, then retry count increments and last error is recorded.</summary>
+    /// <intent>Verify rescheduling updates retry metadata and leaves the item ready.</intent>
+    /// <scenario>Given a claimed outbox message with RetryCount = 2 and a backoff delay.</scenario>
+    /// <behavior>Then RetryCount becomes 3, LastError is set, and Status is Ready.</behavior>
     [Fact]
     public async Task RescheduleAsync_UpdatesRetryCountAndNextAttempt()
     {
@@ -197,6 +217,10 @@ public class SqlOutboxStoreTests : SqlServerTestBase
         ((byte)result.Status).ShouldBe(OutboxStatus.Ready); // Should be abandoned (Status Ready)
     }
 
+    /// <summary>When FailAsync is called, then the message is marked Failed with error details.</summary>
+    /// <intent>Ensure permanent failures set status and error metadata.</intent>
+    /// <scenario>Given a claimed outbox message and an error message.</scenario>
+    /// <behavior>Then the row status is Failed and LastError/ProcessedBy are populated.</behavior>
     [Fact]
     public async Task FailAsync_MarksMessageAsFailed()
     {

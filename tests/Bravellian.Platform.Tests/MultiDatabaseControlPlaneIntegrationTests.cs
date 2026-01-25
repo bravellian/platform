@@ -40,6 +40,18 @@ public class MultiDatabaseControlPlaneIntegrationTests
         this.fixture = fixture;
     }
 
+    /// <summary>
+    /// When list-based control plane registration is built, then configuration and discovery expose all tenant databases.
+    /// </summary>
+    /// <intent>
+    /// Validate list-based control plane wiring and tenant discovery.
+    /// </intent>
+    /// <scenario>
+    /// Given two tenant databases, a control plane database, and services configured with list-based registration.
+    /// </scenario>
+    /// <behavior>
+    /// Then the configuration reflects control plane settings and discovery/store providers return all tenants.
+    /// </behavior>
     [Fact]
     public async Task ListRegistration_WiresControlPlaneAndDiscoversDatabases()
     {
@@ -72,6 +84,18 @@ public class MultiDatabaseControlPlaneIntegrationTests
         stores.Count.ShouldBe(tenants.Count);
     }
 
+    /// <summary>
+    /// When list-based multi-tenant outbox dispatch runs, then one message is processed per tenant.
+    /// </summary>
+    /// <intent>
+    /// Ensure outbox dispatch processes tenant messages with list-based registration.
+    /// </intent>
+    /// <scenario>
+    /// Given two tenant databases, a control plane database, and a host with a CapturingOutboxHandler sink.
+    /// </scenario>
+    /// <behavior>
+    /// Then each tenant payload is handled and each tenant outbox marks one row as processed.
+    /// </behavior>
     [Fact]
     public async Task OutboxDispatch_List_MultipleTenants()
     {
@@ -99,6 +123,18 @@ public class MultiDatabaseControlPlaneIntegrationTests
         await host.StopAsync(TestContext.Current.CancellationToken);
     }
 
+    /// <summary>
+    /// When list-based outbox dispatch runs for a single tenant, then the message is processed once.
+    /// </summary>
+    /// <intent>
+    /// Confirm outbox dispatch works for a single tenant using list-based registration.
+    /// </intent>
+    /// <scenario>
+    /// Given one tenant database, a control plane database, and a host with a CapturingOutboxHandler sink.
+    /// </scenario>
+    /// <behavior>
+    /// Then the tenant outbox contains one processed message.
+    /// </behavior>
     [Fact]
     public async Task OutboxDispatch_List_SingleTenant()
     {
@@ -122,6 +158,18 @@ public class MultiDatabaseControlPlaneIntegrationTests
         await host.StopAsync(TestContext.Current.CancellationToken);
     }
 
+    /// <summary>
+    /// When discovery-based multi-tenant outbox dispatch runs, then one message is processed per tenant.
+    /// </summary>
+    /// <intent>
+    /// Validate outbox dispatch for discovery-based registration across multiple tenants.
+    /// </intent>
+    /// <scenario>
+    /// Given two tenant databases, a control plane database, and a host configured with discovery-based registration.
+    /// </scenario>
+    /// <behavior>
+    /// Then each tenant outbox marks one message as processed after dispatch.
+    /// </behavior>
     [Fact(Skip = "Needs review.")]
     public async Task OutboxDispatch_Discovery_MultipleTenants()
     {
@@ -148,6 +196,18 @@ public class MultiDatabaseControlPlaneIntegrationTests
         await host.StopAsync(TestContext.Current.CancellationToken);
     }
 
+    /// <summary>
+    /// When discovery-based outbox dispatch runs for a single tenant, then the message is processed once.
+    /// </summary>
+    /// <intent>
+    /// Confirm outbox dispatch works for a single tenant using discovery-based registration.
+    /// </intent>
+    /// <scenario>
+    /// Given one tenant database, a control plane database, and a host configured with discovery-based registration.
+    /// </scenario>
+    /// <behavior>
+    /// Then the tenant outbox contains one processed message.
+    /// </behavior>
     [Fact]
     public async Task OutboxDispatch_Discovery_SingleTenant()
     {

@@ -25,6 +25,16 @@ namespace Bravellian.Platform.Tests;
 /// </summary>
 public class ControlPlaneConfigurationTests
 {
+    /// <summary>
+    /// When list-based control plane registration specifies a schema name, then configuration and semaphore options use it.
+    /// </summary>
+    /// <intent>
+    /// Verify control-plane schema settings are propagated to configuration and semaphore options.</intent>
+    /// <scenario>
+    /// Given AddPlatformMultiDatabaseWithControlPlaneAndList called with control plane options specifying SchemaName = "control".
+    /// </scenario>
+    /// <behavior>
+    /// Then PlatformConfiguration and SemaphoreOptions use the control plane schema and connection string.</behavior>
     [Fact]
     public void AddPlatformMultiDatabaseWithControlPlaneAndList_WithOptions_ConfiguresSchemaName()
     {
@@ -65,6 +75,16 @@ public class ControlPlaneConfigurationTests
         semaphoreOptions.Value.ConnectionString.ShouldBe("Server=localhost;Database=ControlPlane;");
     }
 
+    /// <summary>
+    /// When discovery-based control plane registration specifies a schema name, then configuration and semaphore options use it.
+    /// </summary>
+    /// <intent>
+    /// Verify control-plane settings flow through discovery-based registration.</intent>
+    /// <scenario>
+    /// Given AddPlatformMultiDatabaseWithControlPlaneAndDiscovery with a ListBasedDatabaseDiscovery and custom SchemaName.
+    /// </scenario>
+    /// <behavior>
+    /// Then PlatformConfiguration reflects the schema and semaphore options use the same values.</behavior>
     [Fact]
     public void AddPlatformMultiDatabaseWithControlPlaneAndDiscovery_WithOptions_ConfiguresSchemaName()
     {
@@ -108,6 +128,16 @@ public class ControlPlaneConfigurationTests
         semaphoreOptions.Value.ConnectionString.ShouldBe("Server=localhost;Database=ControlPlane;");
     }
 
+    /// <summary>
+    /// When PlatformControlPlaneOptions is created without a schema name, then it defaults to "infra".
+    /// </summary>
+    /// <intent>
+    /// Confirm control-plane options default schema aligns with platform conventions.</intent>
+    /// <scenario>
+    /// Given a PlatformControlPlaneOptions instance with only ConnectionString set.
+    /// </scenario>
+    /// <behavior>
+    /// Then SchemaName is "infra".</behavior>
     [Fact]
     public void PlatformControlPlaneOptions_DefaultSchemaName_IsDbo()
     {
@@ -121,6 +151,16 @@ public class ControlPlaneConfigurationTests
         options.SchemaName.ShouldBe("infra");
     }
 
+    /// <summary>
+    /// When the obsolete list-based control plane overload is used, then it still wires defaults correctly.
+    /// </summary>
+    /// <intent>
+    /// Ensure legacy registration paths continue to configure the control plane schema.</intent>
+    /// <scenario>
+    /// Given AddPlatformMultiDatabaseWithControlPlaneAndList called via the obsolete signature.
+    /// </scenario>
+    /// <behavior>
+    /// Then PlatformConfiguration and SemaphoreOptions default the schema to "infra".</behavior>
     [Fact]
     public void AddPlatformMultiDatabaseWithControlPlaneAndList_OldSignature_StillWorks()
     {
@@ -155,6 +195,16 @@ public class ControlPlaneConfigurationTests
         semaphoreOptions.Value.SchemaName.ShouldBe("infra");
     }
 
+    /// <summary>
+    /// When the obsolete discovery-based control plane overload is used, then it still wires defaults correctly.
+    /// </summary>
+    /// <intent>
+    /// Ensure legacy discovery registration continues to configure the control plane schema.</intent>
+    /// <scenario>
+    /// Given AddPlatformMultiDatabaseWithControlPlaneAndDiscovery called via the obsolete signature and a list-based discovery.
+    /// </scenario>
+    /// <behavior>
+    /// Then PlatformConfiguration and SemaphoreOptions default the schema to "infra".</behavior>
     [Fact]
     public void AddPlatformMultiDatabaseWithControlPlaneAndDiscovery_OldSignature_StillWorks()
     {

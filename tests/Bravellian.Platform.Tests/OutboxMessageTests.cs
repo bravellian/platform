@@ -18,6 +18,10 @@ namespace Bravellian.Platform.Tests;
 
 public class OutboxMessageTests
 {
+    /// <summary>When the OutboxMessage type is inspected, then it exposes the expected core properties.</summary>
+    /// <intent>Confirm the record exposes required outbox fields with correct types.</intent>
+    /// <scenario>Given reflection over the OutboxMessage type.</scenario>
+    /// <behavior>Then Id, Topic, Payload, and CorrelationId properties exist with expected types.</behavior>
     [Fact]
     public void OutboxMessage_IsRecord_WithCorrectProperties()
     {
@@ -50,6 +54,10 @@ public class OutboxMessageTests
         correlationIdProperty.PropertyType.ShouldBe(typeof(string));
     }
 
+    /// <summary>When OutboxMessage properties are reflected, then each property has the expected CLR type.</summary>
+    /// <intent>Validate type metadata for outbox message properties.</intent>
+    /// <scenario>Given reflection over all OutboxMessage properties.</scenario>
+    /// <behavior>Then the property types match the expected identifier, string, and timestamp types.</behavior>
     [Fact]
     public void OutboxMessage_Properties_HaveExpectedTypes()
     {
@@ -70,6 +78,10 @@ public class OutboxMessageTests
         messageType.GetProperty(nameof(OutboxMessage.DueTimeUtc))?.PropertyType.ShouldBe(typeof(DateTimeOffset?));
     }
 
+    /// <summary>When OutboxMessage is inspected, then it is a public sealed record-like class.</summary>
+    /// <intent>Verify the OutboxMessage type characteristics (public, sealed, record semantics).</intent>
+    /// <scenario>Given reflection checks against the OutboxMessage type.</scenario>
+    /// <behavior>Then the type is public, sealed, class-based, and has a virtual ToString.</behavior>
     [Fact]
     public void OutboxMessage_IsPublicSealedRecord()
     {
