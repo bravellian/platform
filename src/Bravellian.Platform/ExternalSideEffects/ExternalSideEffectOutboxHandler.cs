@@ -45,6 +45,8 @@ public abstract class ExternalSideEffectOutboxHandler<TPayload> : IOutboxHandler
             ct => ExecuteExternalAsync(context, ct),
             cancellationToken).ConfigureAwait(false);
 
+        await OnOutcomeAsync(context, outcome, cancellationToken).ConfigureAwait(false);
+
         if (outcome.Status == ExternalSideEffectOutcomeStatus.PermanentFailure)
         {
             throw new OutboxPermanentFailureException(outcome.Message ?? "External side effect failed permanently.");
@@ -79,4 +81,15 @@ public abstract class ExternalSideEffectOutboxHandler<TPayload> : IOutboxHandler
     protected abstract Task<ExternalSideEffectExecutionResult> ExecuteExternalAsync(
         ExternalSideEffectContext<TPayload> context,
         CancellationToken cancellationToken);
+
+    protected virtual Task OnOutcomeAsync(
+        ExternalSideEffectContext<TPayload> context,
+        ExternalSideEffectOutcome outcome,
+        CancellationToken cancellationToken)
+    {
+        _ = context;
+        _ = outcome;
+        _ = cancellationToken;
+        return Task.CompletedTask;
+    }
 }
