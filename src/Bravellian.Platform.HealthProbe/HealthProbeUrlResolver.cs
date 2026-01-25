@@ -24,7 +24,8 @@ internal static class HealthProbeUrlResolver
             throw new HealthProbeArgumentException($"Health probe endpoint '{resolvedName}' is not configured.");
         }
 
-        if (Uri.TryCreate(endpointValue, UriKind.Absolute, out var absoluteEndpoint))
+        if (Uri.TryCreate(endpointValue, UriKind.Absolute, out var absoluteEndpoint)
+            && !string.Equals(absoluteEndpoint.Scheme, Uri.UriSchemeFile, StringComparison.OrdinalIgnoreCase))
         {
             return new HealthProbeResolution(resolvedName, absoluteEndpoint);
         }
