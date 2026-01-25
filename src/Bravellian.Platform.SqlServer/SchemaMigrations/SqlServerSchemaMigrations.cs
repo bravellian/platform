@@ -38,6 +38,7 @@ internal static class SqlServerSchemaMigrations
     private const string SemaphoreJournalTable = "BravellianPlatform_SemaphoreJournal";
     private const string MetricsJournalTable = "BravellianPlatform_MetricsJournal";
     private const string CentralMetricsJournalTable = "BravellianPlatform_CentralMetricsJournal";
+    private const string ExternalSideEffectJournalTable = "BravellianPlatform_ExternalSideEffectsJournal";
 
     public static Task ApplyOutboxAsync(
         string connectionString,
@@ -269,6 +270,29 @@ internal static class SqlServerSchemaMigrations
             cancellationToken);
     }
 
+    public static Task ApplyExternalSideEffectsAsync(
+        string connectionString,
+        string schemaName,
+        string tableName,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        var variables = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["SchemaName"] = schemaName,
+            ["ExternalSideEffectTable"] = tableName,
+        };
+
+        return ApplyModuleAsync(
+            connectionString,
+            "ExternalSideEffects",
+            schemaName,
+            ExternalSideEffectJournalTable,
+            variables,
+            logger,
+            cancellationToken);
+    }
+
     public static IReadOnlyList<string> GetOutboxScriptsForSnapshot()
     {
         var variables = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -314,6 +338,17 @@ internal static class SqlServerSchemaMigrations
         };
 
         return GetModuleScriptsText("Fanout", variables);
+    }
+
+    public static IReadOnlyList<string> GetExternalSideEffectScriptsForSnapshot()
+    {
+        var variables = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["SchemaName"] = "infra",
+            ["ExternalSideEffectTable"] = "ExternalSideEffect",
+        };
+
+        return GetModuleScriptsText("ExternalSideEffects", variables);
     }
 
     private static Task ApplyModuleAsync(

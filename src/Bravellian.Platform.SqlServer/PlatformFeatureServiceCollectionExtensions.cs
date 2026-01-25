@@ -153,4 +153,32 @@ public static class PlatformFeatureServiceCollectionExtensions
             sp.GetService<PlatformConfiguration>(),
             enableSchemaDeployment));
     }
+
+    /// <summary>
+    /// Registers multi-database external side-effect tracking backed by <see cref="IPlatformDatabaseDiscovery"/>.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="tableName">Optional table name override. Defaults to "ExternalSideEffect".</param>
+    /// <param name="enableSchemaDeployment">Whether to deploy schemas for discovered databases.</param>
+    /// <returns>The updated service collection.</returns>
+    public static IServiceCollection AddPlatformExternalSideEffects(
+        this IServiceCollection services,
+        string tableName = "ExternalSideEffect",
+        bool enableSchemaDeployment = false)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(tableName);
+
+        services.TryAddSingleton<IExternalSideEffectStoreProvider>(sp => new PlatformExternalSideEffectStoreProvider(
+            sp.GetRequiredService<IPlatformDatabaseDiscovery>(),
+            sp.GetRequiredService<TimeProvider>(),
+            sp.GetRequiredService<ILoggerFactory>(),
+            tableName,
+            enableSchemaDeployment,
+            sp.GetService<PlatformConfiguration>()));
+
+        services.AddOptions<ExternalSideEffectCoordinatorOptions>();
+        services.TryAddSingleton<IExternalSideEffectCoordinator, ExternalSideEffectCoordinator>();
+
+        return services;
+    }
 }

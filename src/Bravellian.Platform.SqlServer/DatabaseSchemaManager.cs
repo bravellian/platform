@@ -153,6 +153,26 @@ internal static class DatabaseSchemaManager
     }
 
     /// <summary>
+    /// Ensures that the required database schema exists for external side-effect tracking.
+    /// </summary>
+    /// <param name="connectionString">The database connection string.</param>
+    /// <param name="schemaName">The schema name (default: "infra").</param>
+    /// <param name="tableName">The table name (default: "ExternalSideEffect").</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public static async Task EnsureExternalSideEffectsSchemaAsync(
+        string connectionString,
+        string schemaName = "infra",
+        string tableName = "ExternalSideEffect")
+    {
+        await SqlServerSchemaMigrations.ApplyExternalSideEffectsAsync(
+            connectionString,
+            schemaName,
+            tableName,
+            NullLogger.Instance,
+            CancellationToken.None).ConfigureAwait(false);
+    }
+
+    /// <summary>
     /// Ensures that a schema exists in the database.
     /// </summary>
     /// <param name="connection">The database connection.</param>

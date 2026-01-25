@@ -287,6 +287,18 @@ internal sealed class MultiOutboxDispatcher
             await store.MarkDispatchedAsync(message.Id, cancellationToken).ConfigureAwait(false);
             SchedulerMetrics.OutboxMessagesSent.Add(1);
         }
+        catch (OutboxPermanentFailureException ex)
+        {
+            logger.LogWarning(
+                ex,
+                "Permanent failure processing message {MessageId} with topic '{Topic}' from store '{StoreIdentifier}'. Marking as failed.",
+                message.Id,
+                message.Topic,
+                storeIdentifier);
+
+            await store.FailAsync(message.Id, ex.Message, cancellationToken).ConfigureAwait(false);
+            SchedulerMetrics.OutboxMessagesFailed.Add(1);
+        }
         catch (Exception ex)
         {
             var nextAttempt = message.RetryCount + 1;
