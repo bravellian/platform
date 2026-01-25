@@ -44,7 +44,11 @@ public sealed class PostgresCollectionFixture : IAsyncLifetime
     public async ValueTask InitializeAsync()
     {
         await postgresContainer.StartAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
-        connectionString = postgresContainer.GetConnectionString();
+        var builder = new NpgsqlConnectionStringBuilder(postgresContainer.GetConnectionString())
+        {
+            Pooling = false,
+        };
+        connectionString = builder.ConnectionString;
     }
 
     public async ValueTask DisposeAsync()
@@ -76,6 +80,7 @@ public sealed class PostgresCollectionFixture : IAsyncLifetime
         var dbBuilder = new NpgsqlConnectionStringBuilder(connectionString)
         {
             Database = dbName,
+            Pooling = false,
         };
 
         return dbBuilder.ConnectionString;

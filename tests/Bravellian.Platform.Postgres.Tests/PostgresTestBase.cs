@@ -66,7 +66,11 @@ public abstract class PostgresTestBase : IAsyncLifetime
         else
         {
             await postgresContainer!.StartAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
-            connectionString = postgresContainer.GetConnectionString();
+            var builder = new Npgsql.NpgsqlConnectionStringBuilder(postgresContainer.GetConnectionString())
+            {
+                Pooling = false,
+            };
+            connectionString = builder.ConnectionString;
         }
 
         await SetupDatabaseSchema().ConfigureAwait(false);
