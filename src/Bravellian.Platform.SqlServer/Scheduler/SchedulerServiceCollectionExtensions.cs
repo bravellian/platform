@@ -190,56 +190,6 @@ public static class SchedulerServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Registers an outbox handler for a specific topic.
-    /// </summary>
-    /// <typeparam name="THandler">The outbox handler implementation type.</typeparam>
-    /// <param name="services">The IServiceCollection to add services to.</param>
-    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
-    public static IServiceCollection AddOutboxHandler<THandler>(this IServiceCollection services)
-        where THandler : class, IOutboxHandler
-    {
-        services.AddSingleton<IOutboxHandler, THandler>();
-        return services;
-    }
-
-    /// <summary>
-    /// Registers an outbox handler using a factory function.
-    /// </summary>
-    /// <param name="services">The IServiceCollection to add services to.</param>
-    /// <param name="factory">Factory function to create the handler instance.</param>
-    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
-    public static IServiceCollection AddOutboxHandler(this IServiceCollection services, Func<IServiceProvider, IOutboxHandler> factory)
-    {
-        services.AddSingleton(factory);
-        return services;
-    }
-
-    /// <summary>
-    /// Registers an inbox handler for a specific topic.
-    /// </summary>
-    /// <typeparam name="THandler">The inbox handler implementation type.</typeparam>
-    /// <param name="services">The IServiceCollection to add services to.</param>
-    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
-    public static IServiceCollection AddInboxHandler<THandler>(this IServiceCollection services)
-        where THandler : class, IInboxHandler
-    {
-        services.AddSingleton<IInboxHandler, THandler>();
-        return services;
-    }
-
-    /// <summary>
-    /// Registers an inbox handler using a factory function.
-    /// </summary>
-    /// <param name="services">The IServiceCollection to add services to.</param>
-    /// <param name="factory">Factory function to create the handler instance.</param>
-    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
-    public static IServiceCollection AddInboxHandler(this IServiceCollection services, Func<IServiceProvider, IInboxHandler> factory)
-    {
-        services.AddSingleton(factory);
-        return services;
-    }
-
-    /// <summary>
     /// Adds SQL fanout functionality with SQL Server backend.
     /// </summary>
     /// <param name="services">The IServiceCollection to add services to.</param>
