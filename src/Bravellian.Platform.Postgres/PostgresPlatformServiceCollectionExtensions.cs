@@ -13,6 +13,7 @@
 // limitations under the License.
 
 
+using Bravellian.Platform.Metrics;
 using Bravellian.Platform.Semaphore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -513,6 +514,18 @@ public static class PostgresPlatformServiceCollectionExtensions
             sp => new PlatformFanoutRepositoryProvider(
                 sp.GetRequiredService<IPlatformDatabaseDiscovery>(),
                 sp.GetRequiredService<ILoggerFactory>()));
+
+        // Metrics
+        services.AddMetricsExporter(options =>
+        {
+            options.ServiceName = AppDomain.CurrentDomain.FriendlyName;
+            options.SchemaName = config?.ControlPlaneSchemaName ?? "infra";
+            if (!string.IsNullOrWhiteSpace(config?.ControlPlaneConnectionString))
+            {
+                options.CentralConnectionString = config.ControlPlaneConnectionString;
+            }
+        });
+        services.AddMetricsExporterHealthCheck();
     }
 }
 
