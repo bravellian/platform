@@ -191,6 +191,12 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
             database.SchemaName,
             "Outbox"));
 
+        // Deploy Outbox join schema
+        logger.LogDebug("Deploying outbox join schema to database {DatabaseName}", database.Name);
+        deploymentTasks.Add(DatabaseSchemaManager.EnsureOutboxJoinSchemaAsync(
+            database.ConnectionString,
+            database.SchemaName));
+
         // Deploy Outbox work queue schema
         deploymentTasks.Add(DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(
             database.ConnectionString,
@@ -232,6 +238,13 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
             "FanoutPolicy",
             "FanoutCursor"));
 
+        // Deploy External side effects schema
+        logger.LogDebug("Deploying external side effects schema to database {DatabaseName}", database.Name);
+        deploymentTasks.Add(DatabaseSchemaManager.EnsureExternalSideEffectsSchemaAsync(
+            database.ConnectionString,
+            database.SchemaName,
+            "ExternalSideEffect"));
+
         // Deploy Metrics schema
         logger.LogDebug("Deploying metrics schema to database {DatabaseName}", database.Name);
         deploymentTasks.Add(DatabaseSchemaManager.EnsureMetricsSchemaAsync(
@@ -252,6 +265,11 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
             options.ConnectionString,
             options.SchemaName,
             options.TableName).ConfigureAwait(false);
+
+        // Deploy outbox join schema
+        await DatabaseSchemaManager.EnsureOutboxJoinSchemaAsync(
+            options.ConnectionString,
+            options.SchemaName).ConfigureAwait(false);
 
         // Also deploy work queue schema for outbox
         await DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(
