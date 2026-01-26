@@ -13,6 +13,7 @@
 // limitations under the License.
 
 
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Npgsql;
@@ -25,9 +26,9 @@ namespace Bravellian.Platform;
 internal sealed class ConfiguredInboxWorkStoreProvider : IInboxWorkStoreProvider
 {
     private readonly IReadOnlyList<IInboxWorkStore> stores;
-    private readonly IReadOnlyDictionary<IInboxWorkStore, string> storeIdentifiers;
-    private readonly IReadOnlyDictionary<string, IInboxWorkStore> storesByKey;
-    private readonly IReadOnlyDictionary<string, IInbox> inboxesByKey;
+    private readonly Dictionary<IInboxWorkStore, string> storeIdentifiers;
+    private readonly Dictionary<string, IInboxWorkStore> storesByKey;
+    private readonly Dictionary<string, IInbox> inboxesByKey;
     private readonly IReadOnlyList<PostgresInboxOptions> inboxOptions;
     private readonly ILogger<ConfiguredInboxWorkStoreProvider> logger;
 
@@ -58,7 +59,7 @@ internal sealed class ConfiguredInboxWorkStoreProvider : IInboxWorkStoreProvider
             storesList.Add(store);
 
             // Use connection string or a custom identifier
-            var identifier = options.ConnectionString.Contains("Database=")
+            var identifier = options.ConnectionString.Contains("Database=", StringComparison.OrdinalIgnoreCase)
                 ? ExtractDatabaseName(options.ConnectionString)
                 : $"{options.SchemaName}.{options.TableName}";
 
@@ -88,6 +89,7 @@ internal sealed class ConfiguredInboxWorkStoreProvider : IInboxWorkStoreProvider
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Initialization logs failures and continues.")]
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         foreach (var options in inboxOptions)
@@ -96,7 +98,7 @@ internal sealed class ConfiguredInboxWorkStoreProvider : IInboxWorkStoreProvider
 
             if (options.EnableSchemaDeployment)
             {
-                var identifier = options.ConnectionString.Contains("Database=")
+                var identifier = options.ConnectionString.Contains("Database=", StringComparison.OrdinalIgnoreCase)
                     ? ExtractDatabaseName(options.ConnectionString)
                     : $"{options.SchemaName}.{options.TableName}";
 

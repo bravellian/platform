@@ -16,8 +16,14 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Bravellian.Platform;
 
+/// <summary>
+/// Configuration options for the Postgres scheduler.
+/// </summary>
 public class PostgresSchedulerOptions
 {
+    /// <summary>
+    /// The configuration section name for scheduler options.
+    /// </summary>
     public const string SectionName = "PostgresScheduler";
 
     /// <summary>

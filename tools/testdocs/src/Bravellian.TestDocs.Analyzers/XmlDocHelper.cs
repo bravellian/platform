@@ -89,8 +89,20 @@ internal static class XmlDocHelper
     {
         var text = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
         var line = text.Lines.GetLineFromPosition(method.SpanStart);
-        var indentationLength = line.GetFirstNonWhitespaceOffset() ?? line.Span.Length;
+        var indentationLength = GetIndentationLength(line);
         return indentationLength == 0 ? string.Empty : new string(' ', indentationLength);
+    }
+
+    private static int GetIndentationLength(TextLine line)
+    {
+        var lineText = line.ToString();
+        var offset = 0;
+        while (offset < lineText.Length && char.IsWhiteSpace(lineText[offset]))
+        {
+            offset++;
+        }
+
+        return offset;
     }
 
     public static async Task<string> GetNewLineAsync(Document document, CancellationToken cancellationToken)

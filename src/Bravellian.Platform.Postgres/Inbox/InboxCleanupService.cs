@@ -35,12 +35,23 @@ public sealed class InboxCleanupService : BackgroundService
     private readonly IDatabaseSchemaCompletion? schemaCompletion;
     private readonly ILogger<InboxCleanupService> logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="InboxCleanupService"/> class.
+    /// </summary>
+    /// <param name="options">Inbox cleanup options.</param>
+    /// <param name="mono">Monotonic clock.</param>
+    /// <param name="logger">Logger instance.</param>
+    /// <param name="schemaCompletion">Optional schema completion notifier.</param>
     public InboxCleanupService(
         IOptions<PostgresInboxOptions> options,
         IMonotonicClock mono,
         ILogger<InboxCleanupService> logger,
         IDatabaseSchemaCompletion? schemaCompletion = null)
     {
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(mono);
+        ArgumentNullException.ThrowIfNull(logger);
+
         var opts = options.Value;
         connectionString = opts.ConnectionString;
         schemaName = opts.SchemaName;
@@ -52,6 +63,12 @@ public sealed class InboxCleanupService : BackgroundService
         this.schemaCompletion = schemaCompletion;
     }
 
+    /// <summary>
+    /// Runs the cleanup loop until cancellation.
+    /// </summary>
+    /// <param name="stoppingToken">Cancellation token.</param>
+    /// <returns>A task representing the background operation.</returns>
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Cleanup loop logs failures and continues.")]
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         logger.LogInformation(

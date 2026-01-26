@@ -40,19 +40,16 @@ public sealed class WebhookEngineAdapter
     /// </summary>
     public async Task<WebhookAdapterResponse> DispatchAsync<TPayload>(WebhookAdapterRequest<TPayload> request, CancellationToken cancellationToken)
     {
-        if (request is null)
-        {
-            throw new ArgumentNullException(nameof(request));
-        }
+        ArgumentNullException.ThrowIfNull(request);
 
         if (string.IsNullOrWhiteSpace(request.Provider))
         {
-            throw new ArgumentException("Provider must be a non-empty, non-whitespace string.", nameof(request.Provider));
+            throw new ArgumentException("Provider must be a non-empty, non-whitespace string.", nameof(request));
         }
 
         if (string.IsNullOrWhiteSpace(request.EventType))
         {
-            throw new ArgumentException("EventType must be a non-empty, non-whitespace string.", nameof(request.EventType));
+            throw new ArgumentException("EventType must be a non-empty, non-whitespace string.", nameof(request));
         }
 
         var descriptor = discovery.ResolveWebhookEngine(request.Provider, request.EventType)

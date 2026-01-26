@@ -14,6 +14,13 @@
 
 namespace Bravellian.Platform;
 
+/// <summary>
+/// Encapsulates context for executing an external side effect.
+/// </summary>
+/// <typeparam name="TPayload">The payload type.</typeparam>
+/// <param name="Message">The originating outbox message.</param>
+/// <param name="Payload">The deserialized payload.</param>
+/// <param name="Request">The external side-effect request.</param>
 public sealed record ExternalSideEffectContext<TPayload>(
     OutboxMessage Message,
     TPayload Payload,

@@ -29,6 +29,13 @@ public sealed class MultiSchedulerPollingService : BackgroundService
     private readonly TimeSpan pollingInterval;
     private readonly ILogger<MultiSchedulerPollingService> logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="MultiSchedulerPollingService"/> class.
+    /// </summary>
+    /// <param name="dispatcher">Scheduler dispatcher.</param>
+    /// <param name="logger">Logger instance.</param>
+    /// <param name="pollingInterval">Optional polling interval override.</param>
+    /// <param name="schemaCompletion">Optional schema completion notifier.</param>
     public MultiSchedulerPollingService(
         MultiSchedulerDispatcher dispatcher,
         ILogger<MultiSchedulerPollingService> logger,
@@ -41,6 +48,12 @@ public sealed class MultiSchedulerPollingService : BackgroundService
         this.pollingInterval = pollingInterval ?? TimeSpan.FromSeconds(30);
     }
 
+    /// <summary>
+    /// Executes the polling loop until cancellation.
+    /// </summary>
+    /// <param name="stoppingToken">Cancellation token.</param>
+    /// <returns>A task representing the background operation.</returns>
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Polling loop logs and continues on failures.")]
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         logger.LogInformation(

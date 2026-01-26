@@ -13,6 +13,7 @@
 // limitations under the License.
 
 
+using System.Diagnostics.CodeAnalysis;
 using System.Data;
 using Microsoft.Data.SqlClient;
 
@@ -44,6 +45,7 @@ public sealed class LeaseApi
     /// <param name="leaseSeconds">The lease duration in seconds.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The result of the acquire operation.</returns>
+    [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities", Justification = "Uses stored procedure name derived from configured schema.")]
     public async Task<LeaseAcquireResult> AcquireAsync(
         string name,
         string owner,
@@ -87,6 +89,7 @@ public sealed class LeaseApi
     /// <param name="leaseSeconds">The lease duration in seconds.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The result of the renew operation.</returns>
+    [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities", Justification = "Uses stored procedure name derived from configured schema.")]
     public async Task<LeaseRenewResult> RenewAsync(
         string name,
         string owner,

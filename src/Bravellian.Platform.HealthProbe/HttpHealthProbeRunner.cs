@@ -3,6 +3,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Bravellian.Platform.HealthProbe;
 
+/// <summary>
+/// Runs HTTP-based health probes.
+/// </summary>
 public sealed class HttpHealthProbeRunner : IHealthProbeRunner
 {
     private static readonly Action<ILogger, string, string, Exception?> LogProbeStart =
@@ -39,6 +42,12 @@ public sealed class HttpHealthProbeRunner : IHealthProbeRunner
     private readonly ILogger<HttpHealthProbeRunner> logger;
     private readonly HealthProbeOptions options;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="HttpHealthProbeRunner"/> class.
+    /// </summary>
+    /// <param name="httpClientFactory">HTTP client factory.</param>
+    /// <param name="logger">Logger instance.</param>
+    /// <param name="options">Health probe options.</param>
     public HttpHealthProbeRunner(
         IHttpClientFactory httpClientFactory,
         ILogger<HttpHealthProbeRunner> logger,
@@ -53,6 +62,12 @@ public sealed class HttpHealthProbeRunner : IHealthProbeRunner
         this.options = options;
     }
 
+    /// <summary>
+    /// Runs an HTTP health probe.
+    /// </summary>
+    /// <param name="request">The probe request.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The probe result.</returns>
     public async Task<HealthProbeResult> RunAsync(HealthProbeRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -166,7 +181,7 @@ public sealed class HttpHealthProbeRunner : IHealthProbeRunner
         }
 
         var trimmed = content.TrimStart();
-        return trimmed.StartsWith("{", StringComparison.Ordinal);
+        return trimmed.StartsWith('{');
     }
 
     private static bool TryGetStatusElement(JsonElement root, out JsonElement statusElement)

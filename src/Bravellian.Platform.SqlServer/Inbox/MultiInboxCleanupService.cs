@@ -13,6 +13,7 @@
 // limitations under the License.
 
 
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Hosting;
@@ -139,6 +140,7 @@ internal sealed class MultiInboxCleanupService : BackgroundService
         return totalDeleted;
     }
 
+    [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities", Justification = "Uses stored procedure name derived from configured schema and table.")]
     private async Task<int> CleanupDatabaseAsync(IInboxWorkStore store, string identifier, CancellationToken cancellationToken)
     {
         // Extract connection details from the store

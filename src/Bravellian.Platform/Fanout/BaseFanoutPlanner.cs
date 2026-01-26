@@ -54,6 +54,7 @@ public abstract class BaseFanoutPlanner : IFanoutPlanner
         CancellationToken ct);
 
     /// <inheritdoc/>
+    [SuppressMessage("Security", "CA5394:Do not use insecure randomness", Justification = "Random jitter is used for scheduling dispersion, not security.")]
     public async Task<IReadOnlyList<FanoutSlice>> GetDueSlicesAsync(string fanoutTopic, string? workKey, CancellationToken ct)
     {
         var list = new List<FanoutSlice>();

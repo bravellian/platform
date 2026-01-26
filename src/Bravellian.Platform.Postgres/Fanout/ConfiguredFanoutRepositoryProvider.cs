@@ -13,6 +13,7 @@
 // limitations under the License.
 
 
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Npgsql;
@@ -27,10 +28,10 @@ internal sealed class ConfiguredFanoutRepositoryProvider : IFanoutRepositoryProv
 {
     private readonly IReadOnlyList<IFanoutPolicyRepository> policyRepositories;
     private readonly IReadOnlyList<IFanoutCursorRepository> cursorRepositories;
-    private readonly IReadOnlyDictionary<IFanoutPolicyRepository, string> policyIdentifiers;
-    private readonly IReadOnlyDictionary<IFanoutCursorRepository, string> cursorIdentifiers;
-    private readonly IReadOnlyDictionary<string, IFanoutPolicyRepository> policyRepositoriesByKey;
-    private readonly IReadOnlyDictionary<string, IFanoutCursorRepository> cursorRepositoriesByKey;
+    private readonly Dictionary<IFanoutPolicyRepository, string> policyIdentifiers;
+    private readonly Dictionary<IFanoutCursorRepository, string> cursorIdentifiers;
+    private readonly Dictionary<string, IFanoutPolicyRepository> policyRepositoriesByKey;
+    private readonly Dictionary<string, IFanoutCursorRepository> cursorRepositoriesByKey;
     private readonly IReadOnlyList<PostgresFanoutOptions> fanoutOptions;
     private readonly ILogger<ConfiguredFanoutRepositoryProvider> logger;
 
@@ -87,6 +88,7 @@ internal sealed class ConfiguredFanoutRepositoryProvider : IFanoutRepositoryProv
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Initialization logs failures and continues.")]
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         foreach (var options in fanoutOptions)
@@ -181,7 +183,7 @@ internal sealed class ConfiguredFanoutRepositoryProvider : IFanoutRepositoryProv
 
     private static string ExtractIdentifier(PostgresFanoutOptions options)
     {
-        return options.ConnectionString.Contains("Database=")
+        return options.ConnectionString.Contains("Database=", StringComparison.OrdinalIgnoreCase)
             ? ExtractDatabaseName(options.ConnectionString)
             : $"{options.SchemaName}.{options.PolicyTableName}";
     }

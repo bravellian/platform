@@ -5,8 +5,17 @@ using Microsoft.Extensions.Options;
 
 namespace Bravellian.Platform.HealthProbe;
 
+/// <summary>
+/// Extensions for registering health probe services.
+/// </summary>
 public static class ServiceCollectionExtensions
 {
+    /// <summary>
+    /// Registers health probe services in the dependency injection container.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="configure">Optional configuration action.</param>
+    /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddBravellianHealthProbe(
         this IServiceCollection services,
         Action<HealthProbeOptions>? configure = null)

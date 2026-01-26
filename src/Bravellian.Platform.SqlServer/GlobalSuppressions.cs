@@ -12,17 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform;
-/// <summary>
-/// Default implementation of IOutboxHandlerResolver that maps handlers by topic.
-/// </summary>
-internal sealed class OutboxHandlerResolver : IOutboxHandlerResolver
-{
-    private readonly Dictionary<string, IOutboxHandler> byTopic;
+using System.Diagnostics.CodeAnalysis;
 
-    public OutboxHandlerResolver(IEnumerable<IOutboxHandler> handlers)
-        => byTopic = handlers.ToDictionary(h => h.Topic, StringComparer.OrdinalIgnoreCase);
-
-    public bool TryGet(string topic, out IOutboxHandler handler)
-        => byTopic.TryGetValue(topic, out handler!);
-}
+[assembly: SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Background services log failures and continue.")]

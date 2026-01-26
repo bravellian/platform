@@ -46,6 +46,8 @@ public class JoinWaitHandler : IOutboxHandler
     /// <inheritdoc/>
     public async Task HandleAsync(OutboxMessage message, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(message);
+
         // Deserialize the payload
         var payload = JsonSerializer.Deserialize<JoinWaitPayload>(message.Payload);
         if (payload == null)

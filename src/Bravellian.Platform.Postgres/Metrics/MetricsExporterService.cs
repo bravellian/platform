@@ -44,6 +44,9 @@ internal sealed class MetricsExporterService : BackgroundService
         IPlatformDatabaseDiscovery databaseDiscovery,
         MetricRegistrar metricRegistrar)
     {
+        ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(databaseDiscovery);
         _logger = logger;
         _options = options.Value;
         _databaseDiscovery = databaseDiscovery;
@@ -79,6 +82,12 @@ internal sealed class MetricsExporterService : BackgroundService
     /// Gets the last error message.
     /// </summary>
     public string? LastError => _lastError;
+
+    public override void Dispose()
+    {
+        _listener.Dispose();
+        base.Dispose();
+    }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -272,7 +281,7 @@ internal sealed class MetricsExporterService : BackgroundService
                         snapshot,
                         bucketStart,
                         metricDef.Unit,
-                        metricDef.AggKind.ToString().ToLowerInvariant(),
+                        metricDef.AggKind.ToString().ToUpperInvariant(),
                         metricDef.Description,
                         cancellationToken).ConfigureAwait(false);
                 }
@@ -351,7 +360,7 @@ internal sealed class MetricsExporterService : BackgroundService
                         snapshot,
                         bucketStart,
                         metricDef.Unit,
-                        metricDef.AggKind.ToString().ToLowerInvariant(),
+                        metricDef.AggKind.ToString().ToUpperInvariant(),
                         metricDef.Description,
                         cancellationToken).ConfigureAwait(false);
                 }

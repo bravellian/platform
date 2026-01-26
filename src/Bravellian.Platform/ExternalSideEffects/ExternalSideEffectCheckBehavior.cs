@@ -14,8 +14,17 @@
 
 namespace Bravellian.Platform;
 
+/// <summary>
+/// Specifies how to handle unknown external check results.
+/// </summary>
 public enum ExternalSideEffectCheckBehavior
 {
+    /// <summary>
+    /// Schedule a retry when the check is inconclusive.
+    /// </summary>
     RetryLater = 0,
+    /// <summary>
+    /// Continue execution even when the check is inconclusive.
+    /// </summary>
     ExecuteAnyway = 1,
 }

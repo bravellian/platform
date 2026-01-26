@@ -27,7 +27,7 @@ public sealed class ObservabilityOptions
     /// <summary>
     /// Gets or sets a value indicating whether logging is enabled. Default: false.
     /// </summary>
-    public bool EnableLogging { get; set; } = false;
+    public bool EnableLogging { get; set; }
 
     /// <summary>
     /// Gets or sets the metrics prefix. Default: "bravellian.platform".

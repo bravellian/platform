@@ -45,7 +45,7 @@ public class PostgresSystemLeaseOptions
     /// Gets or sets a value indicating whether to use a short advisory-lock gate to reduce contention.
     /// Default is false.
     /// </summary>
-    public bool UseGate { get; set; } = false;
+    public bool UseGate { get; set; }
 
     /// <summary>
     /// Gets or sets the timeout in milliseconds for the advisory-lock gate.

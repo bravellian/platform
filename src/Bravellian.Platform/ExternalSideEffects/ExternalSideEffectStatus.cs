@@ -14,10 +14,26 @@
 
 namespace Bravellian.Platform;
 
+/// <summary>
+/// Describes the persisted status of an external side effect.
+/// </summary>
+[SuppressMessage("Design", "CA1028:Enum Storage should be Int32", Justification = "Stored as byte for persistence compactness.")]
 public enum ExternalSideEffectStatus : byte
 {
+    /// <summary>
+    /// The side effect is pending execution.
+    /// </summary>
     Pending = 0,
+    /// <summary>
+    /// The side effect is currently in flight.
+    /// </summary>
     InFlight = 1,
+    /// <summary>
+    /// The side effect completed successfully.
+    /// </summary>
     Succeeded = 2,
+    /// <summary>
+    /// The side effect failed.
+    /// </summary>
     Failed = 3,
 }

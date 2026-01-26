@@ -246,7 +246,7 @@ public sealed class ModuleSystemTests
 
         public IEnumerable<string> GetOptionalConfigurationKeys() => Array.Empty<string>();
 
-        public void LoadConfiguration(IReadOnlyDictionary<string, string> required, IReadOnlyDictionary<string, string> optional)
+        public void LoadConfiguration(IReadOnlyDictionary<string, string> required, IReadOnlyDictionary<string, string> optionalConfiguration)
         {
         }
 
@@ -278,7 +278,7 @@ public sealed class ModuleSystemTests
 
         public IEnumerable<string> GetOptionalConfigurationKeys() => Array.Empty<string>();
 
-        public void LoadConfiguration(IReadOnlyDictionary<string, string> required, IReadOnlyDictionary<string, string> optional)
+        public void LoadConfiguration(IReadOnlyDictionary<string, string> required, IReadOnlyDictionary<string, string> optionalConfiguration)
         {
         }
 
@@ -308,7 +308,7 @@ public sealed class ModuleSystemTests
 
         public IEnumerable<string> GetOptionalConfigurationKeys() => Array.Empty<string>();
 
-        public void LoadConfiguration(IReadOnlyDictionary<string, string> required, IReadOnlyDictionary<string, string> optional)
+        public void LoadConfiguration(IReadOnlyDictionary<string, string> required, IReadOnlyDictionary<string, string> optionalConfiguration)
         {
         }
 
@@ -333,7 +333,7 @@ public sealed class ModuleSystemTests
 
         public IEnumerable<string> GetOptionalConfigurationKeys() => Array.Empty<string>();
 
-        public void LoadConfiguration(IReadOnlyDictionary<string, string> required, IReadOnlyDictionary<string, string> optional)
+        public void LoadConfiguration(IReadOnlyDictionary<string, string> required, IReadOnlyDictionary<string, string> optionalConfiguration)
         {
         }
 
@@ -365,7 +365,7 @@ public sealed class ModuleSystemTests
 
         public IEnumerable<string> GetOptionalConfigurationKeys() => Array.Empty<string>();
 
-        public void LoadConfiguration(IReadOnlyDictionary<string, string> required, IReadOnlyDictionary<string, string> optional)
+        public void LoadConfiguration(IReadOnlyDictionary<string, string> required, IReadOnlyDictionary<string, string> optionalConfiguration)
         {
         }
 
@@ -405,7 +405,7 @@ public sealed class ModuleSystemTests
 
         public IEnumerable<string> GetOptionalConfigurationKeys() => Array.Empty<string>();
 
-        public void LoadConfiguration(IReadOnlyDictionary<string, string> required, IReadOnlyDictionary<string, string> optional)
+        public void LoadConfiguration(IReadOnlyDictionary<string, string> required, IReadOnlyDictionary<string, string> optionalConfiguration)
         {
         }
 

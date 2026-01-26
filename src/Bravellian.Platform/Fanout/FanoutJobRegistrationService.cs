@@ -41,6 +41,7 @@ internal sealed class FanoutJobRegistrationService : BackgroundService
     }
 
     /// <inheritdoc/>
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Registration failures are logged without crashing the host.")]
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         try
@@ -94,6 +95,7 @@ internal sealed class FanoutJobRegistrationService : BackgroundService
         }
     }
 
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Policy upsert logs failures and continues.")]
     private async Task EnsurePolicyAsync(IFanoutPolicyRepository policyRepository, CancellationToken cancellationToken)
     {
         try

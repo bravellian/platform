@@ -14,11 +14,23 @@
 
 namespace Bravellian.Platform;
 
+/// <summary>
+/// Configuration options for coordinating external side effects.
+/// </summary>
 public sealed class ExternalSideEffectCoordinatorOptions
 {
+    /// <summary>
+    /// Gets or sets the lock duration for an execution attempt.
+    /// </summary>
     public TimeSpan AttemptLockDuration { get; set; } = TimeSpan.FromMinutes(2);
 
+    /// <summary>
+    /// Gets or sets the minimum interval between external checks.
+    /// </summary>
     public TimeSpan MinimumCheckInterval { get; set; } = TimeSpan.FromSeconds(30);
 
+    /// <summary>
+    /// Gets or sets the behavior when external checks are inconclusive.
+    /// </summary>
     public ExternalSideEffectCheckBehavior UnknownCheckBehavior { get; set; } = ExternalSideEffectCheckBehavior.RetryLater;
 }

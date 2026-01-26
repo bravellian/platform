@@ -16,8 +16,14 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Bravellian.Platform;
 
+/// <summary>
+/// Configuration options for the SQL Server scheduler.
+/// </summary>
 public class SqlSchedulerOptions
 {
+    /// <summary>
+    /// The configuration section name for scheduler options.
+    /// </summary>
     public const string SectionName = "SqlScheduler";
 
     /// <summary>

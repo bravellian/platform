@@ -22,6 +22,8 @@ namespace Bravellian.Platform.Metrics;
 /// </summary>
 public static class PostgresMetricsServiceCollectionExtensions
 {
+    private static readonly string[] MetricsTags = { "metrics", "platform" };
+
     /// <summary>
     /// Adds the metrics exporter service to the service collection.
     /// </summary>
@@ -64,7 +66,7 @@ public static class PostgresMetricsServiceCollectionExtensions
     public static IServiceCollection AddMetricsExporterHealthCheck(this IServiceCollection services)
     {
         services.AddHealthChecks()
-            .AddCheck<MetricsExporterHealthCheck>("metrics_exporter", tags: new[] { "metrics", "platform" });
+            .AddCheck<MetricsExporterHealthCheck>("metrics_exporter", tags: MetricsTags);
 
         return services;
     }

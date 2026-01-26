@@ -23,6 +23,7 @@
 		<EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
 		<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
 		<WarningsNotAsErrors>$(WarningsNotAsErrors);MA0051;MA0015</WarningsNotAsErrors>
+		<NoWarn>$(NoWarn);CS1591</NoWarn>
 	</PropertyGroup>
   
 	<ItemGroup>
@@ -66,6 +67,11 @@
 	  <PackageReference Update="Roslynator.Analyzers" Version="4.15.0" />
 	  <PackageReference Update="Roslynator.CodeAnalysis.Analyzers" Version="4.15.0" />
 	  <PackageReference Update="Roslynator.Formatting.Analyzers" Version="4.15.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Update="**/*.g.cs" NoWarn="CS1591" />
+		<Compile Update="**/*.g.i.cs" NoWarn="CS1591" />
 	</ItemGroup>
 
 </Project>

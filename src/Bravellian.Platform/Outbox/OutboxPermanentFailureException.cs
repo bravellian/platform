@@ -14,17 +14,32 @@
 
 namespace Bravellian.Platform;
 
+/// <summary>
+/// Exception thrown when an outbox handler encounters a permanent failure.
+/// </summary>
 public sealed class OutboxPermanentFailureException : Exception
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="OutboxPermanentFailureException"/> class.
+    /// </summary>
+    /// <param name="message">The exception message.</param>
     public OutboxPermanentFailureException(string message)
         : base(message)
     {
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="OutboxPermanentFailureException"/> class.
+    /// </summary>
     public OutboxPermanentFailureException() : base()
     {
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="OutboxPermanentFailureException"/> class.
+    /// </summary>
+    /// <param name="message">The exception message.</param>
+    /// <param name="innerException">The inner exception.</param>
     public OutboxPermanentFailureException(string? message, Exception? innerException) : base(message, innerException)
     {
     }

@@ -265,6 +265,7 @@ internal sealed class MultiInboxDispatcher
         }
     }
 
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Dispatcher captures handler failures for retry handling.")]
     private async Task<(bool Success, string ErrorMessage)> ProcessSingleMessageAsync(
         IInboxWorkStore store,
         string storeIdentifier,
@@ -338,6 +339,7 @@ internal sealed class MultiInboxDispatcher
         }
     }
 
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Dispatcher logs failures and continues processing.")]
     private async Task HandleFailedMessagesAsync(
         IInboxWorkStore store,
         string storeIdentifier,
@@ -411,6 +413,7 @@ internal sealed class MultiInboxDispatcher
     /// </summary>
     /// <param name="attempt">1-based attempt number.</param>
     /// <returns>Delay before next attempt.</returns>
+    [SuppressMessage("Security", "CA5394:Do not use insecure randomness", Justification = "Jitter is used for retry dispersion, not security.")]
     internal static TimeSpan DefaultBackoff(int attempt)
     {
         var baseMs = Math.Min(60_000, (int)(Math.Pow(2, Math.Min(10, attempt)) * 250)); // 250ms, 500ms, 1s, ...

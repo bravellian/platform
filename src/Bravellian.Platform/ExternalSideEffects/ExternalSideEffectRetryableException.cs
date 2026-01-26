@@ -14,17 +14,32 @@
 
 namespace Bravellian.Platform;
 
+/// <summary>
+/// Exception thrown when an external side effect should be retried.
+/// </summary>
 public sealed class ExternalSideEffectRetryableException : Exception
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ExternalSideEffectRetryableException"/> class.
+    /// </summary>
+    /// <param name="message">The exception message.</param>
     public ExternalSideEffectRetryableException(string message)
         : base(message)
     {
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ExternalSideEffectRetryableException"/> class.
+    /// </summary>
     public ExternalSideEffectRetryableException() : base()
     {
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ExternalSideEffectRetryableException"/> class.
+    /// </summary>
+    /// <param name="message">The exception message.</param>
+    /// <param name="innerException">The inner exception.</param>
     public ExternalSideEffectRetryableException(string? message, Exception? innerException) : base(message, innerException)
     {
     }

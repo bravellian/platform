@@ -14,6 +14,7 @@
 
 
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -53,6 +54,7 @@ internal sealed class PlatformInboxWorkStoreProvider : IInboxWorkStoreProvider
         this.platformConfiguration = platformConfiguration;
     }
 
+    [SuppressMessage("Performance", "CA1508:Avoid dead conditional code", Justification = "Double-checked locking for cache initialization.")]
     public async Task<IReadOnlyList<IInboxWorkStore>> GetAllStoresAsync()
     {
         if (cachedStores == null)

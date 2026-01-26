@@ -26,7 +26,11 @@ public readonly record struct MonoDeadline(double atSeconds)
     /// </summary>
     /// <param name="clock">The monotonic clock to check against.</param>
     /// <returns>True if the deadline has expired; otherwise, false.</returns>
-    public bool Expired(IMonotonicClock clock) => clock.Seconds >= atSeconds;
+    public bool Expired(IMonotonicClock clock)
+    {
+        ArgumentNullException.ThrowIfNull(clock);
+        return clock.Seconds >= atSeconds;
+    }
 
     /// <summary>
     /// Creates a new deadline that will expire after the specified time span from the current monotonic time.
@@ -34,5 +38,9 @@ public readonly record struct MonoDeadline(double atSeconds)
     /// <param name="clock">The monotonic clock to use for timing.</param>
     /// <param name="span">The time span from now when the deadline should expire.</param>
     /// <returns>A new MonoDeadline that will expire at the specified time.</returns>
-    public static MonoDeadline In(IMonotonicClock clock, TimeSpan span) => new(clock.Seconds + span.TotalSeconds);
+    public static MonoDeadline In(IMonotonicClock clock, TimeSpan span)
+    {
+        ArgumentNullException.ThrowIfNull(clock);
+        return new MonoDeadline(clock.Seconds + span.TotalSeconds);
+    }
 }

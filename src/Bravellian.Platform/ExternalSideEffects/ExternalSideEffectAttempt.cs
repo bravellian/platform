@@ -14,8 +14,17 @@
 
 namespace Bravellian.Platform;
 
+/// <summary>
+/// Represents the outcome of attempting to begin an external side-effect execution.
+/// </summary>
 public sealed record ExternalSideEffectAttempt
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ExternalSideEffectAttempt"/> class.
+    /// </summary>
+    /// <param name="decision">The attempt decision.</param>
+    /// <param name="record">The current record state.</param>
+    /// <param name="reason">Optional reason for the decision.</param>
     public ExternalSideEffectAttempt(
         ExternalSideEffectAttemptDecision decision,
         ExternalSideEffectRecord record,
@@ -26,11 +35,23 @@ public sealed record ExternalSideEffectAttempt
         Reason = reason;
     }
 
+    /// <summary>
+    /// Gets the decision for the attempt.
+    /// </summary>
     public ExternalSideEffectAttemptDecision Decision { get; }
 
+    /// <summary>
+    /// Gets the record associated with the attempt.
+    /// </summary>
     public ExternalSideEffectRecord Record { get; }
 
+    /// <summary>
+    /// Gets the reason for the decision, when available.
+    /// </summary>
     public string? Reason { get; }
 
+    /// <summary>
+    /// Gets a value indicating whether execution can proceed.
+    /// </summary>
     public bool CanExecute => Decision == ExternalSideEffectAttemptDecision.Ready;
 }

@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using DbUp;
 using DbUp.Engine;
 using DbUp.Engine.Output;
@@ -57,11 +59,13 @@ internal static class DbUpSchemaRunner
         }
     }
 
+    [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities", Justification = "Schema name is validated and quoted before execution.")]
     private static async Task EnsureSchemaExistsAsync(
         string connectionString,
         string schemaName,
         CancellationToken cancellationToken)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(schemaName);
         var sql = $"CREATE SCHEMA IF NOT EXISTS {PostgresSqlHelper.QuoteIdentifier(schemaName)};";
 
         using var connection = new NpgsqlConnection(connectionString);
@@ -82,32 +86,32 @@ internal static class DbUpSchemaRunner
 
         public void LogTrace(string format, params object[] args)
         {
-            logger.LogTrace(format, args);
+            logger.LogTrace("{Message}", string.Format(CultureInfo.InvariantCulture, format, args));
         }
 
         public void LogDebug(string format, params object[] args)
         {
-            logger.LogDebug(format, args);
+            logger.LogDebug("{Message}", string.Format(CultureInfo.InvariantCulture, format, args));
         }
 
         public void LogInformation(string format, params object[] args)
         {
-            logger.LogInformation(format, args);
+            logger.LogInformation("{Message}", string.Format(CultureInfo.InvariantCulture, format, args));
         }
 
         public void LogWarning(string format, params object[] args)
         {
-            logger.LogWarning(format, args);
+            logger.LogWarning("{Message}", string.Format(CultureInfo.InvariantCulture, format, args));
         }
 
         public void LogError(string format, params object[] args)
         {
-            logger.LogError(format, args);
+            logger.LogError("{Message}", string.Format(CultureInfo.InvariantCulture, format, args));
         }
 
         public void LogError(Exception ex, string format, params object[] args)
         {
-            logger.LogError(ex, format, args);
+            logger.LogError(ex, "{Message}", string.Format(CultureInfo.InvariantCulture, format, args));
         }
     }
 }

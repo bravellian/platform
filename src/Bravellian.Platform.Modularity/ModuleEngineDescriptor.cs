@@ -26,7 +26,15 @@ public sealed record ModuleEngineDescriptor<TContract>(
     ModuleEngineManifest Manifest,
     Func<IServiceProvider, TContract> Factory) : IModuleEngineDescriptor where TContract : notnull
 {
+    /// <summary>
+    /// Gets the contract type implemented by the engine.
+    /// </summary>
     public Type ContractType => typeof(TContract);
 
+    /// <summary>
+    /// Creates the engine instance from the service provider.
+    /// </summary>
+    /// <param name="serviceProvider">The service provider used to resolve the engine.</param>
+    /// <returns>The engine instance.</returns>
     public object? Create(IServiceProvider serviceProvider) => Factory(serviceProvider);
 }

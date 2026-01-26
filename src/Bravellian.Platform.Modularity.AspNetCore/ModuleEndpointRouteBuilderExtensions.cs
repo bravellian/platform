@@ -32,11 +32,11 @@ public static class ModuleEndpointRouteBuilderExtensions
 {
     private static readonly MethodInfo UiExecuteMethod = typeof(UiEngineAdapter)
         .GetMethods(BindingFlags.Public | BindingFlags.Instance)
-        .Single(method => method.Name == "ExecuteAsync" && method.IsGenericMethodDefinition);
+        .Single(method => string.Equals(method.Name, "ExecuteAsync", StringComparison.Ordinal) && method.IsGenericMethodDefinition);
 
     private static readonly MethodInfo WebhookDispatchMethod = typeof(WebhookEngineAdapter)
         .GetMethods(BindingFlags.Public | BindingFlags.Instance)
-        .Single(method => method.Name == "DispatchAsync" && method.IsGenericMethodDefinition);
+        .Single(method => string.Equals(method.Name, "DispatchAsync", StringComparison.Ordinal) && method.IsGenericMethodDefinition);
 
     /// <summary>
     /// Maps a generic UI engine endpoint that uses engine manifests to deserialize inputs.

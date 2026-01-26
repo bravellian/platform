@@ -17,25 +17,55 @@ using Microsoft.Extensions.Options;
 
 namespace Bravellian.Platform;
 
+/// <summary>
+/// Coordinates external side-effect execution with idempotency and retries.
+/// </summary>
 public sealed class ExternalSideEffectCoordinator : IExternalSideEffectCoordinator
 {
+    private static readonly Action<ILogger, string, string, Exception?> LogExecutionFailure =
+        LoggerMessage.Define<string, string>(
+            LogLevel.Warning,
+            new EventId(1, "ExternalSideEffectExecutionFailure"),
+            "External side-effect execution failed for {OperationName}/{IdempotencyKey}");
+
     private readonly IExternalSideEffectStoreProvider storeProvider;
     private readonly TimeProvider timeProvider;
     private readonly ExternalSideEffectCoordinatorOptions options;
     private readonly ILogger<ExternalSideEffectCoordinator> logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ExternalSideEffectCoordinator"/> class.
+    /// </summary>
+    /// <param name="storeProvider">Store provider for persistence.</param>
+    /// <param name="timeProvider">Time provider used for timestamps.</param>
+    /// <param name="options">Coordinator options.</param>
+    /// <param name="logger">Logger instance.</param>
     public ExternalSideEffectCoordinator(
         IExternalSideEffectStoreProvider storeProvider,
         TimeProvider timeProvider,
         IOptions<ExternalSideEffectCoordinatorOptions> options,
         ILogger<ExternalSideEffectCoordinator> logger)
     {
+        ArgumentNullException.ThrowIfNull(storeProvider);
+        ArgumentNullException.ThrowIfNull(timeProvider);
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(logger);
+
         this.storeProvider = storeProvider;
         this.timeProvider = timeProvider;
         this.options = options.Value;
         this.logger = logger;
     }
 
+    /// <summary>
+    /// Executes an external side effect with optional pre-checks.
+    /// </summary>
+    /// <param name="request">The external side-effect request.</param>
+    /// <param name="checkAsync">Optional check callback to verify external state.</param>
+    /// <param name="executeAsync">Execution callback for the external side effect.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The outcome of the execution.</returns>
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Coordinator maps execution failures to retry outcomes.")]
     public async Task<ExternalSideEffectOutcome> ExecuteAsync(
         ExternalSideEffectRequest request,
         Func<CancellationToken, Task<ExternalSideEffectCheckResult>>? checkAsync,
@@ -66,6 +96,7 @@ public sealed class ExternalSideEffectCoordinator : IExternalSideEffectCoordinat
 
         if (ShouldCheckExternalState(record, checkAsync, now))
         {
+            ArgumentNullException.ThrowIfNull(checkAsync);
             var checkResult = await checkAsync!(cancellationToken).ConfigureAwait(false)
                 ?? new ExternalSideEffectCheckResult(ExternalSideEffectCheckStatus.Unknown)
                 {
@@ -135,7 +166,7 @@ public sealed class ExternalSideEffectCoordinator : IExternalSideEffectCoordinat
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "External side-effect execution failed for {OperationName}/{IdempotencyKey}", request.Key.OperationName, request.Key.IdempotencyKey);
+            LogExecutionFailure(logger, request.Key.OperationName, request.Key.IdempotencyKey, ex);
             var failedAt = timeProvider.GetUtcNow();
             await store.MarkFailedAsync(request.Key, ex.Message, isPermanent: false, failedAt: failedAt, cancellationToken).ConfigureAwait(false);
             record = await store.GetAsync(request.Key, cancellationToken).ConfigureAwait(false) ?? record;

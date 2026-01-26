@@ -20,6 +20,7 @@ namespace Bravellian.Platform.Semaphore;
 /// Result of a Renew operation.
 /// </summary>
 [StructLayout(LayoutKind.Auto)]
+[SuppressMessage("Performance", "CA1815:Override equals and operator equals on value types", Justification = "Result type does not require custom equality semantics.")]
 public readonly struct SemaphoreRenewResult
 {
     /// <summary>

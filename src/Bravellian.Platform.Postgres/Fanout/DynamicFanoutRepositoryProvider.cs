@@ -372,7 +372,7 @@ internal sealed class DynamicFanoutRepositoryProvider : IFanoutRepositoryProvide
         }
     }
 
-    private PostgresFanoutOptions CreateSqlFanoutOptions(FanoutDatabaseConfig config)
+    private static PostgresFanoutOptions CreateSqlFanoutOptions(FanoutDatabaseConfig config)
     {
         return new PostgresFanoutOptions
         {
@@ -384,12 +384,12 @@ internal sealed class DynamicFanoutRepositoryProvider : IFanoutRepositoryProvide
         };
     }
 
-    private PostgresFanoutPolicyRepository CreatePolicyRepository(FanoutDatabaseConfig config)
+    private static PostgresFanoutPolicyRepository CreatePolicyRepository(FanoutDatabaseConfig config)
     {
         return new PostgresFanoutPolicyRepository(Options.Create(CreateSqlFanoutOptions(config)));
     }
 
-    private PostgresFanoutCursorRepository CreateCursorRepository(FanoutDatabaseConfig config)
+    private static PostgresFanoutCursorRepository CreateCursorRepository(FanoutDatabaseConfig config)
     {
         return new PostgresFanoutCursorRepository(Options.Create(CreateSqlFanoutOptions(config)));
     }

@@ -14,8 +14,14 @@
 
 namespace Bravellian.Platform;
 
+/// <summary>
+/// Configuration options for the SQL Server inbox.
+/// </summary>
 public class SqlInboxOptions
 {
+    /// <summary>
+    /// Gets or sets the database connection string.
+    /// </summary>
     public string ConnectionString { get; set; } = string.Empty;
 
     /// <summary>

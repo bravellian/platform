@@ -26,11 +26,21 @@ public sealed class ConfiguredSchedulerStoreProvider : ISchedulerStoreProvider
     private readonly Dictionary<string, StoreEntry> storesByIdentifier = new(StringComparer.Ordinal);
     private readonly List<ISchedulerStore> allStores = new();
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ConfiguredSchedulerStoreProvider"/> class.
+    /// </summary>
+    /// <param name="configs">Scheduler database configurations.</param>
+    /// <param name="timeProvider">Time provider.</param>
+    /// <param name="loggerFactory">Logger factory.</param>
     public ConfiguredSchedulerStoreProvider(
         IEnumerable<SchedulerDatabaseConfig> configs,
         TimeProvider timeProvider,
         ILoggerFactory loggerFactory)
     {
+        ArgumentNullException.ThrowIfNull(configs);
+        ArgumentNullException.ThrowIfNull(timeProvider);
+        ArgumentNullException.ThrowIfNull(loggerFactory);
+
         foreach (var config in configs)
         {
             var store = new PostgresSchedulerStore(
@@ -78,9 +88,11 @@ public sealed class ConfiguredSchedulerStoreProvider : ISchedulerStoreProvider
         }
     }
 
+    /// <inheritdoc/>
     public Task<IReadOnlyList<ISchedulerStore>> GetAllStoresAsync() =>
         Task.FromResult<IReadOnlyList<ISchedulerStore>>(allStores);
 
+    /// <inheritdoc/>
     public string GetStoreIdentifier(ISchedulerStore store)
     {
         foreach (var entry in storesByIdentifier.Values)
@@ -94,6 +106,7 @@ public sealed class ConfiguredSchedulerStoreProvider : ISchedulerStoreProvider
         return "Unknown";
     }
 
+    /// <inheritdoc/>
     public ISchedulerStore? GetStoreByKey(string key)
     {
         if (storesByIdentifier.TryGetValue(key, out var entry))
@@ -104,6 +117,7 @@ public sealed class ConfiguredSchedulerStoreProvider : ISchedulerStoreProvider
         return null;
     }
 
+    /// <inheritdoc/>
     public ISchedulerClient? GetSchedulerClientByKey(string key)
     {
         if (storesByIdentifier.TryGetValue(key, out var entry))
@@ -114,6 +128,7 @@ public sealed class ConfiguredSchedulerStoreProvider : ISchedulerStoreProvider
         return null;
     }
 
+    /// <inheritdoc/>
     public IOutbox? GetOutboxByKey(string key)
     {
         if (storesByIdentifier.TryGetValue(key, out var entry))

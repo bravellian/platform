@@ -22,7 +22,7 @@ namespace Bravellian.Platform;
 /// </summary>
 public sealed class RoundRobinOutboxSelectionStrategy : IOutboxSelectionStrategy
 {
-    private int currentIndex = 0;
+    private int currentIndex;
 
     /// <inheritdoc/>
     public IOutboxStore? SelectNext(
@@ -30,6 +30,8 @@ public sealed class RoundRobinOutboxSelectionStrategy : IOutboxSelectionStrategy
         IOutboxStore? lastProcessedStore,
         int lastProcessedCount)
     {
+        ArgumentNullException.ThrowIfNull(stores);
+
         if (stores.Count == 0)
         {
             return null;

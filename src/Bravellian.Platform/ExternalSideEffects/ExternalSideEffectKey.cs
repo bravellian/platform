@@ -14,8 +14,16 @@
 
 namespace Bravellian.Platform;
 
+/// <summary>
+/// Identifies an external side-effect operation and idempotency key.
+/// </summary>
 public sealed record ExternalSideEffectKey
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ExternalSideEffectKey"/> class.
+    /// </summary>
+    /// <param name="operationName">The operation name.</param>
+    /// <param name="idempotencyKey">The idempotency key.</param>
     public ExternalSideEffectKey(string operationName, string idempotencyKey)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(operationName);
@@ -25,7 +33,13 @@ public sealed record ExternalSideEffectKey
         IdempotencyKey = idempotencyKey;
     }
 
+    /// <summary>
+    /// Gets the operation name.
+    /// </summary>
     public string OperationName { get; }
 
+    /// <summary>
+    /// Gets the idempotency key.
+    /// </summary>
     public string IdempotencyKey { get; }
 }

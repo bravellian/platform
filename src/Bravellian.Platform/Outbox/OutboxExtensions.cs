@@ -42,6 +42,8 @@ public static class OutboxExtensions
         string? onFailPayload = null,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(outbox);
+
         var payload = new JoinWaitPayload
         {
             JoinId = joinId,

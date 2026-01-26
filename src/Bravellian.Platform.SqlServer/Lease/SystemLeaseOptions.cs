@@ -45,7 +45,7 @@ public class SystemLeaseOptions
     /// Gets or sets a value indicating whether gets or sets whether to use the short sp_getapplock gate to reduce contention.
     /// Default is false.
     /// </summary>
-    public bool UseGate { get; set; } = false;
+    public bool UseGate { get; set; }
 
     /// <summary>
     /// Gets or sets the timeout in milliseconds for the sp_getapplock gate.

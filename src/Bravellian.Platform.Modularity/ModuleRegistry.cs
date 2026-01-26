@@ -29,6 +29,24 @@ public static class ModuleRegistry
 
     private static readonly Dictionary<Type, IModuleDefinition> Instances = new();
 
+    private static readonly Action<ILogger, string?, Exception?> LogModuleCreateFailure =
+        LoggerMessage.Define<string?>(
+            LogLevel.Error,
+            new EventId(1, "ModuleCreateFailure"),
+            "Failed to create module instance for {ModuleType}");
+
+    private static readonly Action<ILogger, string, Exception?> LogModuleConfigurationFailure =
+        LoggerMessage.Define<string>(
+            LogLevel.Error,
+            new EventId(2, "ModuleConfigurationFailure"),
+            "Failed to load configuration for module {ModuleKey}");
+
+    private static readonly Action<ILogger, string, Exception?> LogModuleHealthCheckFailure =
+        LoggerMessage.Define<string>(
+            LogLevel.Error,
+            new EventId(3, "ModuleHealthCheckFailure"),
+            "Failed to register health checks for module {ModuleKey}");
+
     /// <summary>
     /// Registers a module type.
     /// </summary>
@@ -151,8 +169,11 @@ public static class ModuleRegistry
         }
         catch (Exception ex)
         {
-            loggerFactory?.CreateLogger(typeof(ModuleRegistry))
-                .LogError(ex, "Failed to create module instance for {ModuleType}", type.FullName);
+            var logger = loggerFactory?.CreateLogger(typeof(ModuleRegistry));
+            if (logger is not null)
+            {
+                LogModuleCreateFailure(logger, type.FullName, ex);
+            }
             throw;
         }
     }
@@ -187,8 +208,11 @@ public static class ModuleRegistry
         }
         catch (Exception ex)
         {
-            loggerFactory?.CreateLogger(typeof(ModuleRegistry))
-                .LogError(ex, "Failed to load configuration for module {ModuleKey}", module.Key);
+            var logger = loggerFactory?.CreateLogger(typeof(ModuleRegistry));
+            if (logger is not null)
+            {
+                LogModuleConfigurationFailure(logger, module.Key, ex);
+            }
             throw;
         }
     }
@@ -204,7 +228,10 @@ public static class ModuleRegistry
         }
         catch (Exception ex)
         {
-            logger?.LogError(ex, "Failed to register health checks for module {ModuleKey}", module.Key);
+            if (logger is not null)
+            {
+                LogModuleHealthCheckFailure(logger, module.Key, ex);
+            }
             throw;
         }
     }

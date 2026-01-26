@@ -14,20 +14,42 @@
 
 namespace Bravellian.Platform;
 
+/// <summary>
+/// Represents the result of executing an external side effect.
+/// </summary>
 public sealed record ExternalSideEffectExecutionResult
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ExternalSideEffectExecutionResult"/> class.
+    /// </summary>
+    /// <param name="status">The execution status.</param>
     public ExternalSideEffectExecutionResult(ExternalSideEffectExecutionStatus status)
     {
         Status = status;
     }
 
+    /// <summary>
+    /// Gets the execution status.
+    /// </summary>
     public ExternalSideEffectExecutionStatus Status { get; init; }
 
+    /// <summary>
+    /// Gets the external reference identifier when known.
+    /// </summary>
     public string? ExternalReferenceId { get; init; }
 
+    /// <summary>
+    /// Gets the external system status when known.
+    /// </summary>
     public string? ExternalStatus { get; init; }
 
+    /// <summary>
+    /// Gets the error message when execution fails.
+    /// </summary>
     public string? ErrorMessage { get; init; }
 
+    /// <summary>
+    /// Gets a value indicating whether execution succeeded.
+    /// </summary>
     public bool IsSuccess => Status == ExternalSideEffectExecutionStatus.Succeeded;
 }

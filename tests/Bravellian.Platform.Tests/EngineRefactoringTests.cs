@@ -341,7 +341,7 @@ public sealed class EngineRefactoringTests
 
         public IEnumerable<string> GetRequiredConfigurationKeys() => Array.Empty<string>();
 
-        public void LoadConfiguration(IReadOnlyDictionary<string, string> required, IReadOnlyDictionary<string, string> optional)
+        public void LoadConfiguration(IReadOnlyDictionary<string, string> required, IReadOnlyDictionary<string, string> optionalConfiguration)
         {
         }
 

@@ -27,6 +27,7 @@ internal sealed class MetricRegistrar : IMetricRegistrar
 
     public MetricRegistrar(ILogger<MetricRegistrar> logger)
     {
+        ArgumentNullException.ThrowIfNull(logger);
         _logger = logger;
         _registrations = new ConcurrentDictionary<string, MetricRegistration>(StringComparer.Ordinal);
     }
@@ -34,10 +35,7 @@ internal sealed class MetricRegistrar : IMetricRegistrar
     /// <inheritdoc/>
     public void Register(MetricRegistration metric)
     {
-        if (metric == null)
-        {
-            throw new ArgumentNullException(nameof(metric));
-        }
+        ArgumentNullException.ThrowIfNull(metric);
 
         if (string.IsNullOrWhiteSpace(metric.Name))
         {
@@ -57,10 +55,7 @@ internal sealed class MetricRegistrar : IMetricRegistrar
     /// <inheritdoc/>
     public void RegisterRange(IEnumerable<MetricRegistration> metrics)
     {
-        if (metrics == null)
-        {
-            throw new ArgumentNullException(nameof(metrics));
-        }
+        ArgumentNullException.ThrowIfNull(metrics);
 
         foreach (var metric in metrics)
         {

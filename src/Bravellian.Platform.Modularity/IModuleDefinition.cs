@@ -53,8 +53,8 @@ public interface IModuleDefinition
     /// Receives configuration values before service registration.
     /// </summary>
     /// <param name="required">Required configuration values.</param>
-    /// <param name="optional">Optional configuration values.</param>
-    void LoadConfiguration(IReadOnlyDictionary<string, string> required, IReadOnlyDictionary<string, string> optional);
+    /// <param name="optionalConfiguration">Optional configuration values.</param>
+    void LoadConfiguration(IReadOnlyDictionary<string, string> required, IReadOnlyDictionary<string, string> optionalConfiguration);
 
     /// <summary>
     /// Registers module health checks.

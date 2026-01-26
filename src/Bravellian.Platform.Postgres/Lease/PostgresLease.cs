@@ -13,6 +13,7 @@
 // limitations under the License.
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Text;
 using Dapper;
@@ -23,6 +24,7 @@ namespace Bravellian.Platform;
 /// <summary>
 /// PostgreSQL-based implementation of a distributed system lease.
 /// </summary>
+[SuppressMessage("Security", "CA5394:Do not use insecure randomness", Justification = "Jitter is used for lease renewal dispersion.")]
 internal sealed class PostgresLease : ISystemLease
 {
     private const int GateRetryDelayMs = 50;
@@ -209,6 +211,7 @@ internal sealed class PostgresLease : ISystemLease
         return await RenewLeaseAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Dispose should not throw on cleanup failures.")]
     public async ValueTask DisposeAsync()
     {
         if (isDisposed)
@@ -219,7 +222,7 @@ internal sealed class PostgresLease : ISystemLease
         isDisposed = true;
 
         await renewTimer.DisposeAsync().ConfigureAwait(false);
-        internalCts.Cancel();
+        await internalCts.CancelAsync().ConfigureAwait(false);
 
         if (!isLost)
         {
@@ -242,6 +245,7 @@ internal sealed class PostgresLease : ISystemLease
             ResourceName, OwnerToken);
     }
 
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Renewal failures mark lease as lost.")]
     private async void RenewTimerCallback(object? state)
     {
         if (isLost || isDisposed)

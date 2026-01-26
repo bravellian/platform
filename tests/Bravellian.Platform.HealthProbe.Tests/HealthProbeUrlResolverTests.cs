@@ -1,5 +1,8 @@
 namespace Bravellian.Platform.HealthProbe.Tests;
 
+/// <summary>
+/// Tests for health probe URL resolution behavior.
+/// </summary>
 public sealed class HealthProbeUrlResolverTests
 {
     /// <summary>Given a base URL with no path and a default ready endpoint, then resolution appends /ready.</summary>
@@ -7,7 +10,7 @@ public sealed class HealthProbeUrlResolverTests
     /// <scenario>Given a base URL without a path, a ready endpoint path, and no override URL.</scenario>
     /// <behavior>The resolved URL is https://example.test/ready and EndpointName is ready.</behavior>
     [Fact]
-    public void Resolve_AppendsReadyPathWhenBaseHasNoPath()
+    public void ResolveAppendsReadyPathWhenBaseHasNoPath()
     {
         var options = new HealthProbeOptions
         {
@@ -27,7 +30,7 @@ public sealed class HealthProbeUrlResolverTests
     /// <scenario>Given a base URL without a path and a live endpoint mapping.</scenario>
     /// <behavior>The resolved URL is https://example.test/live.</behavior>
     [Fact]
-    public void Resolve_AppendsLivePathWhenBaseHasNoPath()
+    public void ResolveAppendsLivePathWhenBaseHasNoPath()
     {
         var options = new HealthProbeOptions
         {
@@ -45,7 +48,7 @@ public sealed class HealthProbeUrlResolverTests
     /// <scenario>Given an endpoint configured with https://example.test/healthz.</scenario>
     /// <behavior>The resolved URL matches the configured absolute URL.</behavior>
     [Fact]
-    public void Resolve_UsesExplicitPathWhenProvided()
+    public void ResolveUsesExplicitPathWhenProvided()
     {
         var options = new HealthProbeOptions
         {
@@ -63,7 +66,7 @@ public sealed class HealthProbeUrlResolverTests
     /// <scenario>Given a base URL and a ready endpoint path without a leading slash.</scenario>
     /// <behavior>The resolved URL is https://example.test/readyz.</behavior>
     [Fact]
-    public void Resolve_NormalizesPathWhenReadyPathIsRelative()
+    public void ResolveNormalizesPathWhenReadyPathIsRelative()
     {
         var options = new HealthProbeOptions
         {
@@ -82,7 +85,7 @@ public sealed class HealthProbeUrlResolverTests
     /// <scenario>Given a configured endpoint and an explicit override URL.</scenario>
     /// <behavior>The resolved URL matches the override and EndpointName remains "deploy".</behavior>
     [Fact]
-    public void Resolve_UsesOverrideUrlWhenProvided()
+    public void ResolveUsesOverrideUrlWhenProvided()
     {
         var options = new HealthProbeOptions
         {

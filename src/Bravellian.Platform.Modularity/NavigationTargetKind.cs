@@ -19,8 +19,20 @@ namespace Bravellian.Platform.Modularity;
 /// </summary>
 public enum NavigationTargetKind
 {
+    /// <summary>
+    /// Navigate to an in-app route.
+    /// </summary>
     Route = 0,
+    /// <summary>
+    /// Open a modal or dialog surface.
+    /// </summary>
     Dialog = 1,
+    /// <summary>
+    /// Render a component in the host UI.
+    /// </summary>
     Component = 2,
+    /// <summary>
+    /// Navigate to an external URL.
+    /// </summary>
     External = 3
 }

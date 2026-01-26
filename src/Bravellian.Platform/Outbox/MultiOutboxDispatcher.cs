@@ -153,6 +153,7 @@ internal sealed class MultiOutboxDispatcher
         return await ProcessStoreAsync(selectedStore, storeIdentifier, batchSize, linkedCts.Token).ConfigureAwait(false);
     }
 
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Dispatcher logs per-message failures and continues.")]
     private async Task<int> ProcessStoreAsync(
         IOutboxStore selectedStore,
         string storeIdentifier,
@@ -232,6 +233,7 @@ internal sealed class MultiOutboxDispatcher
         return processedCount;
     }
 
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Dispatcher handles retries and failure reporting.")]
     private async Task ProcessSingleMessageAsync(
         IOutboxStore store,
         string storeIdentifier,
@@ -345,6 +347,7 @@ internal sealed class MultiOutboxDispatcher
     /// </summary>
     /// <param name="attempt">1-based attempt number.</param>
     /// <returns>Delay before next attempt.</returns>
+    [SuppressMessage("Security", "CA5394:Do not use insecure randomness", Justification = "Jitter is used for retry dispersion, not security.")]
     internal static TimeSpan DefaultBackoff(int attempt)
     {
         var baseMs = Math.Min(60_000, (int)(Math.Pow(2, Math.Min(10, attempt)) * 250)); // 250ms, 500ms, 1s, ...

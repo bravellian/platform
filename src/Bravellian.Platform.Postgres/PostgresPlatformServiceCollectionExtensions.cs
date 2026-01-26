@@ -26,8 +26,6 @@ namespace Bravellian.Platform;
 /// </summary>
 public static class PostgresPlatformServiceCollectionExtensions
 {
-    private const string PlatformConfigurationKey = "Bravellian.Platform.Configuration.Registered";
-
     /// <summary>
     /// Registers the platform for a multi-database environment without control plane.
     /// Features run across the provided list of databases using round-robin scheduling.

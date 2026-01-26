@@ -69,12 +69,6 @@ internal sealed class FanoutCoordinator : IFanoutCoordinator
 
         await using (lease.ConfigureAwait(false))
         {
-            if (lease is null)
-            {
-                logger.LogDebug("Could not acquire lease for fanout {FanoutTopic}:{WorkKey}, another instance is already running", fanoutTopic, workKey);
-                return 0;
-            }
-
             logger.LogInformation("Acquired lease for fanout {FanoutTopic}:{WorkKey}, starting planning pass", fanoutTopic, workKey);
 
             try

@@ -66,6 +66,11 @@ public sealed class DynamicSchedulerStoreProvider : ISchedulerStoreProvider, IDi
     public Task<IReadOnlyList<ISchedulerStore>> GetAllStoresAsync() =>
         GetAllStoresAsync(CancellationToken.None);
 
+    /// <summary>
+    /// Asynchronously gets all available scheduler stores that should be processed.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A read-only list of scheduler stores to poll.</returns>
     public async Task<IReadOnlyList<ISchedulerStore>> GetAllStoresAsync(CancellationToken cancellationToken = default)
     {
         // Use lock only for updating shared state, not for awaiting

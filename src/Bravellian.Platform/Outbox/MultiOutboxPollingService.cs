@@ -47,6 +47,7 @@ internal sealed class MultiOutboxPollingService : BackgroundService
         this.batchSize = batchSize;
     }
 
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Polling loop logs and continues on failures.")]
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         logger.LogInformation(

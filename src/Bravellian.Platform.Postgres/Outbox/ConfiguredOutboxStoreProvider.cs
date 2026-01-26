@@ -13,6 +13,7 @@
 // limitations under the License.
 
 
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Npgsql;
@@ -25,9 +26,9 @@ namespace Bravellian.Platform;
 internal sealed class ConfiguredOutboxStoreProvider : IOutboxStoreProvider
 {
     private readonly IReadOnlyList<IOutboxStore> stores;
-    private readonly IReadOnlyDictionary<IOutboxStore, string> storeIdentifiers;
-    private readonly IReadOnlyDictionary<string, IOutboxStore> storesByKey;
-    private readonly IReadOnlyDictionary<string, IOutbox> outboxesByKey;
+    private readonly Dictionary<IOutboxStore, string> storeIdentifiers;
+    private readonly Dictionary<string, IOutboxStore> storesByKey;
+    private readonly Dictionary<string, IOutbox> outboxesByKey;
     private readonly IReadOnlyList<PostgresOutboxOptions> outboxOptions;
     private readonly ILogger<ConfiguredOutboxStoreProvider> logger;
 
@@ -58,7 +59,7 @@ internal sealed class ConfiguredOutboxStoreProvider : IOutboxStoreProvider
             storesList.Add(store);
 
             // Use connection string or a custom identifier
-            var identifier = options.ConnectionString.Contains("Database=")
+            var identifier = options.ConnectionString.Contains("Database=", StringComparison.OrdinalIgnoreCase)
                 ? ExtractDatabaseName(options.ConnectionString)
                 : $"{options.SchemaName}.{options.TableName}";
 
@@ -81,6 +82,7 @@ internal sealed class ConfiguredOutboxStoreProvider : IOutboxStoreProvider
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Initialization logs failures and continues.")]
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         foreach (var options in outboxOptions)
@@ -89,7 +91,7 @@ internal sealed class ConfiguredOutboxStoreProvider : IOutboxStoreProvider
 
             if (options.EnableSchemaDeployment)
             {
-                var identifier = options.ConnectionString.Contains("Database=")
+                var identifier = options.ConnectionString.Contains("Database=", StringComparison.OrdinalIgnoreCase)
                     ? ExtractDatabaseName(options.ConnectionString)
                     : $"{options.SchemaName}.{options.TableName}";
 
@@ -147,6 +149,7 @@ internal sealed class ConfiguredOutboxStoreProvider : IOutboxStoreProvider
         return outboxesByKey.TryGetValue(key, out var outbox) ? outbox : null;
     }
 
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Parsing failures fall back to UnknownDB.")]
     private static string ExtractDatabaseName(string connectionString)
     {
         try

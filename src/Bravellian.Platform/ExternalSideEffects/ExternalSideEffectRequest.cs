@@ -14,8 +14,16 @@
 
 namespace Bravellian.Platform;
 
+/// <summary>
+/// Describes an external side-effect request.
+/// </summary>
 public sealed record ExternalSideEffectRequest
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ExternalSideEffectRequest"/> class.
+    /// </summary>
+    /// <param name="storeKey">The store key used to resolve persistence.</param>
+    /// <param name="key">The external side-effect key.</param>
     public ExternalSideEffectRequest(string storeKey, ExternalSideEffectKey key)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(storeKey);
@@ -23,13 +31,28 @@ public sealed record ExternalSideEffectRequest
         Key = key ?? throw new ArgumentNullException(nameof(key));
     }
 
+    /// <summary>
+    /// Gets the store key for persistence.
+    /// </summary>
     public string StoreKey { get; }
 
+    /// <summary>
+    /// Gets the external side-effect key.
+    /// </summary>
     public ExternalSideEffectKey Key { get; }
 
+    /// <summary>
+    /// Gets the correlation identifier.
+    /// </summary>
     public string? CorrelationId { get; init; }
 
+    /// <summary>
+    /// Gets the outbox message identifier.
+    /// </summary>
     public Guid? OutboxMessageId { get; init; }
 
+    /// <summary>
+    /// Gets the payload hash used for idempotency.
+    /// </summary>
     public string? PayloadHash { get; init; }
 }

@@ -32,6 +32,14 @@ public sealed class MultiSchedulerDispatcher
     private ISchedulerStore? lastProcessedStore;
     private int lastProcessedCount;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="MultiSchedulerDispatcher"/> class.
+    /// </summary>
+    /// <param name="storeProvider">Scheduler store provider.</param>
+    /// <param name="selectionStrategy">Outbox selection strategy.</param>
+    /// <param name="leaseFactoryProvider">Lease factory provider.</param>
+    /// <param name="timeProvider">Time provider.</param>
+    /// <param name="logger">Logger instance.</param>
     public MultiSchedulerDispatcher(
         ISchedulerStoreProvider storeProvider,
         IOutboxSelectionStrategy selectionStrategy,
@@ -94,13 +102,19 @@ public sealed class MultiSchedulerDispatcher
         return processedCount;
     }
 
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Dispatcher logs failures and continues processing.")]
     private async Task<int> ProcessStoreAsync(
         ISchedulerStore store,
         string storeIdentifier,
         CancellationToken cancellationToken)
     {
-        var leaseFactory = await leaseFactoryProvider.GetFactoryByKeyAsync(storeIdentifier).ConfigureAwait(false) ??
-            (await leaseFactoryProvider.GetAllFactoriesAsync().ConfigureAwait(false)).FirstOrDefault();
+        var leaseFactory = await leaseFactoryProvider.GetFactoryByKeyAsync(storeIdentifier, cancellationToken).ConfigureAwait(false);
+
+        if (leaseFactory is null)
+        {
+            var factories = await leaseFactoryProvider.GetAllFactoriesAsync(cancellationToken).ConfigureAwait(false);
+            leaseFactory = factories.Count > 0 ? factories[0] : null;
+        }
 
         if (leaseFactory == null)
         {

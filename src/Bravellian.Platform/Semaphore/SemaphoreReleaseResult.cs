@@ -17,6 +17,7 @@ namespace Bravellian.Platform.Semaphore;
 /// <summary>
 /// Result of a Release operation.
 /// </summary>
+[SuppressMessage("Performance", "CA1815:Override equals and operator equals on value types", Justification = "Result type does not require custom equality semantics.")]
 public readonly struct SemaphoreReleaseResult
 {
     /// <summary>

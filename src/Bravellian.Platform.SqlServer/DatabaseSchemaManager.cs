@@ -26,7 +26,8 @@ namespace Bravellian.Platform;
 /// </summary>
 internal static class DatabaseSchemaManager
 {
-    private static readonly Regex WhitespaceRegex = new(@"\s+", RegexOptions.Compiled);
+    private static readonly Regex WhitespaceRegex = new(@"\s+", RegexOptions.Compiled, TimeSpan.FromSeconds(1));
+    private static readonly string[] BatchSeparators = { "\nGO\n", "\nGO\r\n", "\rGO\r", "GO" };
 
     /// <summary>
     /// Ensures that the required database schema exists for the outbox functionality.
@@ -270,7 +271,7 @@ internal static class DatabaseSchemaManager
     private static async Task ExecuteScriptAsync(SqlConnection connection, string script)
     {
         // Split by GO statements and execute each batch separately
-        var batches = script.Split(new[] { "\nGO\n", "\nGO\r\n", "\rGO\r", "GO" }, StringSplitOptions.RemoveEmptyEntries);
+        var batches = script.Split(BatchSeparators, StringSplitOptions.RemoveEmptyEntries);
 
         foreach (var batch in batches)
         {
@@ -303,16 +304,16 @@ internal static class DatabaseSchemaManager
         }
 
         var normalized = NormalizeScriptsForHash(builder.ToString());
-        using var sha = SHA256.Create();
-        return Convert.ToHexString(sha.ComputeHash(Encoding.UTF8.GetBytes(normalized)));
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(normalized));
+        return Convert.ToHexString(hash);
     }
 
     private static string NormalizeScriptsForHash(string scriptsText)
     {
         // Normalize line endings to '\n' for deterministic processing
         var normalizedLineEndings = scriptsText
-            .Replace("\r\n", "\n")
-            .Replace("\r", "\n");
+            .Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Replace("\r", "\n", StringComparison.Ordinal);
 
         var resultBuilder = new StringBuilder();
         var lines = normalizedLineEndings.Split('\n');

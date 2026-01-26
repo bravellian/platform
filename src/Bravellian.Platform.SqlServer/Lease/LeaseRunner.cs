@@ -13,12 +13,14 @@
 // limitations under the License.
 
 
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 
 namespace Bravellian.Platform;
 /// <summary>
 /// A lease runner that acquires a lease and automatically renews it using monotonic timing.
 /// </summary>
+[SuppressMessage("Security", "CA5394:Do not use insecure randomness", Justification = "Jitter is used for renewal scheduling dispersion.")]
 public sealed class LeaseRunner : IAsyncDisposable
 {
     /// <summary>
@@ -132,6 +134,12 @@ public sealed class LeaseRunner : IAsyncDisposable
         ILogger? logger = null,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(leaseApi);
+        ArgumentNullException.ThrowIfNull(monotonicClock);
+        ArgumentNullException.ThrowIfNull(timeProvider);
+        ArgumentException.ThrowIfNullOrWhiteSpace(leaseName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(owner);
+
         logger ??= Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
 
         var leaseSeconds = (int)Math.Ceiling(leaseDuration.TotalSeconds);
@@ -195,7 +203,7 @@ public sealed class LeaseRunner : IAsyncDisposable
         await renewTimer.DisposeAsync().ConfigureAwait(false);
 
         // Cancel any ongoing operations
-        internalCts.Cancel();
+        await internalCts.CancelAsync().ConfigureAwait(false);
 
         logger.LogInformation("Lease runner disposed for '{LeaseName}' with owner '{Owner}'", leaseName, owner);
 
@@ -217,6 +225,7 @@ public sealed class LeaseRunner : IAsyncDisposable
         }
     }
 
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Renewal failures mark lease as lost.")]
     private async void RenewTimerCallback(object? state)
     {
         if (isLost || isDisposed)

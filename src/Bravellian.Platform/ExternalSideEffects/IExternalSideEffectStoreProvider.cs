@@ -14,11 +14,28 @@
 
 namespace Bravellian.Platform;
 
+/// <summary>
+/// Provides external side-effect stores.
+/// </summary>
 public interface IExternalSideEffectStoreProvider
 {
+    /// <summary>
+    /// Gets all configured stores.
+    /// </summary>
+    /// <returns>The list of stores.</returns>
     Task<IReadOnlyList<IExternalSideEffectStore>> GetAllStoresAsync();
 
+    /// <summary>
+    /// Gets a human readable identifier for a store.
+    /// </summary>
+    /// <param name="store">The store instance.</param>
+    /// <returns>The store identifier.</returns>
     string GetStoreIdentifier(IExternalSideEffectStore store);
 
+    /// <summary>
+    /// Gets a store by its key.
+    /// </summary>
+    /// <param name="key">The store key.</param>
+    /// <returns>The store, if found.</returns>
     IExternalSideEffectStore? GetStoreByKey(string key);
 }

@@ -22,8 +22,13 @@ using Microsoft.Extensions.Options;
 
 namespace Bravellian.Platform;
 
+/// <summary>
+/// Service collection extensions for Postgres scheduler, outbox, and fanout services.
+/// </summary>
 public static class PostgresSchedulerServiceCollectionExtensions
 {
+    private static readonly string[] SchedulerHealthCheckTags = { "database", "scheduler" };
+
     /// <summary>   
     /// Adds SQL outbox functionality to the service collection using the specified options.
     /// Configures outbox options, registers multi-outbox infrastructure, cleanup and schema deployment services as needed.
@@ -154,7 +159,7 @@ public static class PostgresSchedulerServiceCollectionExtensions
     {
         // The health check system will resolve SchedulerHealthCheck from the DI container
         // where we registered it in AddPostgresScheduler.
-        return builder.AddCheck<SchedulerHealthCheck>(name, failureStatus, tags ?? new[] { "database", "scheduler" });
+        return builder.AddCheck<SchedulerHealthCheck>(name, failureStatus, tags ?? SchedulerHealthCheckTags);
     }
 
     /// <summary>
@@ -388,6 +393,8 @@ public static class PostgresSchedulerServiceCollectionExtensions
         IEnumerable<PostgresInboxOptions> inboxOptions,
         IInboxSelectionStrategy? selectionStrategy = null)
     {
+        ArgumentNullException.ThrowIfNull(inboxOptions);
+
         var validator = new PostgresInboxOptionsValidator();
         foreach (var option in inboxOptions)
         {
@@ -601,6 +608,8 @@ public static class PostgresSchedulerServiceCollectionExtensions
         IEnumerable<PostgresOutboxOptions> outboxOptions,
         IOutboxSelectionStrategy? selectionStrategy = null)
     {
+        ArgumentNullException.ThrowIfNull(outboxOptions);
+
         var validator = new PostgresOutboxOptionsValidator();
         foreach (var option in outboxOptions)
         {

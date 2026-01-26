@@ -19,7 +19,7 @@ namespace Bravellian.Platform;
 /// </summary>
 internal sealed class InboxHandlerResolver : IInboxHandlerResolver
 {
-    private readonly IReadOnlyDictionary<string, IInboxHandler> byTopic;
+    private readonly Dictionary<string, IInboxHandler> byTopic;
 
     public InboxHandlerResolver(IEnumerable<IInboxHandler> handlers)
         => byTopic = handlers.ToDictionary(h => h.Topic, StringComparer.OrdinalIgnoreCase);

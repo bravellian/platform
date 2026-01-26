@@ -14,8 +14,17 @@
 
 namespace Bravellian.Platform;
 
+/// <summary>
+/// Represents the outcome of executing an external side effect.
+/// </summary>
 public sealed record ExternalSideEffectOutcome
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ExternalSideEffectOutcome"/> class.
+    /// </summary>
+    /// <param name="status">The outcome status.</param>
+    /// <param name="record">The current record state.</param>
+    /// <param name="message">Optional message describing the outcome.</param>
     public ExternalSideEffectOutcome(ExternalSideEffectOutcomeStatus status, ExternalSideEffectRecord record, string? message = null)
     {
         Status = status;
@@ -23,11 +32,23 @@ public sealed record ExternalSideEffectOutcome
         Message = message;
     }
 
+    /// <summary>
+    /// Gets the outcome status.
+    /// </summary>
     public ExternalSideEffectOutcomeStatus Status { get; }
 
+    /// <summary>
+    /// Gets the current record state.
+    /// </summary>
     public ExternalSideEffectRecord Record { get; }
 
+    /// <summary>
+    /// Gets the message describing the outcome.
+    /// </summary>
     public string? Message { get; }
 
+    /// <summary>
+    /// Gets a value indicating whether a retry should be scheduled.
+    /// </summary>
     public bool ShouldRetry => Status == ExternalSideEffectOutcomeStatus.RetryScheduled;
 }

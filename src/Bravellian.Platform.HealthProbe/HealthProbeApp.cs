@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -6,14 +7,30 @@ using Microsoft.Extensions.Options;
 
 namespace Bravellian.Platform.HealthProbe;
 
+/// <summary>
+/// Command-line entry points for running health probes.
+/// </summary>
 public static class HealthProbeApp
 {
+    /// <summary>
+    /// Determines whether the arguments represent a health check invocation.
+    /// </summary>
+    /// <param name="args">Command-line arguments.</param>
+    /// <returns>True when the first argument is the health check command.</returns>
     public static bool IsHealthCheckInvocation(string[] args)
     {
         ArgumentNullException.ThrowIfNull(args);
         return args.Length > 0 && args[0].Equals("healthcheck", StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// Executes a health check if invoked and returns an exit code.
+    /// </summary>
+    /// <param name="args">Command-line arguments.</param>
+    /// <param name="services">Service provider for resolving dependencies.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The exit code, or -1 when not invoked.</returns>
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "CLI entry point maps unexpected exceptions to exit codes.")]
     public static async Task<int> TryRunHealthCheckAndExitAsync(
         string[] args,
         IServiceProvider services,
@@ -33,16 +50,23 @@ public static class HealthProbeApp
         }
         catch (HealthProbeArgumentException ex)
         {
-            Console.Error.WriteLine(ex.Message);
+            await Console.Error.WriteLineAsync(ex.Message).ConfigureAwait(false);
             return HealthProbeExitCodes.InvalidArguments;
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine(ex.Message);
+            await Console.Error.WriteLineAsync(ex.Message).ConfigureAwait(false);
             return HealthProbeExitCodes.Exception;
         }
     }
 
+    /// <summary>
+    /// Runs a health check and returns the exit code.
+    /// </summary>
+    /// <param name="args">Command-line arguments.</param>
+    /// <param name="services">Service provider for resolving dependencies.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The exit code for the health check.</returns>
     public static async Task<int> RunHealthCheckAsync(
         string[] args,
         IServiceProvider services,

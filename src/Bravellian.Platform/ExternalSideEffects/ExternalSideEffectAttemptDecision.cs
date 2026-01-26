@@ -14,9 +14,21 @@
 
 namespace Bravellian.Platform;
 
+/// <summary>
+/// Describes the decision for starting an external side-effect attempt.
+/// </summary>
 public enum ExternalSideEffectAttemptDecision
 {
+    /// <summary>
+    /// The attempt may proceed.
+    /// </summary>
     Ready = 0,
+    /// <summary>
+    /// The attempt is locked by another worker.
+    /// </summary>
     Locked = 1,
+    /// <summary>
+    /// The side effect is already completed.
+    /// </summary>
     AlreadyCompleted = 2,
 }

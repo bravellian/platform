@@ -21,6 +21,7 @@ namespace Bravellian.Platform.Observability;
 /// </summary>
 public sealed class ObservabilityBuilder
 {
+    private static readonly string[] WatchdogTags = { "watchdog", "platform" };
     /// <summary>
     /// Initializes a new instance of the <see cref="ObservabilityBuilder"/> class.
     /// </summary>
@@ -114,7 +115,7 @@ public sealed class ObservabilityBuilder
     public ObservabilityBuilder AddPlatformHealthChecks()
     {
         Services.AddHealthChecks()
-            .AddCheck<WatchdogHealthCheck>("watchdog", tags: new[] { "watchdog", "platform" });
+            .AddCheck<WatchdogHealthCheck>("watchdog", tags: WatchdogTags);
         return this;
     }
 

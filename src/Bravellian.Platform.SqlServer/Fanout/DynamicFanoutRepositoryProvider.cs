@@ -372,7 +372,7 @@ internal sealed class DynamicFanoutRepositoryProvider : IFanoutRepositoryProvide
         }
     }
 
-    private SqlFanoutOptions CreateSqlFanoutOptions(FanoutDatabaseConfig config)
+    private static SqlFanoutOptions CreateSqlFanoutOptions(FanoutDatabaseConfig config)
     {
         return new SqlFanoutOptions
         {

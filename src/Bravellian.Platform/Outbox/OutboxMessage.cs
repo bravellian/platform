@@ -16,29 +16,68 @@ using Bravellian.Platform.Outbox;
 
 namespace Bravellian.Platform;
 
+/// <summary>
+/// Represents an outbox message awaiting dispatch.
+/// </summary>
 public sealed record OutboxMessage
 {
+    /// <summary>
+    /// Gets the outbox work item identifier.
+    /// </summary>
     public OutboxWorkItemIdentifier Id { get; internal init; }
 
+    /// <summary>
+    /// Gets the message payload.
+    /// </summary>
     public required string Payload { get; init; }
 
+    /// <summary>
+    /// Gets the message topic.
+    /// </summary>
     public required string Topic { get; init; }
 
+    /// <summary>
+    /// Gets the creation timestamp.
+    /// </summary>
     public DateTimeOffset CreatedAt { get; internal init; }
 
+    /// <summary>
+    /// Gets a value indicating whether the message has been processed.
+    /// </summary>
     public bool IsProcessed { get; internal init; }
 
+    /// <summary>
+    /// Gets the processed timestamp, if any.
+    /// </summary>
     public DateTimeOffset? ProcessedAt { get; internal init; }
 
+    /// <summary>
+    /// Gets the processor identifier, if any.
+    /// </summary>
     public string? ProcessedBy { get; internal init; }
 
+    /// <summary>
+    /// Gets the retry count.
+    /// </summary>
     public int RetryCount { get; internal init; }
 
+    /// <summary>
+    /// Gets the last error message, if any.
+    /// </summary>
     public string? LastError { get; internal init; }
 
+    /// <summary>
+    /// Gets the message identifier.
+    /// </summary>
     public OutboxMessageIdentifier MessageId { get; internal init; }
 
+    /// <summary>
+    /// Gets the correlation identifier.
+    /// </summary>
     public string? CorrelationId { get; internal init; }
 
+    /// <summary>
+    /// Gets the due time in UTC, when scheduled.
+    /// </summary>
     public DateTimeOffset? DueTimeUtc { get; internal init; }
 }

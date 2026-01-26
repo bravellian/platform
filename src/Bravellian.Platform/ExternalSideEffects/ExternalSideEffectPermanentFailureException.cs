@@ -14,17 +14,32 @@
 
 namespace Bravellian.Platform;
 
+/// <summary>
+/// Exception thrown when an external side effect fails permanently.
+/// </summary>
 public sealed class ExternalSideEffectPermanentFailureException : Exception
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ExternalSideEffectPermanentFailureException"/> class.
+    /// </summary>
+    /// <param name="message">The exception message.</param>
     public ExternalSideEffectPermanentFailureException(string message)
         : base(message)
     {
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ExternalSideEffectPermanentFailureException"/> class.
+    /// </summary>
     public ExternalSideEffectPermanentFailureException() : base()
     {
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ExternalSideEffectPermanentFailureException"/> class.
+    /// </summary>
+    /// <param name="message">The exception message.</param>
+    /// <param name="innerException">The inner exception.</param>
     public ExternalSideEffectPermanentFailureException(string? message, Exception? innerException) : base(message, innerException)
     {
     }

@@ -14,10 +14,25 @@
 
 namespace Bravellian.Platform;
 
+/// <summary>
+/// Describes the outcome status of an external side effect.
+/// </summary>
 public enum ExternalSideEffectOutcomeStatus
 {
+    /// <summary>
+    /// The external side effect completed successfully.
+    /// </summary>
     Completed = 0,
+    /// <summary>
+    /// The external side effect was already completed.
+    /// </summary>
     AlreadyCompleted = 1,
+    /// <summary>
+    /// A retry has been scheduled.
+    /// </summary>
     RetryScheduled = 2,
+    /// <summary>
+    /// The external side effect failed permanently.
+    /// </summary>
     PermanentFailure = 3,
 }

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 
+using System.Diagnostics.CodeAnalysis;
 using System.Data;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
@@ -21,6 +22,7 @@ namespace Bravellian.Platform;
 /// <summary>
 /// SQL Server-based implementation of a distributed system lease.
 /// </summary>
+[SuppressMessage("Security", "CA5394:Do not use insecure randomness", Justification = "Jitter is used for lease renewal dispersion.")]
 internal sealed class SqlLease : ISystemLease
 {
     private readonly string connectionString;
@@ -117,6 +119,7 @@ internal sealed class SqlLease : ISystemLease
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <param name="logger">Logger instance.</param>
     /// <returns>A lease if acquired successfully, null if the resource is already leased.</returns>
+    [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities", Justification = "Uses stored procedure name derived from configured schema.")]
     public static async Task<SqlLease?> AcquireAsync(
         string connectionString,
         string schemaName,
@@ -200,6 +203,7 @@ internal sealed class SqlLease : ISystemLease
     }
 
     /// <inheritdoc/>
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Dispose should not throw on cleanup failures.")]
     public async ValueTask DisposeAsync()
     {
         if (isDisposed)
@@ -213,7 +217,7 @@ internal sealed class SqlLease : ISystemLease
         await renewTimer.DisposeAsync().ConfigureAwait(false);
 
         // Cancel internal operations
-        internalCts.Cancel();
+        await internalCts.CancelAsync().ConfigureAwait(false);
 
         // Try to release the lease (best effort)
         if (!isLost)
@@ -237,6 +241,7 @@ internal sealed class SqlLease : ISystemLease
             ResourceName, OwnerToken);
     }
 
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Renewal failures mark lease as lost.")]
     private async void RenewTimerCallback(object? state)
     {
         if (isLost || isDisposed)
@@ -262,6 +267,7 @@ internal sealed class SqlLease : ISystemLease
         }
     }
 
+    [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities", Justification = "Uses stored procedure name derived from configured schema.")]
     private async Task<bool> RenewLeaseAsync(CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
@@ -316,6 +322,7 @@ internal sealed class SqlLease : ISystemLease
         }
     }
 
+    [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities", Justification = "Uses stored procedure name derived from configured schema.")]
     private async Task ReleaseLeaseAsync()
     {
         using var connection = new SqlConnection(connectionString);

@@ -53,9 +53,9 @@ public interface IInboxWorkStore
     /// </summary>
     /// <param name="ownerToken">Token of the worker that claimed the messages.</param>
     /// <param name="messageIds">IDs of messages to fail.</param>
-    /// <param name="error">Error message to record.</param>
+    /// <param name="errorMessage">Error message to record.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    Task FailAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<string> messageIds, string error, CancellationToken cancellationToken);
+    Task FailAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<string> messageIds, string errorMessage, CancellationToken cancellationToken);
 
     /// <summary>
     /// Reclaims expired leases, returning messages to Ready state.

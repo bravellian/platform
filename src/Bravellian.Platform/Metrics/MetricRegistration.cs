@@ -43,7 +43,7 @@ public sealed record MetricRegistration
             throw new ArgumentException("Unit cannot be null or whitespace", nameof(unit));
         }
 
-        if (!Enum.IsDefined(typeof(MetricAggregationKind), aggKind))
+        if (!Enum.IsDefined(aggKind))
         {
             throw new ArgumentException($"Invalid aggregation kind: {aggKind}", nameof(aggKind));
         }
@@ -78,5 +78,6 @@ public sealed record MetricRegistration
     /// <summary>
     /// Gets the allowed tags.
     /// </summary>
+    [SuppressMessage("Design", "CA1819:Properties should not return arrays", Justification = "Tags are stored as raw string arrays.")]
     public string[] AllowedTags { get; }
 }

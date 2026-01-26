@@ -24,6 +24,12 @@ namespace Bravellian.Platform.Modularity;
 /// </summary>
 public static class RazorModuleServiceCollectionExtensions
 {
+    private static readonly Action<ILogger, string, Exception?> LogRazorPagesRegistered =
+        LoggerMessage.Define<string>(
+            LogLevel.Information,
+            new EventId(1, "RazorPagesRegistered"),
+            "Registered Razor Pages for module {ModuleKey}");
+
     /// <summary>
     /// Adds Razor Pages configuration for registered Razor modules.
     /// </summary>
@@ -31,6 +37,8 @@ public static class RazorModuleServiceCollectionExtensions
         this IMvcBuilder builder,
         ILoggerFactory? loggerFactory = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         var modules = builder.Services
             .Where(descriptor => descriptor.ServiceType == typeof(IModuleDefinition))
             .Select(descriptor => descriptor.ImplementationInstance)
@@ -41,8 +49,11 @@ public static class RazorModuleServiceCollectionExtensions
         {
             builder.Services.Configure<RazorPagesOptions>(module.ConfigureRazorPages);
             builder.PartManager.ApplicationParts.Add(new AssemblyPart(module.GetType().Assembly));
-            loggerFactory?.CreateLogger(typeof(RazorModuleServiceCollectionExtensions))
-                .LogInformation("Registered Razor Pages for module {ModuleKey}", module.Key);
+            var logger = loggerFactory?.CreateLogger(typeof(RazorModuleServiceCollectionExtensions));
+            if (logger is not null)
+            {
+                LogRazorPagesRegistered(logger, module.Key, null);
+            }
         }
 
         return builder;

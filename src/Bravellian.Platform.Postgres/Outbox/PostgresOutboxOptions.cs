@@ -14,8 +14,14 @@
 
 namespace Bravellian.Platform;
 
+/// <summary>
+/// Configuration options for the Postgres outbox.
+/// </summary>
 public class PostgresOutboxOptions
 {
+    /// <summary>
+    /// Gets or sets the database connection string.
+    /// </summary>
     public required string ConnectionString { get; set; }
 
     /// <summary>

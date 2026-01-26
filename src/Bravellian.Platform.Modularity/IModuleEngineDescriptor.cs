@@ -19,11 +19,25 @@ namespace Bravellian.Platform.Modularity;
 /// </summary>
 public interface IModuleEngineDescriptor
 {
+    /// <summary>
+    /// Gets the module key that owns the engine.
+    /// </summary>
     string ModuleKey { get; }
 
+    /// <summary>
+    /// Gets the manifest that describes the engine.
+    /// </summary>
     ModuleEngineManifest Manifest { get; }
 
+    /// <summary>
+    /// Gets the contract type implemented by the engine.
+    /// </summary>
     Type ContractType { get; }
 
+    /// <summary>
+    /// Creates the engine instance from the service provider.
+    /// </summary>
+    /// <param name="serviceProvider">The service provider used to resolve the engine.</param>
+    /// <returns>The engine instance, or null if the factory returns null.</returns>
     object? Create(IServiceProvider serviceProvider);
 }

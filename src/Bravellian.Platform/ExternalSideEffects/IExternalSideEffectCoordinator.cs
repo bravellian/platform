@@ -14,8 +14,19 @@
 
 namespace Bravellian.Platform;
 
+/// <summary>
+/// Coordinates external side effects with idempotency guarantees.
+/// </summary>
 public interface IExternalSideEffectCoordinator
 {
+    /// <summary>
+    /// Executes the external side effect and returns the outcome.
+    /// </summary>
+    /// <param name="request">The external side-effect request.</param>
+    /// <param name="checkAsync">Optional external check callback.</param>
+    /// <param name="executeAsync">Execution callback for the external side effect.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The outcome of the execution.</returns>
     Task<ExternalSideEffectOutcome> ExecuteAsync(
         ExternalSideEffectRequest request,
         Func<CancellationToken, Task<ExternalSideEffectCheckResult>>? checkAsync,

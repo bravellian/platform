@@ -19,8 +19,20 @@ namespace Bravellian.Platform.Modularity;
 /// </summary>
 public enum ModuleSignatureAlgorithm
 {
+    /// <summary>
+    /// No signature verification is required.
+    /// </summary>
     None = 0,
+    /// <summary>
+    /// HMAC SHA-256 signature.
+    /// </summary>
     HmacSha256 = 1,
+    /// <summary>
+    /// HMAC SHA-512 signature.
+    /// </summary>
     HmacSha512 = 2,
+    /// <summary>
+    /// RSA SHA-256 signature.
+    /// </summary>
     RsaSha256 = 3
 }

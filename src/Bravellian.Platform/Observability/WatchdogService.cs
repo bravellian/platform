@@ -80,6 +80,7 @@ internal sealed class WatchdogService : BackgroundService, IWatchdog
         return new WatchdogSnapshot(lastScanAt, lastHeartbeatAt, alerts);
     }
 
+    [SuppressMessage("Security", "CA5394:Do not use insecure randomness", Justification = "Jitter timing is non-security-related.")]
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         var opts = options.Value;
@@ -115,7 +116,7 @@ internal sealed class WatchdogService : BackgroundService, IWatchdog
         }
     }
 
-    private Task DelayAsync(TimeSpan delay, CancellationToken cancellationToken)
+    private Task<bool> DelayAsync(TimeSpan delay, CancellationToken cancellationToken)
     {
         // Use TimeProvider.CreateTimer to create a delay that respects fake time
         var tcs = new TaskCompletionSource<bool>();

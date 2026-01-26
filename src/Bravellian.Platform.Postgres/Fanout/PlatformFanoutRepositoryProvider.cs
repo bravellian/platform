@@ -20,7 +20,7 @@ namespace Bravellian.Platform;
 /// <summary>
 /// Fanout repository provider that uses the unified platform database discovery.
 /// </summary>
-internal sealed class PlatformFanoutRepositoryProvider : IFanoutRepositoryProvider
+internal sealed class PlatformFanoutRepositoryProvider : IFanoutRepositoryProvider, IDisposable
 {
     private readonly IPlatformDatabaseDiscovery discovery;
     private readonly ILoggerFactory loggerFactory;
@@ -140,6 +140,11 @@ internal sealed class PlatformFanoutRepositoryProvider : IFanoutRepositoryProvid
         return cursorIdentifiers.TryGetValue(repository, out var identifier)
             ? identifier
             : "unknown";
+    }
+
+    public void Dispose()
+    {
+        initializationSemaphore.Dispose();
     }
 }
 

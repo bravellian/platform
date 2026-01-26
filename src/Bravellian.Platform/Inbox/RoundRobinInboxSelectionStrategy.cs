@@ -23,7 +23,7 @@ namespace Bravellian.Platform;
 /// </summary>
 public sealed class RoundRobinInboxSelectionStrategy : IInboxSelectionStrategy
 {
-    private int currentIndex = 0;
+    private int currentIndex;
     private readonly Lock lockObject = new();
 
     /// <inheritdoc/>
@@ -32,6 +32,8 @@ public sealed class RoundRobinInboxSelectionStrategy : IInboxSelectionStrategy
         IInboxWorkStore? lastProcessedStore,
         int lastProcessedCount)
     {
+        ArgumentNullException.ThrowIfNull(stores);
+
         lock (lockObject)
         {
             if (stores.Count == 0)

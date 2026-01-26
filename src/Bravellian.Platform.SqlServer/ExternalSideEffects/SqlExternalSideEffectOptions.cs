@@ -14,11 +14,23 @@
 
 namespace Bravellian.Platform;
 
+/// <summary>
+/// Configuration options for SQL Server external side effects.
+/// </summary>
 public sealed class SqlExternalSideEffectOptions
 {
+    /// <summary>
+    /// Gets or sets the database connection string.
+    /// </summary>
     public string ConnectionString { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Gets or sets the database schema name.
+    /// </summary>
     public string SchemaName { get; set; } = "infra";
 
+    /// <summary>
+    /// Gets or sets the table name for external side effects.
+    /// </summary>
     public string TableName { get; set; } = "ExternalSideEffect";
 }

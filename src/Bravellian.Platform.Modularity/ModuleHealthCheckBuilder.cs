@@ -23,6 +23,12 @@ namespace Bravellian.Platform.Modularity;
 /// </summary>
 public sealed class ModuleHealthCheckBuilder
 {
+    private static readonly Action<ILogger, string, Exception?> LogHealthCheckMissingBuilder =
+        LoggerMessage.Define<string>(
+            LogLevel.Warning,
+            new EventId(1, "HealthCheckMissingBuilder"),
+            "Health check '{HealthCheckName}' was registered but no IHealthChecksBuilder is available. Health check will not be active in non-ASP.NET hosts.");
+
     private readonly ILogger? logger;
 
     internal ModuleHealthCheckBuilder(IHealthChecksBuilder? builder, ILogger? logger = null)
@@ -59,7 +65,10 @@ public sealed class ModuleHealthCheckBuilder
         }
         else
         {
-            logger?.LogWarning("Health check '{HealthCheckName}' was registered but no IHealthChecksBuilder is available. Health check will not be active in non-ASP.NET hosts.", name);
+            if (logger is not null)
+            {
+                LogHealthCheckMissingBuilder(logger, name, null);
+            }
         }
     }
 }

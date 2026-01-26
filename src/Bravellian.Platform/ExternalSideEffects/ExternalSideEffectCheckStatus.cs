@@ -14,9 +14,21 @@
 
 namespace Bravellian.Platform;
 
+/// <summary>
+/// Describes the result status of an external check.
+/// </summary>
 public enum ExternalSideEffectCheckStatus
 {
+    /// <summary>
+    /// The external side effect is confirmed.
+    /// </summary>
     Confirmed = 0,
+    /// <summary>
+    /// The external side effect is not found.
+    /// </summary>
     NotFound = 1,
+    /// <summary>
+    /// The external side effect state is unknown.
+    /// </summary>
     Unknown = 2,
 }

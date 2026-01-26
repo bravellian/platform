@@ -52,7 +52,7 @@ internal static class HealthProbeUrlResolver
             return "/";
         }
 
-        return path.StartsWith("/", StringComparison.Ordinal) ? path : $"/{path}";
+        return path.StartsWith('/') ? path : $"/{path}";
     }
 
     private static string ResolveEndpointName(HealthProbeOptions options, string? endpointName)

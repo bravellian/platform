@@ -336,7 +336,7 @@ internal static class PostgresSchemaMigrations
             cancellationToken);
     }
 
-    private static IReadOnlyList<SqlScript> GetModuleScripts(string moduleName)
+    private static List<SqlScript> GetModuleScripts(string moduleName)
     {
         var assembly = Assembly.GetExecutingAssembly();
         var prefix = $"{assembly.GetName().Name}.SchemaMigrations.{moduleName}.";
@@ -349,7 +349,7 @@ internal static class PostgresSchemaMigrations
             .ToList();
     }
 
-    private static IReadOnlyList<string> GetModuleScriptsText(
+    private static List<string> GetModuleScriptsText(
         string moduleName,
         IReadOnlyDictionary<string, string> variables)
     {

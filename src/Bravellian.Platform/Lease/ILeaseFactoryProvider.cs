@@ -25,6 +25,7 @@ public interface ILeaseFactoryProvider
     /// Gets all available lease factories that should be managed.
     /// Each factory represents a separate database/tenant with its own lease table.
     /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A read-only list of lease factories to manage.</returns>
     Task<IReadOnlyList<ISystemLeaseFactory>> GetAllFactoriesAsync(CancellationToken cancellationToken = default);
 
@@ -41,6 +42,7 @@ public interface ILeaseFactoryProvider
     /// This is used for routing lease operations to the correct database.
     /// </summary>
     /// <param name="key">The routing key (e.g., tenant ID, customer ID).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The lease factory for the specified key, or null if not found.</returns>
     Task<ISystemLeaseFactory?> GetFactoryByKeyAsync(string key, CancellationToken cancellationToken = default);
 }

@@ -23,7 +23,7 @@ namespace Bravellian.Platform;
 /// </summary>
 public sealed class DrainFirstOutboxSelectionStrategy : IOutboxSelectionStrategy
 {
-    private int currentIndex = 0;
+    private int currentIndex;
 
     /// <inheritdoc/>
     public IOutboxStore? SelectNext(
@@ -31,6 +31,8 @@ public sealed class DrainFirstOutboxSelectionStrategy : IOutboxSelectionStrategy
         IOutboxStore? lastProcessedStore,
         int lastProcessedCount)
     {
+        ArgumentNullException.ThrowIfNull(stores);
+
         if (stores.Count == 0)
         {
             return null;

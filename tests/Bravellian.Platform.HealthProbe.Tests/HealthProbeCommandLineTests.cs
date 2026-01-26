@@ -2,16 +2,37 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Bravellian.Platform.HealthProbe.Tests;
 
+/// <summary>
+/// Tests for health probe command-line parsing and execution.
+/// </summary>
 public sealed class HealthProbeCommandLineTests
 {
+    private static readonly string[] DefaultArgs = { "healthcheck" };
+    private static readonly string[] DeployArgs = { "healthcheck", "deploy" };
+    private static readonly string[] UnknownFlagArgs = { "healthcheck", "--nope" };
+    private static readonly string[] OverridesArgs =
+    {
+        "healthcheck",
+        "ready",
+        "--url",
+        "https://example.test/health",
+        "--timeout",
+        "5",
+        "--header",
+        "X-Test",
+        "--apikey",
+        "secret",
+        "--insecure",
+        "--json",
+    };
     /// <summary>Given only the base command, then parsing leaves EndpointName null and JsonOutput false.</summary>
     /// <intent>Describe default parsing with no endpoint or flags.</intent>
     /// <scenario>Given arguments containing only "healthcheck".</scenario>
     /// <behavior>EndpointName remains null and JsonOutput stays false.</behavior>
     [Fact]
-    public void Parse_DefaultsToConfiguredEndpoint()
+    public void ParseDefaultsToConfiguredEndpoint()
     {
-        var commandLine = HealthProbeCommandLine.Parse(new[] { "healthcheck" });
+        var commandLine = HealthProbeCommandLine.Parse(DefaultArgs);
 
         commandLine.EndpointName.ShouldBeNull();
         commandLine.JsonOutput.ShouldBeFalse();
@@ -22,9 +43,9 @@ public sealed class HealthProbeCommandLineTests
     /// <scenario>Given arguments "healthcheck" and "deploy".</scenario>
     /// <behavior>EndpointName is "deploy".</behavior>
     [Fact]
-    public void Parse_ExplicitEndpointName()
+    public void ParseUsesExplicitEndpointName()
     {
-        var commandLine = HealthProbeCommandLine.Parse(new[] { "healthcheck", "deploy" });
+        var commandLine = HealthProbeCommandLine.Parse(DeployArgs);
 
         commandLine.EndpointName.ShouldBe("deploy");
     }
@@ -34,23 +55,9 @@ public sealed class HealthProbeCommandLineTests
     /// <scenario>Given arguments with url, timeout, header, apikey, insecure, and json options.</scenario>
     /// <behavior>EndpointName and all override properties match the provided values.</behavior>
     [Fact]
-    public void Parse_Overrides()
+    public void ParseUsesOverrides()
     {
-        var commandLine = HealthProbeCommandLine.Parse(new[]
-        {
-            "healthcheck",
-            "ready",
-            "--url",
-            "https://example.test/health",
-            "--timeout",
-            "5",
-            "--header",
-            "X-Test",
-            "--apikey",
-            "secret",
-            "--insecure",
-            "--json",
-        });
+        var commandLine = HealthProbeCommandLine.Parse(OverridesArgs);
 
         commandLine.EndpointName.ShouldBe("ready");
         commandLine.UrlOverride.ShouldNotBeNull();
@@ -67,14 +74,14 @@ public sealed class HealthProbeCommandLineTests
     /// <scenario>Given a service provider and a command line containing only "healthcheck".</scenario>
     /// <behavior>The returned exit code is InvalidArguments.</behavior>
     [Fact]
-    public async Task TryRun_ReturnsInvalidWhenUrlMissing()
+    public async Task TryRunReturnsInvalidWhenUrlMissing()
     {
         var services = new ServiceCollection()
             .AddBravellianHealthProbe()
             .BuildServiceProvider();
 
         var exitCode = await HealthProbeApp.TryRunHealthCheckAndExitAsync(
-            new[] { "healthcheck" },
+            DefaultArgs,
             services,
             CancellationToken.None);
 
@@ -86,10 +93,10 @@ public sealed class HealthProbeCommandLineTests
     /// <scenario>Given arguments including an unrecognized "--nope" option.</scenario>
     /// <behavior>Parsing throws and the message mentions an unknown option.</behavior>
     [Fact]
-    public void Parse_ThrowsForUnknownFlag()
+    public void ParseThrowsForUnknownFlag()
     {
         var exception = Should.Throw<HealthProbeArgumentException>(() =>
-            HealthProbeCommandLine.Parse(new[] { "healthcheck", "--nope" }));
+            HealthProbeCommandLine.Parse(UnknownFlagArgs));
 
         exception.Message.ShouldContain("Unknown option");
     }

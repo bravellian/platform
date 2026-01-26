@@ -4,6 +4,9 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Bravellian.Platform.HealthProbe.Tests;
 
+/// <summary>
+/// Tests for HTTP health probe execution.
+/// </summary>
 public sealed class HttpHealthProbeRunnerTests
 {
     /// <summary>When the probe handler returns 200 OK, then the result is healthy.</summary>
@@ -11,7 +14,7 @@ public sealed class HttpHealthProbeRunnerTests
     /// <scenario>Given a runner using a stub handler that returns HttpStatusCode.OK.</scenario>
     /// <behavior>The result is healthy and the exit code is Healthy.</behavior>
     [Fact]
-    public async Task RunAsync_ReturnsHealthyForSuccessStatus()
+    public async Task RunAsyncReturnsHealthyForSuccessStatus()
     {
         var runner = CreateRunner((_, _) =>
             Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)));
@@ -29,7 +32,7 @@ public sealed class HttpHealthProbeRunnerTests
     /// <scenario>Given a runner using a stub handler that returns ServiceUnavailable.</scenario>
     /// <behavior>The result is unhealthy and the exit code is Unhealthy.</behavior>
     [Fact]
-    public async Task RunAsync_ReturnsUnhealthyForFailureStatus()
+    public async Task RunAsyncReturnsUnhealthyForFailureStatus()
     {
         var runner = CreateRunner((_, _) =>
             Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)));
@@ -47,7 +50,7 @@ public sealed class HttpHealthProbeRunnerTests
     /// <scenario>Given a stubbed 200 OK response with JSON status "Unhealthy".</scenario>
     /// <behavior>The result is unhealthy and the exit code is Unhealthy.</behavior>
     [Fact]
-    public async Task RunAsync_ReturnsUnhealthyWhenJsonStatusIsUnhealthy()
+    public async Task RunAsyncReturnsUnhealthyWhenJsonStatusIsUnhealthy()
     {
         var runner = CreateRunner((_, _) =>
         {
@@ -71,7 +74,7 @@ public sealed class HttpHealthProbeRunnerTests
     /// <scenario>Given a stubbed 200 OK response with JSON status "Healthy".</scenario>
     /// <behavior>The result is healthy and the exit code is Healthy.</behavior>
     [Fact]
-    public async Task RunAsync_ReturnsHealthyWhenJsonStatusIsHealthy()
+    public async Task RunAsyncReturnsHealthyWhenJsonStatusIsHealthy()
     {
         var runner = CreateRunner((_, _) =>
         {
@@ -95,7 +98,7 @@ public sealed class HttpHealthProbeRunnerTests
     /// <scenario>Given a ServiceUnavailable response whose JSON body reports "Healthy".</scenario>
     /// <behavior>The result is unhealthy and the exit code is Unhealthy.</behavior>
     [Fact]
-    public async Task RunAsync_DoesNotTreatNonSuccessStatusAsHealthyEvenWhenJsonIsHealthy()
+    public async Task RunAsyncDoesNotTreatNonSuccessStatusAsHealthyEvenWhenJsonIsHealthy()
     {
         var runner = CreateRunner((_, _) =>
         {
@@ -119,7 +122,7 @@ public sealed class HttpHealthProbeRunnerTests
     /// <scenario>Given a runner with a short timeout and a handler that delays beyond it.</scenario>
     /// <behavior>The result is unhealthy and the exit code is Exception.</behavior>
     [Fact]
-    public async Task RunAsync_ReturnsExceptionExitCodeOnTimeout()
+    public async Task RunAsyncReturnsExceptionExitCodeOnTimeout()
     {
         var options = new HealthProbeOptions
         {
@@ -145,7 +148,7 @@ public sealed class HttpHealthProbeRunnerTests
     /// <scenario>Given options with ApiKey and ApiKeyHeaderName set in the runner.</scenario>
     /// <behavior>The outgoing request contains the configured header and value.</behavior>
     [Fact]
-    public async Task RunAsync_AddsApiKeyHeaderWhenConfigured()
+    public async Task RunAsyncAddsApiKeyHeaderWhenConfigured()
     {
         var options = new HealthProbeOptions
         {

@@ -1,5 +1,5 @@
 {
-  "generatedAtUtc": "2026-01-26T12:37:46.3093333Z",
+  "generatedAtUtc": "2026-01-26T16:16:16.6666716Z",
   "repo": {
     "defaultBranch": "main"
   },
@@ -46,7 +46,7 @@
   ],
   "tests": [
     {
-      "testId": "Bravellian.Platform.HealthProbe.Tests:Bravellian.Platform.HealthProbe.Tests.HealthProbeCommandLineTests.Parse_DefaultsToConfiguredEndpoint",
+      "testId": "Bravellian.Platform.HealthProbe.Tests:Bravellian.Platform.HealthProbe.Tests.HealthProbeCommandLineTests.ParseDefaultsToConfiguredEndpoint",
       "category": "Bravellian.Platform.HealthProbe",
       "tags": [],
       "summary": "Given only the base command, then parsing leaves EndpointName null and JsonOutput false.",
@@ -55,46 +55,14 @@
       "behavior": "EndpointName remains null and JsonOutput stays false.",
       "source": {
         "file": "tests/Bravellian.Platform.HealthProbe.Tests/HealthProbeCommandLineTests.cs",
-        "line": 12,
-        "member": "Bravellian.Platform.HealthProbe.Tests.HealthProbeCommandLineTests.Parse_DefaultsToConfiguredEndpoint"
+        "line": 33,
+        "member": "Bravellian.Platform.HealthProbe.Tests.HealthProbeCommandLineTests.ParseDefaultsToConfiguredEndpoint"
       },
       "status": "compliant",
       "project": "Bravellian.Platform.HealthProbe.Tests"
     },
     {
-      "testId": "Bravellian.Platform.HealthProbe.Tests:Bravellian.Platform.HealthProbe.Tests.HealthProbeCommandLineTests.Parse_ExplicitEndpointName",
-      "category": "Bravellian.Platform.HealthProbe",
-      "tags": [],
-      "summary": "Given an explicit endpoint argument, then parsing uses it as EndpointName.",
-      "intent": "Describe parsing of a positional endpoint argument.",
-      "scenario": "Given arguments \u0022healthcheck\u0022 and \u0022deploy\u0022.",
-      "behavior": "EndpointName is \u0022deploy\u0022.",
-      "source": {
-        "file": "tests/Bravellian.Platform.HealthProbe.Tests/HealthProbeCommandLineTests.cs",
-        "line": 25,
-        "member": "Bravellian.Platform.HealthProbe.Tests.HealthProbeCommandLineTests.Parse_ExplicitEndpointName"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.HealthProbe.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.HealthProbe.Tests:Bravellian.Platform.HealthProbe.Tests.HealthProbeCommandLineTests.Parse_Overrides",
-      "category": "Bravellian.Platform.HealthProbe",
-      "tags": [],
-      "summary": "When override flags are provided, then parsing populates each override option.",
-      "intent": "Describe parsing of URL, timeout, header, API key, TLS, and JSON flags.",
-      "scenario": "Given arguments with url, timeout, header, apikey, insecure, and json options.",
-      "behavior": "EndpointName and all override properties match the provided values.",
-      "source": {
-        "file": "tests/Bravellian.Platform.HealthProbe.Tests/HealthProbeCommandLineTests.cs",
-        "line": 37,
-        "member": "Bravellian.Platform.HealthProbe.Tests.HealthProbeCommandLineTests.Parse_Overrides"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.HealthProbe.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.HealthProbe.Tests:Bravellian.Platform.HealthProbe.Tests.HealthProbeCommandLineTests.Parse_ThrowsForUnknownFlag",
+      "testId": "Bravellian.Platform.HealthProbe.Tests:Bravellian.Platform.HealthProbe.Tests.HealthProbeCommandLineTests.ParseThrowsForUnknownFlag",
       "category": "Bravellian.Platform.HealthProbe",
       "tags": [],
       "summary": "When an unknown flag is provided, then parsing throws a HealthProbeArgumentException.",
@@ -103,14 +71,46 @@
       "behavior": "Parsing throws and the message mentions an unknown option.",
       "source": {
         "file": "tests/Bravellian.Platform.HealthProbe.Tests/HealthProbeCommandLineTests.cs",
-        "line": 89,
-        "member": "Bravellian.Platform.HealthProbe.Tests.HealthProbeCommandLineTests.Parse_ThrowsForUnknownFlag"
+        "line": 96,
+        "member": "Bravellian.Platform.HealthProbe.Tests.HealthProbeCommandLineTests.ParseThrowsForUnknownFlag"
       },
       "status": "compliant",
       "project": "Bravellian.Platform.HealthProbe.Tests"
     },
     {
-      "testId": "Bravellian.Platform.HealthProbe.Tests:Bravellian.Platform.HealthProbe.Tests.HealthProbeCommandLineTests.TryRun_ReturnsInvalidWhenUrlMissing",
+      "testId": "Bravellian.Platform.HealthProbe.Tests:Bravellian.Platform.HealthProbe.Tests.HealthProbeCommandLineTests.ParseUsesExplicitEndpointName",
+      "category": "Bravellian.Platform.HealthProbe",
+      "tags": [],
+      "summary": "Given an explicit endpoint argument, then parsing uses it as EndpointName.",
+      "intent": "Describe parsing of a positional endpoint argument.",
+      "scenario": "Given arguments \u0022healthcheck\u0022 and \u0022deploy\u0022.",
+      "behavior": "EndpointName is \u0022deploy\u0022.",
+      "source": {
+        "file": "tests/Bravellian.Platform.HealthProbe.Tests/HealthProbeCommandLineTests.cs",
+        "line": 46,
+        "member": "Bravellian.Platform.HealthProbe.Tests.HealthProbeCommandLineTests.ParseUsesExplicitEndpointName"
+      },
+      "status": "compliant",
+      "project": "Bravellian.Platform.HealthProbe.Tests"
+    },
+    {
+      "testId": "Bravellian.Platform.HealthProbe.Tests:Bravellian.Platform.HealthProbe.Tests.HealthProbeCommandLineTests.ParseUsesOverrides",
+      "category": "Bravellian.Platform.HealthProbe",
+      "tags": [],
+      "summary": "When override flags are provided, then parsing populates each override option.",
+      "intent": "Describe parsing of URL, timeout, header, API key, TLS, and JSON flags.",
+      "scenario": "Given arguments with url, timeout, header, apikey, insecure, and json options.",
+      "behavior": "EndpointName and all override properties match the provided values.",
+      "source": {
+        "file": "tests/Bravellian.Platform.HealthProbe.Tests/HealthProbeCommandLineTests.cs",
+        "line": 58,
+        "member": "Bravellian.Platform.HealthProbe.Tests.HealthProbeCommandLineTests.ParseUsesOverrides"
+      },
+      "status": "compliant",
+      "project": "Bravellian.Platform.HealthProbe.Tests"
+    },
+    {
+      "testId": "Bravellian.Platform.HealthProbe.Tests:Bravellian.Platform.HealthProbe.Tests.HealthProbeCommandLineTests.TryRunReturnsInvalidWhenUrlMissing",
       "category": "Bravellian.Platform.HealthProbe",
       "tags": [],
       "summary": "Given no URL override, then running the health check returns InvalidArguments.",
@@ -119,14 +119,14 @@
       "behavior": "The returned exit code is InvalidArguments.",
       "source": {
         "file": "tests/Bravellian.Platform.HealthProbe.Tests/HealthProbeCommandLineTests.cs",
-        "line": 70,
-        "member": "Bravellian.Platform.HealthProbe.Tests.HealthProbeCommandLineTests.TryRun_ReturnsInvalidWhenUrlMissing"
+        "line": 77,
+        "member": "Bravellian.Platform.HealthProbe.Tests.HealthProbeCommandLineTests.TryRunReturnsInvalidWhenUrlMissing"
       },
       "status": "compliant",
       "project": "Bravellian.Platform.HealthProbe.Tests"
     },
     {
-      "testId": "Bravellian.Platform.HealthProbe.Tests:Bravellian.Platform.HealthProbe.Tests.HealthProbeUrlResolverTests.Resolve_AppendsLivePathWhenBaseHasNoPath",
+      "testId": "Bravellian.Platform.HealthProbe.Tests:Bravellian.Platform.HealthProbe.Tests.HealthProbeUrlResolverTests.ResolveAppendsLivePathWhenBaseHasNoPath",
       "category": "Bravellian.Platform.HealthProbe",
       "tags": [],
       "summary": "When resolving the live endpoint against a base URL with no path, then /live is appended.",
@@ -135,14 +135,14 @@
       "behavior": "The resolved URL is https://example.test/live.",
       "source": {
         "file": "tests/Bravellian.Platform.HealthProbe.Tests/HealthProbeUrlResolverTests.cs",
-        "line": 30,
-        "member": "Bravellian.Platform.HealthProbe.Tests.HealthProbeUrlResolverTests.Resolve_AppendsLivePathWhenBaseHasNoPath"
+        "line": 33,
+        "member": "Bravellian.Platform.HealthProbe.Tests.HealthProbeUrlResolverTests.ResolveAppendsLivePathWhenBaseHasNoPath"
       },
       "status": "compliant",
       "project": "Bravellian.Platform.HealthProbe.Tests"
     },
     {
-      "testId": "Bravellian.Platform.HealthProbe.Tests:Bravellian.Platform.HealthProbe.Tests.HealthProbeUrlResolverTests.Resolve_AppendsReadyPathWhenBaseHasNoPath",
+      "testId": "Bravellian.Platform.HealthProbe.Tests:Bravellian.Platform.HealthProbe.Tests.HealthProbeUrlResolverTests.ResolveAppendsReadyPathWhenBaseHasNoPath",
       "category": "Bravellian.Platform.HealthProbe",
       "tags": [],
       "summary": "Given a base URL with no path and a default ready endpoint, then resolution appends /ready.",
@@ -151,14 +151,14 @@
       "behavior": "The resolved URL is https://example.test/ready and EndpointName is ready.",
       "source": {
         "file": "tests/Bravellian.Platform.HealthProbe.Tests/HealthProbeUrlResolverTests.cs",
-        "line": 10,
-        "member": "Bravellian.Platform.HealthProbe.Tests.HealthProbeUrlResolverTests.Resolve_AppendsReadyPathWhenBaseHasNoPath"
+        "line": 13,
+        "member": "Bravellian.Platform.HealthProbe.Tests.HealthProbeUrlResolverTests.ResolveAppendsReadyPathWhenBaseHasNoPath"
       },
       "status": "compliant",
       "project": "Bravellian.Platform.HealthProbe.Tests"
     },
     {
-      "testId": "Bravellian.Platform.HealthProbe.Tests:Bravellian.Platform.HealthProbe.Tests.HealthProbeUrlResolverTests.Resolve_NormalizesPathWhenReadyPathIsRelative",
+      "testId": "Bravellian.Platform.HealthProbe.Tests:Bravellian.Platform.HealthProbe.Tests.HealthProbeUrlResolverTests.ResolveNormalizesPathWhenReadyPathIsRelative",
       "category": "Bravellian.Platform.HealthProbe",
       "tags": [],
       "summary": "When the endpoint path is relative, then resolution combines it with the base URL.",
@@ -167,14 +167,14 @@
       "behavior": "The resolved URL is https://example.test/readyz.",
       "source": {
         "file": "tests/Bravellian.Platform.HealthProbe.Tests/HealthProbeUrlResolverTests.cs",
-        "line": 66,
-        "member": "Bravellian.Platform.HealthProbe.Tests.HealthProbeUrlResolverTests.Resolve_NormalizesPathWhenReadyPathIsRelative"
+        "line": 69,
+        "member": "Bravellian.Platform.HealthProbe.Tests.HealthProbeUrlResolverTests.ResolveNormalizesPathWhenReadyPathIsRelative"
       },
       "status": "compliant",
       "project": "Bravellian.Platform.HealthProbe.Tests"
     },
     {
-      "testId": "Bravellian.Platform.HealthProbe.Tests:Bravellian.Platform.HealthProbe.Tests.HealthProbeUrlResolverTests.Resolve_UsesExplicitPathWhenProvided",
+      "testId": "Bravellian.Platform.HealthProbe.Tests:Bravellian.Platform.HealthProbe.Tests.HealthProbeUrlResolverTests.ResolveUsesExplicitPathWhenProvided",
       "category": "Bravellian.Platform.HealthProbe",
       "tags": [],
       "summary": "Given an endpoint mapped to an absolute URL, then resolution uses that URL.",
@@ -183,14 +183,14 @@
       "behavior": "The resolved URL matches the configured absolute URL.",
       "source": {
         "file": "tests/Bravellian.Platform.HealthProbe.Tests/HealthProbeUrlResolverTests.cs",
-        "line": 48,
-        "member": "Bravellian.Platform.HealthProbe.Tests.HealthProbeUrlResolverTests.Resolve_UsesExplicitPathWhenProvided"
+        "line": 51,
+        "member": "Bravellian.Platform.HealthProbe.Tests.HealthProbeUrlResolverTests.ResolveUsesExplicitPathWhenProvided"
       },
       "status": "compliant",
       "project": "Bravellian.Platform.HealthProbe.Tests"
     },
     {
-      "testId": "Bravellian.Platform.HealthProbe.Tests:Bravellian.Platform.HealthProbe.Tests.HealthProbeUrlResolverTests.Resolve_UsesOverrideUrlWhenProvided",
+      "testId": "Bravellian.Platform.HealthProbe.Tests:Bravellian.Platform.HealthProbe.Tests.HealthProbeUrlResolverTests.ResolveUsesOverrideUrlWhenProvided",
       "category": "Bravellian.Platform.HealthProbe",
       "tags": [],
       "summary": "When an override URL is provided, then resolution returns the override and preserves the endpoint name.",
@@ -199,14 +199,14 @@
       "behavior": "The resolved URL matches the override and EndpointName remains \u0022deploy\u0022.",
       "source": {
         "file": "tests/Bravellian.Platform.HealthProbe.Tests/HealthProbeUrlResolverTests.cs",
-        "line": 85,
-        "member": "Bravellian.Platform.HealthProbe.Tests.HealthProbeUrlResolverTests.Resolve_UsesOverrideUrlWhenProvided"
+        "line": 88,
+        "member": "Bravellian.Platform.HealthProbe.Tests.HealthProbeUrlResolverTests.ResolveUsesOverrideUrlWhenProvided"
       },
       "status": "compliant",
       "project": "Bravellian.Platform.HealthProbe.Tests"
     },
     {
-      "testId": "Bravellian.Platform.HealthProbe.Tests:Bravellian.Platform.HealthProbe.Tests.HttpHealthProbeRunnerTests.RunAsync_AddsApiKeyHeaderWhenConfigured",
+      "testId": "Bravellian.Platform.HealthProbe.Tests:Bravellian.Platform.HealthProbe.Tests.HttpHealthProbeRunnerTests.RunAsyncAddsApiKeyHeaderWhenConfigured",
       "category": "Bravellian.Platform.HealthProbe",
       "tags": [],
       "summary": "When API key settings are configured, then the probe request includes the API key header.",
@@ -215,14 +215,14 @@
       "behavior": "The outgoing request contains the configured header and value.",
       "source": {
         "file": "tests/Bravellian.Platform.HealthProbe.Tests/HttpHealthProbeRunnerTests.cs",
-        "line": 148,
-        "member": "Bravellian.Platform.HealthProbe.Tests.HttpHealthProbeRunnerTests.RunAsync_AddsApiKeyHeaderWhenConfigured"
+        "line": 151,
+        "member": "Bravellian.Platform.HealthProbe.Tests.HttpHealthProbeRunnerTests.RunAsyncAddsApiKeyHeaderWhenConfigured"
       },
       "status": "compliant",
       "project": "Bravellian.Platform.HealthProbe.Tests"
     },
     {
-      "testId": "Bravellian.Platform.HealthProbe.Tests:Bravellian.Platform.HealthProbe.Tests.HttpHealthProbeRunnerTests.RunAsync_DoesNotTreatNonSuccessStatusAsHealthyEvenWhenJsonIsHealthy",
+      "testId": "Bravellian.Platform.HealthProbe.Tests:Bravellian.Platform.HealthProbe.Tests.HttpHealthProbeRunnerTests.RunAsyncDoesNotTreatNonSuccessStatusAsHealthyEvenWhenJsonIsHealthy",
       "category": "Bravellian.Platform.HealthProbe",
       "tags": [],
       "summary": "When the HTTP status is non-success, then the result is unhealthy even if JSON says Healthy.",
@@ -231,14 +231,14 @@
       "behavior": "The result is unhealthy and the exit code is Unhealthy.",
       "source": {
         "file": "tests/Bravellian.Platform.HealthProbe.Tests/HttpHealthProbeRunnerTests.cs",
-        "line": 98,
-        "member": "Bravellian.Platform.HealthProbe.Tests.HttpHealthProbeRunnerTests.RunAsync_DoesNotTreatNonSuccessStatusAsHealthyEvenWhenJsonIsHealthy"
+        "line": 101,
+        "member": "Bravellian.Platform.HealthProbe.Tests.HttpHealthProbeRunnerTests.RunAsyncDoesNotTreatNonSuccessStatusAsHealthyEvenWhenJsonIsHealthy"
       },
       "status": "compliant",
       "project": "Bravellian.Platform.HealthProbe.Tests"
     },
     {
-      "testId": "Bravellian.Platform.HealthProbe.Tests:Bravellian.Platform.HealthProbe.Tests.HttpHealthProbeRunnerTests.RunAsync_ReturnsExceptionExitCodeOnTimeout",
+      "testId": "Bravellian.Platform.HealthProbe.Tests:Bravellian.Platform.HealthProbe.Tests.HttpHealthProbeRunnerTests.RunAsyncReturnsExceptionExitCodeOnTimeout",
       "category": "Bravellian.Platform.HealthProbe",
       "tags": [],
       "summary": "When the probe times out, then the result uses the exception exit code.",
@@ -247,14 +247,14 @@
       "behavior": "The result is unhealthy and the exit code is Exception.",
       "source": {
         "file": "tests/Bravellian.Platform.HealthProbe.Tests/HttpHealthProbeRunnerTests.cs",
-        "line": 122,
-        "member": "Bravellian.Platform.HealthProbe.Tests.HttpHealthProbeRunnerTests.RunAsync_ReturnsExceptionExitCodeOnTimeout"
+        "line": 125,
+        "member": "Bravellian.Platform.HealthProbe.Tests.HttpHealthProbeRunnerTests.RunAsyncReturnsExceptionExitCodeOnTimeout"
       },
       "status": "compliant",
       "project": "Bravellian.Platform.HealthProbe.Tests"
     },
     {
-      "testId": "Bravellian.Platform.HealthProbe.Tests:Bravellian.Platform.HealthProbe.Tests.HttpHealthProbeRunnerTests.RunAsync_ReturnsHealthyForSuccessStatus",
+      "testId": "Bravellian.Platform.HealthProbe.Tests:Bravellian.Platform.HealthProbe.Tests.HttpHealthProbeRunnerTests.RunAsyncReturnsHealthyForSuccessStatus",
       "category": "Bravellian.Platform.HealthProbe",
       "tags": [],
       "summary": "When the probe handler returns 200 OK, then the result is healthy.",
@@ -263,14 +263,14 @@
       "behavior": "The result is healthy and the exit code is Healthy.",
       "source": {
         "file": "tests/Bravellian.Platform.HealthProbe.Tests/HttpHealthProbeRunnerTests.cs",
-        "line": 14,
-        "member": "Bravellian.Platform.HealthProbe.Tests.HttpHealthProbeRunnerTests.RunAsync_ReturnsHealthyForSuccessStatus"
+        "line": 17,
+        "member": "Bravellian.Platform.HealthProbe.Tests.HttpHealthProbeRunnerTests.RunAsyncReturnsHealthyForSuccessStatus"
       },
       "status": "compliant",
       "project": "Bravellian.Platform.HealthProbe.Tests"
     },
     {
-      "testId": "Bravellian.Platform.HealthProbe.Tests:Bravellian.Platform.HealthProbe.Tests.HttpHealthProbeRunnerTests.RunAsync_ReturnsHealthyWhenJsonStatusIsHealthy",
+      "testId": "Bravellian.Platform.HealthProbe.Tests:Bravellian.Platform.HealthProbe.Tests.HttpHealthProbeRunnerTests.RunAsyncReturnsHealthyWhenJsonStatusIsHealthy",
       "category": "Bravellian.Platform.HealthProbe",
       "tags": [],
       "summary": "When a 200 OK response body reports Healthy, then the result is healthy.",
@@ -279,14 +279,14 @@
       "behavior": "The result is healthy and the exit code is Healthy.",
       "source": {
         "file": "tests/Bravellian.Platform.HealthProbe.Tests/HttpHealthProbeRunnerTests.cs",
-        "line": 74,
-        "member": "Bravellian.Platform.HealthProbe.Tests.HttpHealthProbeRunnerTests.RunAsync_ReturnsHealthyWhenJsonStatusIsHealthy"
+        "line": 77,
+        "member": "Bravellian.Platform.HealthProbe.Tests.HttpHealthProbeRunnerTests.RunAsyncReturnsHealthyWhenJsonStatusIsHealthy"
       },
       "status": "compliant",
       "project": "Bravellian.Platform.HealthProbe.Tests"
     },
     {
-      "testId": "Bravellian.Platform.HealthProbe.Tests:Bravellian.Platform.HealthProbe.Tests.HttpHealthProbeRunnerTests.RunAsync_ReturnsUnhealthyForFailureStatus",
+      "testId": "Bravellian.Platform.HealthProbe.Tests:Bravellian.Platform.HealthProbe.Tests.HttpHealthProbeRunnerTests.RunAsyncReturnsUnhealthyForFailureStatus",
       "category": "Bravellian.Platform.HealthProbe",
       "tags": [],
       "summary": "When the probe handler returns a failure status, then the result is unhealthy.",
@@ -295,14 +295,14 @@
       "behavior": "The result is unhealthy and the exit code is Unhealthy.",
       "source": {
         "file": "tests/Bravellian.Platform.HealthProbe.Tests/HttpHealthProbeRunnerTests.cs",
-        "line": 32,
-        "member": "Bravellian.Platform.HealthProbe.Tests.HttpHealthProbeRunnerTests.RunAsync_ReturnsUnhealthyForFailureStatus"
+        "line": 35,
+        "member": "Bravellian.Platform.HealthProbe.Tests.HttpHealthProbeRunnerTests.RunAsyncReturnsUnhealthyForFailureStatus"
       },
       "status": "compliant",
       "project": "Bravellian.Platform.HealthProbe.Tests"
     },
     {
-      "testId": "Bravellian.Platform.HealthProbe.Tests:Bravellian.Platform.HealthProbe.Tests.HttpHealthProbeRunnerTests.RunAsync_ReturnsUnhealthyWhenJsonStatusIsUnhealthy",
+      "testId": "Bravellian.Platform.HealthProbe.Tests:Bravellian.Platform.HealthProbe.Tests.HttpHealthProbeRunnerTests.RunAsyncReturnsUnhealthyWhenJsonStatusIsUnhealthy",
       "category": "Bravellian.Platform.HealthProbe",
       "tags": [],
       "summary": "When a 200 OK response body reports Unhealthy, then the result is unhealthy.",
@@ -311,8 +311,8 @@
       "behavior": "The result is unhealthy and the exit code is Unhealthy.",
       "source": {
         "file": "tests/Bravellian.Platform.HealthProbe.Tests/HttpHealthProbeRunnerTests.cs",
-        "line": 50,
-        "member": "Bravellian.Platform.HealthProbe.Tests.HttpHealthProbeRunnerTests.RunAsync_ReturnsUnhealthyWhenJsonStatusIsUnhealthy"
+        "line": 53,
+        "member": "Bravellian.Platform.HealthProbe.Tests.HttpHealthProbeRunnerTests.RunAsyncReturnsUnhealthyWhenJsonStatusIsUnhealthy"
       },
       "status": "compliant",
       "project": "Bravellian.Platform.HealthProbe.Tests"

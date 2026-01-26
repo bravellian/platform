@@ -250,7 +250,7 @@ internal sealed class PostgresSchedulerService : BackgroundService
         var dueJobs = (await connection.QueryAsync<(Guid Id, string CronSchedule)>(
             findDueJobsSql, new { Now = timeProvider.GetUtcNow() }, transaction).ConfigureAwait(false)).AsList();
 
-        if (!dueJobs.Any())
+        if (dueJobs.Count == 0)
         {
             return;
         }

@@ -90,10 +90,7 @@ public static class ExceptionFilter
     /// </exception>
     public static bool IsCatchable(Exception exception)
     {
-        if (exception == null)
-        {
-            throw new ArgumentNullException(nameof(exception));
-        }
+        ArgumentNullException.ThrowIfNull(exception);
 
         return !IsCritical(exception);
     }
@@ -117,10 +114,7 @@ public static class ExceptionFilter
     /// </remarks>
     public static bool IsCritical(Exception exception)
     {
-        if (exception == null)
-        {
-            throw new ArgumentNullException(nameof(exception));
-        }
+        ArgumentNullException.ThrowIfNull(exception);
 
         return exception is OutOfMemoryException or StackOverflowException;
     }
@@ -159,15 +153,8 @@ public static class ExceptionFilter
     /// </exception>
     public static bool IsExpected(Exception exception, params Type[] expectedTypes)
     {
-        if (exception == null)
-        {
-            throw new ArgumentNullException(nameof(exception));
-        }
-
-        if (expectedTypes == null)
-        {
-            throw new ArgumentNullException(nameof(expectedTypes));
-        }
+        ArgumentNullException.ThrowIfNull(exception);
+        ArgumentNullException.ThrowIfNull(expectedTypes);
 
         var exceptionType = exception.GetType();
         return expectedTypes

@@ -14,6 +14,7 @@
 
 
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 
@@ -134,7 +135,7 @@ internal sealed class PlatformLeaseFactoryProvider : ILeaseFactoryProvider
                                         db.Name);
                                 }
                             }
-                        });
+                        }, CancellationToken.None);
                     }
                 }
             }
@@ -170,6 +171,7 @@ internal sealed class PlatformLeaseFactoryProvider : ILeaseFactoryProvider
             : null;
     }
 
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Fallback to string comparison when parsing fails.")]
     private static bool IsSameConnection(string a, string b)
     {
         try

@@ -342,7 +342,7 @@ internal sealed class NullableDatabaseIdentifierTypeHandler : SqlMapper.TypeHand
 /// </summary>
 public static class DapperTypeHandlerRegistration
 {
-    private static bool registered = false;
+    private static bool registered;
     private static readonly Lock lockObject = new();
 
     /// <summary>

@@ -24,6 +24,38 @@ public class LostLeaseException : InvalidOperationException
     /// <summary>
     /// Initializes a new instance of the <see cref="LostLeaseException"/> class.
     /// </summary>
+    public LostLeaseException()
+    {
+        ResourceName = string.Empty;
+        OwnerToken = default;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="LostLeaseException"/> class.
+    /// </summary>
+    /// <param name="message">The exception message.</param>
+    public LostLeaseException(string message)
+        : base(message)
+    {
+        ResourceName = string.Empty;
+        OwnerToken = default;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="LostLeaseException"/> class.
+    /// </summary>
+    /// <param name="message">The exception message.</param>
+    /// <param name="innerException">The inner exception.</param>
+    public LostLeaseException(string message, Exception innerException)
+        : base(message, innerException)
+    {
+        ResourceName = string.Empty;
+        OwnerToken = default;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="LostLeaseException"/> class.
+    /// </summary>
     /// <param name="resourceName">The name of the resource whose lease was lost.</param>
     /// <param name="ownerToken">The owner token of the lost lease.</param>
     public LostLeaseException(string resourceName, Bravellian.Platform.OwnerToken ownerToken)

@@ -37,6 +37,7 @@ internal sealed class MetricAggregator
     /// <summary>
     /// Records a value.
     /// </summary>
+    [SuppressMessage("Security", "CA5394:Do not use insecure randomness", Justification = "Reservoir sampling uses non-cryptographic randomness.")]
     public void Record(double value)
     {
         lock (_lock)

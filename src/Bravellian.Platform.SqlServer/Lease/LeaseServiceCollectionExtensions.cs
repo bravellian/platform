@@ -169,13 +169,6 @@ public static class LeaseServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Adds multi-database lease functionality using a custom factory provider.
-    /// This allows for dynamic discovery of lease databases at runtime.
-    /// </summary>
-    /// <param name="services">The IServiceCollection to add services to.</param>
-    /// <param name="factoryProviderFactory">Factory function to create the factory provider.</param>
-    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
-    /// <summary>
     /// Adds multi-database lease functionality using a custom <see cref="ILeaseFactoryProvider"/> factory.
     /// This overload is intended for advanced scenarios where lease database sources are discovered or managed dynamically at runtime,
     /// such as integration with external configuration providers or service discovery mechanisms.

@@ -16,6 +16,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Bravellian.Platform;
 
+/// <summary>
+/// Service collection extensions for registering outbox and inbox handlers.
+/// </summary>
 public static class OutboxHandlerServiceCollectionExtensions
 {
     /// <summary>

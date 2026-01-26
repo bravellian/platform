@@ -14,6 +14,7 @@
 
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
@@ -112,6 +113,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
         }
     }
 
+    [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities", Justification = "Uses stored procedure name derived from configured schema and table.")]
     public async Task AckAsync(
         Bravellian.Platform.OwnerToken ownerToken,
         IEnumerable<string> messageIds,
@@ -280,6 +282,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
         }
     }
 
+    [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities", Justification = "Uses stored procedure name derived from configured schema and table.")]
     public async Task FailAsync(
         Bravellian.Platform.OwnerToken ownerToken,
         IEnumerable<string> messageIds,

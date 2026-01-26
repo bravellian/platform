@@ -12,11 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace Bravellian.Platform.Modularity;
 
 /// <summary>
 /// Engine discovery service used by adapters and hosts.
 /// </summary>
+[SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Registered as a service for dependency injection.")]
 public sealed class ModuleEngineDiscoveryService
 {
     /// <summary>
@@ -51,10 +54,8 @@ public sealed class ModuleEngineDiscoveryService
     public TContract ResolveEngine<TContract>(ModuleEngineDescriptor<TContract> descriptor, IServiceProvider serviceProvider)
         where TContract : notnull
     {
-        if (serviceProvider is null)
-        {
-            throw new ArgumentNullException(nameof(serviceProvider));
-        }
+        ArgumentNullException.ThrowIfNull(descriptor);
+        ArgumentNullException.ThrowIfNull(serviceProvider);
 
         var instance = descriptor.Factory(serviceProvider);
 
@@ -71,10 +72,8 @@ public sealed class ModuleEngineDiscoveryService
     /// </summary>
     public object ResolveEngine(IModuleEngineDescriptor descriptor, IServiceProvider serviceProvider)
     {
-        if (serviceProvider is null)
-        {
-            throw new ArgumentNullException(nameof(serviceProvider));
-        }
+        ArgumentNullException.ThrowIfNull(descriptor);
+        ArgumentNullException.ThrowIfNull(serviceProvider);
 
         var instance = descriptor.Create(serviceProvider);
 

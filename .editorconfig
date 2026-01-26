@@ -110,12 +110,20 @@ dotnet_diagnostic.sa1649.severity = none # Ignore the ASP.NET Core Razor Page co
 indent_size = 4
 indent_style = space # Use soft tabs (spaces) for indentation.
 
+[**/*.g.cs]
+dotnet_diagnostic.CS1591.severity = none
+
+[**/*.g.i.cs]
+dotnet_diagnostic.CS1591.severity = none
+
 # --- Disabled Diagnostic Rules ---
 dotnet_diagnostic.CA1309.severity = none # WAS error
 dotnet_diagnostic.CA1310.severity = none # WAS error
 dotnet_diagnostic.CA2014.severity = none # WAS error
 dotnet_diagnostic.MA0006.severity = none # WAS error (Meziantou)
 dotnet_diagnostic.MA0127.severity = none # WAS error (Meziantou)
+dotnet_diagnostic.CA1848.severity = none # WAS warning
+dotnet_diagnostic.CA1873.severity = none # WAS warning
 dotnet_diagnostic.CA2007.severity = none # WAS warning
 dotnet_diagnostic.RCS1090.severity = none # WAS error (Roslynator - ConfigureAwait)
 dotnet_diagnostic.CS8600.severity = none # WAS error (Nullable) - Controlled by <Nullable> in props
