@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Data;
 using Dapper;
 using Microsoft.Data.SqlClient;
@@ -35,9 +36,20 @@ internal sealed class SqlExternalSideEffectStore : IExternalSideEffectStore
         ILogger<SqlExternalSideEffectStore> logger)
     {
         var opts = options.Value;
-        ArgumentException.ThrowIfNullOrWhiteSpace(opts.ConnectionString);
-        ArgumentException.ThrowIfNullOrWhiteSpace(opts.SchemaName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(opts.TableName);
+        if (string.IsNullOrWhiteSpace(opts.ConnectionString))
+        {
+            throw new ArgumentException("ConnectionString must be provided.", nameof(options));
+        }
+
+        if (string.IsNullOrWhiteSpace(opts.SchemaName))
+        {
+            throw new ArgumentException("SchemaName must be provided.", nameof(options));
+        }
+
+        if (string.IsNullOrWhiteSpace(opts.TableName))
+        {
+            throw new ArgumentException("TableName must be provided.", nameof(options));
+        }
 
         connectionString = opts.ConnectionString;
         schemaName = opts.SchemaName;
@@ -121,6 +133,7 @@ internal sealed class SqlExternalSideEffectStore : IExternalSideEffectStore
         return record;
     }
 
+    [SuppressMessage("Reliability", "CA1849:Call async methods when available", Justification = "SqlTransaction is required by helper methods.")]
     public async Task<ExternalSideEffectAttempt> TryBeginAttemptAsync(
         ExternalSideEffectKey key,
         TimeSpan lockDuration,

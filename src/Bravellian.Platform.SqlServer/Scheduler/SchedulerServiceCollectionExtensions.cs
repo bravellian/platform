@@ -22,8 +22,13 @@ using Microsoft.Extensions.Options;
 
 namespace Bravellian.Platform;
 
+/// <summary>
+/// Service collection extensions for SQL Server scheduler, outbox, and fanout services.
+/// </summary>
 public static class SchedulerServiceCollectionExtensions
 {
+    private static readonly string[] SchedulerHealthCheckTags = { "database", "scheduler" };
+
     /// <summary>   
     /// Adds SQL outbox functionality to the service collection using the specified options.
     /// Configures outbox options, registers multi-outbox infrastructure, cleanup and schema deployment services as needed.
@@ -154,7 +159,7 @@ public static class SchedulerServiceCollectionExtensions
     {
         // The health check system will resolve SchedulerHealthCheck from the DI container
         // where we registered it in AddSqlScheduler.
-        return builder.AddCheck<SchedulerHealthCheck>(name, failureStatus, tags ?? new[] { "database", "scheduler" });
+        return builder.AddCheck<SchedulerHealthCheck>(name, failureStatus, tags ?? SchedulerHealthCheckTags);
     }
 
     /// <summary>
@@ -274,7 +279,10 @@ public static class SchedulerServiceCollectionExtensions
         where TPlanner : class, IFanoutPlanner
     {
         ArgumentNullException.ThrowIfNull(options);
-        ArgumentException.ThrowIfNullOrWhiteSpace(options.FanoutTopic);
+        if (string.IsNullOrWhiteSpace(options.FanoutTopic))
+        {
+            throw new ArgumentException("FanoutTopic must be provided.", nameof(options));
+        }
 
         // Register the planner for this topic (scoped to allow for stateful planners)
         services.AddScoped<TPlanner>();

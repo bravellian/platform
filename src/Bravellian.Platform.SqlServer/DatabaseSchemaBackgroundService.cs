@@ -318,7 +318,10 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
 
     private async Task DeploySystemLeaseSchemaAsync(SystemLeaseOptions options, CancellationToken cancellationToken)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(options.ConnectionString);
+        if (string.IsNullOrWhiteSpace(options.ConnectionString))
+        {
+            throw new ArgumentException("ConnectionString must be provided.", nameof(options));
+        }
 
         logger.LogDebug("Deploying system lease schema at {Schema}", options.SchemaName);
         await DatabaseSchemaManager.EnsureDistributedLockSchemaAsync(

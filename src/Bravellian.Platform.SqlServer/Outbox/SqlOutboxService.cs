@@ -145,7 +145,10 @@ internal class SqlOutboxService : IOutbox
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(transaction);
-        ArgumentNullException.ThrowIfNull(transaction.Connection);
+        if (transaction.Connection is null)
+        {
+            throw new ArgumentException("Transaction must have a connection.", nameof(transaction));
+        }
 
         // Note: We use the connection from the provided transaction.
         await transaction.Connection.ExecuteAsync(enqueueSql, new

@@ -134,8 +134,15 @@ public static class PlatformServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(databases);
         ArgumentNullException.ThrowIfNull(controlPlaneOptions);
-        ArgumentException.ThrowIfNullOrWhiteSpace(controlPlaneOptions.ConnectionString);
-        ArgumentException.ThrowIfNullOrWhiteSpace(controlPlaneOptions.SchemaName);
+        if (string.IsNullOrWhiteSpace(controlPlaneOptions.ConnectionString))
+        {
+            throw new ArgumentException("ConnectionString must be provided.", nameof(controlPlaneOptions));
+        }
+
+        if (string.IsNullOrWhiteSpace(controlPlaneOptions.SchemaName))
+        {
+            throw new ArgumentException("SchemaName must be provided.", nameof(controlPlaneOptions));
+        }
 
         var databaseList = databases.ToList();
         if (databaseList.Count == 0)
@@ -216,8 +223,15 @@ public static class PlatformServiceCollectionExtensions
         PlatformControlPlaneOptions controlPlaneOptions)
     {
         ArgumentNullException.ThrowIfNull(controlPlaneOptions);
-        ArgumentException.ThrowIfNullOrWhiteSpace(controlPlaneOptions.ConnectionString);
-        ArgumentException.ThrowIfNullOrWhiteSpace(controlPlaneOptions.SchemaName);
+        if (string.IsNullOrWhiteSpace(controlPlaneOptions.ConnectionString))
+        {
+            throw new ArgumentException("ConnectionString must be provided.", nameof(controlPlaneOptions));
+        }
+
+        if (string.IsNullOrWhiteSpace(controlPlaneOptions.SchemaName))
+        {
+            throw new ArgumentException("SchemaName must be provided.", nameof(controlPlaneOptions));
+        }
 
         // Prevent multiple registrations
         EnsureNotAlreadyRegistered(services);
