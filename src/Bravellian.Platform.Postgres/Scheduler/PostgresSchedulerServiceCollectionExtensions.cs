@@ -279,7 +279,10 @@ public static class PostgresSchedulerServiceCollectionExtensions
         where TPlanner : class, IFanoutPlanner
     {
         ArgumentNullException.ThrowIfNull(options);
-        ArgumentException.ThrowIfNullOrWhiteSpace(options.FanoutTopic);
+        if (string.IsNullOrWhiteSpace(options.FanoutTopic))
+        {
+            throw new ArgumentException("FanoutTopic must be provided.", nameof(options));
+        }
 
         // Register the planner for this topic (scoped to allow for stateful planners)
         services.AddScoped<TPlanner>();

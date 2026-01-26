@@ -134,7 +134,10 @@ internal sealed class PostgresOutboxService : IOutbox
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(transaction);
-        ArgumentNullException.ThrowIfNull(transaction.Connection);
+        if (transaction.Connection is null)
+        {
+            throw new ArgumentException("Transaction must have a connection.", nameof(transaction));
+        }
 
         await transaction.Connection.ExecuteAsync(
             enqueueSql,
