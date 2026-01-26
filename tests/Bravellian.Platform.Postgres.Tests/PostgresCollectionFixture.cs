@@ -30,8 +30,7 @@ public sealed class PostgresCollectionFixture : IAsyncLifetime
 
     public PostgresCollectionFixture()
     {
-        postgresContainer = new PostgreSqlBuilder()
-            .WithImage("postgres:16-alpine")
+        postgresContainer = new PostgreSqlBuilder("postgres:16-alpine")
             .WithReuse(true)
             .Build();
     }

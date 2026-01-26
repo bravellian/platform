@@ -30,8 +30,7 @@ public sealed class SqlServerCollectionFixture : IAsyncLifetime
 
     public SqlServerCollectionFixture()
     {
-        msSqlContainer = new MsSqlBuilder()
-            .WithImage("mcr.microsoft.com/mssql/server:2022-CU10-ubuntu-22.04")
+        msSqlContainer = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2022-CU10-ubuntu-22.04")
             .WithReuse(true)  // Enable container reuse to avoid rebuilding
             .Build();
     }

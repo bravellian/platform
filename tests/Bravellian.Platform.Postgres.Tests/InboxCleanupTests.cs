@@ -105,7 +105,7 @@ public class InboxCleanupTests : PostgresTestBase
                 LastSeenUtc = DateTime.UtcNow.AddDays(-15),
             });
 
-        var deletedCount = await ExecuteCleanupAsync(TimeSpan.FromDays(7)).ConfigureAwait(false);
+        var deletedCount = await ExecuteCleanupAsync(TimeSpan.FromDays(7));
 
         deletedCount.ShouldBe(1);
 
@@ -156,7 +156,7 @@ public class InboxCleanupTests : PostgresTestBase
                 LastSeenUtc = DateTime.UtcNow.AddHours(-1),
             });
 
-        var deletedCount = await ExecuteCleanupAsync(TimeSpan.FromDays(7)).ConfigureAwait(false);
+        var deletedCount = await ExecuteCleanupAsync(TimeSpan.FromDays(7));
 
         deletedCount.ShouldBe(0);
 
@@ -214,7 +214,7 @@ public class InboxCleanupTests : PostgresTestBase
                 });
         }
 
-        var deletedCount = await ExecuteCleanupAsync(TimeSpan.FromDays(10)).ConfigureAwait(false);
+        var deletedCount = await ExecuteCleanupAsync(TimeSpan.FromDays(10));
 
         deletedCount.ShouldBe(2);
 

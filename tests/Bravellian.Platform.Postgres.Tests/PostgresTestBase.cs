@@ -32,8 +32,7 @@ public abstract class PostgresTestBase : IAsyncLifetime
     /// </summary>
     protected PostgresTestBase(ITestOutputHelper testOutputHelper)
     {
-        postgresContainer = new PostgreSqlBuilder()
-            .WithImage("postgres:16-alpine")
+        postgresContainer = new PostgreSqlBuilder("postgres:16-alpine")
             .Build();
 
         TestOutputHelper = testOutputHelper;

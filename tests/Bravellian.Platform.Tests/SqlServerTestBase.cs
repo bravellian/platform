@@ -33,8 +33,7 @@ public abstract class SqlServerTestBase : IAsyncLifetime
     /// </summary>
     protected SqlServerTestBase(ITestOutputHelper testOutputHelper)
     {
-        msSqlContainer = new MsSqlBuilder()
-            .WithImage("mcr.microsoft.com/mssql/server:2022-CU10-ubuntu-22.04")
+        msSqlContainer = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2022-CU10-ubuntu-22.04")
             .Build();
 
         TestOutputHelper = testOutputHelper;

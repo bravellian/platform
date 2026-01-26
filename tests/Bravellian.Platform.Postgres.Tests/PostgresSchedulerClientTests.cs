@@ -13,6 +13,7 @@
 // limitations under the License.
 
 using Dapper;
+using System.Globalization;
 using Microsoft.Extensions.Options;
 using Npgsql;
 
@@ -80,7 +81,7 @@ public class PostgresSchedulerClientTests : PostgresTestBase
         command.Parameters.AddWithValue("@Id", timerGuid);
         command.Parameters.AddWithValue("@Topic", topic);
 
-        var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken));
+        var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken), CultureInfo.InvariantCulture);
         count.ShouldBe(1);
     }
 
@@ -105,7 +106,7 @@ public class PostgresSchedulerClientTests : PostgresTestBase
             customOptions.SchemaName,
             customOptions.JobsTableName,
             customOptions.JobRunsTableName,
-            customOptions.TimersTableName).ConfigureAwait(false);
+            customOptions.TimersTableName);
 
         var customClient = new PostgresSchedulerClient(Options.Create(customOptions), TimeProvider.System);
         var customTimersTable = PostgresSqlHelper.Qualify(customOptions.SchemaName, customOptions.TimersTableName);
@@ -125,7 +126,7 @@ public class PostgresSchedulerClientTests : PostgresTestBase
         command.Parameters.AddWithValue("@Id", timerGuid);
         command.Parameters.AddWithValue("@Topic", topic);
 
-        var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken));
+        var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken), CultureInfo.InvariantCulture);
         count.ShouldBe(1);
     }
 
@@ -148,7 +149,7 @@ public class PostgresSchedulerClientTests : PostgresTestBase
         await using var command = new NpgsqlCommand(sql, connection);
         command.Parameters.AddWithValue("@JobName", jobName);
 
-        var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken));
+        var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken), CultureInfo.InvariantCulture);
         count.ShouldBe(1);
     }
 
@@ -197,14 +198,15 @@ public class PostgresSchedulerClientTests : PostgresTestBase
         await using var countCommand = new NpgsqlCommand(countSql, connection);
         countCommand.Parameters.AddWithValue("@JobName", jobName);
 
-        var count = Convert.ToInt32(await countCommand.ExecuteScalarAsync(TestContext.Current.CancellationToken));
+        var count = Convert.ToInt32(await countCommand.ExecuteScalarAsync(TestContext.Current.CancellationToken), CultureInfo.InvariantCulture);
         count.ShouldBe(1);
 
         var topicSql = $"SELECT \"Topic\" FROM {qualifiedJobsTable} WHERE \"JobName\" = @JobName";
         await using var topicCommand = new NpgsqlCommand(topicSql, connection);
         topicCommand.Parameters.AddWithValue("@JobName", jobName);
 
-        var topic = (string)await topicCommand.ExecuteScalarAsync(TestContext.Current.CancellationToken);
+        var topic = await topicCommand.ExecuteScalarAsync(TestContext.Current.CancellationToken) as string;
+        Assert.NotNull(topic);
         topic.ShouldBe(updatedTopic);
     }
 
@@ -229,7 +231,7 @@ public class PostgresSchedulerClientTests : PostgresTestBase
         await using var command = new NpgsqlCommand(sql, connection);
         command.Parameters.AddWithValue("@JobName", jobName);
 
-        var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken));
+        var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken), CultureInfo.InvariantCulture);
         count.ShouldBe(0);
     }
 
@@ -254,7 +256,7 @@ public class PostgresSchedulerClientTests : PostgresTestBase
         await using var command = new NpgsqlCommand(sql, connection);
         command.Parameters.AddWithValue("@JobName", jobName);
 
-        var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken));
+        var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken), CultureInfo.InvariantCulture);
         count.ShouldBeGreaterThan(0);
     }
 }

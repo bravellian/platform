@@ -152,7 +152,7 @@ public class JoinWaitHandlerTests : PostgresTestBase
             MessageId = OutboxMessageIdentifier.GenerateNew(),
         };
 
-        await handler!.HandleAsync(message, CancellationToken.None).ConfigureAwait(false);
+        await handler!.HandleAsync(message, CancellationToken.None);
 
         var updated = await joinStore.GetJoinAsync(join.JoinId, CancellationToken.None);
         updated.ShouldNotBeNull();
@@ -197,9 +197,9 @@ public class JoinWaitHandlerTests : PostgresTestBase
             MessageId = OutboxMessageIdentifier.GenerateNew(),
         };
 
-        await handler!.HandleAsync(message, CancellationToken.None).ConfigureAwait(false);
+        await handler!.HandleAsync(message, CancellationToken.None);
 
-        var updated = await joinStore.GetJoinAsync(join.JoinId, CancellationToken.None).ConfigureAwait(false);
+        var updated = await joinStore.GetJoinAsync(join.JoinId, CancellationToken.None);
         updated.ShouldNotBeNull();
         updated!.Status.ShouldBe(JoinStatus.Failed);
     }

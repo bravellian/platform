@@ -110,6 +110,9 @@ dotnet_diagnostic.sa1649.severity = none # Ignore the ASP.NET Core Razor Page co
 indent_size = 4
 indent_style = space # Use soft tabs (spaces) for indentation.
 
+[tests/**/*.cs]
+dotnet_diagnostic.MA0004.severity = none
+
 [**/*.g.cs]
 dotnet_diagnostic.CS1591.severity = none
 

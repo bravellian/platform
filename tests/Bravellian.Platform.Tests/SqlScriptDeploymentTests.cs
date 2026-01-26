@@ -39,9 +39,9 @@ public class SqlScriptDeploymentTests
         var databaseFolder = Path.GetDirectoryName(SchemaVersionSnapshot.SnapshotFilePath);
         Assert.False(string.IsNullOrEmpty(databaseFolder), "Could not locate database folder via schema snapshot path.");
 
-        var connectionString = await fixture.CreateTestDatabaseAsync("sql_artifacts").ConfigureAwait(false);
+        var connectionString = await fixture.CreateTestDatabaseAsync("sql_artifacts");
         await using var connection = new SqlConnection(connectionString);
-        await connection.OpenAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var orderedScripts = new[]
         {
@@ -60,11 +60,11 @@ public class SqlScriptDeploymentTests
             var fullPath = Path.Combine(databaseFolder!, scriptFile);
             Assert.True(File.Exists(fullPath), $"Expected SQL artifact '{scriptFile}' to exist.");
 
-            var scriptText = await File.ReadAllTextAsync(fullPath, TestContext.Current.CancellationToken).ConfigureAwait(false);
+            var scriptText = await File.ReadAllTextAsync(fullPath, TestContext.Current.CancellationToken);
             foreach (var batch in SplitSqlBatches(scriptText))
             {
                 await using var command = new SqlCommand(batch, connection);
-                await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
+                await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
             }
         }
     }
@@ -72,7 +72,7 @@ public class SqlScriptDeploymentTests
     private static IEnumerable<string> SplitSqlBatches(string scriptText)
     {
         return Regex
-            .Split(scriptText, "^\\s*GO\\s*$", RegexOptions.Multiline | RegexOptions.IgnoreCase)
+            .Split(scriptText, "^\\s*GO\\s*$", RegexOptions.Multiline | RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1))
             .Select(batch => batch.Trim())
             .Where(batch => batch.Length > 0);
     }

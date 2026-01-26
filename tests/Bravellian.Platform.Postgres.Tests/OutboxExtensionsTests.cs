@@ -85,14 +85,13 @@ public class OutboxExtensionsTests : PostgresTestBase
         await using var connection = new NpgsqlConnection(ConnectionString);
         await connection.OpenAsync(CancellationToken.None);
 
-        var message = await connection.QuerySingleOrDefaultAsync<dynamic>(
+        var payloadText = await connection.QuerySingleOrDefaultAsync<string>(
             $"SELECT \"Payload\" FROM {qualifiedOutboxTable} WHERE \"Topic\" = 'join.wait' ORDER BY \"CreatedAt\" DESC LIMIT 1");
+        Assert.NotNull(payloadText);
 
-        message.ShouldNotBeNull();
-
-        var payload = JsonSerializer.Deserialize<JoinWaitPayload>((string)message.Payload);
-        payload.ShouldNotBeNull();
-        payload!.JoinId.ShouldBe(joinId);
+        var payload = JsonSerializer.Deserialize<JoinWaitPayload>(payloadText);
+        Assert.NotNull(payload);
+        payload.JoinId.ShouldBe(joinId);
         payload.FailIfAnyStepFailed.ShouldBeTrue();
         payload.OnCompleteTopic.ShouldBe(onCompleteTopic);
         payload.OnCompletePayload.ShouldBe(onCompletePayload);
@@ -116,14 +115,13 @@ public class OutboxExtensionsTests : PostgresTestBase
         await using var connection = new NpgsqlConnection(ConnectionString);
         await connection.OpenAsync(CancellationToken.None);
 
-        var message = await connection.QuerySingleOrDefaultAsync<dynamic>(
+        var payloadText = await connection.QuerySingleOrDefaultAsync<string>(
             $"SELECT \"Payload\" FROM {qualifiedOutboxTable} WHERE \"Topic\" = 'join.wait' ORDER BY \"CreatedAt\" DESC LIMIT 1");
+        Assert.NotNull(payloadText);
 
-        message.ShouldNotBeNull();
-
-        var payload = JsonSerializer.Deserialize<JoinWaitPayload>((string)message.Payload);
-        payload.ShouldNotBeNull();
-        payload!.JoinId.ShouldBe(joinId);
+        var payload = JsonSerializer.Deserialize<JoinWaitPayload>(payloadText);
+        Assert.NotNull(payload);
+        payload.JoinId.ShouldBe(joinId);
         payload.FailIfAnyStepFailed.ShouldBeTrue();
         payload.OnCompleteTopic.ShouldBeNull();
         payload.OnCompletePayload.ShouldBeNull();

@@ -36,8 +36,7 @@ public class ManualSchemaExportTests : IAsyncLifetime
     public async ValueTask InitializeAsync()
     {
         // Start SQL Server container
-        msSqlContainer = new MsSqlBuilder()
-            .WithImage("mcr.microsoft.com/mssql/server:2022-CU10-ubuntu-22.04")
+        msSqlContainer = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2022-CU10-ubuntu-22.04")
             .Build();
 
         await msSqlContainer.StartAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);

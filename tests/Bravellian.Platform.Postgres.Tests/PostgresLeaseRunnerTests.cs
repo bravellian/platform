@@ -92,10 +92,11 @@ public class PostgresLeaseRunnerTests : PostgresTestBase
         var monotonicClock = new FakeMonotonicClock();
         var timeProvider = TimeProvider.System;
         var logger = NullLogger.Instance;
+        var api = leaseApi ?? throw new InvalidOperationException("Lease API has not been initialized.");
 
         // First runner acquires the lease
         var runner1 = await PostgresLeaseRunner.AcquireAsync(
-            leaseApi!,
+            api,
             monotonicClock,
             timeProvider,
             leaseName,
@@ -108,7 +109,7 @@ public class PostgresLeaseRunnerTests : PostgresTestBase
 
         // Act - Second runner tries to acquire the same lease
         var runner2 = await PostgresLeaseRunner.AcquireAsync(
-            leaseApi,
+            api,
             monotonicClock,
             timeProvider,
             leaseName,

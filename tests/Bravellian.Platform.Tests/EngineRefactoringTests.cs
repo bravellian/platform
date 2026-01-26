@@ -50,8 +50,13 @@ public sealed class EngineRefactoringTests
         var response = await adapter.ExecuteAsync<LoginCommand, LoginViewModel>("fake-module", "ui.login", new LoginCommand("admin", "pass"), CancellationToken.None);
 
         Assert.Equal("admin", response.ViewModel.Username);
-        Assert.Contains(response.NavigationTargets!, token => token.Token == "dashboard" && token.TargetKind == NavigationTargetKind.Route);
-        Assert.Contains("event:login", response.Events);
+        var navigationTargets = response.NavigationTargets;
+        Assert.NotNull(navigationTargets);
+        Assert.Contains(navigationTargets, token => string.Equals(token.Token, "dashboard", StringComparison.Ordinal)
+            && token.TargetKind == NavigationTargetKind.Route);
+        var events = response.Events;
+        Assert.NotNull(events);
+        Assert.Contains("event:login", events, StringComparer.Ordinal);
     }
 
     /// <summary>
@@ -75,7 +80,7 @@ public sealed class EngineRefactoringTests
         var request = new WebhookAdapterRequest<PostmarkBouncePayload>(
             "postmark",
             "bounce",
-            new Dictionary<string, string> { ["X-Signature"] = "postmark:raw-body" },
+            new Dictionary<string, string>(StringComparer.Ordinal) { ["X-Signature"] = "postmark:raw-body" },
             "raw-body",
             "idemp-1",
             1,
@@ -108,7 +113,7 @@ public sealed class EngineRefactoringTests
         var request = new WebhookAdapterRequest<PostmarkBouncePayload>(
             "postmark",
             "bounce",
-            new Dictionary<string, string> { ["X-Signature"] = "invalid-signature" },
+            new Dictionary<string, string>(StringComparer.Ordinal) { ["X-Signature"] = "invalid-signature" },
             "raw-body",
             "idemp-1",
             1,
@@ -118,7 +123,7 @@ public sealed class EngineRefactoringTests
         var response = await adapter.DispatchAsync(request, CancellationToken.None);
 
         Assert.Equal(WebhookOutcomeType.Acknowledge, response.Outcome);
-        Assert.Contains("Signature validation failed", response.Reason);
+        Assert.Contains("Signature validation failed", response.Reason, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -144,7 +149,7 @@ public sealed class EngineRefactoringTests
         var request = new WebhookAdapterRequest<PostmarkBouncePayload>(
             "postmark",
             "bounce",
-            new Dictionary<string, string> { ["X-Signature"] = "postmark:raw-body" },
+            new Dictionary<string, string>(StringComparer.Ordinal) { ["X-Signature"] = "postmark:raw-body" },
             "raw-body",
             idempotencyKey,
             1,
@@ -154,7 +159,7 @@ public sealed class EngineRefactoringTests
         var response = await adapter.DispatchAsync(request, CancellationToken.None);
 
         Assert.Equal(WebhookOutcomeType.Retry, response.Outcome);
-        Assert.Contains("Idempotency key is required", response.Reason);
+        Assert.Contains("Idempotency key is required", response.Reason, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -178,7 +183,7 @@ public sealed class EngineRefactoringTests
         var request = new WebhookAdapterRequest<PostmarkBouncePayload>(
             "missing",
             "event",
-            new Dictionary<string, string> { ["X-Signature"] = "missing:raw-body" },
+            new Dictionary<string, string>(StringComparer.Ordinal) { ["X-Signature"] = "missing:raw-body" },
             "raw-body",
             "idemp-1",
             1,
@@ -186,7 +191,7 @@ public sealed class EngineRefactoringTests
             new PostmarkBouncePayload("HardBounce", "Mail rejected"));
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => adapter.DispatchAsync(request, CancellationToken.None));
-        Assert.Contains("No webhook engine registered", ex.Message);
+        Assert.Contains("No webhook engine registered", ex.Message, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -210,7 +215,7 @@ public sealed class EngineRefactoringTests
         var request = new WebhookAdapterRequest<OtherWebhookPayload>(
             "postmark",
             "bounce",
-            new Dictionary<string, string> { ["X-Signature"] = "postmark:raw-body" },
+            new Dictionary<string, string>(StringComparer.Ordinal) { ["X-Signature"] = "postmark:raw-body" },
             "raw-body",
             "idemp-1",
             1,
@@ -218,7 +223,7 @@ public sealed class EngineRefactoringTests
             new OtherWebhookPayload("wrong"));
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => adapter.DispatchAsync(request, CancellationToken.None));
-        Assert.Contains("does not implement expected webhook contract", ex.Message);
+        Assert.Contains("does not implement expected webhook contract", ex.Message, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -264,7 +269,7 @@ public sealed class EngineRefactoringTests
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await adapter.ExecuteAsync<LoginCommand, LoginViewModel>("fake-module", "ui.missing", new LoginCommand("admin", "pass"), CancellationToken.None));
 
-        Assert.Contains("No UI engine registered", ex.Message);
+        Assert.Contains("No UI engine registered", ex.Message, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -288,7 +293,7 @@ public sealed class EngineRefactoringTests
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await adapter.ExecuteAsync<LoginCommand, LoginViewModel>("fake-module", "webhook.postmark", new LoginCommand("admin", "pass"), CancellationToken.None));
 
-        Assert.Contains("does not implement the expected UI contract", ex.Message);
+        Assert.Contains("does not implement the expected UI contract", ex.Message, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -310,10 +315,12 @@ public sealed class EngineRefactoringTests
         var discovery = provider.GetRequiredService<ModuleEngineDiscoveryService>();
 
         var allEngines = discovery.List();
-        Assert.Contains(allEngines, e => e.Manifest.Kind == EngineKind.Ui && e.ModuleKey == "fake-module");
+        Assert.Contains(allEngines, e => e.Manifest.Kind == EngineKind.Ui
+            && string.Equals(e.ModuleKey, "fake-module", StringComparison.Ordinal));
 
         var webhookEngines = discovery.List(EngineKind.Webhook, featureArea: "Notifications");
-        Assert.Contains(webhookEngines, e => e.Manifest.Id == "webhook.postmark" && e.ModuleKey == "fake-module");
+        Assert.Contains(webhookEngines, e => string.Equals(e.Manifest.Id, "webhook.postmark", StringComparison.Ordinal)
+            && string.Equals(e.ModuleKey, "fake-module", StringComparison.Ordinal));
 
         var resolved = discovery.ResolveWebhookEngine("postmark", "bounce");
         Assert.NotNull(resolved);
@@ -444,7 +451,7 @@ public sealed class EngineRefactoringTests
             headers.TryGetValue("X-Signature", out var headerSignature);
             var signature = providedSignature ?? headerSignature;
             return security.SignatureAlgorithm == ModuleSignatureAlgorithm.HmacSha256
-                && signature == $"{security.SecretScope}:{rawBody}";
+                && string.Equals(signature, $"{security.SecretScope}:{rawBody}", StringComparison.Ordinal);
         }
     }
 

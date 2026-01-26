@@ -48,8 +48,8 @@ public class MultiOutboxDispatcherTests : PostgresTestBase
         await setupConnection.OpenAsync(TestContext.Current.CancellationToken);
         await setupConnection.ExecuteAsync($"CREATE SCHEMA IF NOT EXISTS {PostgresSqlHelper.QuoteIdentifier(schema2)}");
 
-        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(ConnectionString, schema1, "Outbox").ConfigureAwait(false);
-        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(ConnectionString, schema2, "Outbox").ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(ConnectionString, schema1, "Outbox");
+        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(ConnectionString, schema2, "Outbox");
 
         var message1Id = Guid.NewGuid();
         var message2Id = Guid.NewGuid();
@@ -160,7 +160,7 @@ public class MultiOutboxDispatcherTests : PostgresTestBase
     {
         var schema1 = "infra";
 
-        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(ConnectionString, schema1, "Outbox").ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(ConnectionString, schema1, "Outbox");
 
         var table = PostgresSqlHelper.Qualify(schema1, "Outbox");
 

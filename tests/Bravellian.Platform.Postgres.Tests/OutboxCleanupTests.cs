@@ -104,7 +104,7 @@ public class OutboxCleanupTests : PostgresTestBase
                 MessageId = Guid.NewGuid(),
             });
 
-        var deletedCount = await ExecuteCleanupAsync(TimeSpan.FromDays(7)).ConfigureAwait(false);
+        var deletedCount = await ExecuteCleanupAsync(TimeSpan.FromDays(7));
 
         deletedCount.ShouldBe(1);
 
@@ -149,7 +149,7 @@ public class OutboxCleanupTests : PostgresTestBase
                 MessageId = Guid.NewGuid(),
             });
 
-        var deletedCount = await ExecuteCleanupAsync(TimeSpan.FromDays(7)).ConfigureAwait(false);
+        var deletedCount = await ExecuteCleanupAsync(TimeSpan.FromDays(7));
 
         deletedCount.ShouldBe(0);
 
@@ -201,7 +201,7 @@ public class OutboxCleanupTests : PostgresTestBase
                 });
         }
 
-        var deletedCount = await ExecuteCleanupAsync(TimeSpan.FromDays(10)).ConfigureAwait(false);
+        var deletedCount = await ExecuteCleanupAsync(TimeSpan.FromDays(10));
 
         deletedCount.ShouldBe(2);
 

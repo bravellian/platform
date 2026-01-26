@@ -177,7 +177,7 @@ public class ExceptionFilterTests
     public void IsCritical_WithRegularException_ReturnsFalse()
     {
         // Arrange
-        var exception = new ArgumentException("Invalid argument");
+        var exception = CreateArgumentException("argument", "Invalid argument");
 
         // Act
         var result = ExceptionFilter.IsCritical(exception);
@@ -247,7 +247,7 @@ public class ExceptionFilterTests
     public void IsExpected_WithMultipleTypesAndMatch_ReturnsTrue()
     {
         // Arrange
-        var exception = new ArgumentNullException("param");
+        var exception = CreateArgumentNullException("param");
 
         // Act
         var result = ExceptionFilter.IsExpected(
@@ -276,7 +276,7 @@ public class ExceptionFilterTests
     public void IsExpected_WithDerivedType_ReturnsTrue()
     {
         // Arrange
-        var exception = new ArgumentNullException("param"); // Derives from ArgumentException
+        var exception = CreateArgumentNullException("param"); // Derives from ArgumentException
 
         // Act
         var result = ExceptionFilter.IsExpected(exception, typeof(ArgumentException));
@@ -394,7 +394,7 @@ public class ExceptionFilterTests
     public void IsExpected_WithNullTypeInArray_IgnoresNullAndContinues()
     {
         // Arrange
-        var exception = new ArgumentException("Test");
+        var exception = CreateArgumentException("argument", "Test");
 
         // Act
         var result = ExceptionFilter.IsExpected(
@@ -668,5 +668,15 @@ public class ExceptionFilterTests
         // Assert
         shouldCatchSql.ShouldBeTrue("SQL exceptions should be caught");
         shouldCatchCritical.ShouldBeFalse("critical exceptions should never be caught");
+    }
+
+    private static ArgumentException CreateArgumentException(string parameterName, string message)
+    {
+        return new ArgumentException(message, parameterName);
+    }
+
+    private static ArgumentNullException CreateArgumentNullException(string parameterName)
+    {
+        return new ArgumentNullException(parameterName);
     }
 }

@@ -108,10 +108,11 @@ public class LeaseRunnerTests : SqlServerTestBase
         var monotonicClock = new MonotonicClock();
         var timeProvider = TimeProvider.System;
         var logger = NullLogger.Instance;
+        var api = leaseApi ?? throw new InvalidOperationException("Lease API has not been initialized.");
 
         // First runner acquires the lease
         var runner1 = await LeaseRunner.AcquireAsync(
-            leaseApi!,
+            api,
             monotonicClock,
             timeProvider,
             leaseName,
@@ -124,7 +125,7 @@ public class LeaseRunnerTests : SqlServerTestBase
 
         // Act - Second runner tries to acquire the same lease
         var runner2 = await LeaseRunner.AcquireAsync(
-            leaseApi,
+            api,
             monotonicClock,
             timeProvider,
             leaseName,

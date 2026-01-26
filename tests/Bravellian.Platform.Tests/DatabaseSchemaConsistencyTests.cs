@@ -366,6 +366,8 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
         var inboxReaper = await connection.ExecuteScalarAsync<string>(
             "SELECT OBJECT_DEFINITION(OBJECT_ID('infra.Inbox_ReapExpired'))");
 
+        Assert.NotNull(outboxReaper);
+        Assert.NotNull(inboxReaper);
         outboxReaper.ShouldContain("SYSUTCDATETIME", Case.Sensitive);
         inboxReaper.ShouldContain("SYSUTCDATETIME", Case.Sensitive);
 
@@ -375,6 +377,8 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
         var inboxClaim = await connection.ExecuteScalarAsync<string>(
             "SELECT OBJECT_DEFINITION(OBJECT_ID('infra.Inbox_Claim'))");
 
+        Assert.NotNull(outboxClaim);
+        Assert.NotNull(inboxClaim);
         outboxClaim.ShouldContain("SYSUTCDATETIME", Case.Sensitive);
         inboxClaim.ShouldContain("SYSUTCDATETIME", Case.Sensitive);
 
@@ -384,6 +388,8 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
         var inboxAck = await connection.ExecuteScalarAsync<string>(
             "SELECT OBJECT_DEFINITION(OBJECT_ID('infra.Inbox_Ack'))");
 
+        Assert.NotNull(outboxAck);
+        Assert.NotNull(inboxAck);
         outboxAck.ShouldContain("SYSUTCDATETIME", Case.Sensitive);
         inboxAck.ShouldContain("SYSUTCDATETIME", Case.Sensitive);
 
@@ -393,6 +399,8 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
         var inboxAbandon = await connection.ExecuteScalarAsync<string>(
             "SELECT OBJECT_DEFINITION(OBJECT_ID('infra.Inbox_Abandon'))");
 
+        Assert.NotNull(outboxAbandon);
+        Assert.NotNull(inboxAbandon);
         outboxAbandon.ShouldContain("SYSUTCDATETIME", Case.Sensitive);
         inboxAbandon.ShouldContain("SYSUTCDATETIME", Case.Sensitive);
     }

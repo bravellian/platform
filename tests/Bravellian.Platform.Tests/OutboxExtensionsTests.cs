@@ -86,14 +86,13 @@ public class OutboxExtensionsTests : SqlServerTestBase
         await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(CancellationToken.None);
 
-        var message = await connection.QuerySingleOrDefaultAsync<dynamic>(
+        var payloadText = await connection.QuerySingleOrDefaultAsync<string>(
             "SELECT TOP 1 Payload FROM infra.Outbox WHERE Topic = 'join.wait' ORDER BY CreatedAt DESC");
+        Assert.NotNull(payloadText);
 
-        message.ShouldNotBeNull();
-
-        var payload = JsonSerializer.Deserialize<JoinWaitPayload>((string)message.Payload);
-        payload.ShouldNotBeNull();
-        payload!.JoinId.ShouldBe(joinId);
+        var payload = JsonSerializer.Deserialize<JoinWaitPayload>(payloadText);
+        Assert.NotNull(payload);
+        payload.JoinId.ShouldBe(joinId);
         payload.FailIfAnyStepFailed.ShouldBeTrue();
         payload.OnCompleteTopic.ShouldBe(onCompleteTopic);
         payload.OnCompletePayload.ShouldBe(onCompletePayload);
@@ -120,14 +119,13 @@ public class OutboxExtensionsTests : SqlServerTestBase
         await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(CancellationToken.None);
 
-        var message = await connection.QuerySingleOrDefaultAsync<dynamic>(
+        var payloadText = await connection.QuerySingleOrDefaultAsync<string>(
             "SELECT TOP 1 Payload FROM infra.Outbox WHERE Topic = 'join.wait' ORDER BY CreatedAt DESC");
+        Assert.NotNull(payloadText);
 
-        message.ShouldNotBeNull();
-
-        var payload = JsonSerializer.Deserialize<JoinWaitPayload>((string)message.Payload);
-        payload.ShouldNotBeNull();
-        payload!.JoinId.ShouldBe(joinId);
+        var payload = JsonSerializer.Deserialize<JoinWaitPayload>(payloadText);
+        Assert.NotNull(payload);
+        payload.JoinId.ShouldBe(joinId);
         payload.FailIfAnyStepFailed.ShouldBeTrue(); // Default value
         payload.OnCompleteTopic.ShouldBeNull();
         payload.OnCompletePayload.ShouldBeNull();
@@ -156,14 +154,13 @@ public class OutboxExtensionsTests : SqlServerTestBase
         await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync(CancellationToken.None);
 
-        var message = await connection.QuerySingleOrDefaultAsync<dynamic>(
+        var payloadText = await connection.QuerySingleOrDefaultAsync<string>(
             "SELECT TOP 1 Payload FROM infra.Outbox WHERE Topic = 'join.wait' ORDER BY CreatedAt DESC");
+        Assert.NotNull(payloadText);
 
-        message.ShouldNotBeNull();
-
-        var payload = JsonSerializer.Deserialize<JoinWaitPayload>((string)message.Payload);
-        payload.ShouldNotBeNull();
-        payload!.JoinId.ShouldBe(joinId);
+        var payload = JsonSerializer.Deserialize<JoinWaitPayload>(payloadText);
+        Assert.NotNull(payload);
+        payload.JoinId.ShouldBe(joinId);
         payload.FailIfAnyStepFailed.ShouldBeFalse();
         payload.OnCompleteTopic.ShouldBe("complete");
     }

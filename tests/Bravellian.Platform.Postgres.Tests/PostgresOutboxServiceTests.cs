@@ -14,6 +14,7 @@
 
 using System.Data;
 using Dapper;
+using System.Globalization;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Npgsql;
@@ -77,7 +78,7 @@ public class PostgresOutboxServiceTests : PostgresTestBase
         command.Parameters.AddWithValue("@Topic", topic);
         command.Parameters.AddWithValue("@Payload", payload);
 
-        var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken));
+        var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken), CultureInfo.InvariantCulture);
 
         count.ShouldBe(1);
 
@@ -99,7 +100,7 @@ public class PostgresOutboxServiceTests : PostgresTestBase
             EnableSchemaDeployment = false,
         };
 
-        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(ConnectionString, customOptions.SchemaName, customOptions.TableName).ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(ConnectionString, customOptions.SchemaName, customOptions.TableName);
 
         var customOutboxService = new PostgresOutboxService(Options.Create(customOptions), NullLogger<PostgresOutboxService>.Instance);
         var customTable = PostgresSqlHelper.Qualify(customOptions.SchemaName, customOptions.TableName);
@@ -118,7 +119,7 @@ public class PostgresOutboxServiceTests : PostgresTestBase
         command.Parameters.AddWithValue("@Topic", topic);
         command.Parameters.AddWithValue("@Payload", payload);
 
-        var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken));
+        var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken), CultureInfo.InvariantCulture);
 
         count.ShouldBe(1);
 
@@ -146,7 +147,7 @@ public class PostgresOutboxServiceTests : PostgresTestBase
         command.Parameters.AddWithValue("@Topic", topic);
         command.Parameters.AddWithValue("@Payload", payload);
 
-        var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken));
+        var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken), CultureInfo.InvariantCulture);
 
         count.ShouldBe(1);
 
@@ -208,7 +209,7 @@ public class PostgresOutboxServiceTests : PostgresTestBase
 
         var sql = $"SELECT COUNT(*) FROM {qualifiedTableName}";
         await using var command = new NpgsqlCommand(sql, connection, transaction);
-        var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken));
+        var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken), CultureInfo.InvariantCulture);
 
         count.ShouldBe(3);
 
@@ -253,7 +254,7 @@ public class PostgresOutboxServiceTests : PostgresTestBase
         command.Parameters.AddWithValue("@Payload", payload);
         command.Parameters.AddWithValue("@CorrelationId", correlationId);
 
-        var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken));
+        var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken), CultureInfo.InvariantCulture);
 
         count.ShouldBe(1);
 
@@ -283,7 +284,7 @@ public class PostgresOutboxServiceTests : PostgresTestBase
         command.Parameters.AddWithValue("@Topic", topic);
         command.Parameters.AddWithValue("@Payload", payload);
 
-        var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken));
+        var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken), CultureInfo.InvariantCulture);
 
         count.ShouldBe(1);
 
@@ -316,7 +317,7 @@ public class PostgresOutboxServiceTests : PostgresTestBase
             var sql = $"SELECT COUNT(*) FROM {qualifiedTableName} WHERE \"Topic\" LIKE @TopicPattern";
             await using var command = new NpgsqlCommand(sql, connection);
             command.Parameters.AddWithValue("@TopicPattern", $"%-{testId}");
-            var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken));
+            var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken), CultureInfo.InvariantCulture);
 
             count.ShouldBe(3);
         }
@@ -366,7 +367,7 @@ public class PostgresOutboxServiceTests : PostgresTestBase
             command.Parameters.AddWithValue("@Topic", topic);
             command.Parameters.AddWithValue("@Payload", payload);
 
-            var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken));
+            var count = Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken), CultureInfo.InvariantCulture);
 
             count.ShouldBe(1);
         }
