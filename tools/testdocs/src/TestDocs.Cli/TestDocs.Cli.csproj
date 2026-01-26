@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Bravellian.TestDocs.Cli</AssemblyName>
+    <IsPackable>true</IsPackable>
+    <PackageId>Bravellian.TestDocs.Cli</PackageId>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>bravellian-testdocs</ToolCommandName>
+    <PackageType>DotnetTool</PackageType>
+    <Description>Generate test documentation from XML docs for MSTest, xUnit, and NUnit.</Description>
+    <Authors>Bravellian</Authors>
+    <Company>Bravellian</Company>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>testdocs;documentation;mstest;xunit;nunit</PackageTags>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Required for Roslyn syntax parsing of XML docs. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,3224 @@
+# Bravellian.Platform.Tests
+
+Total tests: 644
+
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.CustomSchemaIntegrationTests.EnsureDistributedLockSchema_WithCustomSchema_CreatesObjectsInCorrectSchema**
+  - Summary: When the distributed lock schema is ensured with a custom schema, then the table is created there.
+  - Intent: Verify distributed lock deployment honors the configured schema name.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/CustomSchemaIntegrationTests.cs#L49](tests/Bravellian.Platform.Postgres.Tests/CustomSchemaIntegrationTests.cs#L49)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.CustomSchemaIntegrationTests.EnsureFanoutSchema_WithCustomSchema_CreatesObjectsInCorrectSchema**
+  - Summary: When the fanout schema is ensured with a custom schema, then policy and cursor tables are created there.
+  - Intent: Verify fanout deployment honors the configured schema name.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/CustomSchemaIntegrationTests.cs#L260](tests/Bravellian.Platform.Postgres.Tests/CustomSchemaIntegrationTests.cs#L260)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.CustomSchemaIntegrationTests.EnsureInboxSchema_WithCustomSchema_CreatesObjectsInCorrectSchema**
+  - Summary: When the inbox schema is ensured with a custom schema, then the Inbox table is created there.
+  - Intent: Verify inbox deployment honors the configured schema name.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/CustomSchemaIntegrationTests.cs#L133](tests/Bravellian.Platform.Postgres.Tests/CustomSchemaIntegrationTests.cs#L133)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.CustomSchemaIntegrationTests.EnsureInboxWorkQueueSchema_WithCustomSchema_CreatesObjectsInCorrectSchema**
+  - Summary: When the inbox work-queue schema is ensured with a custom schema, then inbox objects are created there.
+  - Intent: Verify inbox work-queue deployment honors the configured schema name.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/CustomSchemaIntegrationTests.cs#L229](tests/Bravellian.Platform.Postgres.Tests/CustomSchemaIntegrationTests.cs#L229)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.CustomSchemaIntegrationTests.EnsureLeaseSchema_WithCustomSchema_CreatesObjectsInCorrectSchema**
+  - Summary: When the lease schema is ensured with a custom schema, then the lease table is created there.
+  - Intent: Verify lease deployment honors the configured schema name.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/CustomSchemaIntegrationTests.cs#L76](tests/Bravellian.Platform.Postgres.Tests/CustomSchemaIntegrationTests.cs#L76)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.CustomSchemaIntegrationTests.EnsureOutboxSchema_WithCustomSchema_CreatesObjectsInCorrectSchema**
+  - Summary: When the outbox schema is ensured with a custom schema, then outbox tables are created there.
+  - Intent: Verify outbox deployment honors the configured schema name.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/CustomSchemaIntegrationTests.cs#L103](tests/Bravellian.Platform.Postgres.Tests/CustomSchemaIntegrationTests.cs#L103)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.CustomSchemaIntegrationTests.EnsureSchedulerSchema_WithCustomSchema_CreatesObjectsInCorrectSchema**
+  - Summary: When the scheduler schema is ensured with a custom schema, then scheduler tables are created there.
+  - Intent: Verify scheduler deployment honors the configured schema name.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/CustomSchemaIntegrationTests.cs#L160](tests/Bravellian.Platform.Postgres.Tests/CustomSchemaIntegrationTests.cs#L160)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.CustomSchemaIntegrationTests.EnsureWorkQueueSchema_WithCustomSchema_CreatesObjectsInCorrectSchema**
+  - Summary: When the work-queue schema is ensured with a custom schema, then work-queue objects use that schema.
+  - Intent: Verify work-queue deployment honors the configured schema name.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/CustomSchemaIntegrationTests.cs#L198](tests/Bravellian.Platform.Postgres.Tests/CustomSchemaIntegrationTests.cs#L198)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.DatabaseSchemaConsistencyTests.CustomSchemaNames_WorkCorrectly**
+  - Summary: When creating scheduler tables in a custom schema, then tables and indexes use the custom names.
+  - Intent: Verify scheduler schema respects custom schema and table names.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/DatabaseSchemaConsistencyTests.cs#L279](tests/Bravellian.Platform.Postgres.Tests/DatabaseSchemaConsistencyTests.cs#L279)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.DatabaseSchemaConsistencyTests.DatabaseSchema_AllRequiredTablesExist**
+  - Summary: Given core schemas are deployed, then all required tables exist.
+  - Intent: Verify core schema deployment creates the expected tables.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/DatabaseSchemaConsistencyTests.cs#L49](tests/Bravellian.Platform.Postgres.Tests/DatabaseSchemaConsistencyTests.cs#L49)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.DatabaseSchemaConsistencyTests.DatabaseSchema_RequiredIndexesExist**
+  - Summary: When verifying schema indexes, then required work-queue and uniqueness indexes exist.
+  - Intent: Validate required indexes are created for core tables.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/DatabaseSchemaConsistencyTests.cs#L244](tests/Bravellian.Platform.Postgres.Tests/DatabaseSchemaConsistencyTests.cs#L244)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.DatabaseSchemaConsistencyTests.InboxTable_HasCorrectSchema**
+  - Summary: When inspecting the Inbox table, then all required columns and types match.
+  - Intent: Validate the Inbox table shape matches the expected schema.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/DatabaseSchemaConsistencyTests.cs#L210](tests/Bravellian.Platform.Postgres.Tests/DatabaseSchemaConsistencyTests.cs#L210)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.DatabaseSchemaConsistencyTests.JobRunsTable_HasCorrectSchema**
+  - Summary: When inspecting the JobRuns table, then all required columns and types match.
+  - Intent: Validate the JobRuns table shape matches the expected schema.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/DatabaseSchemaConsistencyTests.cs#L176](tests/Bravellian.Platform.Postgres.Tests/DatabaseSchemaConsistencyTests.cs#L176)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.DatabaseSchemaConsistencyTests.JobsTable_HasCorrectSchema**
+  - Summary: When inspecting the Jobs table, then all required columns and types match.
+  - Intent: Validate the Jobs table shape matches the expected schema.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/DatabaseSchemaConsistencyTests.cs#L112](tests/Bravellian.Platform.Postgres.Tests/DatabaseSchemaConsistencyTests.cs#L112)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.DatabaseSchemaConsistencyTests.OutboxTable_HasCorrectSchema**
+  - Summary: When inspecting the Outbox table, then all required columns and types match.
+  - Intent: Validate the Outbox table shape matches the expected schema.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/DatabaseSchemaConsistencyTests.cs#L77](tests/Bravellian.Platform.Postgres.Tests/DatabaseSchemaConsistencyTests.cs#L77)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.DatabaseSchemaConsistencyTests.TimersTable_HasCorrectSchema**
+  - Summary: When inspecting the Timers table, then all required columns and types match.
+  - Intent: Validate the Timers table shape matches the expected schema.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/DatabaseSchemaConsistencyTests.cs#L141](tests/Bravellian.Platform.Postgres.Tests/DatabaseSchemaConsistencyTests.cs#L141)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.DatabaseSchemaConsistencyTests.WorkQueueColumns_ExistAfterMigration**
+  - Summary: When checking the Outbox table after work-queue migration, then work-queue columns exist.
+  - Intent: Confirm work-queue columns are present after migration.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/DatabaseSchemaConsistencyTests.cs#L311](tests/Bravellian.Platform.Postgres.Tests/DatabaseSchemaConsistencyTests.cs#L311)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.DatabaseSchemaDeploymentTests.AddPlatformMultiDatabaseWithControlPlane_WithSchemaDeploymentEnabled_RegistersSchemaService**
+  - Summary: When control-plane schema deployment is enabled, then schema services are registered.
+  - Intent: Confirm control-plane multi-database registration wires schema deployment services.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/DatabaseSchemaDeploymentTests.cs#L154](tests/Bravellian.Platform.Postgres.Tests/DatabaseSchemaDeploymentTests.cs#L154)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.DatabaseSchemaDeploymentTests.AddPlatformMultiDatabaseWithList_WithSchemaDeploymentDisabled_DoesNotRegisterSchemaService**
+  - Summary: When list-based schema deployment is disabled, then schema services are not registered.
+  - Intent: Confirm list-based multi-database registration skips schema deployment services.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/DatabaseSchemaDeploymentTests.cs#L190](tests/Bravellian.Platform.Postgres.Tests/DatabaseSchemaDeploymentTests.cs#L190)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.DatabaseSchemaDeploymentTests.AddPlatformMultiDatabaseWithList_WithSchemaDeploymentEnabled_RegistersSchemaService**
+  - Summary: When list-based multi-database schema deployment is enabled, then schema services are registered.
+  - Intent: Confirm list-based multi-database registration wires schema deployment services.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/DatabaseSchemaDeploymentTests.cs#L125](tests/Bravellian.Platform.Postgres.Tests/DatabaseSchemaDeploymentTests.cs#L125)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.DatabaseSchemaDeploymentTests.AddPostgresOutbox_WithSchemaDeploymentDisabled_DoesNotRegisterSchemaService**
+  - Summary: When schema deployment is disabled, then Postgres outbox does not register schema services.
+  - Intent: Validate service registration is skipped when schema deployment is off.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/DatabaseSchemaDeploymentTests.cs#L52](tests/Bravellian.Platform.Postgres.Tests/DatabaseSchemaDeploymentTests.cs#L52)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.DatabaseSchemaDeploymentTests.AddPostgresOutbox_WithSchemaDeploymentEnabled_RegistersSchemaService**
+  - Summary: When schema deployment is enabled, then Postgres outbox registers schema completion and background services.
+  - Intent: Validate service registration for the outbox schema deployment path.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/DatabaseSchemaDeploymentTests.cs#L29](tests/Bravellian.Platform.Postgres.Tests/DatabaseSchemaDeploymentTests.cs#L29)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.DatabaseSchemaDeploymentTests.DatabaseSchemaCompletion_CoordinatesStateCorrectly**
+  - Summary: When SetCompleted is called, then SchemaDeploymentCompleted finishes successfully.
+  - Intent: Verify schema completion signaling transitions the task to a completed state.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/DatabaseSchemaDeploymentTests.cs#L108](tests/Bravellian.Platform.Postgres.Tests/DatabaseSchemaDeploymentTests.cs#L108)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.DatabaseSchemaDeploymentTests.SchemaCompletion_RegisteredSeparatelyFromBackgroundService**
+  - Summary: When schema deployment is enabled, then schema completion is registered separately from the background service.
+  - Intent: Ensure completion services are singletons independent of the hosted service registration.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/DatabaseSchemaDeploymentTests.cs#L75](tests/Bravellian.Platform.Postgres.Tests/DatabaseSchemaDeploymentTests.cs#L75)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.FanoutCoordinatorIntegrationTests.FanoutSlices_CanJoinDownstreamMessagesIdempotently**
+  - Summary: When fanout slices are joined, then completed steps are idempotent and correlation ids remain consistent.
+  - Intent: Verify join-store idempotency for downstream fan-in tracking.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/FanoutCoordinatorIntegrationTests.cs#L201](tests/Bravellian.Platform.Postgres.Tests/FanoutCoordinatorIntegrationTests.cs#L201)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.FanoutCoordinatorIntegrationTests.RunAsync_RedispatchesAbandonedSlices**
+  - Summary: When slices are abandoned, then subsequent runs redispatch them.
+  - Intent: Verify abandoned slices are eligible for redispatch.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/FanoutCoordinatorIntegrationTests.cs#L130](tests/Bravellian.Platform.Postgres.Tests/FanoutCoordinatorIntegrationTests.cs#L130)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.FanoutCoordinatorIntegrationTests.RunAsync_RespectsActiveLeaseAndRecoversAfterExpiry**
+  - Summary: When a lease is already held, then the coordinator skips dispatch until the lease expires.
+  - Intent: Verify lease gating and recovery behavior for fanout coordination.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/FanoutCoordinatorIntegrationTests.cs#L93](tests/Bravellian.Platform.Postgres.Tests/FanoutCoordinatorIntegrationTests.cs#L93)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.FanoutCoordinatorIntegrationTests.RunAsync_SkipsCompletedSlicesAfterCursorAdvances**
+  - Summary: When cursors are marked completed, then subsequent runs skip those slices.
+  - Intent: Verify cursor advancement prevents redispatch of completed slices.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/FanoutCoordinatorIntegrationTests.cs#L164](tests/Bravellian.Platform.Postgres.Tests/FanoutCoordinatorIntegrationTests.cs#L164)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.InboxCleanupTests.CleanupService_GracefullyHandles_MissingTable**
+  - Summary: When the inbox table is missing, then the cleanup service runs without recreating it.
+  - Intent: Verify cleanup handles missing tables without side effects.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/InboxCleanupTests.cs#L249](tests/Bravellian.Platform.Postgres.Tests/InboxCleanupTests.cs#L249)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.InboxCleanupTests.Cleanup_DeletesOldProcessedMessages**
+  - Summary: When cleanup runs with a seven-day retention period, then only old processed messages are deleted.
+  - Intent: Verify cleanup deletes processed rows older than the retention window.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/InboxCleanupTests.cs#L55](tests/Bravellian.Platform.Postgres.Tests/InboxCleanupTests.cs#L55)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.InboxCleanupTests.Cleanup_RespectsRetentionPeriod**
+  - Summary: When cleanup uses a 10-day retention period, then only messages older than 10 days are deleted.
+  - Intent: Verify cleanup uses the retention cutoff to select deletions.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/InboxCleanupTests.cs#L185](tests/Bravellian.Platform.Postgres.Tests/InboxCleanupTests.cs#L185)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.InboxCleanupTests.Cleanup_WithNoOldMessages_DeletesNothing**
+  - Summary: Given only recent processed messages, then cleanup deletes nothing.
+  - Intent: Verify cleanup leaves processed rows inside the retention window.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/InboxCleanupTests.cs#L137](tests/Bravellian.Platform.Postgres.Tests/InboxCleanupTests.cs#L137)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.InboxDispatcherTests.RunOnceAsync_RotatesOwnerTokensAcrossRuns**
+  - Summary: When RunOnceAsync executes across multiple runs, then owner tokens rotate between runs.
+  - Intent: Verify each dispatch run uses a new owner token.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/InboxDispatcherTests.cs#L287](tests/Bravellian.Platform.Postgres.Tests/InboxDispatcherTests.cs#L287)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.InboxDispatcherTests.RunOnceAsync_WithFailingHandler_AbandonsWithBackoffPolicy**
+  - Summary: When a handler fails and a backoff policy is configured, then the message is abandoned with that delay.
+  - Intent: Verify backoff delays are applied during abandon.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/InboxDispatcherTests.cs#L207](tests/Bravellian.Platform.Postgres.Tests/InboxDispatcherTests.cs#L207)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.InboxDispatcherTests.RunOnceAsync_WithFailingHandler_RetriesWithBackoff**
+  - Summary: When a handler throws, then RunOnceAsync abandons the message back to Seen.
+  - Intent: Verify handler failures result in a retryable abandon.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/InboxDispatcherTests.cs#L165](tests/Bravellian.Platform.Postgres.Tests/InboxDispatcherTests.cs#L165)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.InboxDispatcherTests.RunOnceAsync_WithNoHandlerForTopic_MarksMessageAsDead**
+  - Summary: When no handler exists for a message topic, then RunOnceAsync marks the message Dead.
+  - Intent: Verify missing handlers move the message to Dead.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/InboxDispatcherTests.cs#L124](tests/Bravellian.Platform.Postgres.Tests/InboxDispatcherTests.cs#L124)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.InboxDispatcherTests.RunOnceAsync_WithNoMessages_ReturnsZero**
+  - Summary: Given no inbox messages, then RunOnceAsync returns 0 processed items.
+  - Intent: Verify the dispatcher reports zero when no work is available.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/InboxDispatcherTests.cs#L56](tests/Bravellian.Platform.Postgres.Tests/InboxDispatcherTests.cs#L56)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.InboxDispatcherTests.RunOnceAsync_WithPoisonMessage_FailsInsteadOfRetrying**
+  - Summary: When a message exceeds max attempts, then RunOnceAsync fails it instead of retrying.
+  - Intent: Verify poison messages are failed once they exceed the retry limit.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/InboxDispatcherTests.cs#L247](tests/Bravellian.Platform.Postgres.Tests/InboxDispatcherTests.cs#L247)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.InboxDispatcherTests.RunOnceAsync_WithValidMessage_ProcessesSuccessfully**
+  - Summary: When a queued message has a matching handler, then RunOnceAsync processes it and marks it Done.
+  - Intent: Verify successful dispatch updates the inbox status to Done.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/InboxDispatcherTests.cs#L83](tests/Bravellian.Platform.Postgres.Tests/InboxDispatcherTests.cs#L83)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.InboxIntegrationTests.CompleteInboxWorkflow_DirectServiceUsage_WorksEndToEnd**
+  - Summary: Given a direct inbox workflow, then AlreadyProcessed transitions from false to true and the row is Done.
+  - Intent: Verify end-to-end inbox processing with direct PostgresInboxService usage.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/InboxIntegrationTests.cs#L48](tests/Bravellian.Platform.Postgres.Tests/InboxIntegrationTests.cs#L48)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.InboxIntegrationTests.ConcurrentAccess_WithMultipleThreads_HandledSafely**
+  - Summary: When multiple threads call AlreadyProcessedAsync concurrently, then one row is created with attempts tracked.
+  - Intent: Verify concurrent deduplication records a single row and increments Attempts.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/InboxIntegrationTests.cs#L138](tests/Bravellian.Platform.Postgres.Tests/InboxIntegrationTests.cs#L138)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.InboxIntegrationTests.PoisonMessageWorkflow_MarkingAsDead_WorksCorrectly**
+  - Summary: When a message is marked dead after processing starts, then its status is Dead and ProcessedUtc stays null.
+  - Intent: Verify poison-message handling in the inbox workflow.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/InboxIntegrationTests.cs#L96](tests/Bravellian.Platform.Postgres.Tests/InboxIntegrationTests.cs#L96)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.InboxWorkStoreTests.AbandonAsync_WithClaimedMessage_ReturnsToSeen**
+  - Summary: When abandoning a claimed message, then its status returns to Seen.
+  - Intent: Verify abandon releases the claim and resets the status.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/InboxWorkStoreTests.cs#L182](tests/Bravellian.Platform.Postgres.Tests/InboxWorkStoreTests.cs#L182)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.InboxWorkStoreTests.AckAsync_WithClaimedMessage_MarksAsDone**
+  - Summary: When acknowledging a claimed message, then its status becomes Done.
+  - Intent: Verify acknowledgements finalize the inbox row.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/InboxWorkStoreTests.cs#L145](tests/Bravellian.Platform.Postgres.Tests/InboxWorkStoreTests.cs#L145)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.InboxWorkStoreTests.ClaimAsync_WithAvailableMessage_ClaimsSuccessfully**
+  - Summary: When a message is available, then ClaimAsync claims it and marks it Processing.
+  - Intent: Verify claims update inbox status and ownership.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/InboxWorkStoreTests.cs#L77](tests/Bravellian.Platform.Postgres.Tests/InboxWorkStoreTests.cs#L77)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.InboxWorkStoreTests.ClaimAsync_WithConcurrentWorkers_EnsuresExclusiveClaims**
+  - Summary: When two workers claim concurrently, then only one receives the message.
+  - Intent: Verify claim exclusivity under concurrent workers.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/InboxWorkStoreTests.cs#L114](tests/Bravellian.Platform.Postgres.Tests/InboxWorkStoreTests.cs#L114)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.InboxWorkStoreTests.ClaimAsync_WithNoMessages_ReturnsEmpty**
+  - Summary: Given an empty inbox, then ClaimAsync returns no message ids.
+  - Intent: Verify claim behavior when no work is available.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/InboxWorkStoreTests.cs#L54](tests/Bravellian.Platform.Postgres.Tests/InboxWorkStoreTests.cs#L54)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.InboxWorkStoreTests.FailAsync_WithClaimedMessage_MarksAsDead**
+  - Summary: When failing a claimed message, then its status becomes Dead.
+  - Intent: Verify failure handling marks the message as Dead.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/InboxWorkStoreTests.cs#L218](tests/Bravellian.Platform.Postgres.Tests/InboxWorkStoreTests.cs#L218)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.InboxWorkStoreTests.GetAsync_WithInvalidMessageId_ThrowsException**
+  - Summary: When requesting a missing message id, then GetAsync throws InvalidOperationException.
+  - Intent: Verify missing messages raise an exception.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/InboxWorkStoreTests.cs#L321](tests/Bravellian.Platform.Postgres.Tests/InboxWorkStoreTests.cs#L321)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.InboxWorkStoreTests.GetAsync_WithValidMessageId_ReturnsMessage**
+  - Summary: Given a valid message id, then GetAsync returns the stored inbox message.
+  - Intent: Verify message retrieval by id returns stored fields.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/InboxWorkStoreTests.cs#L291](tests/Bravellian.Platform.Postgres.Tests/InboxWorkStoreTests.cs#L291)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.InboxWorkStoreTests.OwnerTokenEnforcement_OnlyAllowsOperationsByOwner**
+  - Summary: When a non-owner attempts to acknowledge a claim, then the row remains Processing.
+  - Intent: Verify owner token enforcement for state transitions.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/InboxWorkStoreTests.cs#L254](tests/Bravellian.Platform.Postgres.Tests/InboxWorkStoreTests.cs#L254)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.JoinWaitHandlerTests.HandleAsync_WhenAllStepsCompleted_MarksJoinAsCompleted**
+  - Summary: When all join steps are completed, then the join remains in a completed state.
+  - Intent: Confirm the wait handler leaves a completed join unchanged.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/JoinWaitHandlerTests.cs#L123](tests/Bravellian.Platform.Postgres.Tests/JoinWaitHandlerTests.cs#L123)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.JoinWaitHandlerTests.HandleAsync_WhenAnyStepFailed_MarksJoinFailed**
+  - Summary: When any join step fails and failure propagation is enabled, then the join is marked failed.
+  - Intent: Validate failure propagation for join steps.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/JoinWaitHandlerTests.cs#L168](tests/Bravellian.Platform.Postgres.Tests/JoinWaitHandlerTests.cs#L168)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.JoinWaitHandlerTests.HandleAsync_WhenJoinNotReady_ThrowsJoinNotReadyException**
+  - Summary: When the join has incomplete steps, then the handler throws JoinNotReadyException.
+  - Intent: Validate that the wait handler blocks until the join is complete.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/JoinWaitHandlerTests.cs#L87](tests/Bravellian.Platform.Postgres.Tests/JoinWaitHandlerTests.cs#L87)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.LeaseTests.AcquireAsync_WithExpiredLease_SucceedsAndReturnsNewExpiry**
+  - Summary: When a lease has expired, then a new owner can acquire it and receives a new expiry.
+  - Intent: Verify acquisition succeeds after lease expiration.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/LeaseTests.cs#L120](tests/Bravellian.Platform.Postgres.Tests/LeaseTests.cs#L120)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.LeaseTests.AcquireAsync_WithFreeResource_SucceedsAndReturnsServerTime**
+  - Summary: When acquiring a free lease, then the acquisition succeeds and returns server time and expiry.
+  - Intent: Verify acquisition succeeds for an unused lease name.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/LeaseTests.cs#L52](tests/Bravellian.Platform.Postgres.Tests/LeaseTests.cs#L52)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.LeaseTests.AcquireAsync_WithOccupiedResource_FailsAndReturnsServerTime**
+  - Summary: When acquiring an already-held lease, then the acquisition fails and returns server time.
+  - Intent: Verify acquisition fails for an occupied lease.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/LeaseTests.cs#L86](tests/Bravellian.Platform.Postgres.Tests/LeaseTests.cs#L86)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.LeaseTests.RenewAsync_WithExpiredLease_FailsAndReturnsServerTime**
+  - Summary: When renewing after the lease expires, then the renewal fails and returns no expiry.
+  - Intent: Verify renewal fails for an expired lease.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/LeaseTests.cs#L230](tests/Bravellian.Platform.Postgres.Tests/LeaseTests.cs#L230)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.LeaseTests.RenewAsync_WithValidOwner_SucceedsAndExtendsLease**
+  - Summary: When renewing with the current owner, then the lease is extended.
+  - Intent: Verify renewal succeeds for the lease holder.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/LeaseTests.cs#L158](tests/Bravellian.Platform.Postgres.Tests/LeaseTests.cs#L158)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.LeaseTests.RenewAsync_WithWrongOwner_FailsAndReturnsServerTime**
+  - Summary: When renewing with a different owner, then the renewal fails and no expiry is returned.
+  - Intent: Verify renewal fails for a non-owner.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/LeaseTests.cs#L196](tests/Bravellian.Platform.Postgres.Tests/LeaseTests.cs#L196)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.MetricsSchemaTests.MetricDef_Table_Should_Exist**
+  - Summary: Given the metrics schema is deployed, then the MetricDef table exists.
+  - Intent: Verify MetricDef is created by the metrics schema deployment.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/MetricsSchemaTests.cs#L52](tests/Bravellian.Platform.Postgres.Tests/MetricsSchemaTests.cs#L52)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.MetricsSchemaTests.MetricPointMinute_Table_Should_Exist**
+  - Summary: Given the metrics schema is deployed, then the MetricPointMinute table exists.
+  - Intent: Verify MetricPointMinute is created by the metrics schema deployment.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/MetricsSchemaTests.cs#L100](tests/Bravellian.Platform.Postgres.Tests/MetricsSchemaTests.cs#L100)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.MetricsSchemaTests.MetricSeries_Table_Should_Exist**
+  - Summary: Given the metrics schema is deployed, then the MetricSeries table exists.
+  - Intent: Verify MetricSeries is created by the metrics schema deployment.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/MetricsSchemaTests.cs#L76](tests/Bravellian.Platform.Postgres.Tests/MetricsSchemaTests.cs#L76)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.MultiDatabaseControlPlaneIntegrationTests.ListRegistration_WiresControlPlaneAndDiscoversDatabases**
+  - Summary: Given list-based registration, then control-plane configuration and tenant discovery are wired correctly.
+  - Intent: Verify list-based registration wires control-plane settings and discovery outputs.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/MultiDatabaseControlPlaneIntegrationTests.cs#L56](tests/Bravellian.Platform.Postgres.Tests/MultiDatabaseControlPlaneIntegrationTests.cs#L56)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.MultiDatabaseControlPlaneIntegrationTests.OutboxDispatch_Discovery_MultipleTenants**
+  - Summary: When dispatching for multiple discovery-registered tenants, then each tenant message is processed.
+  - Intent: Verify multi-tenant outbox dispatch with discovery-based registration.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/MultiDatabaseControlPlaneIntegrationTests.cs#L174](tests/Bravellian.Platform.Postgres.Tests/MultiDatabaseControlPlaneIntegrationTests.cs#L174)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.MultiDatabaseControlPlaneIntegrationTests.OutboxDispatch_Discovery_SingleTenant**
+  - Summary: When dispatching for a single discovery-registered tenant, then its message is processed.
+  - Intent: Verify single-tenant outbox dispatch with discovery-based registration.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/MultiDatabaseControlPlaneIntegrationTests.cs#L212](tests/Bravellian.Platform.Postgres.Tests/MultiDatabaseControlPlaneIntegrationTests.cs#L212)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.MultiDatabaseControlPlaneIntegrationTests.OutboxDispatch_List_MultipleTenants**
+  - Summary: When dispatching for multiple list-registered tenants, then each tenant message is processed.
+  - Intent: Verify multi-tenant outbox dispatch with list-based registration.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/MultiDatabaseControlPlaneIntegrationTests.cs#L100](tests/Bravellian.Platform.Postgres.Tests/MultiDatabaseControlPlaneIntegrationTests.cs#L100)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.MultiDatabaseControlPlaneIntegrationTests.OutboxDispatch_List_SingleTenant**
+  - Summary: When dispatching for a single list-registered tenant, then its message is processed.
+  - Intent: Verify single-tenant outbox dispatch with list-based registration.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/MultiDatabaseControlPlaneIntegrationTests.cs#L139](tests/Bravellian.Platform.Postgres.Tests/MultiDatabaseControlPlaneIntegrationTests.cs#L139)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.MultiInboxDispatcherLeaseTests.MultiInboxDispatcher_WithLease_PreventsConcurrentProcessing**
+  - Summary: When two dispatchers share a lease router, then only one processes the inbox batch.
+  - Intent: Verify lease-based coordination prevents concurrent processing.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/MultiInboxDispatcherLeaseTests.cs#L52](tests/Bravellian.Platform.Postgres.Tests/MultiInboxDispatcherLeaseTests.cs#L52)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.MultiInboxDispatcherLeaseTests.MultiInboxDispatcher_WithoutLease_AllowsProcessing**
+  - Summary: When no lease router is configured, then the dispatcher processes all available messages.
+  - Intent: Verify processing continues without lease coordination.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/MultiInboxDispatcherLeaseTests.cs#L176](tests/Bravellian.Platform.Postgres.Tests/MultiInboxDispatcherLeaseTests.cs#L176)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.MultiOutboxDispatcherLeaseTests.MultiOutboxDispatcher_WithLease_PreventsConcurrentProcessing**
+  - Summary: When two dispatchers share a lease router, then only one processes the outbox batch.
+  - Intent: Verify lease-based coordination prevents concurrent processing.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/MultiOutboxDispatcherLeaseTests.cs#L44](tests/Bravellian.Platform.Postgres.Tests/MultiOutboxDispatcherLeaseTests.cs#L44)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.MultiOutboxDispatcherLeaseTests.MultiOutboxDispatcher_WithoutLease_AllowsProcessing**
+  - Summary: When no lease router is configured, then the dispatcher processes all available messages.
+  - Intent: Verify dispatch proceeds without lease coordination.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/MultiOutboxDispatcherLeaseTests.cs#L160](tests/Bravellian.Platform.Postgres.Tests/MultiOutboxDispatcherLeaseTests.cs#L160)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.MultiOutboxDispatcherTests.MultiOutboxDispatcher_ProcessesMessagesFromMultipleStores**
+  - Summary: When dispatching across multiple stores, then messages are processed from each store.
+  - Intent: Verify the dispatcher iterates across store providers and handles messages from each.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/MultiOutboxDispatcherTests.cs#L42](tests/Bravellian.Platform.Postgres.Tests/MultiOutboxDispatcherTests.cs#L42)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.MultiOutboxDispatcherTests.MultiOutboxDispatcher_WithDrainFirstStrategy_DrainsOneStoreBeforeMoving**
+  - Summary: When using the drain-first strategy, then one store is drained before moving on.
+  - Intent: Verify the drain-first selection strategy exhausts one store before switching.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/MultiOutboxDispatcherTests.cs#L159](tests/Bravellian.Platform.Postgres.Tests/MultiOutboxDispatcherTests.cs#L159)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxCleanupTests.CleanupService_GracefullyHandles_MissingTable**
+  - Summary: When the outbox table is missing, then the cleanup service runs without recreating it.
+  - Intent: Verify cleanup handles missing tables without side effects.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxCleanupTests.cs#L228](tests/Bravellian.Platform.Postgres.Tests/OutboxCleanupTests.cs#L228)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxCleanupTests.Cleanup_DeletesOldProcessedMessages**
+  - Summary: When cleanup runs with a seven-day retention period, then only old processed messages are deleted.
+  - Intent: Verify cleanup removes processed rows older than the retention window.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxCleanupTests.cs#L48](tests/Bravellian.Platform.Postgres.Tests/OutboxCleanupTests.cs#L48)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxCleanupTests.Cleanup_RespectsRetentionPeriod**
+  - Summary: When cleanup uses a 10-day retention period, then only messages older than 10 days are deleted.
+  - Intent: Verify retention cutoffs are respected during cleanup.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxCleanupTests.cs#L170](tests/Bravellian.Platform.Postgres.Tests/OutboxCleanupTests.cs#L170)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxCleanupTests.Cleanup_WithNoOldMessages_DeletesNothing**
+  - Summary: When only recent processed messages exist, then cleanup deletes nothing.
+  - Intent: Verify cleanup does not remove rows inside the retention window.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxCleanupTests.cs#L128](tests/Bravellian.Platform.Postgres.Tests/OutboxCleanupTests.cs#L128)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxExtensionsTests.EnqueueJoinWaitAsync_WithAllParameters_EnqueuesCorrectMessage**
+  - Summary: When EnqueueJoinWaitAsync is called with full parameters, then the join.wait message contains them.
+  - Intent: Verify join-wait payload fields are populated from all provided parameters.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxExtensionsTests.cs#L68](tests/Bravellian.Platform.Postgres.Tests/OutboxExtensionsTests.cs#L68)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxExtensionsTests.EnqueueJoinWaitAsync_WithMinimalParameters_EnqueuesCorrectMessage**
+  - Summary: When EnqueueJoinWaitAsync is called with minimal parameters, then optional fields remain null.
+  - Intent: Verify defaults are applied when optional join-wait parameters are omitted.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxExtensionsTests.cs#L108](tests/Bravellian.Platform.Postgres.Tests/OutboxExtensionsTests.cs#L108)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxHandlerTests.MultiOutboxDispatcher_DefaultBackoff_ExponentialWithJitter**
+  - Summary: When computing default backoff delays, then ranges grow exponentially with jitter and remain bounded.
+  - Intent: Verify the default backoff timing policy and caps.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxHandlerTests.cs#L478](tests/Bravellian.Platform.Postgres.Tests/OutboxHandlerTests.cs#L478)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxHandlerTests.MultiOutboxDispatcher_HandlerThrows_ReschedulesWithBackoff**
+  - Summary: When a handler throws and attempts remain, then RunOnceAsync reschedules with backoff.
+  - Intent: Verify handler exceptions reschedule messages with delay.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxHandlerTests.cs#L217](tests/Bravellian.Platform.Postgres.Tests/OutboxHandlerTests.cs#L217)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxHandlerTests.MultiOutboxDispatcher_LogsAtCorrectLevels**
+  - Summary: When processing a mix of success and missing-handler messages, then logs include info, debug, and warning entries.
+  - Intent: Verify log levels reflect batch, message, and missing-handler outcomes.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxHandlerTests.cs#L401](tests/Bravellian.Platform.Postgres.Tests/OutboxHandlerTests.cs#L401)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxHandlerTests.MultiOutboxDispatcher_LogsCorrectly**
+  - Summary: When a message is processed successfully, then the handler and store record dispatch.
+  - Intent: Verify the success path invokes handlers and records dispatch.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxHandlerTests.cs#L311](tests/Bravellian.Platform.Postgres.Tests/OutboxHandlerTests.cs#L311)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxHandlerTests.MultiOutboxDispatcher_LogsErrors_WhenHandlerFails**
+  - Summary: When a handler fails, then the dispatcher captures the error and reschedules the message.
+  - Intent: Verify handler failures produce reschedule entries with errors.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxHandlerTests.cs#L356](tests/Bravellian.Platform.Postgres.Tests/OutboxHandlerTests.cs#L356)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxHandlerTests.MultiOutboxDispatcher_NoHandler_MarksAsFailed**
+  - Summary: When a message has no registered handler, then RunOnceAsync marks it failed.
+  - Intent: Verify missing handlers cause failures with the correct error.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxHandlerTests.cs#L176](tests/Bravellian.Platform.Postgres.Tests/OutboxHandlerTests.cs#L176)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxHandlerTests.MultiOutboxDispatcher_ProcessSingleMessage_Success**
+  - Summary: When a message has a matching handler, then RunOnceAsync dispatches it and returns 1.
+  - Intent: Verify successful single-message dispatch through the handler.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxHandlerTests.cs#L133](tests/Bravellian.Platform.Postgres.Tests/OutboxHandlerTests.cs#L133)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxHandlerTests.MultiOutboxDispatcher_WithPoisonMessage_FailsWhenMaxAttemptsReached**
+  - Summary: When a failing message reaches the max attempts threshold, then it is marked failed.
+  - Intent: Verify poison messages fail once the retry limit is reached.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxHandlerTests.cs#L264](tests/Bravellian.Platform.Postgres.Tests/OutboxHandlerTests.cs#L264)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxHandlerTests.OutboxHandlerResolver_CaseInsensitive**
+  - Summary: When resolving with different casing, then the handler is still found.
+  - Intent: Verify case-insensitive topic lookup in the resolver.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxHandlerTests.cs#L106](tests/Bravellian.Platform.Postgres.Tests/OutboxHandlerTests.cs#L106)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxHandlerTests.OutboxHandlerResolver_WithHandlers_ResolvesCorrectly**
+  - Summary: Given a resolver with multiple handlers, then known topics resolve and unknown topics do not.
+  - Intent: Verify resolver matching for known and unknown topics.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxHandlerTests.cs#L71](tests/Bravellian.Platform.Postgres.Tests/OutboxHandlerTests.cs#L71)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxHandlerTests.ServiceCollection_AddOutboxHandler_Factory_RegistersHandler**
+  - Summary: When adding an outbox handler factory, then it is registered as a singleton IOutboxHandler.
+  - Intent: Verify handler factory registration uses singleton lifetime.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxHandlerTests.cs#L545](tests/Bravellian.Platform.Postgres.Tests/OutboxHandlerTests.cs#L545)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxHandlerTests.ServiceCollection_AddOutboxHandler_RegistersHandler**
+  - Summary: When adding an outbox handler type, then it is registered as a singleton IOutboxHandler.
+  - Intent: Verify handler type registration uses singleton lifetime.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxHandlerTests.cs#L516](tests/Bravellian.Platform.Postgres.Tests/OutboxHandlerTests.cs#L516)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxJoinTests.AttachMessageToJoinAsync_CalledTwice_IsIdempotent**
+  - Summary: When attaching the same message twice, then only one association exists.
+  - Intent: Verify AttachMessageToJoinAsync is idempotent.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxJoinTests.cs#L187](tests/Bravellian.Platform.Postgres.Tests/OutboxJoinTests.cs#L187)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxJoinTests.AttachMessageToJoinAsync_WithValidIds_CreatesAssociation**
+  - Summary: When attaching a message to a join, then the association is stored.
+  - Intent: Verify join member rows are created for attached messages.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxJoinTests.cs#L154](tests/Bravellian.Platform.Postgres.Tests/OutboxJoinTests.cs#L154)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxJoinTests.CompleteJoinWorkflow_WithAllStepsCompleted_WorksCorrectly**
+  - Summary: When all steps complete, then the join reports completed status and counts.
+  - Intent: Verify the full join workflow records completion for every step.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxJoinTests.cs#L340](tests/Bravellian.Platform.Postgres.Tests/OutboxJoinTests.cs#L340)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxJoinTests.CompleteJoinWorkflow_WithSomeStepsFailed_WorksCorrectly**
+  - Summary: When some steps fail, then the join reports failed status and counts.
+  - Intent: Verify the join workflow records failures alongside completions.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxJoinTests.cs#L384](tests/Bravellian.Platform.Postgres.Tests/OutboxJoinTests.cs#L384)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxJoinTests.CreateJoinAsync_WithValidParameters_CreatesJoin**
+  - Summary: When CreateJoinAsync is called with valid parameters, then a pending join is created.
+  - Intent: Verify join creation populates expected metadata and counters.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxJoinTests.cs#L86](tests/Bravellian.Platform.Postgres.Tests/OutboxJoinTests.cs#L86)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxJoinTests.GetJoinAsync_WithExistingJoin_ReturnsJoin**
+  - Summary: When retrieving an existing join, then GetJoinAsync returns it.
+  - Intent: Verify joins can be fetched by id.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxJoinTests.cs#L116](tests/Bravellian.Platform.Postgres.Tests/OutboxJoinTests.cs#L116)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxJoinTests.GetJoinAsync_WithNonExistentJoin_ReturnsNull**
+  - Summary: When retrieving a non-existent join, then GetJoinAsync returns null.
+  - Intent: Verify unknown join ids are handled gracefully.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxJoinTests.cs#L138](tests/Bravellian.Platform.Postgres.Tests/OutboxJoinTests.cs#L138)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxJoinTests.GetJoinMessagesAsync_WithMultipleMessages_ReturnsAllMessageIds**
+  - Summary: When a join has multiple attached messages, then GetJoinMessagesAsync returns all ids.
+  - Intent: Verify join message enumeration returns every attached message.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxJoinTests.cs#L309](tests/Bravellian.Platform.Postgres.Tests/OutboxJoinTests.cs#L309)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxJoinTests.IncrementCompletedAsync_CalledTwiceForSameMessage_IsIdempotent**
+  - Summary: When IncrementCompletedAsync is called twice for the same message, then counts are not duplicated.
+  - Intent: Verify completion increments are idempotent per message.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxJoinTests.cs#L422](tests/Bravellian.Platform.Postgres.Tests/OutboxJoinTests.cs#L422)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxJoinTests.IncrementCompletedAsync_WhenTotalWouldExceedExpected_DoesNotOverCount**
+  - Summary: When completed steps would exceed expected, then counts do not overrun expected steps.
+  - Intent: Verify completion counting is capped at ExpectedSteps.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxJoinTests.cs#L472](tests/Bravellian.Platform.Postgres.Tests/OutboxJoinTests.cs#L472)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxJoinTests.IncrementCompletedAsync_WithValidMessage_IncrementsCount**
+  - Summary: When incrementing completion for an attached message, then CompletedSteps increases.
+  - Intent: Verify completion updates counters and timestamps.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxJoinTests.cs#L225](tests/Bravellian.Platform.Postgres.Tests/OutboxJoinTests.cs#L225)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxJoinTests.IncrementFailedAsync_CalledTwiceForSameMessage_IsIdempotent**
+  - Summary: When IncrementFailedAsync is called twice for the same message, then counts are not duplicated.
+  - Intent: Verify failure increments are idempotent per message.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxJoinTests.cs#L447](tests/Bravellian.Platform.Postgres.Tests/OutboxJoinTests.cs#L447)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxJoinTests.IncrementFailedAsync_WithValidMessage_IncrementsCount**
+  - Summary: When incrementing failure for an attached message, then FailedSteps increases.
+  - Intent: Verify failure updates counters and timestamps.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxJoinTests.cs#L254](tests/Bravellian.Platform.Postgres.Tests/OutboxJoinTests.cs#L254)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxJoinTests.OutboxAck_AutomaticallyReportsJoinCompletion**
+  - Summary: When outbox messages are acked, then join completion counts are incremented.
+  - Intent: Verify outbox acknowledgements report join completion automatically.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxJoinTests.cs#L507](tests/Bravellian.Platform.Postgres.Tests/OutboxJoinTests.cs#L507)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxJoinTests.OutboxAck_MultipleAcksForSameMessage_IsIdempotent**
+  - Summary: When the same message is acked multiple times, then join counts are not over-incremented.
+  - Intent: Verify outbox ack reporting is idempotent per message.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxJoinTests.cs#L578](tests/Bravellian.Platform.Postgres.Tests/OutboxJoinTests.cs#L578)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxJoinTests.OutboxFail_AutomaticallyReportsJoinFailure**
+  - Summary: When outbox messages fail, then join failure counts are incremented.
+  - Intent: Verify outbox failures report join failures automatically.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxJoinTests.cs#L545](tests/Bravellian.Platform.Postgres.Tests/OutboxJoinTests.cs#L545)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxJoinTests.UpdateStatusAsync_WithValidStatus_UpdatesJoinStatus**
+  - Summary: When UpdateStatusAsync sets a status, then the join status is updated.
+  - Intent: Verify status updates persist for joins.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxJoinTests.cs#L283](tests/Bravellian.Platform.Postgres.Tests/OutboxJoinTests.cs#L283)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxWorkQueueTests.ConcurrentClaim_MultipleWorkers_NoOverlap**
+  - Summary: When two workers claim concurrently, then claimed sets do not overlap.
+  - Intent: Verify concurrent claims are exclusive per work item.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxWorkQueueTests.cs#L156](tests/Bravellian.Platform.Postgres.Tests/OutboxWorkQueueTests.cs#L156)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxWorkQueueTests.InvalidOwnerOperations_DoNotAffectItems**
+  - Summary: When a non-owner attempts to ack items, then item status is unchanged.
+  - Intent: Verify owner token enforcement for state changes.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxWorkQueueTests.cs#L180](tests/Bravellian.Platform.Postgres.Tests/OutboxWorkQueueTests.cs#L180)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxWorkQueueTests.OutboxAbandon_WithValidOwner_ReturnsToReady**
+  - Summary: When abandoning claimed items with the correct owner, then they return to Ready.
+  - Intent: Verify abandon resets status for claimed items.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxWorkQueueTests.cs#L106](tests/Bravellian.Platform.Postgres.Tests/OutboxWorkQueueTests.cs#L106)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxWorkQueueTests.OutboxAck_WithValidOwner_MarksDoneAndProcessed**
+  - Summary: When acking claimed items with the correct owner, then they are marked done and processed.
+  - Intent: Verify acknowledgements update status and processing flags.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxWorkQueueTests.cs#L89](tests/Bravellian.Platform.Postgres.Tests/OutboxWorkQueueTests.cs#L89)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxWorkQueueTests.OutboxClaim_WithBatchSize_RespectsLimit**
+  - Summary: When batch size is smaller than ready items, then ClaimAsync respects the limit.
+  - Intent: Verify ClaimAsync honors the requested batch size.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxWorkQueueTests.cs#L74](tests/Bravellian.Platform.Postgres.Tests/OutboxWorkQueueTests.cs#L74)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxWorkQueueTests.OutboxClaim_WithReadyItems_ReturnsClaimedIds**
+  - Summary: When ready items are available, then ClaimAsync returns their ids.
+  - Intent: Verify ready outbox work items can be claimed.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxWorkQueueTests.cs#L57](tests/Bravellian.Platform.Postgres.Tests/OutboxWorkQueueTests.cs#L57)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxWorkQueueTests.OutboxFail_WithValidOwner_MarksAsFailed**
+  - Summary: When failing claimed items with the correct owner, then they are marked Failed.
+  - Intent: Verify failure marks the work items as failed.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxWorkQueueTests.cs#L122](tests/Bravellian.Platform.Postgres.Tests/OutboxWorkQueueTests.cs#L122)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxWorkQueueTests.OutboxReapExpired_WithExpiredItems_ReturnsToReady**
+  - Summary: When a claim expires, then ReapExpired returns items to Ready.
+  - Intent: Verify expired leases are reaped back to Ready.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxWorkQueueTests.cs#L138](tests/Bravellian.Platform.Postgres.Tests/OutboxWorkQueueTests.cs#L138)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxWorkerTests.Manual_AbandonOperation_Works**
+  - Summary: When AbandonAsync is called manually, then items return to Ready.
+  - Intent: Verify manual abandon resets item status.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxWorkerTests.cs#L124](tests/Bravellian.Platform.Postgres.Tests/OutboxWorkerTests.cs#L124)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxWorkerTests.WorkQueue_ConcurrentClaims_NoOverlap**
+  - Summary: When multiple concurrent claims run, then claimed ids are unique.
+  - Intent: Verify concurrency does not allow duplicate claims.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxWorkerTests.cs#L241](tests/Bravellian.Platform.Postgres.Tests/OutboxWorkerTests.cs#L241)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxWorkerTests.WorkQueue_EmptyIdLists_NoErrors**
+  - Summary: When work-queue operations receive empty id lists, then they complete without error.
+  - Intent: Verify empty operations are handled gracefully.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxWorkerTests.cs#L226](tests/Bravellian.Platform.Postgres.Tests/OutboxWorkerTests.cs#L226)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxWorkerTests.WorkQueue_IdempotentOperations_NoErrors**
+  - Summary: When AckAsync is called repeatedly, then the operation is idempotent.
+  - Intent: Verify repeated acknowledgements leave the item done.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxWorkerTests.cs#L191](tests/Bravellian.Platform.Postgres.Tests/OutboxWorkerTests.cs#L191)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxWorkerTests.WorkQueue_LeaseExpiration_AllowsReclaim**
+  - Summary: When a lease expires, then another owner can reclaim the item after reaping.
+  - Intent: Verify expired leases allow reclamation.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxWorkerTests.cs#L142](tests/Bravellian.Platform.Postgres.Tests/OutboxWorkerTests.cs#L142)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxWorkerTests.WorkQueue_RestartUsesNewOwnerTokenAfterReap**
+  - Summary: When a claim is reaped, then the new owner token is recorded on reclaim.
+  - Intent: Verify owner tokens update when items are reclaimed after expiry.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxWorkerTests.cs#L166](tests/Bravellian.Platform.Postgres.Tests/OutboxWorkerTests.cs#L166)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxWorkerTests.WorkQueue_UnauthorizedOwner_CannotModify**
+  - Summary: When a non-owner attempts to modify items, then status remains InProgress.
+  - Intent: Verify owner token enforcement for acknowledgements.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxWorkerTests.cs#L209](tests/Bravellian.Platform.Postgres.Tests/OutboxWorkerTests.cs#L209)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxWorkerTests.Worker_ClaimsItemsCorrectly**
+  - Summary: When items are claimed, then they are marked InProgress.
+  - Intent: Verify claim operations update item status.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxWorkerTests.cs#L103](tests/Bravellian.Platform.Postgres.Tests/OutboxWorkerTests.cs#L103)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxWorkerTests.Worker_ProcessesClaimedItems_AndAcknowledgesThem**
+  - Summary: When the worker processes claimed items, then it acknowledges them and marks them Done.
+  - Intent: Verify the worker processes and acknowledges all claimed items.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxWorkerTests.cs#L61](tests/Bravellian.Platform.Postgres.Tests/OutboxWorkerTests.cs#L61)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxWorkerTests.Worker_RespectsCancellationToken**
+  - Summary: When the worker is canceled, then it stops promptly.
+  - Intent: Verify cancellation short-circuits long processing delays.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxWorkerTests.cs#L266](tests/Bravellian.Platform.Postgres.Tests/OutboxWorkerTests.cs#L266)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.OutboxWorkerTests.Worker_WithProcessingFailure_AbandonsItems**
+  - Summary: When processing fails, then the worker abandons items back to Ready.
+  - Intent: Verify failures result in abandon rather than ack.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/OutboxWorkerTests.cs#L82](tests/Bravellian.Platform.Postgres.Tests/OutboxWorkerTests.cs#L82)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresDapperTypeHandlerTests.AllTypesInSingleQuery_RoundTrip_WorksCorrectly**
+  - Summary: When all identifier columns are queried together, then each property matches its inserted value.
+  - Intent: Confirm multi-column mapping across all identifier type handlers.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresDapperTypeHandlerTests.cs#L318](tests/Bravellian.Platform.Postgres.Tests/PostgresDapperTypeHandlerTests.cs#L318)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresDapperTypeHandlerTests.DatabaseIdentifier_RoundTrip_WorksCorrectly**
+  - Summary: When a DatabaseIdentifier is stored, then Dapper returns the same database id.
+  - Intent: Verify Dapper mapping for DatabaseIdentifier UUIDs.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresDapperTypeHandlerTests.cs#L286](tests/Bravellian.Platform.Postgres.Tests/PostgresDapperTypeHandlerTests.cs#L286)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresDapperTypeHandlerTests.InboxMessageIdentifier_RoundTrip_WorksCorrectly**
+  - Summary: When an InboxMessageIdentifier is inserted, then Dapper reads the same identifier.
+  - Intent: Verify Dapper mapping for InboxMessageIdentifier UUIDs.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresDapperTypeHandlerTests.cs#L126](tests/Bravellian.Platform.Postgres.Tests/PostgresDapperTypeHandlerTests.cs#L126)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresDapperTypeHandlerTests.InstanceIdentifier_RoundTrip_WorksCorrectly**
+  - Summary: When an InstanceIdentifier is stored, then Dapper reads the same instance id.
+  - Intent: Verify Dapper mapping for InstanceIdentifier UUIDs.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresDapperTypeHandlerTests.cs#L254](tests/Bravellian.Platform.Postgres.Tests/PostgresDapperTypeHandlerTests.cs#L254)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresDapperTypeHandlerTests.JoinIdentifier_RoundTrip_WorksCorrectly**
+  - Summary: When a JoinIdentifier is stored, then Dapper returns the same join id.
+  - Intent: Verify Dapper mapping for JoinIdentifier UUIDs.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresDapperTypeHandlerTests.cs#L222](tests/Bravellian.Platform.Postgres.Tests/PostgresDapperTypeHandlerTests.cs#L222)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresDapperTypeHandlerTests.NullableOwnerToken_RoundTrip_WorksCorrectly**
+  - Summary: When a nullable OwnerToken is stored in a nullable column, then it is read back intact.
+  - Intent: Confirm nullable OwnerToken values are materialized correctly.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresDapperTypeHandlerTests.cs#L93](tests/Bravellian.Platform.Postgres.Tests/PostgresDapperTypeHandlerTests.cs#L93)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresDapperTypeHandlerTests.OutboxMessageIdentifier_RoundTrip_WorksCorrectly**
+  - Summary: When an OutboxMessageIdentifier is inserted, then Dapper returns the same identifier.
+  - Intent: Verify Dapper mapping for OutboxMessageIdentifier UUIDs.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresDapperTypeHandlerTests.cs#L158](tests/Bravellian.Platform.Postgres.Tests/PostgresDapperTypeHandlerTests.cs#L158)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresDapperTypeHandlerTests.OutboxWorkItemIdentifier_RoundTrip_WorksCorrectly**
+  - Summary: When an OutboxWorkItemIdentifier is stored, then Dapper reads it back unchanged.
+  - Intent: Verify Dapper mapping for OutboxWorkItemIdentifier UUIDs.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresDapperTypeHandlerTests.cs#L190](tests/Bravellian.Platform.Postgres.Tests/PostgresDapperTypeHandlerTests.cs#L190)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresDapperTypeHandlerTests.OwnerToken_RoundTrip_WorksCorrectly**
+  - Summary: When a row is inserted with an OwnerToken, then Dapper returns the same token.
+  - Intent: Confirm the OwnerToken handler maps UUID values losslessly.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresDapperTypeHandlerTests.cs#L61](tests/Bravellian.Platform.Postgres.Tests/PostgresDapperTypeHandlerTests.cs#L61)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresInboxServiceTests.AlreadyProcessedAsync_WithHash_StoresHashCorrectly**
+  - Summary: When AlreadyProcessedAsync is called with a hash, then the hash is stored.
+  - Intent: Verify the message hash is persisted with the inbox row.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresInboxServiceTests.cs#L196](tests/Bravellian.Platform.Postgres.Tests/PostgresInboxServiceTests.cs#L196)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresInboxServiceTests.AlreadyProcessedAsync_WithInvalidMessageId_ThrowsArgumentException**
+  - Summary: When AlreadyProcessedAsync receives a null or empty message id, then it throws ArgumentException.
+  - Intent: Verify invalid message ids are rejected.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresInboxServiceTests.cs#L222](tests/Bravellian.Platform.Postgres.Tests/PostgresInboxServiceTests.cs#L222)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresInboxServiceTests.AlreadyProcessedAsync_WithInvalidSource_ThrowsArgumentException**
+  - Summary: When AlreadyProcessedAsync receives a null or empty source, then it throws ArgumentException.
+  - Intent: Verify invalid sources are rejected.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresInboxServiceTests.cs#L237](tests/Bravellian.Platform.Postgres.Tests/PostgresInboxServiceTests.cs#L237)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresInboxServiceTests.AlreadyProcessedAsync_WithNewMessage_ReturnsFalseAndRecordsMessage**
+  - Summary: When AlreadyProcessedAsync is called for a new message, then it returns false and records the row.
+  - Intent: Verify new messages are inserted and reported as not processed.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresInboxServiceTests.cs#L39](tests/Bravellian.Platform.Postgres.Tests/PostgresInboxServiceTests.cs#L39)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresInboxServiceTests.AlreadyProcessedAsync_WithProcessedMessage_ReturnsTrue**
+  - Summary: When a message has been marked processed, then AlreadyProcessedAsync returns true.
+  - Intent: Verify processed messages are detected as already processed.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresInboxServiceTests.cs#L64](tests/Bravellian.Platform.Postgres.Tests/PostgresInboxServiceTests.cs#L64)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresInboxServiceTests.ConcurrentAlreadyProcessedAsync_WithSameMessage_HandledCorrectly**
+  - Summary: When multiple AlreadyProcessedAsync calls run concurrently, then one row exists with attempts tracked.
+  - Intent: Verify concurrent checks create a single inbox row and increment attempts.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresInboxServiceTests.cs#L159](tests/Bravellian.Platform.Postgres.Tests/PostgresInboxServiceTests.cs#L159)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresInboxServiceTests.MarkDeadAsync_UpdatesStatus**
+  - Summary: When MarkDeadAsync is called, then Status becomes Dead.
+  - Intent: Verify MarkDeadAsync marks messages as dead.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresInboxServiceTests.cs#L134](tests/Bravellian.Platform.Postgres.Tests/PostgresInboxServiceTests.cs#L134)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresInboxServiceTests.MarkProcessedAsync_SetsProcessedUtcAndStatus**
+  - Summary: When MarkProcessedAsync is called, then ProcessedUtc is set and Status is Done.
+  - Intent: Verify MarkProcessedAsync updates completion fields.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresInboxServiceTests.cs#L83](tests/Bravellian.Platform.Postgres.Tests/PostgresInboxServiceTests.cs#L83)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresInboxServiceTests.MarkProcessingAsync_UpdatesStatus**
+  - Summary: When MarkProcessingAsync is called, then Status becomes Processing.
+  - Intent: Verify MarkProcessingAsync moves the message into processing state.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresInboxServiceTests.cs#L109](tests/Bravellian.Platform.Postgres.Tests/PostgresInboxServiceTests.cs#L109)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresLeaseRunnerTests.AcquireAsync_WithAvailableLease_ReturnsRunnerInstance**
+  - Summary: When an available lease is acquired, then a runner is returned with valid state.
+  - Intent: Verify a new lease acquisition initializes runner identity and state.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/LeaseRunnerTests.cs#L50](tests/Bravellian.Platform.Postgres.Tests/LeaseRunnerTests.cs#L50)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresLeaseRunnerTests.AcquireAsync_WithUnavailableLease_ReturnsNull**
+  - Summary: When a lease is already held, then a second acquisition attempt returns null.
+  - Intent: Confirm unavailable leases are not re-acquired by another owner.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/LeaseRunnerTests.cs#L85](tests/Bravellian.Platform.Postgres.Tests/LeaseRunnerTests.cs#L85)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresLeaseRunnerTests.DisposedRunner_DoesNotRenew**
+  - Summary: When a runner is disposed, then TryRenewNowAsync returns false.
+  - Intent: Verify renewal requests are rejected after disposal.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/LeaseRunnerTests.cs#L238](tests/Bravellian.Platform.Postgres.Tests/LeaseRunnerTests.cs#L238)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresLeaseRunnerTests.MonotonicRenewal_WithCustomRenewPercent_RenewsAtCorrectInterval**
+  - Summary: When renewal is scheduled at 50% of the lease duration, then the runner stays valid past the midpoint.
+  - Intent: Confirm monotonic renewal timing honors a custom renew percentage.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/LeaseRunnerTests.cs#L200](tests/Bravellian.Platform.Postgres.Tests/LeaseRunnerTests.cs#L200)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresLeaseRunnerTests.RenewTimer_UsesFakeMonotonicClockAcrossClockSkewAndGcPauses**
+  - Summary: When the monotonic clock jumps forward, then renewal scheduling advances using monotonic time.
+  - Intent: Validate renewal scheduling resilience to wall-clock skew and GC pauses.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/LeaseRunnerTests.cs#L271](tests/Bravellian.Platform.Postgres.Tests/LeaseRunnerTests.cs#L271)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresLeaseRunnerTests.ThrowIfLost_WhenLeaseIsValid_DoesNotThrow**
+  - Summary: Given a valid lease runner, then ThrowIfLost does not throw.
+  - Intent: Confirm loss checks are no-ops while the lease is valid.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/LeaseRunnerTests.cs#L168](tests/Bravellian.Platform.Postgres.Tests/LeaseRunnerTests.cs#L168)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresLeaseRunnerTests.TryRenewNowAsync_WithValidRunner_SucceedsAndExtendsLease**
+  - Summary: When a valid runner renews, then TryRenewNowAsync succeeds and the runner remains valid.
+  - Intent: Verify manual renewal keeps the lease active.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/LeaseRunnerTests.cs#L132](tests/Bravellian.Platform.Postgres.Tests/LeaseRunnerTests.cs#L132)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresOutboxServiceTests.Constructor_CreatesInstance**
+  - Summary: When constructed with valid options, then the service is created and implements IOutbox.
+  - Intent: Verify the outbox service can be instantiated with valid options.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresOutboxServiceTests.cs#L50](tests/Bravellian.Platform.Postgres.Tests/PostgresOutboxServiceTests.cs#L50)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresOutboxServiceTests.EnqueueAsync_MultipleMessages_AllInsertedSuccessfully**
+  - Summary: When multiple messages are enqueued in a transaction, then all rows are inserted.
+  - Intent: Verify batch enqueues insert all messages within the transaction.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresOutboxServiceTests.cs#L199](tests/Bravellian.Platform.Postgres.Tests/PostgresOutboxServiceTests.cs#L199)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresOutboxServiceTests.EnqueueAsync_Standalone_EnsuresTableExists**
+  - Summary: When standalone enqueue runs with schema deployment enabled, then it creates the table and inserts the row.
+  - Intent: Verify schema deployment ensures the outbox table exists before enqueue.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresOutboxServiceTests.cs#L339](tests/Bravellian.Platform.Postgres.Tests/PostgresOutboxServiceTests.cs#L339)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresOutboxServiceTests.EnqueueAsync_Standalone_MultipleMessages_AllInsertedSuccessfully**
+  - Summary: When multiple standalone enqueue calls are made, then all rows are inserted.
+  - Intent: Verify multiple standalone enqueues insert all messages.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresOutboxServiceTests.cs#L302](tests/Bravellian.Platform.Postgres.Tests/PostgresOutboxServiceTests.cs#L302)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresOutboxServiceTests.EnqueueAsync_Standalone_WithNullCorrelationId_InsertsMessageSuccessfully**
+  - Summary: When standalone enqueue uses a null correlation id, then the message is inserted.
+  - Intent: Verify standalone enqueue handles null correlation ids.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresOutboxServiceTests.cs#L272](tests/Bravellian.Platform.Postgres.Tests/PostgresOutboxServiceTests.cs#L272)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresOutboxServiceTests.EnqueueAsync_Standalone_WithValidParameters_InsertsMessageToDatabase**
+  - Summary: When using standalone enqueue, then the message is inserted with the correlation id.
+  - Intent: Verify standalone enqueue persists messages without an explicit transaction.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresOutboxServiceTests.cs#L240](tests/Bravellian.Platform.Postgres.Tests/PostgresOutboxServiceTests.cs#L240)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresOutboxServiceTests.EnqueueAsync_WithCustomSchemaAndTable_InsertsMessageToCorrectTable**
+  - Summary: When using a custom schema and table, then EnqueueAsync inserts into the custom table.
+  - Intent: Verify custom schema/table options are honored by enqueue.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresOutboxServiceTests.cs#L92](tests/Bravellian.Platform.Postgres.Tests/PostgresOutboxServiceTests.cs#L92)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresOutboxServiceTests.EnqueueAsync_WithNullCorrelationId_InsertsMessageSuccessfully**
+  - Summary: When EnqueueAsync is called with a null correlation id, then the message is inserted.
+  - Intent: Verify null correlation ids do not block insertion.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresOutboxServiceTests.cs#L133](tests/Bravellian.Platform.Postgres.Tests/PostgresOutboxServiceTests.cs#L133)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresOutboxServiceTests.EnqueueAsync_WithNullTransaction_ThrowsNullReferenceException**
+  - Summary: When EnqueueAsync receives a null transaction, then it throws ArgumentNullException.
+  - Intent: Verify EnqueueAsync validates the transaction argument.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresOutboxServiceTests.cs#L223](tests/Bravellian.Platform.Postgres.Tests/PostgresOutboxServiceTests.cs#L223)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresOutboxServiceTests.EnqueueAsync_WithValidParameters_InsertsMessageToDatabase**
+  - Summary: When EnqueueAsync is called in a transaction, then a message row is inserted.
+  - Intent: Verify transactional enqueue inserts a row with topic and payload.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresOutboxServiceTests.cs#L63](tests/Bravellian.Platform.Postgres.Tests/PostgresOutboxServiceTests.cs#L63)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresOutboxServiceTests.EnqueueAsync_WithValidParameters_SetsDefaultValues**
+  - Summary: When EnqueueAsync inserts a message, then default fields are set.
+  - Intent: Verify default outbox values are populated on insert.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresOutboxServiceTests.cs#L161](tests/Bravellian.Platform.Postgres.Tests/PostgresOutboxServiceTests.cs#L161)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresOutboxStoreTests.ClaimDueAsync_WithDueMessages_ReturnsMessages**
+  - Summary: When a ready message is due, then ClaimDueAsync returns it.
+  - Intent: Verify due messages are claimed.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresOutboxStoreTests.cs#L66](tests/Bravellian.Platform.Postgres.Tests/PostgresOutboxStoreTests.cs#L66)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresOutboxStoreTests.ClaimDueAsync_WithFutureMessages_ReturnsEmpty**
+  - Summary: When a message is scheduled in the future, then ClaimDueAsync returns empty.
+  - Intent: Verify future-due messages are not claimed early.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresOutboxStoreTests.cs#L101](tests/Bravellian.Platform.Postgres.Tests/PostgresOutboxStoreTests.cs#L101)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresOutboxStoreTests.ClaimDueAsync_WithNoMessages_ReturnsEmptyList**
+  - Summary: When no messages are due, then ClaimDueAsync returns an empty list.
+  - Intent: Verify empty outboxes yield no claims.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresOutboxStoreTests.cs#L54](tests/Bravellian.Platform.Postgres.Tests/PostgresOutboxStoreTests.cs#L54)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresOutboxStoreTests.FailAsync_MarksMessageAsFailed**
+  - Summary: When FailAsync is called, then the message is marked failed with an error.
+  - Intent: Verify permanent failure updates status and error fields.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresOutboxStoreTests.cs#L222](tests/Bravellian.Platform.Postgres.Tests/PostgresOutboxStoreTests.cs#L222)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresOutboxStoreTests.MarkDispatchedAsync_UpdatesMessage**
+  - Summary: When MarkDispatchedAsync is called, then the message is marked done and processed.
+  - Intent: Verify dispatch updates status and IsProcessed flags.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresOutboxStoreTests.cs#L134](tests/Bravellian.Platform.Postgres.Tests/PostgresOutboxStoreTests.cs#L134)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresOutboxStoreTests.RescheduleAsync_UpdatesRetryCountAndNextAttempt**
+  - Summary: When RescheduleAsync is called, then RetryCount increments and the error is recorded.
+  - Intent: Verify rescheduling records errors and bumps retry count.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresOutboxStoreTests.cs#L176](tests/Bravellian.Platform.Postgres.Tests/PostgresOutboxStoreTests.cs#L176)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresSchedulerClientTests.Constructor_WithValidConnectionString_CreatesInstance**
+  - Summary: When constructed with valid options, then the client is created and implements ISchedulerClient.
+  - Intent: Verify the scheduler client can be instantiated with valid options.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresSchedulerClientTests.cs#L52](tests/Bravellian.Platform.Postgres.Tests/PostgresSchedulerClientTests.cs#L52)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresSchedulerClientTests.CreateOrUpdateJobAsync_ExistingJob_UpdatesJob**
+  - Summary: When updating an existing job, then the job is updated without duplication.
+  - Intent: Verify CreateOrUpdateJobAsync updates existing jobs.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresSchedulerClientTests.cs#L183](tests/Bravellian.Platform.Postgres.Tests/PostgresSchedulerClientTests.cs#L183)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresSchedulerClientTests.CreateOrUpdateJobAsync_NewJob_InsertsJob**
+  - Summary: When creating a new job, then a job row is inserted.
+  - Intent: Verify CreateOrUpdateJobAsync inserts new jobs.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresSchedulerClientTests.cs#L137](tests/Bravellian.Platform.Postgres.Tests/PostgresSchedulerClientTests.cs#L137)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresSchedulerClientTests.CreateOrUpdateJobAsync_WithNullPayload_SetsPayloadToNull**
+  - Summary: When a job is created without a payload, then the payload column is null.
+  - Intent: Verify null payloads are persisted as NULL.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresSchedulerClientTests.cs#L160](tests/Bravellian.Platform.Postgres.Tests/PostgresSchedulerClientTests.cs#L160)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresSchedulerClientTests.DeleteJobAsync_WithValidJobName_RemovesJob**
+  - Summary: When deleting a job by name, then the job row is removed.
+  - Intent: Verify DeleteJobAsync removes jobs.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresSchedulerClientTests.cs#L216](tests/Bravellian.Platform.Postgres.Tests/PostgresSchedulerClientTests.cs#L216)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresSchedulerClientTests.ScheduleTimerAsync_WithCustomTableNames_InsertsToCorrectTable**
+  - Summary: When scheduling with custom table names, then the timer is inserted into the custom table.
+  - Intent: Verify custom schema/table names are honored for timers.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresSchedulerClientTests.cs#L92](tests/Bravellian.Platform.Postgres.Tests/PostgresSchedulerClientTests.cs#L92)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresSchedulerClientTests.ScheduleTimerAsync_WithValidParameters_InsertsTimerToDatabase**
+  - Summary: When scheduling a timer, then a timer row is inserted into the database.
+  - Intent: Verify ScheduleTimerAsync persists timers to the Timers table.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresSchedulerClientTests.cs#L65](tests/Bravellian.Platform.Postgres.Tests/PostgresSchedulerClientTests.cs#L65)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.PostgresSchedulerClientTests.TriggerJobAsync_WithValidJobName_CreatesJobRun**
+  - Summary: When triggering a job by name, then a job run row is created.
+  - Intent: Verify TriggerJobAsync creates job runs.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/PostgresSchedulerClientTests.cs#L241](tests/Bravellian.Platform.Postgres.Tests/PostgresSchedulerClientTests.cs#L241)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreConcurrencyTests.ConcurrentReapAndAcquire_MaintainsCorrectness**
+  - Summary: When reaping and acquiring occur concurrently, then deletions and acquires stay within limits.
+  - Intent: Verify concurrent reaping and acquisition maintains correctness.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SemaphoreConcurrencyTests.cs#L261](tests/Bravellian.Platform.Postgres.Tests/SemaphoreConcurrencyTests.cs#L261)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreConcurrencyTests.ConcurrentUpdateLimit_DoesNotCorruptState**
+  - Summary: When limits are updated concurrently, then state remains usable for acquiring.
+  - Intent: Verify concurrent limit updates do not corrupt semaphore state.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SemaphoreConcurrencyTests.cs#L222](tests/Bravellian.Platform.Postgres.Tests/SemaphoreConcurrencyTests.cs#L222)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreConcurrencyTests.FencingCounters_StrictlyIncreasingUnderConcurrency**
+  - Summary: When acquiring concurrently, then fencing counters are unique and strictly increasing.
+  - Intent: Verify fencing counters remain monotonic under concurrency.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SemaphoreConcurrencyTests.cs#L318](tests/Bravellian.Platform.Postgres.Tests/SemaphoreConcurrencyTests.cs#L318)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreConcurrencyTests.HighContentionAcquire_EventuallySucceeds**
+  - Summary: When acquisitions retry under high contention, then most workers eventually succeed.
+  - Intent: Verify retry loops allow progress under contention.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SemaphoreConcurrencyTests.cs#L172](tests/Bravellian.Platform.Postgres.Tests/SemaphoreConcurrencyTests.cs#L172)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreConcurrencyTests.ParallelAcquireAndRelease_MaintainsInvariant**
+  - Summary: When workers acquire and release in parallel, then every successful acquire is released.
+  - Intent: Verify acquire/release concurrency preserves invariants.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SemaphoreConcurrencyTests.cs#L114](tests/Bravellian.Platform.Postgres.Tests/SemaphoreConcurrencyTests.cs#L114)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreConcurrencyTests.ParallelAcquires_NeverExceedsLimit**
+  - Summary: When many workers acquire in parallel, then successes never exceed the limit.
+  - Intent: Verify concurrent acquisitions respect the configured capacity.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SemaphoreConcurrencyTests.cs#L67](tests/Bravellian.Platform.Postgres.Tests/SemaphoreConcurrencyTests.cs#L67)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreConcurrencyTests.Renewals_WithIntermittentGcPausesMaintainLeases**
+  - Summary: When renewals run with jitter and pauses, then leases remain renewed.
+  - Intent: Verify renewals succeed despite intermittent delays.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SemaphoreConcurrencyTests.cs#L363](tests/Bravellian.Platform.Postgres.Tests/SemaphoreConcurrencyTests.cs#L363)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreConcurrencyTests.StarvedAcquisition_AppliesBackpressureUntilCapacityReturns**
+  - Summary: When capacity is saturated, then contenders see NotAcquired until capacity returns.
+  - Intent: Verify backpressure occurs while a semaphore slot is held.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SemaphoreConcurrencyTests.cs#L431](tests/Bravellian.Platform.Postgres.Tests/SemaphoreConcurrencyTests.cs#L431)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.EnsureExists_LimitAboveMaximum_ThrowsArgumentException**
+  - Summary: When EnsureExists is called with a limit above maximum, then it throws ArgumentException.
+  - Intent: Verify semaphore limit upper bound validation.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L750](tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L750)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.EnsureExists_LimitBelowMinimum_ThrowsArgumentException**
+  - Summary: When EnsureExists is called with a limit below minimum, then it throws ArgumentException.
+  - Intent: Verify semaphore limit lower bound validation.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L732](tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L732)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.Fencing_StrictlyIncreases**
+  - Summary: When acquiring sequentially, then fencing counters strictly increase.
+  - Intent: Verify fencing tokens are monotonically increasing for each acquisition.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L287](tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L287)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.MultipleNames_AreIsolated**
+  - Summary: When acquiring different semaphore names, then each name is isolated.
+  - Intent: Verify independent capacity for different semaphore names.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L772](tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L772)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.ReapExpired_RemovesExpiredLeases**
+  - Summary: When ReapExpired runs after expiry, then expired leases are deleted.
+  - Intent: Verify reaping removes expired lease rows.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L386](tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L386)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.ReapExpired_WithMaxRows_LimitsDeletions**
+  - Summary: When ReapExpired uses maxRows, then deletions are capped.
+  - Intent: Verify maxRows limits the number of deleted rows per reaper run.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L420](tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L420)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.Release_FreesCapacity**
+  - Summary: When a lease is released, then capacity becomes available for another acquire.
+  - Intent: Verify release frees a slot for a new owner.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L152](tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L152)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.Release_IdempotentWhenCalledTwice**
+  - Summary: When the same token is released twice, then the second release reports NotFound.
+  - Intent: Verify releases are idempotent for the same token.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L188](tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L188)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.Renew_AfterRelease_ReturnsLost**
+  - Summary: When renewing after a release, then the renewal returns Lost.
+  - Intent: Verify renew fails once the lease has been released.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L254](tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L254)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.Renew_ExtendsLeaseExpiry**
+  - Summary: When renewing a valid token, then the expiry is extended.
+  - Intent: Verify renew updates ExpiresAtUtc for active leases.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L221](tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L221)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.Renew_MonotonicExtension_NeverShortensExpiry**
+  - Summary: When renewing with a shorter TTL, then expiry is not shortened.
+  - Intent: Verify renewal does not reduce the existing expiration time.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L317](tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L317)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_AfterExpiry_Succeeds**
+  - Summary: When a lease expires, then a new acquire succeeds.
+  - Intent: Verify expired leases free capacity for new owners.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L352](tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L352)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_BeyondLimit_ReturnsNotAcquired**
+  - Summary: When acquiring beyond the limit, then the extra acquire returns NotAcquired.
+  - Intent: Verify acquisitions beyond capacity are rejected.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L119](tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L119)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_InvalidNameCharacters_ThrowsArgumentException**
+  - Summary: When the semaphore name has invalid characters, then TryAcquire throws ArgumentException.
+  - Intent: Verify disallowed characters are rejected.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L675](tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L675)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_InvalidName_ThrowsArgumentException**
+  - Summary: When TryAcquire is called with a blank name, then it throws ArgumentException.
+  - Intent: Verify semaphore name validation rejects empty or whitespace names.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L609](tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L609)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_NameTooLong_ThrowsArgumentException**
+  - Summary: When the semaphore name exceeds the maximum length, then TryAcquire throws ArgumentException.
+  - Intent: Verify name length validation for semaphore operations.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L626](tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L626)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_TtlAboveMaximum_ThrowsArgumentException**
+  - Summary: When ttlSeconds exceeds the maximum, then TryAcquire throws ArgumentException.
+  - Intent: Verify TTL upper bound enforcement.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L712](tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L712)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_TtlBelowMinimum_ThrowsArgumentException**
+  - Summary: When ttlSeconds is below the minimum, then TryAcquire throws ArgumentException.
+  - Intent: Verify TTL lower bound enforcement.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L692](tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L692)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_UpToLimit_AllAcquiresSucceed**
+  - Summary: When acquiring up to the semaphore limit, then all acquires succeed.
+  - Intent: Verify capacity enforcement allows up to the configured limit.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L89](tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L89)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_ValidNameCharacters_Succeeds**
+  - Summary: When the semaphore name uses allowed characters, then TryAcquire succeeds.
+  - Intent: Verify allowed name characters are accepted.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L651](tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L651)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_WithNonExistentSemaphore_ReturnsNotAcquired**
+  - Summary: When TryAcquire is called for a non-existent semaphore, then it returns NotAcquired.
+  - Intent: Verify acquisition fails if the semaphore has not been created.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L68](tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L68)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_WithSameClientRequestId_ReturnsExistingLease**
+  - Summary: When the same clientRequestId is reused, then TryAcquire returns the existing lease.
+  - Intent: Verify idempotent acquisition by client request id.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L568](tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L568)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.UpdateLimit_Decrease_BlocksNewAcquires**
+  - Summary: When the limit is decreased below the active count, then new acquires are blocked.
+  - Intent: Verify limit decreases enforce the new capacity immediately.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L501](tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L501)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.UpdateLimit_Increase_EnablesMoreAcquires**
+  - Summary: When the limit is increased, then additional acquires succeed.
+  - Intent: Verify limit increases open capacity for new leases.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L465](tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs#L465)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SystemLeaseTests.AcquireAsync_AfterLeaseReleased_CanAcquireAgain**
+  - Summary: When a lease is released, then acquiring the resource again succeeds.
+  - Intent: Verify release allows a new lease with a higher fencing token.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SystemLeaseTests.cs#L107](tests/Bravellian.Platform.Postgres.Tests/SystemLeaseTests.cs#L107)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SystemLeaseTests.AcquireAsync_ReentrantWithSameOwnerToken_Succeeds**
+  - Summary: When acquiring the same resource with the same owner token, then both acquisitions succeed.
+  - Intent: Verify reentrant acquisition with the same owner token is permitted.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SystemLeaseTests.cs#L237](tests/Bravellian.Platform.Postgres.Tests/SystemLeaseTests.cs#L237)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SystemLeaseTests.AcquireAsync_SameResourceTwice_SecondCallReturnsNull**
+  - Summary: When acquiring the same resource twice, then the second call returns null.
+  - Intent: Verify lease acquisition is exclusive per resource.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SystemLeaseTests.cs#L84](tests/Bravellian.Platform.Postgres.Tests/SystemLeaseTests.cs#L84)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SystemLeaseTests.AcquireAsync_WithCustomOwnerToken_UsesProvidedToken**
+  - Summary: When acquiring with a custom owner token, then the lease uses the provided token.
+  - Intent: Verify caller-supplied owner tokens are honored.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SystemLeaseTests.cs#L212](tests/Bravellian.Platform.Postgres.Tests/SystemLeaseTests.cs#L212)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SystemLeaseTests.AcquireAsync_WithDifferentResources_BothSucceed**
+  - Summary: When acquiring leases for different resources, then both acquisitions succeed.
+  - Intent: Verify resource isolation across independent leases.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SystemLeaseTests.cs#L184](tests/Bravellian.Platform.Postgres.Tests/SystemLeaseTests.cs#L184)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SystemLeaseTests.AcquireAsync_WithValidResource_CanAcquireLease**
+  - Summary: When acquiring a lease for a valid resource, then a lease is returned with expected metadata.
+  - Intent: Verify successful lease acquisition populates owner and fencing tokens.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SystemLeaseTests.cs#L59](tests/Bravellian.Platform.Postgres.Tests/SystemLeaseTests.cs#L59)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SystemLeaseTests.ThrowIfLost_WhenLeaseIsValid_DoesNotThrow**
+  - Summary: When a lease is valid, then ThrowIfLost does not throw.
+  - Intent: Verify loss checks are no-ops for active leases.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SystemLeaseTests.cs#L163](tests/Bravellian.Platform.Postgres.Tests/SystemLeaseTests.cs#L163)
+- **Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SystemLeaseTests.TryRenewNowAsync_WithValidLease_SucceedsAndIncrementsFencingToken**
+  - Summary: When TryRenewNowAsync is called on a valid lease, then it succeeds and increments the fencing token.
+  - Intent: Verify renewal updates fencing token for a held lease.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Postgres.Tests/SystemLeaseTests.cs#L136](tests/Bravellian.Platform.Postgres.Tests/SystemLeaseTests.cs#L136)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.CachedHealthCheckTests.BuilderRegistersCachedCheck_WithOptionsPerName**
+  - Summary: When a cached check is registered with per-name options, then the configured cache durations are honored.
+  - Intent: Ensure AddCachedCheck applies custom options for the named check.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/CachedHealthCheckTests.cs#L152](tests/Bravellian.Platform.Tests/CachedHealthCheckTests.cs#L152)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.CachedHealthCheckTests.BuilderRegistersDelegateBasedCachedCheck_WithCaching**
+  - Summary: When a delegate-based cached check is registered, then caching reduces delegate invocations.
+  - Intent: Validate AddCachedCheck with a delegate honors the healthy cache duration.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/CachedHealthCheckTests.cs#L196](tests/Bravellian.Platform.Tests/CachedHealthCheckTests.cs#L196)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.CachedHealthCheckTests.CachesDegradedResults_UntilDurationExpires**
+  - Summary: When a degraded result is cached, then repeated checks within the degraded cache window reuse the result.
+  - Intent: Verify degraded results are cached for the configured duration.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/CachedHealthCheckTests.cs#L116](tests/Bravellian.Platform.Tests/CachedHealthCheckTests.cs#L116)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.CachedHealthCheckTests.CachesHealthyResults_UntilDurationExpires**
+  - Summary: When a healthy result is cached, then repeated checks within the cache window reuse the result.
+  - Intent: Verify healthy results are cached for the configured duration.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/CachedHealthCheckTests.cs#L40](tests/Bravellian.Platform.Tests/CachedHealthCheckTests.cs#L40)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.CachedHealthCheckTests.OptionsValidator_AcceptsValidOptions**
+  - Summary: When cache durations are non-negative, then validation succeeds.
+  - Intent: Confirm valid CachedHealthCheckOptions pass validation.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/CachedHealthCheckTests.cs#L308](tests/Bravellian.Platform.Tests/CachedHealthCheckTests.cs#L308)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.CachedHealthCheckTests.OptionsValidator_RejectsNegativeDegradedCacheDuration**
+  - Summary: When DegradedCacheDuration is negative, then validation fails.
+  - Intent: Enforce non-negative degraded cache durations.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/CachedHealthCheckTests.cs#L262](tests/Bravellian.Platform.Tests/CachedHealthCheckTests.cs#L262)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.CachedHealthCheckTests.OptionsValidator_RejectsNegativeHealthyCacheDuration**
+  - Summary: When HealthyCacheDuration is negative, then validation fails.
+  - Intent: Enforce non-negative healthy cache durations.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/CachedHealthCheckTests.cs#L239](tests/Bravellian.Platform.Tests/CachedHealthCheckTests.cs#L239)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.CachedHealthCheckTests.OptionsValidator_RejectsNegativeUnhealthyCacheDuration**
+  - Summary: When UnhealthyCacheDuration is negative, then validation fails.
+  - Intent: Enforce non-negative unhealthy cache durations.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/CachedHealthCheckTests.cs#L285](tests/Bravellian.Platform.Tests/CachedHealthCheckTests.cs#L285)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.CachedHealthCheckTests.RechecksImmediately_WhenUnhealthy**
+  - Summary: When an unhealthy result is returned with zero unhealthy cache duration, then the next check re-evaluates immediately.
+  - Intent: Ensure unhealthy results do not get cached when configured for immediate rechecks.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/CachedHealthCheckTests.cs#L77](tests/Bravellian.Platform.Tests/CachedHealthCheckTests.cs#L77)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ConfiguredLeaseFactoryProviderTests.ConfiguredProvider_CreatesFactoriesFromConfigsAsync**
+  - Summary: When lease factory configs are provided, then the provider creates a factory for each configuration.
+  - Intent: Verify configured provider materializes lease factories from config entries.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ConfiguredLeaseFactoryProviderTests.cs#L45](tests/Bravellian.Platform.Tests/ConfiguredLeaseFactoryProviderTests.cs#L45)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ConfiguredLeaseFactoryProviderTests.ConfiguredProvider_GetFactoryByKey_ReturnsCorrectFactoryAsync**
+  - Summary: When a factory is requested by key, then the provider returns the matching factory or null.
+  - Intent: Ensure key-based lookup resolves known factories and rejects unknown keys.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ConfiguredLeaseFactoryProviderTests.cs#L84](tests/Bravellian.Platform.Tests/ConfiguredLeaseFactoryProviderTests.cs#L84)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ConfiguredLeaseFactoryProviderTests.ConfiguredProvider_GetFactoryIdentifier_ReturnsUnknownForInvalidFactory**
+  - Summary: When a factory not created by the provider is inspected, then its identifier is reported as "Unknown".
+  - Intent: Confirm identifier lookup only recognizes provider-managed factories.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ConfiguredLeaseFactoryProviderTests.cs#L127](tests/Bravellian.Platform.Tests/ConfiguredLeaseFactoryProviderTests.cs#L127)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ControlPlaneConfigurationTests.AddPlatformMultiDatabaseWithControlPlaneAndDiscovery_OldSignature_StillWorks**
+  - Summary: When the obsolete discovery-based control plane overload is used, then it still wires defaults correctly.
+  - Intent: Ensure legacy discovery registration continues to configure the control plane schema.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ControlPlaneConfigurationTests.cs#L209](tests/Bravellian.Platform.Tests/ControlPlaneConfigurationTests.cs#L209)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ControlPlaneConfigurationTests.AddPlatformMultiDatabaseWithControlPlaneAndDiscovery_WithOptions_ConfiguresSchemaName**
+  - Summary: When discovery-based control plane registration specifies a schema name, then configuration and semaphore options use it.
+  - Intent: Verify control-plane settings flow through discovery-based registration.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ControlPlaneConfigurationTests.cs#L89](tests/Bravellian.Platform.Tests/ControlPlaneConfigurationTests.cs#L89)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ControlPlaneConfigurationTests.AddPlatformMultiDatabaseWithControlPlaneAndList_OldSignature_StillWorks**
+  - Summary: When the obsolete list-based control plane overload is used, then it still wires defaults correctly.
+  - Intent: Ensure legacy registration paths continue to configure the control plane schema.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ControlPlaneConfigurationTests.cs#L165](tests/Bravellian.Platform.Tests/ControlPlaneConfigurationTests.cs#L165)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ControlPlaneConfigurationTests.AddPlatformMultiDatabaseWithControlPlaneAndList_WithOptions_ConfiguresSchemaName**
+  - Summary: When list-based control plane registration specifies a schema name, then configuration and semaphore options use it.
+  - Intent: Verify control-plane schema settings are propagated to configuration and semaphore options.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ControlPlaneConfigurationTests.cs#L39](tests/Bravellian.Platform.Tests/ControlPlaneConfigurationTests.cs#L39)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ControlPlaneConfigurationTests.PlatformControlPlaneOptions_DefaultSchemaName_IsDbo**
+  - Summary: When PlatformControlPlaneOptions is created without a schema name, then it defaults to "infra".
+  - Intent: Confirm control-plane options default schema aligns with platform conventions.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ControlPlaneConfigurationTests.cs#L142](tests/Bravellian.Platform.Tests/ControlPlaneConfigurationTests.cs#L142)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.CustomSchemaIntegrationTests.EnsureDistributedLockSchema_WithCustomSchema_CreatesObjectsInCorrectSchema**
+  - Summary: When the distributed lock schema is ensured with a custom schema, then all lock objects are created under that schema.
+  - Intent: Verify distributed lock tables and procedures honor a non-default schema name.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/CustomSchemaIntegrationTests.cs#L48](tests/Bravellian.Platform.Tests/CustomSchemaIntegrationTests.cs#L48)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.CustomSchemaIntegrationTests.EnsureFanoutSchema_WithCustomSchema_CreatesObjectsInCorrectSchema**
+  - Summary: When the fanout schema is ensured with a custom schema, then fanout tables are created under that schema.
+  - Intent: Verify fanout schema deployment respects custom schema configuration.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/CustomSchemaIntegrationTests.cs#L310](tests/Bravellian.Platform.Tests/CustomSchemaIntegrationTests.cs#L310)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.CustomSchemaIntegrationTests.EnsureInboxSchema_WithCustomSchema_CreatesObjectsInCorrectSchema**
+  - Summary: When the inbox schema is ensured with a custom schema, then the inbox table is created under that schema.
+  - Intent: Verify inbox schema deployment uses the configured schema name.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/CustomSchemaIntegrationTests.cs#L152](tests/Bravellian.Platform.Tests/CustomSchemaIntegrationTests.cs#L152)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.CustomSchemaIntegrationTests.EnsureInboxWorkQueueSchema_WithCustomSchema_CreatesObjectsInCorrectSchema**
+  - Summary: When the inbox work queue schema is ensured with a custom schema, then inbox work-queue objects are created there.
+  - Intent: Verify inbox work queue deployment uses custom schema names after inbox setup.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/CustomSchemaIntegrationTests.cs#L263](tests/Bravellian.Platform.Tests/CustomSchemaIntegrationTests.cs#L263)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.CustomSchemaIntegrationTests.EnsureLeaseSchema_WithCustomSchema_CreatesObjectsInCorrectSchema**
+  - Summary: When the lease schema is ensured with a custom schema, then lease tables and procedures are created under that schema.
+  - Intent: Verify lease schema deployment respects custom schema names.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/CustomSchemaIntegrationTests.cs#L88](tests/Bravellian.Platform.Tests/CustomSchemaIntegrationTests.cs#L88)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.CustomSchemaIntegrationTests.EnsureOutboxSchema_WithCustomSchema_CreatesObjectsInCorrectSchema**
+  - Summary: When the outbox schema is ensured with a custom schema, then outbox tables are created under that schema.
+  - Intent: Verify outbox table deployment honors custom schema configuration.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/CustomSchemaIntegrationTests.cs#L122](tests/Bravellian.Platform.Tests/CustomSchemaIntegrationTests.cs#L122)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.CustomSchemaIntegrationTests.EnsureSchedulerSchema_WithCustomSchema_CreatesObjectsInCorrectSchema**
+  - Summary: When the scheduler schema is ensured with a custom schema, then scheduler tables are created under that schema.
+  - Intent: Verify scheduler schema deployment honors custom schema names.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/CustomSchemaIntegrationTests.cs#L179](tests/Bravellian.Platform.Tests/CustomSchemaIntegrationTests.cs#L179)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.CustomSchemaIntegrationTests.EnsureWorkQueueSchema_WithCustomSchema_CreatesObjectsInCorrectSchema**
+  - Summary: When the work queue schema is ensured with a custom schema, then work-queue types and procedures are created there.
+  - Intent: Verify work queue deployment uses custom schema names after outbox setup.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/CustomSchemaIntegrationTests.cs#L216](tests/Bravellian.Platform.Tests/CustomSchemaIntegrationTests.cs#L216)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DapperTypeHandlerTests.AllTypesInSingleQuery_RoundTrip_WorksCorrectly**
+  - Summary: When all strongly-typed IDs are inserted in one row, then Dapper retrieves each value correctly.
+  - Intent: Validate multiple type handlers in a single query.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DapperTypeHandlerTests.cs#L451](tests/Bravellian.Platform.Tests/DapperTypeHandlerTests.cs#L451)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DapperTypeHandlerTests.DatabaseIdentifier_RoundTrip_WorksCorrectly**
+  - Summary: When a DatabaseIdentifier is inserted and retrieved via Dapper, then it round-trips to the same value.
+  - Intent: Validate the Dapper type handler for DatabaseIdentifier.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DapperTypeHandlerTests.cs#L407](tests/Bravellian.Platform.Tests/DapperTypeHandlerTests.cs#L407)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DapperTypeHandlerTests.InboxMessageIdentifier_RoundTrip_WorksCorrectly**
+  - Summary: When an InboxMessageIdentifier is inserted and retrieved via Dapper, then it round-trips to the same value.
+  - Intent: Validate the Dapper type handler for InboxMessageIdentifier.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DapperTypeHandlerTests.cs#L187](tests/Bravellian.Platform.Tests/DapperTypeHandlerTests.cs#L187)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DapperTypeHandlerTests.InstanceIdentifier_RoundTrip_WorksCorrectly**
+  - Summary: When an InstanceIdentifier is inserted and retrieved via Dapper, then it round-trips to the same value.
+  - Intent: Validate the Dapper type handler for InstanceIdentifier.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DapperTypeHandlerTests.cs#L363](tests/Bravellian.Platform.Tests/DapperTypeHandlerTests.cs#L363)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DapperTypeHandlerTests.JoinIdentifier_RoundTrip_WorksCorrectly**
+  - Summary: When a JoinIdentifier is inserted and retrieved via Dapper, then it round-trips to the same value.
+  - Intent: Validate the Dapper type handler for JoinIdentifier.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DapperTypeHandlerTests.cs#L319](tests/Bravellian.Platform.Tests/DapperTypeHandlerTests.cs#L319)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DapperTypeHandlerTests.NullableOwnerToken_RoundTrip_WorksCorrectly**
+  - Summary: When a nullable OwnerToken is stored and retrieved, then values round-trip and nulls remain null.
+  - Intent: Validate nullable OwnerToken handling in Dapper.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DapperTypeHandlerTests.cs#L119](tests/Bravellian.Platform.Tests/DapperTypeHandlerTests.cs#L119)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DapperTypeHandlerTests.OutboxMessageIdentifier_RoundTrip_WorksCorrectly**
+  - Summary: When an OutboxMessageIdentifier is inserted and retrieved via Dapper, then it round-trips to the same value.
+  - Intent: Validate the Dapper type handler for OutboxMessageIdentifier.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DapperTypeHandlerTests.cs#L231](tests/Bravellian.Platform.Tests/DapperTypeHandlerTests.cs#L231)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DapperTypeHandlerTests.OutboxWorkItemIdentifier_RoundTrip_WorksCorrectly**
+  - Summary: When an OutboxWorkItemIdentifier is inserted and retrieved via Dapper, then it round-trips to the same value.
+  - Intent: Validate the Dapper type handler for OutboxWorkItemIdentifier.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DapperTypeHandlerTests.cs#L275](tests/Bravellian.Platform.Tests/DapperTypeHandlerTests.cs#L275)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DapperTypeHandlerTests.OwnerToken_RoundTrip_WorksCorrectly**
+  - Summary: When an OwnerToken is inserted and retrieved via Dapper, then it round-trips to the same value.
+  - Intent: Validate the Dapper type handler for OwnerToken.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DapperTypeHandlerTests.cs#L75](tests/Bravellian.Platform.Tests/DapperTypeHandlerTests.cs#L75)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DatabaseSchemaConsistencyTests.CustomSchemaNames_WorkCorrectly**
+  - Summary: When a custom schema name is used, then scheduler tables and indexes are created in that schema.
+  - Intent: Ensure schema customization works for scheduler artifacts.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DatabaseSchemaConsistencyTests.cs#L291](tests/Bravellian.Platform.Tests/DatabaseSchemaConsistencyTests.cs#L291)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DatabaseSchemaConsistencyTests.DatabaseSchema_AllRequiredTablesExist**
+  - Summary: When the schema is deployed, then all required core tables exist in the infra schema.
+  - Intent: Verify core platform tables are created in the test database.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DatabaseSchemaConsistencyTests.cs#L58](tests/Bravellian.Platform.Tests/DatabaseSchemaConsistencyTests.cs#L58)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DatabaseSchemaConsistencyTests.InboxTable_HasCorrectSchema**
+  - Summary: When inspecting the Inbox table, then required columns exist with expected data types.
+  - Intent: Ensure inbox schema matches production column definitions.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DatabaseSchemaConsistencyTests.cs#L235](tests/Bravellian.Platform.Tests/DatabaseSchemaConsistencyTests.cs#L235)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DatabaseSchemaConsistencyTests.JobRunsTable_HasCorrectSchema**
+  - Summary: When inspecting the JobRuns table, then required columns exist with expected data types.
+  - Intent: Ensure job run schema matches production column definitions.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DatabaseSchemaConsistencyTests.cs#L198](tests/Bravellian.Platform.Tests/DatabaseSchemaConsistencyTests.cs#L198)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DatabaseSchemaConsistencyTests.JobsTable_HasCorrectSchema**
+  - Summary: When inspecting the Jobs table, then required columns exist with expected data types.
+  - Intent: Ensure jobs schema matches production column definitions.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DatabaseSchemaConsistencyTests.cs#L128](tests/Bravellian.Platform.Tests/DatabaseSchemaConsistencyTests.cs#L128)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DatabaseSchemaConsistencyTests.OutboxTable_HasCorrectSchema**
+  - Summary: When inspecting the Outbox table, then required columns exist with expected data types.
+  - Intent: Ensure outbox schema matches production column definitions.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DatabaseSchemaConsistencyTests.cs#L88](tests/Bravellian.Platform.Tests/DatabaseSchemaConsistencyTests.cs#L88)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DatabaseSchemaConsistencyTests.RequiredIndexes_ExistOnAllTables**
+  - Summary: When required indexes are inspected, then core tables have the expected indexes.
+  - Intent: Verify production index definitions are present in tests.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DatabaseSchemaConsistencyTests.cs#L266](tests/Bravellian.Platform.Tests/DatabaseSchemaConsistencyTests.cs#L266)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DatabaseSchemaConsistencyTests.TimersTable_HasCorrectSchema**
+  - Summary: When inspecting the Timers table, then required columns exist with expected data types.
+  - Intent: Ensure timers schema matches production column definitions.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DatabaseSchemaConsistencyTests.cs#L160](tests/Bravellian.Platform.Tests/DatabaseSchemaConsistencyTests.cs#L160)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DatabaseSchemaConsistencyTests.WorkQueueColumns_ExistAfterMigration**
+  - Summary: When work-queue migrations are applied, then work-queue columns and types exist.
+  - Intent: Verify work-queue migration adds required columns and table types.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DatabaseSchemaConsistencyTests.cs#L333](tests/Bravellian.Platform.Tests/DatabaseSchemaConsistencyTests.cs#L333)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DatabaseSchemaConsistencyTests.WorkQueueProcedures_UseDatabaseUtcTime**
+  - Summary: When work-queue procedures are inspected, then they use SYSUTCDATETIME for timing.
+  - Intent: Ensure stored procedures rely on database-authoritative time.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DatabaseSchemaConsistencyTests.cs#L358](tests/Bravellian.Platform.Tests/DatabaseSchemaConsistencyTests.cs#L358)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DatabaseSchemaDeploymentTests.AddPlatformMultiDatabaseWithControlPlane_WithSchemaDeploymentEnabled_RegistersSchemaService**
+  - Summary: When control-plane registration enables schema deployment, then schema services are registered.
+  - Intent: Ensure schema deployment services are added for control-plane registration.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DatabaseSchemaDeploymentTests.cs#L222](tests/Bravellian.Platform.Tests/DatabaseSchemaDeploymentTests.cs#L222)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DatabaseSchemaDeploymentTests.AddPlatformMultiDatabaseWithList_WithSchemaDeploymentDisabled_DoesNotRegisterSchemaService**
+  - Summary: When multi-database list registration disables schema deployment, then schema services are not registered.
+  - Intent: Avoid schema deployment services when list-based registration disables deployment.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DatabaseSchemaDeploymentTests.cs#L269](tests/Bravellian.Platform.Tests/DatabaseSchemaDeploymentTests.cs#L269)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DatabaseSchemaDeploymentTests.AddPlatformMultiDatabaseWithList_WithSchemaDeploymentEnabled_RegistersSchemaService**
+  - Summary: When multi-database list registration enables schema deployment, then schema services are registered.
+  - Intent: Ensure schema deployment services are added for list-based registration.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DatabaseSchemaDeploymentTests.cs#L182](tests/Bravellian.Platform.Tests/DatabaseSchemaDeploymentTests.cs#L182)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DatabaseSchemaDeploymentTests.AddSqlOutbox_WithSchemaDeploymentDisabled_DoesNotRegisterSchemaService**
+  - Summary: When AddSqlOutbox disables schema deployment, then schema completion and background services are not registered.
+  - Intent: Avoid schema deployment services when deployment is disabled.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DatabaseSchemaDeploymentTests.cs#L72](tests/Bravellian.Platform.Tests/DatabaseSchemaDeploymentTests.cs#L72)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DatabaseSchemaDeploymentTests.AddSqlOutbox_WithSchemaDeploymentEnabled_RegistersSchemaService**
+  - Summary: When AddSqlOutbox enables schema deployment, then schema completion and background services are registered.
+  - Intent: Ensure schema deployment wiring is added when enabled.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DatabaseSchemaDeploymentTests.cs#L38](tests/Bravellian.Platform.Tests/DatabaseSchemaDeploymentTests.cs#L38)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DatabaseSchemaDeploymentTests.DatabaseSchemaCompletion_CoordinatesStateCorrectly**
+  - Summary: When DatabaseSchemaCompletion is completed, then its completion task transitions to RanToCompletion.
+  - Intent: Ensure schema completion state tracking works as expected.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DatabaseSchemaDeploymentTests.cs#L153](tests/Bravellian.Platform.Tests/DatabaseSchemaDeploymentTests.cs#L153)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DatabaseSchemaDeploymentTests.SchemaCompletion_RegisteredSeparatelyFromBackgroundService**
+  - Summary: When schema deployment is enabled, then IDatabaseSchemaCompletion and DatabaseSchemaCompletion are registered separately.
+  - Intent: Verify schema completion registrations use the expected lifetimes and factories.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DatabaseSchemaDeploymentTests.cs#L106](tests/Bravellian.Platform.Tests/DatabaseSchemaDeploymentTests.cs#L106)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DatabaseSchemaDeploymentTests.SchemaSnapshotManifest_IsTracked**
+  - Summary: When the schema snapshot manifest is expected, then the snapshot file exists on disk.
+  - Intent: Ensure the schema snapshot artifact is tracked in the repository.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DatabaseSchemaDeploymentTests.cs#L309](tests/Bravellian.Platform.Tests/DatabaseSchemaDeploymentTests.cs#L309)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DrainFirstSelectionStrategyTests.SelectNext_MixedBehavior**
+  - Summary: When processed counts vary across calls, then SelectNext sticks to busy stores and advances when empty.
+  - Intent: Validate mixed drain-first behavior across multiple stores.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DrainFirstSelectionStrategyTests.cs#L110](tests/Bravellian.Platform.Tests/DrainFirstSelectionStrategyTests.cs#L110)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DrainFirstSelectionStrategyTests.SelectNext_MovesToNextStoreWhenNoMessagesProcessed**
+  - Summary: When no messages are processed, then SelectNext advances to the next store.
+  - Intent: Verify drain-first advances when a store has no work.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DrainFirstSelectionStrategyTests.cs#L83](tests/Bravellian.Platform.Tests/DrainFirstSelectionStrategyTests.cs#L83)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DrainFirstSelectionStrategyTests.SelectNext_SticksToSameStoreWhenMessagesProcessed**
+  - Summary: When a store processes messages, then SelectNext keeps returning the same store.
+  - Intent: Ensure drain-first strategy sticks to the current store while work is processed.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DrainFirstSelectionStrategyTests.cs#L61](tests/Bravellian.Platform.Tests/DrainFirstSelectionStrategyTests.cs#L61)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DrainFirstSelectionStrategyTests.SelectNext_WithNoStores_ReturnsNull**
+  - Summary: When SelectNext is called with no stores, then it returns null.
+  - Intent: Verify drain-first selection handles empty inputs safely.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DrainFirstSelectionStrategyTests.cs#L43](tests/Bravellian.Platform.Tests/DrainFirstSelectionStrategyTests.cs#L43)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DynamicDiscoveryEnforcementTests.PlatformProviders_ShouldUseDiscoveryAsync**
+  - Summary: Verifies that providers use the correct discovery instance.
+  - Intent: Ensure providers use IPlatformDatabaseDiscovery results for tenant enumeration.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DynamicDiscoveryEnforcementTests.cs#L205](tests/Bravellian.Platform.Tests/DynamicDiscoveryEnforcementTests.cs#L205)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DynamicDiscoveryEnforcementTests.PlatformWithDiscovery_ShouldNotConfigureCustomerDatabaseOptions**
+  - Summary: (missing summary)
+  - Intent: (missing intent)
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DynamicDiscoveryEnforcementTests.cs#L46](tests/Bravellian.Platform.Tests/DynamicDiscoveryEnforcementTests.cs#L46)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DynamicDiscoveryEnforcementTests.PlatformWithDiscovery_ShouldRegisterAllProviders**
+  - Summary: Verifies that all customer database features have their providers registered when using platform registration.
+  - Intent: Validate provider registration for outbox, inbox, scheduler, fanout, and leases.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DynamicDiscoveryEnforcementTests.cs#L155](tests/Bravellian.Platform.Tests/DynamicDiscoveryEnforcementTests.cs#L155)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DynamicDiscoveryEnforcementTests.PlatformWithList_ShouldNotConfigureCustomerDatabaseOptions**
+  - Summary: (missing summary)
+  - Intent: (missing intent)
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DynamicDiscoveryEnforcementTests.cs#L102](tests/Bravellian.Platform.Tests/DynamicDiscoveryEnforcementTests.cs#L102)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DynamicInboxWorkStoreProviderTests.DynamicProvider_DetectsNewDatabases**
+  - Summary: When a new inbox database is added to discovery, then RefreshAsync updates the store list.
+  - Intent: Ensure the provider detects newly added inbox databases.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DynamicInboxWorkStoreProviderTests.cs#L104](tests/Bravellian.Platform.Tests/DynamicInboxWorkStoreProviderTests.cs#L104)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DynamicInboxWorkStoreProviderTests.DynamicProvider_DetectsRemovedDatabases**
+  - Summary: When an inbox database is removed from discovery, then RefreshAsync removes its store.
+  - Intent: Ensure the provider drops stores for removed inbox databases.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DynamicInboxWorkStoreProviderTests.cs#L160](tests/Bravellian.Platform.Tests/DynamicInboxWorkStoreProviderTests.cs#L160)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DynamicInboxWorkStoreProviderTests.DynamicProvider_DiscoversInitialDatabases**
+  - Summary: When the dynamic inbox provider performs initial discovery, then it returns stores for all configured databases.
+  - Intent: Verify initial discovery populates inbox work stores from discovery results.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DynamicInboxWorkStoreProviderTests.cs#L51](tests/Bravellian.Platform.Tests/DynamicInboxWorkStoreProviderTests.cs#L51)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DynamicInboxWorkStoreProviderTests.DynamicProvider_RefreshesAutomaticallyAfterInterval**
+  - Summary: When the refresh interval elapses, then the provider automatically refreshes discovery results.
+  - Intent: Validate time-based automatic refresh behavior for inbox work stores.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DynamicInboxWorkStoreProviderTests.cs#L216](tests/Bravellian.Platform.Tests/DynamicInboxWorkStoreProviderTests.cs#L216)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DynamicLeaseFactoryProviderTests.DynamicProvider_DetectsConnectionStringChanges**
+  - Summary: When a connection string changes for an existing key, then RefreshAsync recreates the factory.
+  - Intent: Ensure the provider detects connection string changes and refreshes factories.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DynamicLeaseFactoryProviderTests.cs#L333](tests/Bravellian.Platform.Tests/DynamicLeaseFactoryProviderTests.cs#L333)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DynamicLeaseFactoryProviderTests.DynamicProvider_DetectsNewDatabases**
+  - Summary: When a new lease database is added to discovery, then RefreshAsync updates the factory list.
+  - Intent: Ensure the provider detects newly added lease databases.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DynamicLeaseFactoryProviderTests.cs#L104](tests/Bravellian.Platform.Tests/DynamicLeaseFactoryProviderTests.cs#L104)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DynamicLeaseFactoryProviderTests.DynamicProvider_DetectsRemovedDatabases**
+  - Summary: When a lease database is removed from discovery, then RefreshAsync removes its factory.
+  - Intent: Ensure the provider drops factories for removed lease databases.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DynamicLeaseFactoryProviderTests.cs#L161](tests/Bravellian.Platform.Tests/DynamicLeaseFactoryProviderTests.cs#L161)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DynamicLeaseFactoryProviderTests.DynamicProvider_DiscoversInitialDatabases**
+  - Summary: When the dynamic lease provider performs initial discovery, then it returns factories for all configured databases.
+  - Intent: Verify initial discovery populates lease factories from discovery results.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DynamicLeaseFactoryProviderTests.cs#L51](tests/Bravellian.Platform.Tests/DynamicLeaseFactoryProviderTests.cs#L51)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DynamicLeaseFactoryProviderTests.DynamicProvider_GetFactoryByKey_ReturnsCorrectFactory**
+  - Summary: When known lease keys are requested, then GetFactoryByKeyAsync returns the matching factories.
+  - Intent: Verify keyed lease factory lookup works after discovery.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DynamicLeaseFactoryProviderTests.cs#L273](tests/Bravellian.Platform.Tests/DynamicLeaseFactoryProviderTests.cs#L273)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DynamicLeaseFactoryProviderTests.DynamicProvider_RefreshesAutomaticallyAfterInterval**
+  - Summary: When the refresh interval elapses, then the provider automatically refreshes discovery results.
+  - Intent: Validate time-based automatic refresh behavior for lease factories.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DynamicLeaseFactoryProviderTests.cs#L218](tests/Bravellian.Platform.Tests/DynamicLeaseFactoryProviderTests.cs#L218)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DynamicOutboxStoreProviderTests.DynamicProvider_DetectsNewDatabases**
+  - Summary: When a new outbox database is added to discovery, then RefreshAsync updates the store list.
+  - Intent: Ensure the provider detects newly added outbox databases.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DynamicOutboxStoreProviderTests.cs#L127](tests/Bravellian.Platform.Tests/DynamicOutboxStoreProviderTests.cs#L127)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DynamicOutboxStoreProviderTests.DynamicProvider_DetectsRemovedDatabases**
+  - Summary: When an outbox database is removed from discovery, then RefreshAsync removes its store.
+  - Intent: Ensure the provider drops stores for removed outbox databases.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DynamicOutboxStoreProviderTests.cs#L183](tests/Bravellian.Platform.Tests/DynamicOutboxStoreProviderTests.cs#L183)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DynamicOutboxStoreProviderTests.DynamicProvider_DiscoversInitialDatabases**
+  - Summary: When the dynamic outbox provider performs initial discovery, then it returns stores for all configured databases.
+  - Intent: Verify initial discovery populates outbox stores from discovery results.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DynamicOutboxStoreProviderTests.cs#L74](tests/Bravellian.Platform.Tests/DynamicOutboxStoreProviderTests.cs#L74)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DynamicOutboxStoreProviderTests.DynamicProvider_RefreshesAutomaticallyAfterInterval**
+  - Summary: When the refresh interval elapses, then the provider automatically refreshes discovery results.
+  - Intent: Validate time-based automatic refresh behavior.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DynamicOutboxStoreProviderTests.cs#L239](tests/Bravellian.Platform.Tests/DynamicOutboxStoreProviderTests.cs#L239)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DynamicSchedulerStoreProviderTests.DynamicProvider_DetectsNewDatabases**
+  - Summary: When a new database appears in discovery, then RefreshAsync updates the store list.
+  - Intent: Ensure the provider detects newly added scheduler databases.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DynamicSchedulerStoreProviderTests.cs#L131](tests/Bravellian.Platform.Tests/DynamicSchedulerStoreProviderTests.cs#L131)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DynamicSchedulerStoreProviderTests.DynamicProvider_DetectsRemovedDatabases**
+  - Summary: When a database is removed from discovery, then RefreshAsync removes its store.
+  - Intent: Ensure the provider drops stores for removed scheduler databases.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DynamicSchedulerStoreProviderTests.cs#L186](tests/Bravellian.Platform.Tests/DynamicSchedulerStoreProviderTests.cs#L186)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DynamicSchedulerStoreProviderTests.DynamicProvider_DiscoversInitialDatabases**
+  - Summary: When the dynamic scheduler provider performs initial discovery, then it returns stores for all configured databases.
+  - Intent: Verify initial discovery populates scheduler stores from discovery results.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DynamicSchedulerStoreProviderTests.cs#L74](tests/Bravellian.Platform.Tests/DynamicSchedulerStoreProviderTests.cs#L74)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DynamicSchedulerStoreProviderTests.DynamicProvider_GetSchedulerClientByKey_ReturnsCorrectClient**
+  - Summary: When a known scheduler key is requested, then GetSchedulerClientByKey returns a client instance.
+  - Intent: Verify keyed scheduler client lookup works after discovery.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DynamicSchedulerStoreProviderTests.cs#L241](tests/Bravellian.Platform.Tests/DynamicSchedulerStoreProviderTests.cs#L241)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.DynamicSchedulerStoreProviderTests.DynamicProvider_GetSchedulerClientByKey_ReturnsNullForUnknownKey**
+  - Summary: When an unknown scheduler key is requested, then GetSchedulerClientByKey returns null.
+  - Intent: Ensure missing scheduler keys are reported as null lookups.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/DynamicSchedulerStoreProviderTests.cs#L285](tests/Bravellian.Platform.Tests/DynamicSchedulerStoreProviderTests.cs#L285)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.EngineRefactoringTests.Discovery_service_filters_engines**
+  - Summary: When engines are listed and resolved with filters, then discovery returns the expected UI and webhook descriptors.
+  - Intent: Validate engine discovery filtering and webhook resolution by provider and event.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/EngineRefactoringTests.cs#L307](tests/Bravellian.Platform.Tests/EngineRefactoringTests.cs#L307)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.EngineRefactoringTests.Ui_adapter_throws_when_engine_contract_is_mismatched**
+  - Summary: When a UI adapter targets an engine with a non-UI contract, then ExecuteAsync throws.
+  - Intent: Prevent UI adapters from invoking engines with mismatched contracts.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/EngineRefactoringTests.cs#L283](tests/Bravellian.Platform.Tests/EngineRefactoringTests.cs#L283)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.EngineRefactoringTests.Ui_adapter_throws_when_engine_is_not_registered**
+  - Summary: When a UI engine is not registered for the requested engine ID, then ExecuteAsync throws.
+  - Intent: Ensure missing UI engines surface a clear error.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/EngineRefactoringTests.cs#L259](tests/Bravellian.Platform.Tests/EngineRefactoringTests.cs#L259)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.EngineRefactoringTests.Ui_engine_exception_propagates_to_adapter**
+  - Summary: When the UI engine throws during execution, then the adapter propagates the exception.
+  - Intent: Ensure engine exceptions are not swallowed by the adapter.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/EngineRefactoringTests.cs#L237](tests/Bravellian.Platform.Tests/EngineRefactoringTests.cs#L237)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.EngineRefactoringTests.Ui_engine_invocation_returns_view_model_and_navigation_tokens**
+  - Summary: When the UI engine executes a valid login command, then it returns a view model and navigation tokens.
+  - Intent: Verify UI engine execution returns expected view model data and navigation metadata.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/EngineRefactoringTests.cs#L45](tests/Bravellian.Platform.Tests/EngineRefactoringTests.cs#L45)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.EngineRefactoringTests.Webhook_adapter_enforces_signature_and_maps_outcome**
+  - Summary: When a webhook request has a valid signature, then the adapter dispatches and returns an enqueue outcome.
+  - Intent: Ensure signature validation gates webhook dispatch and outcome mapping.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/EngineRefactoringTests.cs#L70](tests/Bravellian.Platform.Tests/EngineRefactoringTests.cs#L70)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.EngineRefactoringTests.Webhook_adapter_rejects_invalid_signature**
+  - Summary: When a webhook request has an invalid signature, then the adapter acknowledges it with a failure reason.
+  - Intent: Verify invalid signatures are rejected without dispatching the engine.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/EngineRefactoringTests.cs#L103](tests/Bravellian.Platform.Tests/EngineRefactoringTests.cs#L103)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.EngineRefactoringTests.Webhook_adapter_requires_idempotency_key_when_configured**
+  - Summary: When a webhook request omits a required idempotency key, then the adapter responds with a retry.
+  - Intent: Enforce idempotency requirements on webhook dispatch.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/EngineRefactoringTests.cs#L139](tests/Bravellian.Platform.Tests/EngineRefactoringTests.cs#L139)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.EngineRefactoringTests.Webhook_adapter_throws_when_engine_contract_is_mismatched**
+  - Summary: When the webhook payload type does not match the engine contract, then DispatchAsync throws.
+  - Intent: Guard against mismatched webhook payload contracts.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/EngineRefactoringTests.cs#L205](tests/Bravellian.Platform.Tests/EngineRefactoringTests.cs#L205)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.EngineRefactoringTests.Webhook_adapter_throws_when_engine_is_not_registered**
+  - Summary: When a webhook engine is not registered for the provider/event, then DispatchAsync throws.
+  - Intent: Ensure missing webhook engines are reported as errors.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/EngineRefactoringTests.cs#L173](tests/Bravellian.Platform.Tests/EngineRefactoringTests.cs#L173)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ExceptionFilterTests.ExceptionFilter_InRealCatchBlock_WorksCorrectly**
+  - Summary: When IsCatchable is used in a real catch filter, then it catches the regular exception.
+  - Intent: Demonstrate catch-filter usage with the exception filter.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L523](tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L523)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ExceptionFilterTests.ExceptionFilter_WithCriticalException_DoesNotCatch**
+  - Summary: When a critical exception is thrown, then the catch filter does not intercept it.
+  - Intent: Ensure critical exceptions bypass catchable filters.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L555](tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L555)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ExceptionFilterTests.IsCatchableAndExpected_RealWorldScenario_SqlExceptions**
+  - Summary: When evaluating a catchable SQL-like exception versus a critical one, then only the catchable exception returns true.
+  - Intent: Demonstrate real-world filtering that excludes critical exceptions.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L650](tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L650)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ExceptionFilterTests.IsCatchableAndExpected_WithCatchableAndExpected_ReturnsTrue**
+  - Summary: When an exception is both catchable and expected, then IsCatchableAndExpected returns true.
+  - Intent: Validate combined catchable and expected filtering logic.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L423](tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L423)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ExceptionFilterTests.IsCatchableAndExpected_WithCatchableButNotExpected_ReturnsFalse**
+  - Summary: When an exception is catchable but not expected, then IsCatchableAndExpected returns false.
+  - Intent: Ensure expected-type filtering is enforced even for catchable exceptions.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L477](tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L477)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ExceptionFilterTests.IsCatchableAndExpected_WithCriticalButExpected_ReturnsFalse**
+  - Summary: When an exception is critical even if expected, then IsCatchableAndExpected returns false.
+  - Intent: Ensure critical exceptions are never treated as catchable.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L450](tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L450)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ExceptionFilterTests.IsCatchableAndExpected_WithNullException_ThrowsArgumentNullException**
+  - Summary: When IsCatchableAndExpected is called with a null exception, then it throws ArgumentNullException.
+  - Intent: Guard against null exception inputs for combined filtering.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L504](tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L504)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ExceptionFilterTests.IsCatchable_WithNullException_ThrowsArgumentNullException**
+  - Summary: When IsCatchable is called with a null exception, then it throws ArgumentNullException.
+  - Intent: Guard against null exception inputs.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L107](tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L107)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ExceptionFilterTests.IsCatchable_WithOutOfMemoryException_ReturnsFalse**
+  - Summary: When IsCatchable is given an OutOfMemoryException, then it returns false.
+  - Intent: Ensure critical exceptions are not marked catchable.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L57](tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L57)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ExceptionFilterTests.IsCatchable_WithRegularException_ReturnsTrue**
+  - Summary: When IsCatchable is given a regular exception, then it returns true.
+  - Intent: Verify non-critical exceptions are considered catchable.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L32](tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L32)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ExceptionFilterTests.IsCatchable_WithStackOverflowException_ReturnsFalse**
+  - Summary: When IsCatchable is given a StackOverflowException, then it returns false.
+  - Intent: Ensure stack overflow is treated as non-catchable.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L82](tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L82)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ExceptionFilterTests.IsCatchable_WithVariousCommonExceptions_ReturnsTrue**
+  - Summary: When IsCatchable is evaluated for common exception types, then it returns true.
+  - Intent: Validate catchable classification for typical application exceptions.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L600](tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L600)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ExceptionFilterTests.IsCritical_WithNullException_ThrowsArgumentNullException**
+  - Summary: When IsCritical is called with a null exception, then it throws ArgumentNullException.
+  - Intent: Guard against null exception inputs for critical checks.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L202](tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L202)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ExceptionFilterTests.IsCritical_WithOutOfMemoryException_ReturnsTrue**
+  - Summary: When IsCritical is given an OutOfMemoryException, then it returns true.
+  - Intent: Classify out-of-memory conditions as critical.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L127](tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L127)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ExceptionFilterTests.IsCritical_WithRegularException_ReturnsFalse**
+  - Summary: When IsCritical is given a regular exception, then it returns false.
+  - Intent: Ensure non-critical exceptions are not flagged as critical.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L177](tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L177)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ExceptionFilterTests.IsCritical_WithStackOverflowException_ReturnsTrue**
+  - Summary: When IsCritical is given a StackOverflowException, then it returns true.
+  - Intent: Classify stack overflow conditions as critical.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L152](tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L152)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ExceptionFilterTests.IsExpected_WithDerivedType_ReturnsTrue**
+  - Summary: When IsExpected is given a derived exception and a base expected type, then it returns true.
+  - Intent: Confirm base expected types match derived exceptions.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L276](tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L276)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ExceptionFilterTests.IsExpected_WithEmptyExpectedTypes_ReturnsFalse**
+  - Summary: When IsExpected is called with no expected types, then it returns false.
+  - Intent: Ensure empty expected type lists do not match any exception.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L369](tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L369)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ExceptionFilterTests.IsExpected_WithMatchingType_ReturnsTrue**
+  - Summary: When IsExpected is given a matching exception type, then it returns true.
+  - Intent: Confirm exact type matches are treated as expected.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L222](tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L222)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ExceptionFilterTests.IsExpected_WithMultipleTypesAndMatch_ReturnsTrue**
+  - Summary: When IsExpected is given multiple expected types including a base type, then it returns true for a derived exception.
+  - Intent: Validate derived exceptions match any compatible expected type.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L247](tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L247)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ExceptionFilterTests.IsExpected_WithNonMatchingType_ReturnsFalse**
+  - Summary: When IsExpected is given a non-matching expected type, then it returns false.
+  - Intent: Ensure unrelated exception types are not marked expected.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L301](tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L301)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ExceptionFilterTests.IsExpected_WithNullException_ThrowsArgumentNullException**
+  - Summary: When IsExpected is called with a null exception, then it throws ArgumentNullException.
+  - Intent: Guard against null exception inputs for expected checks.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L326](tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L326)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ExceptionFilterTests.IsExpected_WithNullExpectedTypes_ThrowsArgumentNullException**
+  - Summary: When IsExpected is called with null expected types, then it throws ArgumentNullException.
+  - Intent: Guard against null expected type arrays.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L346](tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L346)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ExceptionFilterTests.IsExpected_WithNullTypeInArray_IgnoresNullAndContinues**
+  - Summary: When IsExpected encounters null entries in expected types, then it ignores them and still matches valid types.
+  - Intent: Verify null expected types do not break matching.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L394](tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L394)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ExceptionFilterTests.IsExpected_WithOperationCanceledException_WorksCorrectly**
+  - Summary: When IsExpected is given an OperationCanceledException and matching expected type, then it returns true.
+  - Intent: Confirm cancellation exceptions are matched when expected.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L625](tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs#L625)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.FanoutCoordinatorIntegrationTests.FanoutSlices_CanJoinDownstreamMessagesIdempotently**
+  - Summary: When fanout slices share a correlation ID, then join completion is idempotent and correlation IDs match.
+  - Intent: Validate downstream join tracking for fanout-dispatched messages.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/FanoutCoordinatorIntegrationTests.cs#L201](tests/Bravellian.Platform.Tests/FanoutCoordinatorIntegrationTests.cs#L201)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.FanoutCoordinatorIntegrationTests.RunAsync_RedispatchesAbandonedSlices**
+  - Summary: When cursors do not advance, then RunAsync redispatches the same slice on subsequent runs.
+  - Intent: Ensure abandoned slices can be redispatched.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/FanoutCoordinatorIntegrationTests.cs#L130](tests/Bravellian.Platform.Tests/FanoutCoordinatorIntegrationTests.cs#L130)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.FanoutCoordinatorIntegrationTests.RunAsync_RespectsActiveLeaseAndRecoversAfterExpiry**
+  - Summary: When a lease is active, then RunAsync returns no dispatches, and after the lease expires it dispatches the slice once.
+  - Intent: Verify lease gating and recovery behavior for the fanout coordinator.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/FanoutCoordinatorIntegrationTests.cs#L93](tests/Bravellian.Platform.Tests/FanoutCoordinatorIntegrationTests.cs#L93)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.FanoutCoordinatorIntegrationTests.RunAsync_SkipsCompletedSlicesAfterCursorAdvances**
+  - Summary: When fanout cursors are marked completed, then RunAsync skips dispatching completed slices.
+  - Intent: Confirm cursor advancement prevents duplicate dispatches.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/FanoutCoordinatorIntegrationTests.cs#L164](tests/Bravellian.Platform.Tests/FanoutCoordinatorIntegrationTests.cs#L164)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.FanoutRouterIntegrationTests.AddDynamicMultiSqlFanout_RegistersServicesCorrectly**
+  - Summary: When dynamic fanout discovery loads tenants, then policy and cursor repositories are created for each tenant.
+  - Intent: Validate discovery-based fanout configuration builds repositories from discovered databases.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/FanoutRouterIntegrationTests.cs#L251](tests/Bravellian.Platform.Tests/FanoutRouterIntegrationTests.cs#L251)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.FanoutRouterIntegrationTests.AddMultiSqlFanout_RepositoryProvider_ReturnsCorrectIdentifiers**
+  - Summary: When repository identifiers are requested, then each repository returns a unique non-empty identifier.
+  - Intent: Ensure repository identifiers map uniquely to configured tenants.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/FanoutRouterIntegrationTests.cs#L119](tests/Bravellian.Platform.Tests/FanoutRouterIntegrationTests.cs#L119)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.FanoutRouterIntegrationTests.AddMultiSqlFanout_WithListOfOptions_RegistersServicesCorrectly**
+  - Summary: When fanout is configured with multiple option entries, then repositories are created per tenant and routed correctly.
+  - Intent: Validate list-based fanout configuration builds distinct policy and cursor repositories.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/FanoutRouterIntegrationTests.cs#L50](tests/Bravellian.Platform.Tests/FanoutRouterIntegrationTests.cs#L50)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.FanoutRouterIntegrationTests.FanoutRouter_GetPolicyRepository_ReturnsCorrectRepository**
+  - Summary: When a known tenant key is requested, then FanoutRouter returns the policy and cursor repositories.
+  - Intent: Verify router lookup returns repositories for configured tenants.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/FanoutRouterIntegrationTests.cs#L172](tests/Bravellian.Platform.Tests/FanoutRouterIntegrationTests.cs#L172)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.FanoutRouterIntegrationTests.FanoutRouter_GetPolicyRepository_ThrowsWhenKeyNotFound**
+  - Summary: When a tenant key is missing, then FanoutRouter throws an InvalidOperationException containing the key.
+  - Intent: Ensure invalid fanout keys are rejected with actionable errors.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/FanoutRouterIntegrationTests.cs#L211](tests/Bravellian.Platform.Tests/FanoutRouterIntegrationTests.cs#L211)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.FanoutSystemTests.FanoutDispatcher_ShouldCreateCorrectTopicName**
+  - Summary: When a fanout topic name is constructed, then it follows the "fanout:{fanoutTopic}:{workKey}" convention.
+  - Intent: Document the fanout topic naming pattern used by the dispatcher.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/FanoutSystemTests.cs#L71](tests/Bravellian.Platform.Tests/FanoutSystemTests.cs#L71)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.FanoutSystemTests.FanoutSlice_ShouldSerializeCorrectly**
+  - Summary: When a FanoutSlice is serialized and deserialized, then its fields are preserved.
+  - Intent: Ensure FanoutSlice JSON round-trips correctly.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/FanoutSystemTests.cs#L35](tests/Bravellian.Platform.Tests/FanoutSystemTests.cs#L35)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.FanoutSystemTests.FanoutTopicOptions_ShouldHaveCorrectDefaults**
+  - Summary: When FanoutTopicOptions is created with a fanout topic, then its default scheduling values are set.
+  - Intent: Verify default values for fanout scheduling configuration.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/FanoutSystemTests.cs#L94](tests/Bravellian.Platform.Tests/FanoutSystemTests.cs#L94)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxCleanupTests.CleanupService_GracefullyHandles_MissingStoredProcedure**
+  - Summary: When the cleanup stored procedure is missing, then the cleanup service runs without crashing.
+  - Intent: Ensure the background cleanup service tolerates missing schema deployment.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxCleanupTests.cs#L221](tests/Bravellian.Platform.Tests/InboxCleanupTests.cs#L221)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxCleanupTests.Cleanup_DeletesOldProcessedMessages**
+  - Summary: When cleanup runs with a retention window, then only processed messages older than the window are deleted.
+  - Intent: Verify the cleanup procedure removes stale processed inbox records.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxCleanupTests.cs#L45](tests/Bravellian.Platform.Tests/InboxCleanupTests.cs#L45)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxCleanupTests.Cleanup_RespectsRetentionPeriod**
+  - Summary: When cleanup runs with a 10-day retention period, then only messages older than 10 days are deleted.
+  - Intent: Confirm retention period filtering is applied correctly.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxCleanupTests.cs#L163](tests/Bravellian.Platform.Tests/InboxCleanupTests.cs#L163)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxCleanupTests.Cleanup_WithNoOldMessages_DeletesNothing**
+  - Summary: When cleanup runs and no processed messages are older than retention, then nothing is deleted.
+  - Intent: Ensure cleanup is a no-op when no rows qualify.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxCleanupTests.cs#L122](tests/Bravellian.Platform.Tests/InboxCleanupTests.cs#L122)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxDispatcherTests.RunOnceAsync_RotatesOwnerTokensAcrossRuns**
+  - Summary: When RunOnceAsync is called multiple times, then each run uses a new owner token.
+  - Intent: Ensure dispatcher rotates owner tokens across separate runs.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxDispatcherTests.cs#L229](tests/Bravellian.Platform.Tests/InboxDispatcherTests.cs#L229)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxDispatcherTests.RunOnceAsync_WithFailingHandler_AbandonsWithBackoffPolicy**
+  - Summary: When a handler fails and a backoff policy is supplied, then the message is abandoned with that delay.
+  - Intent: Ensure dispatcher honors custom backoff delays on failure.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxDispatcherTests.cs#L165](tests/Bravellian.Platform.Tests/InboxDispatcherTests.cs#L165)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxDispatcherTests.RunOnceAsync_WithFailingHandler_RetriesWithBackoff**
+  - Summary: When a handler throws, then RunOnceAsync abandons the message for retry.
+  - Intent: Validate failure paths return messages to Seen for future retries.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxDispatcherTests.cs#L131](tests/Bravellian.Platform.Tests/InboxDispatcherTests.cs#L131)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxDispatcherTests.RunOnceAsync_WithNoHandlerForTopic_MarksMessageAsDead**
+  - Summary: When no handler exists for a message topic, then RunOnceAsync marks the message Dead.
+  - Intent: Ensure unhandled topics are failed instead of retried indefinitely.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxDispatcherTests.cs#L98](tests/Bravellian.Platform.Tests/InboxDispatcherTests.cs#L98)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxDispatcherTests.RunOnceAsync_WithNoMessages_ReturnsZero**
+  - Summary: When RunOnceAsync is called with no inbox messages, then it returns zero processed items.
+  - Intent: Verify the dispatcher reports no work when the store is empty.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxDispatcherTests.cs#L46](tests/Bravellian.Platform.Tests/InboxDispatcherTests.cs#L46)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxDispatcherTests.RunOnceAsync_WithPoisonMessage_FailsInsteadOfRetrying**
+  - Summary: When a message exceeds max attempts, then RunOnceAsync fails it instead of retrying.
+  - Intent: Verify poison-message handling respects maxAttempts.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxDispatcherTests.cs#L197](tests/Bravellian.Platform.Tests/InboxDispatcherTests.cs#L197)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxDispatcherTests.RunOnceAsync_WithValidMessage_ProcessesSuccessfully**
+  - Summary: When a message has a matching handler, then RunOnceAsync processes it and marks it Done.
+  - Intent: Validate successful handler execution updates inbox status.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxDispatcherTests.cs#L65](tests/Bravellian.Platform.Tests/InboxDispatcherTests.cs#L65)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxIntegrationTests.CompleteInboxWorkflow_DirectServiceUsage_WorksEndToEnd**
+  - Summary: When the inbox service is used end-to-end, then a message transitions to Done and is reported as processed.
+  - Intent: Validate the core inbox workflow from first check through completion.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxIntegrationTests.cs#L39](tests/Bravellian.Platform.Tests/InboxIntegrationTests.cs#L39)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxIntegrationTests.ConcurrentAccess_WithMultipleThreads_HandledSafely**
+  - Summary: When multiple threads call AlreadyProcessedAsync concurrently, then only one record is created and attempts are tracked.
+  - Intent: Ensure inbox deduplication remains safe under concurrent access.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxIntegrationTests.cs#L113](tests/Bravellian.Platform.Tests/InboxIntegrationTests.cs#L113)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxIntegrationTests.PoisonMessageWorkflow_MarkingAsDead_WorksCorrectly**
+  - Summary: When a message is marked dead, then its inbox status is Dead and processed time remains null.
+  - Intent: Verify poison-message handling sets the expected state.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxIntegrationTests.cs#L79](tests/Bravellian.Platform.Tests/InboxIntegrationTests.cs#L79)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxRouterIntegrationTests.AddDynamicMultiSqlInbox_CreatesProviderCorrectly**
+  - Summary: When dynamic discovery is used, then a dynamic inbox provider and router can be created.
+  - Intent: Confirm the dynamic provider pattern constructs functional components.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxRouterIntegrationTests.cs#L164](tests/Bravellian.Platform.Tests/InboxRouterIntegrationTests.cs#L164)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxRouterIntegrationTests.AddDynamicMultiSqlInbox_WithCustomRefreshInterval_ConfiguresCorrectly**
+  - Summary: When a custom refresh interval is supplied, then the dynamic provider is created with that setting.
+  - Intent: Ensure dynamic inbox discovery supports custom refresh intervals.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxRouterIntegrationTests.cs#L193](tests/Bravellian.Platform.Tests/InboxRouterIntegrationTests.cs#L193)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxRouterIntegrationTests.AddMultiSqlInbox_WithCustomSelectionStrategy_UsesProvidedStrategy**
+  - Summary: When a custom selection strategy is supplied, then a dispatcher can be built with it.
+  - Intent: Ensure the multi-inbox pattern supports replacing the selection strategy.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxRouterIntegrationTests.cs#L94](tests/Bravellian.Platform.Tests/InboxRouterIntegrationTests.cs#L94)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxRouterIntegrationTests.AddMultiSqlInbox_WithListOfOptions_RegistersServicesCorrectlyAsync**
+  - Summary: When a list of inbox options is used, then the provider and router resolve inboxes for each tenant.
+  - Intent: Validate configured multi-inbox wiring produces usable stores and router outputs.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxRouterIntegrationTests.cs#L46](tests/Bravellian.Platform.Tests/InboxRouterIntegrationTests.cs#L46)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxRouterIntegrationTests.AddMultiSqlInbox_WithStoreProviderFactory_CreatesProviderCorrectlyAsync**
+  - Summary: When the provider factory pattern is used, then a configured inbox store provider is created.
+  - Intent: Verify the factory produces a ConfiguredInboxWorkStoreProvider with expected stores.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxRouterIntegrationTests.cs#L131](tests/Bravellian.Platform.Tests/InboxRouterIntegrationTests.cs#L131)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxRouterIntegrationTests.DynamicDiscovery_RoutesToCorrectDatabase**
+  - Summary: When dynamic discovery loads tenant configurations, then routing returns distinct inboxes per tenant.
+  - Intent: Validate router behavior with dynamically discovered tenants.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxRouterIntegrationTests.cs#L264](tests/Bravellian.Platform.Tests/InboxRouterIntegrationTests.cs#L264)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxRouterIntegrationTests.MultiTenantScenario_RoutesToCorrectInbox**
+  - Summary: When tenant keys are routed, then each key maps to a distinct inbox instance.
+  - Intent: Demonstrate multi-tenant routing using configured inbox options.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxRouterIntegrationTests.cs#L221](tests/Bravellian.Platform.Tests/InboxRouterIntegrationTests.cs#L221)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxRouterTests.InboxRouter_WithGuidKey_ReturnsInbox**
+  - Summary: When a Guid tenant key is requested, then the router returns an inbox instance.
+  - Intent: Verify inbox routing by Guid key converted to string.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxRouterTests.cs#L69](tests/Bravellian.Platform.Tests/InboxRouterTests.cs#L69)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxRouterTests.InboxRouter_WithInvalidKey_ThrowsException**
+  - Summary: When an unknown tenant key is requested, then the router throws an InvalidOperationException.
+  - Intent: Ensure the router fails fast for missing tenant entries.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxRouterTests.cs#L99](tests/Bravellian.Platform.Tests/InboxRouterTests.cs#L99)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxRouterTests.InboxRouter_WithNullKey_ThrowsArgumentException**
+  - Summary: When an empty tenant key is requested, then the router throws an ArgumentException.
+  - Intent: Validate tenant key input guarding.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxRouterTests.cs#L125](tests/Bravellian.Platform.Tests/InboxRouterTests.cs#L125)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxRouterTests.InboxRouter_WithNullProvider_ThrowsArgumentNullException**
+  - Summary: When the router is constructed with a null provider, then it throws an ArgumentNullException.
+  - Intent: Ensure InboxRouter requires a non-null store provider.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxRouterTests.cs#L151](tests/Bravellian.Platform.Tests/InboxRouterTests.cs#L151)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxRouterTests.InboxRouter_WithValidKey_ReturnsInbox**
+  - Summary: When a configured tenant key is requested, then the router returns an inbox instance.
+  - Intent: Verify inbox routing by string key for configured stores.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxRouterTests.cs#L34](tests/Bravellian.Platform.Tests/InboxRouterTests.cs#L34)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxSelectionStrategyTests.DrainFirst_HandlesEmptyStoreList**
+  - Summary: When the drain-first strategy is given no stores, then it returns null.
+  - Intent: Ensure empty store lists are handled safely in drain-first selection.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxSelectionStrategyTests.cs#L158](tests/Bravellian.Platform.Tests/InboxSelectionStrategyTests.cs#L158)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxSelectionStrategyTests.DrainFirst_MovesToNextStoreWhenEmpty**
+  - Summary: When a store processes zero messages, then the drain-first strategy advances to the next store.
+  - Intent: Verify drain-first moves on when the current store is empty.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxSelectionStrategyTests.cs#L127](tests/Bravellian.Platform.Tests/InboxSelectionStrategyTests.cs#L127)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxSelectionStrategyTests.DrainFirst_ResetReturnsToFirstStore**
+  - Summary: When Reset is called, then drain-first selection starts from the first store again.
+  - Intent: Validate reset clears the drain-first cursor.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxSelectionStrategyTests.cs#L176](tests/Bravellian.Platform.Tests/InboxSelectionStrategyTests.cs#L176)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxSelectionStrategyTests.DrainFirst_StaysOnStoreWithMessages**
+  - Summary: When messages are processed from a store, then the drain-first strategy stays on that store.
+  - Intent: Ensure drain-first keeps selecting the active store while work is processed.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxSelectionStrategyTests.cs#L101](tests/Bravellian.Platform.Tests/InboxSelectionStrategyTests.cs#L101)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxSelectionStrategyTests.RoundRobin_CyclesThroughStoresEvenly**
+  - Summary: When SelectNext is called repeatedly, then the round-robin strategy cycles through stores and wraps.
+  - Intent: Verify round-robin selection advances in order across inbox stores.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxSelectionStrategyTests.cs#L27](tests/Bravellian.Platform.Tests/InboxSelectionStrategyTests.cs#L27)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxSelectionStrategyTests.RoundRobin_HandlesEmptyStoreList**
+  - Summary: When the round-robin strategy is given no stores, then it returns null.
+  - Intent: Ensure empty store lists are handled safely.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxSelectionStrategyTests.cs#L57](tests/Bravellian.Platform.Tests/InboxSelectionStrategyTests.cs#L57)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxSelectionStrategyTests.RoundRobin_ResetReturnsToFirstStore**
+  - Summary: When Reset is called, then round-robin selection starts from the first store again.
+  - Intent: Validate reset clears the round-robin cursor.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxSelectionStrategyTests.cs#L75](tests/Bravellian.Platform.Tests/InboxSelectionStrategyTests.cs#L75)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxWorkStoreTests.AbandonAsync_WithClaimedMessage_ReturnsToSeen**
+  - Summary: When AbandonAsync is called by the owner, then the message returns to Seen status.
+  - Intent: Verify abandoning a claim resets the inbox state.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxWorkStoreTests.cs#L161](tests/Bravellian.Platform.Tests/InboxWorkStoreTests.cs#L161)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxWorkStoreTests.AckAsync_WithClaimedMessage_MarksAsDone**
+  - Summary: When AckAsync is called by the owner, then the message is marked Done and processed time is set.
+  - Intent: Verify successful acknowledgements update inbox state.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxWorkStoreTests.cs#L128](tests/Bravellian.Platform.Tests/InboxWorkStoreTests.cs#L128)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxWorkStoreTests.ClaimAsync_WithAvailableMessage_ClaimsSuccessfully**
+  - Summary: When a ready message exists, then ClaimAsync claims it and marks it as processing.
+  - Intent: Verify claims update inbox status and owner token correctly.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxWorkStoreTests.cs#L63](tests/Bravellian.Platform.Tests/InboxWorkStoreTests.cs#L63)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxWorkStoreTests.ClaimAsync_WithConcurrentWorkers_EnsuresExclusiveClaims**
+  - Summary: When two workers claim concurrently, then only one receives the message.
+  - Intent: Ensure exclusive claims under concurrent callers.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxWorkStoreTests.cs#L97](tests/Bravellian.Platform.Tests/InboxWorkStoreTests.cs#L97)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxWorkStoreTests.ClaimAsync_WithNoMessages_ReturnsEmpty**
+  - Summary: When ClaimAsync is called with no pending messages, then it returns an empty set.
+  - Intent: Confirm the inbox work store returns no claims when there is no work.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxWorkStoreTests.cs#L45](tests/Bravellian.Platform.Tests/InboxWorkStoreTests.cs#L45)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxWorkStoreTests.FailAsync_WithClaimedMessage_MarksAsDead**
+  - Summary: When FailAsync is called by the owner, then the message is marked Dead.
+  - Intent: Verify failed processing sets the inbox message to Dead.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxWorkStoreTests.cs#L193](tests/Bravellian.Platform.Tests/InboxWorkStoreTests.cs#L193)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxWorkStoreTests.GetAsync_WithInvalidMessageId_ThrowsException**
+  - Summary: When GetAsync is called with an unknown message id, then it throws an InvalidOperationException.
+  - Intent: Ensure missing inbox messages result in a failure.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxWorkStoreTests.cs#L284](tests/Bravellian.Platform.Tests/InboxWorkStoreTests.cs#L284)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxWorkStoreTests.GetAsync_WithValidMessageId_ReturnsMessage**
+  - Summary: When GetAsync is called with a valid message id, then it returns the stored message details.
+  - Intent: Verify inbox work store retrieval returns expected fields.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxWorkStoreTests.cs#L258](tests/Bravellian.Platform.Tests/InboxWorkStoreTests.cs#L258)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.InboxWorkStoreTests.OwnerTokenEnforcement_OnlyAllowsOperationsByOwner**
+  - Summary: When a non-owner tries to acknowledge a claim, then the message remains in Processing.
+  - Intent: Ensure owner token enforcement prevents unauthorized state changes.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/InboxWorkStoreTests.cs#L225](tests/Bravellian.Platform.Tests/InboxWorkStoreTests.cs#L225)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.JoinWaitHandlerTests.HandleAsync_WhenAllStepsCompleted_MarksJoinAsCompleted**
+  - Summary: When all join steps are completed, then HandleAsync marks the join as completed.
+  - Intent: Ensure successful joins transition to the Completed status.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/JoinWaitHandlerTests.cs#L144](tests/Bravellian.Platform.Tests/JoinWaitHandlerTests.cs#L144)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.JoinWaitHandlerTests.HandleAsync_WhenCompletedSuccessfully_EnqueuesFollowUpMessage**
+  - Summary: When a join completes with follow-up settings, then HandleAsync enqueues the follow-up outbox message.
+  - Intent: Verify that completion triggers an additional outbox message when configured.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/JoinWaitHandlerTests.cs#L252](tests/Bravellian.Platform.Tests/JoinWaitHandlerTests.cs#L252)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.JoinWaitHandlerTests.HandleAsync_WhenFailIfAnyStepFailedIsFalse_CompletesEvenWithFailures**
+  - Summary: When FailIfAnyStepFailed is false, then HandleAsync completes the join even if some steps failed.
+  - Intent: Allow joins to complete successfully when failure tolerance is enabled.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/JoinWaitHandlerTests.cs#L361](tests/Bravellian.Platform.Tests/JoinWaitHandlerTests.cs#L361)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.JoinWaitHandlerTests.HandleAsync_WhenJoinAlreadyCompleted_IsIdempotent**
+  - Summary: When a join is already completed, then repeated HandleAsync calls leave it completed.
+  - Intent: Ensure join completion handling is idempotent.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/JoinWaitHandlerTests.cs#L309](tests/Bravellian.Platform.Tests/JoinWaitHandlerTests.cs#L309)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.JoinWaitHandlerTests.HandleAsync_WhenJoinNotReady_ThrowsJoinNotReadyException**
+  - Summary: When a join has incomplete steps, then HandleAsync throws JoinNotReadyException.
+  - Intent: Prevent completion handling until all expected steps are finished.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/JoinWaitHandlerTests.cs#L97](tests/Bravellian.Platform.Tests/JoinWaitHandlerTests.cs#L97)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.JoinWaitHandlerTests.HandleAsync_WhenSomeStepsFailed_MarksJoinAsFailed**
+  - Summary: When any join step fails and failures are not allowed, then HandleAsync marks the join as failed.
+  - Intent: Enforce failure propagation when FailIfAnyStepFailed is true.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/JoinWaitHandlerTests.cs#L198](tests/Bravellian.Platform.Tests/JoinWaitHandlerTests.cs#L198)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.LeaseRunnerTests.AcquireAsync_WithAvailableLease_ReturnsRunnerInstance**
+  - Summary: When a lease is available, then AcquireAsync returns a runner with initialized state.
+  - Intent: Validate LeaseRunner acquisition returns a usable runner instance.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/LeaseRunnerTests.cs#L58](tests/Bravellian.Platform.Tests/LeaseRunnerTests.cs#L58)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.LeaseRunnerTests.AcquireAsync_WithUnavailableLease_ReturnsNull**
+  - Summary: When a lease is already held, then a second AcquireAsync returns null.
+  - Intent: Ensure LeaseRunner does not acquire a lease already owned by another runner.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/LeaseRunnerTests.cs#L101](tests/Bravellian.Platform.Tests/LeaseRunnerTests.cs#L101)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.LeaseRunnerTests.DisposedRunner_DoesNotRenew**
+  - Summary: When a runner is disposed, then TryRenewNowAsync returns false.
+  - Intent: Ensure disposed runners do not attempt renewals.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/LeaseRunnerTests.cs#L286](tests/Bravellian.Platform.Tests/LeaseRunnerTests.cs#L286)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.LeaseRunnerTests.MonotonicRenewal_WithCustomRenewPercent_RenewsAtCorrectInterval**
+  - Summary: When a custom renew percent is used, then automatic renewal keeps the runner valid past the threshold.
+  - Intent: Validate that automatic renewal triggers early enough to avoid lease loss.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/LeaseRunnerTests.cs#L240](tests/Bravellian.Platform.Tests/LeaseRunnerTests.cs#L240)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.LeaseRunnerTests.RenewTimer_UsesMonotonicClockAcrossClockSkewAndGcPauses**
+  - Summary: When the monotonic clock jumps forward, then renewal scheduling advances based on monotonic time without over-renewing.
+  - Intent: Confirm renewal scheduling relies on monotonic time even across simulated pauses.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/LeaseRunnerTests.cs#L327](tests/Bravellian.Platform.Tests/LeaseRunnerTests.cs#L327)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.LeaseRunnerTests.ThrowIfLost_WhenLeaseIsValid_DoesNotThrow**
+  - Summary: When a lease is still valid, then ThrowIfLost does not throw.
+  - Intent: Ensure the guard does not falsely signal a lost lease.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/LeaseRunnerTests.cs#L200](tests/Bravellian.Platform.Tests/LeaseRunnerTests.cs#L200)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.LeaseRunnerTests.TryRenewNowAsync_WithValidRunner_SucceedsAndExtendsLease**
+  - Summary: When TryRenewNowAsync is called on a valid runner, then renewal succeeds and the lease is not lost.
+  - Intent: Confirm manual renewal succeeds for a current lease owner.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/LeaseRunnerTests.cs#L156](tests/Bravellian.Platform.Tests/LeaseRunnerTests.cs#L156)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.LeaseTests.AcquireAsync_WithExpiredLease_SucceedsAndReturnsNewExpiry**
+  - Summary: When a prior lease has expired, then a new owner can acquire it and receives a fresh expiry.
+  - Intent: Confirm expired leases can be reacquired by another owner.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/LeaseTests.cs#L120](tests/Bravellian.Platform.Tests/LeaseTests.cs#L120)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.LeaseTests.AcquireAsync_WithFreeResource_SucceedsAndReturnsServerTime**
+  - Summary: When a free lease is acquired, then the acquisition succeeds and returns server time with a calculated expiry.
+  - Intent: Verify successful acquisition returns timing data from the server.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/LeaseTests.cs#L52](tests/Bravellian.Platform.Tests/LeaseTests.cs#L52)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.LeaseTests.AcquireAsync_WithOccupiedResource_FailsAndReturnsServerTime**
+  - Summary: When a lease is already held, then a second acquisition attempt fails and returns server time without an expiry.
+  - Intent: Ensure AcquireAsync reports contention without granting a lease.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/LeaseTests.cs#L86](tests/Bravellian.Platform.Tests/LeaseTests.cs#L86)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.LeaseTests.RenewAsync_WithExpiredLease_FailsAndReturnsServerTime**
+  - Summary: When a lease has already expired, then renewal fails and no expiry is returned.
+  - Intent: Ensure expired leases cannot be renewed.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/LeaseTests.cs#L230](tests/Bravellian.Platform.Tests/LeaseTests.cs#L230)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.LeaseTests.RenewAsync_WithValidOwner_SucceedsAndExtendsLease**
+  - Summary: When the current lease owner renews, then the lease is extended and server time advances.
+  - Intent: Validate successful renewals extend the lease window.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/LeaseTests.cs#L158](tests/Bravellian.Platform.Tests/LeaseTests.cs#L158)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.LeaseTests.RenewAsync_WithWrongOwner_FailsAndReturnsServerTime**
+  - Summary: When a non-owner attempts to renew a lease, then renewal fails and no expiry is returned.
+  - Intent: Prevent renewals from unauthorized owners.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/LeaseTests.cs#L196](tests/Bravellian.Platform.Tests/LeaseTests.cs#L196)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ManualSchemaExportTests.DeploySchemaAndExportToSqlProject**
+  - Summary: This manual test deploys all platform schemas to a fresh SQL Server container and then uses SqlPackage to extract the schema and update the SQL Server project. This test creates two separate databases and two separate dacpac files: 1. Control Plane database - contains Semaphore and Central Metrics schemas 2. Multi-Database schema - contains Outbox, Inbox, Scheduler, Lease, Fanout, Metrics, and DistributedLock schemas Note: This test is skipped by default to prevent it from running in CI. To run it, remove the Skip parameter or run it explicitly using the test filter.
+  - Intent: Provide a manual workflow for updating the SQL Server project from deployed schema.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ManualSchemaExportTests.cs#L79](tests/Bravellian.Platform.Tests/ManualSchemaExportTests.cs#L79)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.MetricAggregatorTests.Aggregator_Should_Calculate_Percentiles**
+  - Summary: When a distribution of values is recorded, then percentile estimates are populated and within expected ranges.
+  - Intent: Validate percentile calculation for a known 1..100 data set.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/MetricAggregatorTests.cs#L86](tests/Bravellian.Platform.Tests/MetricAggregatorTests.cs#L86)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.MetricAggregatorTests.Aggregator_Should_Calculate_Sum_And_Count**
+  - Summary: When values are recorded, then the snapshot returns the correct sum and count.
+  - Intent: Verify aggregation totals across multiple recorded values.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/MetricAggregatorTests.cs#L29](tests/Bravellian.Platform.Tests/MetricAggregatorTests.cs#L29)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.MetricAggregatorTests.Aggregator_Should_Handle_Empty_State**
+  - Summary: When no values are recorded, then the snapshot reports zeros and null percentiles.
+  - Intent: Verify the empty state snapshot uses default aggregate values.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/MetricAggregatorTests.cs#L141](tests/Bravellian.Platform.Tests/MetricAggregatorTests.cs#L141)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.MetricAggregatorTests.Aggregator_Should_Reset_After_Snapshot**
+  - Summary: When a snapshot is taken, then the aggregator resets its state for subsequent readings.
+  - Intent: Ensure GetSnapshotAndReset clears accumulated values.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/MetricAggregatorTests.cs#L117](tests/Bravellian.Platform.Tests/MetricAggregatorTests.cs#L117)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.MetricAggregatorTests.Aggregator_Should_Track_Last_Value**
+  - Summary: When values are recorded, then the snapshot keeps the last recorded value.
+  - Intent: Verify the aggregator tracks the most recent observation.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/MetricAggregatorTests.cs#L68](tests/Bravellian.Platform.Tests/MetricAggregatorTests.cs#L68)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.MetricAggregatorTests.Aggregator_Should_Track_Min_And_Max**
+  - Summary: When values are recorded, then the snapshot reports the minimum and maximum correctly.
+  - Intent: Ensure min/max tracking reflects the recorded range.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/MetricAggregatorTests.cs#L48](tests/Bravellian.Platform.Tests/MetricAggregatorTests.cs#L48)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.MetricRegistrarTests.IsTagAllowed_WithRegisteredMetricAndAllowedTag_ReturnsTrue**
+  - Summary: When a registered metric allows a tag, then IsTagAllowed returns true.
+  - Intent: Confirm allowed tags are honored for registered metrics.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/MetricRegistrarTests.cs#L108](tests/Bravellian.Platform.Tests/MetricRegistrarTests.cs#L108)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.MetricRegistrarTests.IsTagAllowed_WithRegisteredMetricAndDisallowedTag_ReturnsFalse**
+  - Summary: When a registered metric does not allow a tag, then IsTagAllowed returns false.
+  - Intent: Ensure disallowed tags are rejected even for registered metrics.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/MetricRegistrarTests.cs#L133](tests/Bravellian.Platform.Tests/MetricRegistrarTests.cs#L133)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.MetricRegistrarTests.IsTagAllowed_WithUnregisteredMetric_ReturnsFalse**
+  - Summary: When a metric is not registered, then IsTagAllowed returns false for any tag.
+  - Intent: Verify tag checks fail for unknown metrics.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/MetricRegistrarTests.cs#L158](tests/Bravellian.Platform.Tests/MetricRegistrarTests.cs#L158)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.MetricRegistrarTests.RegisterRange_WithMultipleMetrics_AddsAllToRegistry**
+  - Summary: When multiple metrics are registered in bulk, then all of them appear in the registry.
+  - Intent: Verify RegisterRange registers each provided metric.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/MetricRegistrarTests.cs#L80](tests/Bravellian.Platform.Tests/MetricRegistrarTests.cs#L80)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.MetricRegistrarTests.Register_WithDuplicateMetric_LogsWarning**
+  - Summary: When the same metric is registered twice, then the registry keeps a single entry.
+  - Intent: Ensure duplicate registration does not create duplicate entries.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/MetricRegistrarTests.cs#L54](tests/Bravellian.Platform.Tests/MetricRegistrarTests.cs#L54)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.MetricRegistrarTests.Register_WithValidMetric_AddsToRegistry**
+  - Summary: When a valid metric is registered, then it appears in the registry.
+  - Intent: Verify MetricRegistrar stores new metric registrations.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/MetricRegistrarTests.cs#L28](tests/Bravellian.Platform.Tests/MetricRegistrarTests.cs#L28)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.MetricsSchemaTests.MetricDef_Table_Should_Exist**
+  - Summary: When the metrics schema is deployed, then the MetricDef table exists in the infra schema.
+  - Intent: Verify the schema deployment creates the metric definition table.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/MetricsSchemaTests.cs#L44](tests/Bravellian.Platform.Tests/MetricsSchemaTests.cs#L44)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.MetricsSchemaTests.MetricPointMinute_Table_Should_Exist**
+  - Summary: When the metrics schema is deployed, then the MetricPointMinute table exists in the infra schema.
+  - Intent: Verify the schema deployment creates the minute-bucket metric points table.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/MetricsSchemaTests.cs#L76](tests/Bravellian.Platform.Tests/MetricsSchemaTests.cs#L76)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.MetricsSchemaTests.MetricSeries_Table_Should_Exist**
+  - Summary: When the metrics schema is deployed, then the MetricSeries table exists in the infra schema.
+  - Intent: Verify the schema deployment creates the metric series table.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/MetricsSchemaTests.cs#L60](tests/Bravellian.Platform.Tests/MetricsSchemaTests.cs#L60)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.MetricsSchemaTests.SpUpsertMetricPointMinute_Should_Insert_And_Update**
+  - Summary: When SpUpsertMetricPointMinute is called twice for the same bucket, then the row is updated additively.
+  - Intent: Validate the minute-bucket upsert merges sums, counts, and min/max/last values.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/MetricsSchemaTests.cs#L119](tests/Bravellian.Platform.Tests/MetricsSchemaTests.cs#L119)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.MetricsSchemaTests.SpUpsertSeries_Should_Create_Series**
+  - Summary: When SpUpsertSeries executes with a new series definition, then it returns a positive series id.
+  - Intent: Confirm the series upsert procedure creates or locates a series record.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/MetricsSchemaTests.cs#L92](tests/Bravellian.Platform.Tests/MetricsSchemaTests.cs#L92)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.MultiDatabaseControlPlaneIntegrationTests.ListRegistration_WiresControlPlaneAndDiscoversDatabases**
+  - Summary: When list-based control plane registration is built, then configuration and discovery expose all tenant databases.
+  - Intent: Validate list-based control plane wiring and tenant discovery.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/MultiDatabaseControlPlaneIntegrationTests.cs#L56](tests/Bravellian.Platform.Tests/MultiDatabaseControlPlaneIntegrationTests.cs#L56)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.MultiDatabaseControlPlaneIntegrationTests.OutboxDispatch_Discovery_MultipleTenants**
+  - Summary: When discovery-based multi-tenant outbox dispatch runs, then one message is processed per tenant.
+  - Intent: Validate outbox dispatch for discovery-based registration across multiple tenants.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/MultiDatabaseControlPlaneIntegrationTests.cs#L174](tests/Bravellian.Platform.Tests/MultiDatabaseControlPlaneIntegrationTests.cs#L174)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.MultiDatabaseControlPlaneIntegrationTests.OutboxDispatch_Discovery_SingleTenant**
+  - Summary: When discovery-based outbox dispatch runs for a single tenant, then the message is processed once.
+  - Intent: Confirm outbox dispatch works for a single tenant using discovery-based registration.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/MultiDatabaseControlPlaneIntegrationTests.cs#L212](tests/Bravellian.Platform.Tests/MultiDatabaseControlPlaneIntegrationTests.cs#L212)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.MultiDatabaseControlPlaneIntegrationTests.OutboxDispatch_List_MultipleTenants**
+  - Summary: When list-based multi-tenant outbox dispatch runs, then one message is processed per tenant.
+  - Intent: Ensure outbox dispatch processes tenant messages with list-based registration.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/MultiDatabaseControlPlaneIntegrationTests.cs#L100](tests/Bravellian.Platform.Tests/MultiDatabaseControlPlaneIntegrationTests.cs#L100)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.MultiDatabaseControlPlaneIntegrationTests.OutboxDispatch_List_SingleTenant**
+  - Summary: When list-based outbox dispatch runs for a single tenant, then the message is processed once.
+  - Intent: Confirm outbox dispatch works for a single tenant using list-based registration.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/MultiDatabaseControlPlaneIntegrationTests.cs#L139](tests/Bravellian.Platform.Tests/MultiDatabaseControlPlaneIntegrationTests.cs#L139)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.MultiInboxDispatcherLeaseTests.MultiInboxDispatcher_WithLease_PreventsConcurrentProcessing**
+  - Summary: When two dispatchers share a lease router, then only one processes all inbox messages while the other is blocked.
+  - Intent: Confirm that lease-based coordination prevents concurrent processing across dispatchers.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/MultiInboxDispatcherLeaseTests.cs#L52](tests/Bravellian.Platform.Tests/MultiInboxDispatcherLeaseTests.cs#L52)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.MultiInboxDispatcherLeaseTests.MultiInboxDispatcher_WithoutLease_AllowsProcessing**
+  - Summary: When a dispatcher has no lease router, then it processes all available inbox messages.
+  - Intent: Validate that processing is unrestricted when lease coordination is disabled.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/MultiInboxDispatcherLeaseTests.cs#L172](tests/Bravellian.Platform.Tests/MultiInboxDispatcherLeaseTests.cs#L172)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.MultiOutboxDispatcherLeaseTests.MultiOutboxDispatcher_WithLease_PreventsConcurrentProcessing**
+  - Summary: When two dispatchers run with a shared lease router, then only one processes the queued messages.
+  - Intent: Verify the lease gate prevents concurrent processing of the same outbox.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/MultiOutboxDispatcherLeaseTests.cs#L44](tests/Bravellian.Platform.Tests/MultiOutboxDispatcherLeaseTests.cs#L44)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.MultiOutboxDispatcherLeaseTests.MultiOutboxDispatcher_WithoutLease_AllowsProcessing**
+  - Summary: When the dispatcher runs without a lease router, then it processes all available messages.
+  - Intent: Ensure outbox processing proceeds without lease coordination when disabled.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/MultiOutboxDispatcherLeaseTests.cs#L155](tests/Bravellian.Platform.Tests/MultiOutboxDispatcherLeaseTests.cs#L155)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.MultiOutboxDispatcherTests.MultiOutboxDispatcher_ProcessesMessagesFromMultipleStores**
+  - Summary: When the dispatcher runs across multiple stores, then it processes messages from each store.
+  - Intent: Validate multi-store dispatching with round-robin selection.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/MultiOutboxDispatcherTests.cs#L43](tests/Bravellian.Platform.Tests/MultiOutboxDispatcherTests.cs#L43)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.MultiOutboxDispatcherTests.MultiOutboxDispatcher_WithDrainFirstStrategy_DrainsOneStoreBeforeMoving**
+  - Summary: When using the drain-first strategy, then the dispatcher drains one store before moving on.
+  - Intent: Verify drain-first selection keeps working a store until it is empty.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/MultiOutboxDispatcherTests.cs#L157](tests/Bravellian.Platform.Tests/MultiOutboxDispatcherTests.cs#L157)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ObservabilityRegistrationTests.AddPlatformObservability_AllowsConfiguration**
+  - Summary: When AddPlatformObservability is configured, then the options reflect the provided settings.
+  - Intent: Ensure custom observability options are bound into IOptions.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ObservabilityRegistrationTests.cs#L52](tests/Bravellian.Platform.Tests/ObservabilityRegistrationTests.cs#L52)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ObservabilityRegistrationTests.AddPlatformObservability_RegistersRequiredServices**
+  - Summary: When AddPlatformObservability is called, then watchdog services are registered in DI.
+  - Intent: Verify basic observability wiring registers the watchdog and hosted service.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ObservabilityRegistrationTests.cs#L29](tests/Bravellian.Platform.Tests/ObservabilityRegistrationTests.cs#L29)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ObservabilityRegistrationTests.ObservabilityBuilder_CanAddAlertSink**
+  - Summary: When an alert sink is added via the builder, then it is registered for resolution.
+  - Intent: Verify watchdog alert sinks can be registered through the builder.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ObservabilityRegistrationTests.cs#L80](tests/Bravellian.Platform.Tests/ObservabilityRegistrationTests.cs#L80)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ObservabilityRegistrationTests.ObservabilityBuilder_CanAddHealthChecks**
+  - Summary: When platform health checks are added via the builder, then the health check service is registered.
+  - Intent: Confirm health check registration is wired through observability setup.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ObservabilityRegistrationTests.cs#L127](tests/Bravellian.Platform.Tests/ObservabilityRegistrationTests.cs#L127)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ObservabilityRegistrationTests.ObservabilityBuilder_CanAddHeartbeatSink**
+  - Summary: When a heartbeat sink is added via the builder, then it is registered for resolution.
+  - Intent: Verify heartbeat sinks can be registered through the observability builder.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ObservabilityRegistrationTests.cs#L105](tests/Bravellian.Platform.Tests/ObservabilityRegistrationTests.cs#L105)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ObservabilityRegistrationTests.WatchdogAlertContext_ContainsAllRequiredFields**
+  - Summary: When a WatchdogAlertContext is created, then all supplied fields are preserved.
+  - Intent: Verify alert context carries kind, component, timestamps, and attributes.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ObservabilityRegistrationTests.cs#L150](tests/Bravellian.Platform.Tests/ObservabilityRegistrationTests.cs#L150)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.ObservabilityRegistrationTests.WatchdogSnapshot_ContainsAlerts**
+  - Summary: When a WatchdogSnapshot is created with alerts, then those alerts are retained.
+  - Intent: Ensure watchdog snapshots surface alert payloads and timestamps.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/ObservabilityRegistrationTests.cs#L184](tests/Bravellian.Platform.Tests/ObservabilityRegistrationTests.cs#L184)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OptionsValidationTests.AddSqlFanout_ThrowsForMissingConnectionString**
+  - Summary: When AddSqlFanout is called with a missing connection string, then it throws an OptionsValidationException.
+  - Intent: Ensure fanout registration validates required connection string settings.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OptionsValidationTests.cs#L129](tests/Bravellian.Platform.Tests/OptionsValidationTests.cs#L129)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OptionsValidationTests.AddSqlFanout_ThrowsForMissingSchemaName**
+  - Summary: When AddSqlFanout is called with a missing schema name, then it throws an OptionsValidationException.
+  - Intent: Ensure fanout registration requires a non-empty schema name.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OptionsValidationTests.cs#L145](tests/Bravellian.Platform.Tests/OptionsValidationTests.cs#L145)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OptionsValidationTests.AddSqlInbox_ThrowsForMissingConnectionString**
+  - Summary: When AddSqlInbox is called with a missing connection string, then it throws an OptionsValidationException.
+  - Intent: Ensure inbox registration validates required connection string settings.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OptionsValidationTests.cs#L79](tests/Bravellian.Platform.Tests/OptionsValidationTests.cs#L79)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OptionsValidationTests.AddSqlInbox_ThrowsForMissingSchemaName**
+  - Summary: When AddSqlInbox is called with a missing schema name, then it throws an OptionsValidationException.
+  - Intent: Ensure inbox registration requires a non-empty schema name.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OptionsValidationTests.cs#L95](tests/Bravellian.Platform.Tests/OptionsValidationTests.cs#L95)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OptionsValidationTests.AddSqlInbox_ThrowsForZeroCleanupInterval**
+  - Summary: When AddSqlInbox is called with cleanup enabled and a zero interval, then it throws an OptionsValidationException.
+  - Intent: Validate inbox cleanup interval must be greater than zero when enabled.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OptionsValidationTests.cs#L43](tests/Bravellian.Platform.Tests/OptionsValidationTests.cs#L43)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OptionsValidationTests.AddSqlOutbox_ThrowsForMissingConnectionString**
+  - Summary: When AddSqlOutbox is called with a missing connection string, then it throws an OptionsValidationException.
+  - Intent: Ensure outbox registration validates required connection string settings.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OptionsValidationTests.cs#L27](tests/Bravellian.Platform.Tests/OptionsValidationTests.cs#L27)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OptionsValidationTests.AddSqlOutbox_ThrowsForMissingSchemaName**
+  - Summary: When AddSqlOutbox is called with a missing schema name, then it throws an OptionsValidationException.
+  - Intent: Ensure outbox registration requires a non-empty schema name.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OptionsValidationTests.cs#L112](tests/Bravellian.Platform.Tests/OptionsValidationTests.cs#L112)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OptionsValidationTests.AddSqlOutbox_ThrowsForZeroCleanupInterval**
+  - Summary: When AddSqlOutbox is called with cleanup enabled and a zero interval, then it throws an OptionsValidationException.
+  - Intent: Validate outbox cleanup interval must be greater than zero when enabled.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OptionsValidationTests.cs#L61](tests/Bravellian.Platform.Tests/OptionsValidationTests.cs#L61)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxCleanupTests.CleanupService_GracefullyHandles_MissingStoredProcedure**
+  - Summary: When the cleanup stored procedure is missing, then the cleanup service runs without crashing.
+  - Intent: Ensure the outbox cleanup service tolerates missing schema deployment.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxCleanupTests.cs#L221](tests/Bravellian.Platform.Tests/OutboxCleanupTests.cs#L221)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxCleanupTests.Cleanup_DeletesOldProcessedMessages**
+  - Summary: When cleanup runs with a retention window, then only processed outbox rows older than the window are deleted.
+  - Intent: Verify the outbox cleanup procedure removes stale processed rows.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxCleanupTests.cs#L45](tests/Bravellian.Platform.Tests/OutboxCleanupTests.cs#L45)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxCleanupTests.Cleanup_RespectsRetentionPeriod**
+  - Summary: When cleanup runs with a 10-day retention period, then only rows older than 10 days are deleted.
+  - Intent: Confirm retention period filtering for outbox cleanup.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxCleanupTests.cs#L163](tests/Bravellian.Platform.Tests/OutboxCleanupTests.cs#L163)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxCleanupTests.Cleanup_WithNoOldMessages_DeletesNothing**
+  - Summary: When cleanup runs and no processed rows are older than retention, then nothing is deleted.
+  - Intent: Ensure cleanup is a no-op when no rows qualify for deletion.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxCleanupTests.cs#L122](tests/Bravellian.Platform.Tests/OutboxCleanupTests.cs#L122)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxExtensionsTests.EnqueueJoinWaitAsync_WithAllParameters_EnqueuesCorrectMessage**
+  - Summary: When EnqueueJoinWaitAsync is called with all parameters, then the join.wait payload persists those values.
+  - Intent: Verify join wait enqueue serializes all provided topics, payloads, and flags.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxExtensionsTests.cs#L66](tests/Bravellian.Platform.Tests/OutboxExtensionsTests.cs#L66)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxExtensionsTests.EnqueueJoinWaitAsync_WithFailIfAnyStepFailedFalse_EnqueuesCorrectMessage**
+  - Summary: When failIfAnyStepFailed is false, then the payload preserves the false flag and provided completion topic.
+  - Intent: Ensure the fail-if-any-step flag is stored as provided.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxExtensionsTests.cs#L143](tests/Bravellian.Platform.Tests/OutboxExtensionsTests.cs#L143)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxExtensionsTests.EnqueueJoinWaitAsync_WithMinimalParameters_EnqueuesCorrectMessage**
+  - Summary: When EnqueueJoinWaitAsync is called with only a join id, then defaults are applied in the payload.
+  - Intent: Confirm minimal arguments still produce a valid join.wait payload.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxExtensionsTests.cs#L109](tests/Bravellian.Platform.Tests/OutboxExtensionsTests.cs#L109)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxHandlerTests.MultiOutboxDispatcher_DefaultBackoff_ExponentialWithJitter**
+  - Summary: When DefaultBackoff is computed for increasing attempts, then delays grow with jitter and are capped.
+  - Intent: Verify the default backoff function uses exponential growth with jitter bounds.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxHandlerTests.cs#L398](tests/Bravellian.Platform.Tests/OutboxHandlerTests.cs#L398)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxHandlerTests.MultiOutboxDispatcher_HandlerThrows_ReschedulesWithBackoff**
+  - Summary: When a handler throws, then the dispatcher reschedules the message with a backoff delay.
+  - Intent: Verify failing handlers trigger reschedule with an error message.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxHandlerTests.cs#L177](tests/Bravellian.Platform.Tests/OutboxHandlerTests.cs#L177)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxHandlerTests.MultiOutboxDispatcher_LogsAtCorrectLevels**
+  - Summary: When processing both a handled and an unhandled message, then logs are emitted at expected levels.
+  - Intent: Validate dispatcher logging includes information, debug, and warning entries.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxHandlerTests.cs#L329](tests/Bravellian.Platform.Tests/OutboxHandlerTests.cs#L329)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxHandlerTests.MultiOutboxDispatcher_LogsCorrectly**
+  - Summary: When a message is processed successfully, then the dispatcher completes and dispatches it.
+  - Intent: Confirm the successful path results in handler execution and dispatch.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxHandlerTests.cs#L255](tests/Bravellian.Platform.Tests/OutboxHandlerTests.cs#L255)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxHandlerTests.MultiOutboxDispatcher_LogsErrors_WhenHandlerFails**
+  - Summary: When a handler fails, then the dispatcher records an error and reschedules the message.
+  - Intent: Ensure handler exceptions result in reschedule entries with errors.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxHandlerTests.cs#L292](tests/Bravellian.Platform.Tests/OutboxHandlerTests.cs#L292)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxHandlerTests.MultiOutboxDispatcher_NoHandler_MarksAsFailed**
+  - Summary: When no handler exists for a message topic, then the dispatcher marks the message as failed.
+  - Intent: Ensure unknown topics fail fast instead of being rescheduled.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxHandlerTests.cs#L144](tests/Bravellian.Platform.Tests/OutboxHandlerTests.cs#L144)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxHandlerTests.MultiOutboxDispatcher_ProcessSingleMessage_Success**
+  - Summary: When a single outbox message has a matching handler, then it is processed and dispatched.
+  - Intent: Verify successful message handling marks the item as dispatched.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxHandlerTests.cs#L109](tests/Bravellian.Platform.Tests/OutboxHandlerTests.cs#L109)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxHandlerTests.MultiOutboxDispatcher_WithPoisonMessage_FailsWhenMaxAttemptsReached**
+  - Summary: When a message hits max attempts, then the dispatcher fails it instead of rescheduling.
+  - Intent: Ensure poison messages are failed when retries are exhausted.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxHandlerTests.cs#L216](tests/Bravellian.Platform.Tests/OutboxHandlerTests.cs#L216)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxHandlerTests.OutboxHandlerResolver_CaseInsensitive**
+  - Summary: When handler topics are looked up with different casing, then the resolver still matches them.
+  - Intent: Ensure topic matching is case-insensitive.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxHandlerTests.cs#L90](tests/Bravellian.Platform.Tests/OutboxHandlerTests.cs#L90)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxHandlerTests.OutboxHandlerResolver_WithHandlers_ResolvesCorrectly**
+  - Summary: When the resolver is given handlers, then it resolves matching topics and rejects unknown ones.
+  - Intent: Validate handler lookup works for registered topics.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxHandlerTests.cs#L63](tests/Bravellian.Platform.Tests/OutboxHandlerTests.cs#L63)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxHandlerTests.ServiceCollection_AddOutboxHandler_Factory_RegistersHandler**
+  - Summary: When AddOutboxHandler is called with a factory, then it registers a singleton IOutboxHandler factory.
+  - Intent: Confirm DI registration for factory-based handler creation.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxHandlerTests.cs#L449](tests/Bravellian.Platform.Tests/OutboxHandlerTests.cs#L449)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxHandlerTests.ServiceCollection_AddOutboxHandler_RegistersHandler**
+  - Summary: (missing summary)
+  - Intent: (missing intent)
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxHandlerTests.cs#L428](tests/Bravellian.Platform.Tests/OutboxHandlerTests.cs#L428)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxJoinTests.AttachMessageToJoinAsync_CalledTwice_IsIdempotent**
+  - Summary: When attaching the same message twice, then only one join-member row exists.
+  - Intent: Ensure attaching a message is idempotent.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxJoinTests.cs#L192](tests/Bravellian.Platform.Tests/OutboxJoinTests.cs#L192)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxJoinTests.AttachMessageToJoinAsync_WithValidIds_CreatesAssociation**
+  - Summary: When attaching an outbox message to a join, then a join-member row is created.
+  - Intent: Verify join-member mappings are persisted.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxJoinTests.cs#L160](tests/Bravellian.Platform.Tests/OutboxJoinTests.cs#L160)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxJoinTests.CompleteJoinWorkflow_WithAllStepsCompleted_WorksCorrectly**
+  - Summary: When all steps complete and status is set to Completed, then the join shows all completed and no failures.
+  - Intent: Verify end-to-end completion updates counts and status.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxJoinTests.cs#L356](tests/Bravellian.Platform.Tests/OutboxJoinTests.cs#L356)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxJoinTests.CompleteJoinWorkflow_WithSomeStepsFailed_WorksCorrectly**
+  - Summary: When some steps fail and status is set to Failed, then the join records completed and failed counts.
+  - Intent: Verify mixed completion and failure tracking.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxJoinTests.cs#L404](tests/Bravellian.Platform.Tests/OutboxJoinTests.cs#L404)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxJoinTests.CreateJoinAsync_WithValidParameters_CreatesJoin**
+  - Summary: When creating a join with tenant, expected steps, and metadata, then the join is pending with zero counts.
+  - Intent: Verify CreateJoinAsync persists default join state.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxJoinTests.cs#L83](tests/Bravellian.Platform.Tests/OutboxJoinTests.cs#L83)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxJoinTests.GetJoinAsync_WithExistingJoin_ReturnsJoin**
+  - Summary: When a join exists, then GetJoinAsync returns it with the expected steps.
+  - Intent: Ensure joins can be retrieved by id.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxJoinTests.cs#L116](tests/Bravellian.Platform.Tests/OutboxJoinTests.cs#L116)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxJoinTests.GetJoinAsync_WithNonExistentJoin_ReturnsNull**
+  - Summary: When a join id is unknown, then GetJoinAsync returns null.
+  - Intent: Confirm missing joins return no result.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxJoinTests.cs#L141](tests/Bravellian.Platform.Tests/OutboxJoinTests.cs#L141)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxJoinTests.GetJoinMessagesAsync_WithMultipleMessages_ReturnsAllMessageIds**
+  - Summary: When multiple messages are attached to a join, then GetJoinMessagesAsync returns all message ids.
+  - Intent: Ensure join-member retrieval returns every attached message.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxJoinTests.cs#L322](tests/Bravellian.Platform.Tests/OutboxJoinTests.cs#L322)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxJoinTests.IncrementCompletedAsync_CalledTwiceForSameMessage_IsIdempotent**
+  - Summary: When IncrementCompletedAsync is called twice for the same message, then the completed count increases only once.
+  - Intent: Ensure completed increments are idempotent per message.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxJoinTests.cs#L445](tests/Bravellian.Platform.Tests/OutboxJoinTests.cs#L445)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxJoinTests.IncrementCompletedAsync_WhenTotalWouldExceedExpected_DoesNotOverCount**
+  - Summary: When completed increments exceed expected steps, then the completed count stops at the expected total.
+  - Intent: Ensure completed steps are capped by expected steps.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxJoinTests.cs#L501](tests/Bravellian.Platform.Tests/OutboxJoinTests.cs#L501)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxJoinTests.IncrementCompletedAsync_WithValidMessage_IncrementsCount**
+  - Summary: When a joined message is marked completed, then CompletedSteps increments and FailedSteps stays zero.
+  - Intent: Verify completed step increments update the join counters.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxJoinTests.cs#L229](tests/Bravellian.Platform.Tests/OutboxJoinTests.cs#L229)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxJoinTests.IncrementFailedAsync_CalledTwiceForSameMessage_IsIdempotent**
+  - Summary: When IncrementFailedAsync is called twice for the same message, then the failed count increases only once.
+  - Intent: Ensure failed increments are idempotent per message.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxJoinTests.cs#L473](tests/Bravellian.Platform.Tests/OutboxJoinTests.cs#L473)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxJoinTests.IncrementFailedAsync_WithValidMessage_IncrementsCount**
+  - Summary: When a joined message is marked failed, then FailedSteps increments and CompletedSteps stays zero.
+  - Intent: Verify failed step increments update the join counters.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxJoinTests.cs#L261](tests/Bravellian.Platform.Tests/OutboxJoinTests.cs#L261)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxJoinTests.OutboxAck_AutomaticallyReportsJoinCompletion**
+  - Summary: When outbox messages are acknowledged, then join completed counts increment per message.
+  - Intent: Verify outbox ack integration updates join progress.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxJoinTests.cs#L538](tests/Bravellian.Platform.Tests/OutboxJoinTests.cs#L538)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxJoinTests.OutboxAck_MultipleAcksForSameMessage_IsIdempotent**
+  - Summary: When the same message is acknowledged twice, then the join completed count does not increment again.
+  - Intent: Ensure duplicate acks do not double-count join completion.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxJoinTests.cs#L620](tests/Bravellian.Platform.Tests/OutboxJoinTests.cs#L620)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxJoinTests.OutboxFail_AutomaticallyReportsJoinFailure**
+  - Summary: When an outbox message is failed, then join failure count increments alongside completed work.
+  - Intent: Verify outbox failure integration updates join failure counts.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxJoinTests.cs#L582](tests/Bravellian.Platform.Tests/OutboxJoinTests.cs#L582)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxJoinTests.UpdateStatusAsync_WithValidStatus_UpdatesJoinStatus**
+  - Summary: When updating join status, then the stored join status changes to the new value.
+  - Intent: Verify UpdateStatusAsync persists status changes.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxJoinTests.cs#L293](tests/Bravellian.Platform.Tests/OutboxJoinTests.cs#L293)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxMessageTests.OutboxMessage_IsPublicSealedRecord**
+  - Summary: When OutboxMessage is inspected, then it is a public sealed record-like class.
+  - Intent: Verify the OutboxMessage type characteristics (public, sealed, record semantics).
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxMessageTests.cs#L86](tests/Bravellian.Platform.Tests/OutboxMessageTests.cs#L86)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxMessageTests.OutboxMessage_IsRecord_WithCorrectProperties**
+  - Summary: When the OutboxMessage type is inspected, then it exposes the expected core properties.
+  - Intent: Confirm the record exposes required outbox fields with correct types.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxMessageTests.cs#L26](tests/Bravellian.Platform.Tests/OutboxMessageTests.cs#L26)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxMessageTests.OutboxMessage_Properties_HaveExpectedTypes**
+  - Summary: When OutboxMessage properties are reflected, then each property has the expected CLR type.
+  - Intent: Validate type metadata for outbox message properties.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxMessageTests.cs#L62](tests/Bravellian.Platform.Tests/OutboxMessageTests.cs#L62)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxRouterIntegrationTests.DynamicDiscovery_RoutesToCorrectDatabase**
+  - Summary: When dynamic discovery loads tenants, then the router resolves distinct outboxes per tenant.
+  - Intent: Validate dynamic discovery works with outbox routing.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxRouterIntegrationTests.cs#L91](tests/Bravellian.Platform.Tests/OutboxRouterIntegrationTests.cs#L91)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxRouterIntegrationTests.MultiTenantScenario_CreateMessagesInDifferentDatabases**
+  - Summary: When tenant keys are routed, then each key resolves to a distinct outbox instance.
+  - Intent: Demonstrate multi-tenant routing for configured outbox stores.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxRouterIntegrationTests.cs#L46](tests/Bravellian.Platform.Tests/OutboxRouterIntegrationTests.cs#L46)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxRouterIntegrationTests.TypicalApplicationUsage_DemonstratesPattern**
+  - Summary: When a typical application requests outboxes by tenant, then it receives distinct tenant outboxes.
+  - Intent: Illustrate the routing pattern used by application services.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxRouterIntegrationTests.cs#L139](tests/Bravellian.Platform.Tests/OutboxRouterIntegrationTests.cs#L139)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxRouterTests.DynamicProvider_AfterRefresh_NewOutboxIsAvailable**
+  - Summary: When discovery is refreshed after adding a tenant, then the new outbox becomes available.
+  - Intent: Ensure provider refresh picks up newly discovered databases.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxRouterTests.cs#L241](tests/Bravellian.Platform.Tests/OutboxRouterTests.cs#L241)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxRouterTests.DynamicProvider_GetOutboxByKey_ReturnsCorrectOutbox**
+  - Summary: When dynamic discovery is used, then routing returns distinct outboxes per discovered tenant.
+  - Intent: Verify DynamicOutboxStoreProvider works with the router after discovery.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxRouterTests.cs#L190](tests/Bravellian.Platform.Tests/OutboxRouterTests.cs#L190)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxRouterTests.GetOutbox_GuidKeyConvertsToString_ReturnsOutbox**
+  - Summary: When a Guid key does not match any configured identifier, then GetOutbox throws with the key in the message.
+  - Intent: Verify Guid-based lookup reports missing identifiers clearly.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxRouterTests.cs#L321](tests/Bravellian.Platform.Tests/OutboxRouterTests.cs#L321)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxRouterTests.GetOutbox_MultipleCallsForSameKey_ReturnsSameInstance**
+  - Summary: When GetOutbox is called multiple times for the same key, then it returns the same instance.
+  - Intent: Confirm outbox instances are cached per key.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxRouterTests.cs#L289](tests/Bravellian.Platform.Tests/OutboxRouterTests.cs#L289)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxRouterTests.GetOutbox_WithEmptyKey_ThrowsArgumentException**
+  - Summary: When an empty key is provided, then GetOutbox throws an ArgumentException.
+  - Intent: Validate input guarding for outbox routing.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxRouterTests.cs#L164](tests/Bravellian.Platform.Tests/OutboxRouterTests.cs#L164)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxRouterTests.GetOutbox_WithGuidKey_ReturnsOutbox**
+  - Summary: When a Guid tenant key is requested, then the router resolves the matching outbox.
+  - Intent: Validate Guid overload routes by converting to string identifier.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxRouterTests.cs#L81](tests/Bravellian.Platform.Tests/OutboxRouterTests.cs#L81)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxRouterTests.GetOutbox_WithNonExistentKey_ThrowsInvalidOperationException**
+  - Summary: When an unknown tenant key is requested, then the router throws an InvalidOperationException.
+  - Intent: Ensure the router fails for missing outbox keys.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxRouterTests.cs#L111](tests/Bravellian.Platform.Tests/OutboxRouterTests.cs#L111)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxRouterTests.GetOutbox_WithNullKey_ThrowsArgumentException**
+  - Summary: When a null key is provided, then GetOutbox throws an ArgumentException.
+  - Intent: Validate input guarding for outbox routing.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxRouterTests.cs#L138](tests/Bravellian.Platform.Tests/OutboxRouterTests.cs#L138)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxRouterTests.GetOutbox_WithStringKey_ReturnsOutbox**
+  - Summary: When configured tenant keys are requested, then distinct outbox instances are returned.
+  - Intent: Verify routing by string key across multiple configured outbox stores.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxRouterTests.cs#L43](tests/Bravellian.Platform.Tests/OutboxRouterTests.cs#L43)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxWorkQueueTests.ConcurrentClaim_MultipleWorkers_NoOverlap**
+  - Summary: When two workers claim concurrently, then the claimed sets do not overlap.
+  - Intent: Validate exclusive claiming across concurrent workers.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxWorkQueueTests.cs#L175](tests/Bravellian.Platform.Tests/OutboxWorkQueueTests.cs#L175)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxWorkQueueTests.InvalidOwnerOperations_DoNotAffectItems**
+  - Summary: When a non-owner tries to acknowledge items, then the items remain InProgress.
+  - Intent: Ensure owner token enforcement prevents unauthorized updates.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxWorkQueueTests.cs#L203](tests/Bravellian.Platform.Tests/OutboxWorkQueueTests.cs#L203)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxWorkQueueTests.OutboxAbandon_WithValidOwner_ReturnsToReady**
+  - Summary: When AbandonAsync is called by the owner, then outbox items return to Ready status.
+  - Intent: Ensure abandoned items are made available for reprocessing.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxWorkQueueTests.cs#L115](tests/Bravellian.Platform.Tests/OutboxWorkQueueTests.cs#L115)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxWorkQueueTests.OutboxAck_WithValidOwner_MarksDoneAndProcessed**
+  - Summary: When AckAsync is called by the owner, then outbox items are marked Done and processed.
+  - Intent: Verify successful acknowledgements update outbox status and processed flag.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxWorkQueueTests.cs#L95](tests/Bravellian.Platform.Tests/OutboxWorkQueueTests.cs#L95)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxWorkQueueTests.OutboxClaim_WithBatchSize_RespectsLimit**
+  - Summary: When ClaimAsync is called with a batch size, then it limits the number of claimed ids.
+  - Intent: Ensure batch size is respected in outbox claims.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxWorkQueueTests.cs#L77](tests/Bravellian.Platform.Tests/OutboxWorkQueueTests.cs#L77)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxWorkQueueTests.OutboxClaim_WithReadyItems_ReturnsClaimedIds**
+  - Summary: When ready outbox items exist, then ClaimAsync returns their ids.
+  - Intent: Verify work-queue claims return the ready items.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxWorkQueueTests.cs#L57](tests/Bravellian.Platform.Tests/OutboxWorkQueueTests.cs#L57)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxWorkQueueTests.OutboxFail_WithValidOwner_MarksAsFailed**
+  - Summary: When FailAsync is called by the owner, then outbox items are marked Failed.
+  - Intent: Verify failure paths update status correctly.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxWorkQueueTests.cs#L134](tests/Bravellian.Platform.Tests/OutboxWorkQueueTests.cs#L134)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxWorkQueueTests.OutboxReapExpired_WithExpiredItems_ReturnsToReady**
+  - Summary: When leases expire, then ReapExpiredAsync returns items to Ready status.
+  - Intent: Ensure expired claims are reaped and made available again.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxWorkQueueTests.cs#L153](tests/Bravellian.Platform.Tests/OutboxWorkQueueTests.cs#L153)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxWorkerTests.Manual_AbandonOperation_Works**
+  - Summary: When AbandonAsync is called manually, then claimed items return to Ready.
+  - Intent: Ensure manual abandon resets outbox item state.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxWorkerTests.cs#L171](tests/Bravellian.Platform.Tests/OutboxWorkerTests.cs#L171)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxWorkerTests.WorkQueue_ConcurrentClaims_NoOverlap**
+  - Summary: When multiple workers claim concurrently, then no outbox item is claimed more than once.
+  - Intent: Validate concurrency safety of the claim operation.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxWorkerTests.cs#L308](tests/Bravellian.Platform.Tests/OutboxWorkerTests.cs#L308)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxWorkerTests.WorkQueue_EmptyIdLists_NoErrors**
+  - Summary: When AckAsync, AbandonAsync, or FailAsync are called with empty id lists, then they complete without error.
+  - Intent: Verify empty batch operations are safe no-ops.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxWorkerTests.cs#L291](tests/Bravellian.Platform.Tests/OutboxWorkerTests.cs#L291)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxWorkerTests.WorkQueue_IdempotentOperations_NoErrors**
+  - Summary: When AckAsync is called multiple times for the same items, then no errors occur and status remains Done.
+  - Intent: Verify acknowledgements are idempotent.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxWorkerTests.cs#L250](tests/Bravellian.Platform.Tests/OutboxWorkerTests.cs#L250)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxWorkerTests.WorkQueue_LeaseExpiration_AllowsReclaim**
+  - Summary: When a claim lease expires and is reaped, then another owner can reclaim the item.
+  - Intent: Verify lease expiration allows subsequent claims.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxWorkerTests.cs#L192](tests/Bravellian.Platform.Tests/OutboxWorkerTests.cs#L192)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxWorkerTests.WorkQueue_RestartUsesNewOwnerTokenAfterReap**
+  - Summary: When a lease is reaped and re-claimed, then the new owner token is persisted.
+  - Intent: Ensure owner token updates after lease expiration and re-claim.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxWorkerTests.cs#L222](tests/Bravellian.Platform.Tests/OutboxWorkerTests.cs#L222)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxWorkerTests.WorkQueue_UnauthorizedOwner_CannotModify**
+  - Summary: When a non-owner tries to acknowledge items, then the items remain InProgress.
+  - Intent: Ensure owner token enforcement prevents unauthorized modifications.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxWorkerTests.cs#L271](tests/Bravellian.Platform.Tests/OutboxWorkerTests.cs#L271)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxWorkerTests.Worker_ClaimsItemsCorrectly**
+  - Summary: When items are claimed directly, then they enter InProgress and the claims match existing ids.
+  - Intent: Validate ClaimAsync returns known items and updates status.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxWorkerTests.cs#L150](tests/Bravellian.Platform.Tests/OutboxWorkerTests.cs#L150)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxWorkerTests.Worker_ProcessesClaimedItems_AndAcknowledgesThem**
+  - Summary: When the worker processes claimed items, then it acknowledges them and they become Done.
+  - Intent: Validate the outbox worker completes and acknowledges messages.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxWorkerTests.cs#L98](tests/Bravellian.Platform.Tests/OutboxWorkerTests.cs#L98)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxWorkerTests.Worker_RespectsCancellationToken**
+  - Summary: When cancellation is requested, then the worker stops promptly.
+  - Intent: Ensure the outbox worker cooperates with cancellation tokens.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxWorkerTests.cs#L336](tests/Bravellian.Platform.Tests/OutboxWorkerTests.cs#L336)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.OutboxWorkerTests.Worker_WithProcessingFailure_AbandonsItems**
+  - Summary: When the worker fails to process items, then it abandons them back to Ready.
+  - Intent: Ensure failures result in abandon operations rather than acknowledgements.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/OutboxWorkerTests.cs#L124](tests/Bravellian.Platform.Tests/OutboxWorkerTests.cs#L124)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.PlatformFeatureAdapterTests.AddPlatformFanout_RegistersPlatformProvider**
+  - Summary: When AddPlatformFanout is registered, then the fanout repository provider resolves as the platform implementation.
+  - Intent: Confirm platform fanout registration binds the provider to the platform adapter.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/PlatformFeatureAdapterTests.cs#L78](tests/Bravellian.Platform.Tests/PlatformFeatureAdapterTests.cs#L78)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.PlatformFeatureAdapterTests.AddPlatformInbox_RegistersPlatformProvider**
+  - Summary: When AddPlatformInbox is registered, then the inbox work store provider resolves as the platform implementation.
+  - Intent: Confirm platform inbox registration binds the provider to the platform adapter.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/PlatformFeatureAdapterTests.cs#L44](tests/Bravellian.Platform.Tests/PlatformFeatureAdapterTests.cs#L44)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.PlatformFeatureAdapterTests.AddPlatformLeases_RegistersPlatformProvider**
+  - Summary: When AddPlatformLeases is registered, then the lease factory provider resolves as the platform implementation.
+  - Intent: Confirm platform lease registration binds the provider to the platform adapter.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/PlatformFeatureAdapterTests.cs#L95](tests/Bravellian.Platform.Tests/PlatformFeatureAdapterTests.cs#L95)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.PlatformFeatureAdapterTests.AddPlatformOutbox_RegistersPlatformProvider**
+  - Summary: When AddPlatformOutbox is registered, then the outbox store provider resolves as the platform implementation.
+  - Intent: Confirm platform outbox registration binds the provider to the platform adapter.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/PlatformFeatureAdapterTests.cs#L27](tests/Bravellian.Platform.Tests/PlatformFeatureAdapterTests.cs#L27)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.PlatformFeatureAdapterTests.AddPlatformScheduler_RegistersPlatformProvider**
+  - Summary: When AddPlatformScheduler is registered, then the scheduler store provider resolves as the platform implementation.
+  - Intent: Confirm platform scheduler registration binds the provider to the platform adapter.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/PlatformFeatureAdapterTests.cs#L61](tests/Bravellian.Platform.Tests/PlatformFeatureAdapterTests.cs#L61)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.PlatformLifecycleServiceTests.StartAsync_WithDynamicDiscoveryAndControlPlane_AndNoDatabases_DoesNotThrowException**
+  - Summary: When dynamic discovery uses a control plane and no app databases exist yet, then StartAsync fails for control plane validation rather than missing databases.
+  - Intent: Ensure control plane validation is reported distinctly from discovery emptiness.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/PlatformLifecycleServiceTests.cs#L104](tests/Bravellian.Platform.Tests/PlatformLifecycleServiceTests.cs#L104)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.PlatformLifecycleServiceTests.StartAsync_WithDynamicDiscovery_AndNoDatabases_DoesNotThrowException**
+  - Summary: When dynamic discovery is enabled and startup does not require databases, then StartAsync completes without throwing.
+  - Intent: Allow zero databases at startup for dynamic discovery.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/PlatformLifecycleServiceTests.cs#L37](tests/Bravellian.Platform.Tests/PlatformLifecycleServiceTests.cs#L37)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.PlatformLifecycleServiceTests.StartAsync_WithDynamicDiscovery_AndOneDatabase_Succeeds**
+  - Summary: When dynamic discovery returns at least one database, then StartAsync completes without throwing.
+  - Intent: Allow startup with dynamic discovery when a database is discoverable.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/PlatformLifecycleServiceTests.cs#L143](tests/Bravellian.Platform.Tests/PlatformLifecycleServiceTests.cs#L143)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.PlatformLifecycleServiceTests.StartAsync_WithListBasedDiscovery_AndNoDatabases_ThrowsException**
+  - Summary: When list-based discovery requires databases but none are found, then StartAsync throws with a missing database message.
+  - Intent: Enforce startup database requirements for list-based discovery.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/PlatformLifecycleServiceTests.cs#L69](tests/Bravellian.Platform.Tests/PlatformLifecycleServiceTests.cs#L69)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.PlatformLifecycleServiceTests.StartAsync_WithListBasedDiscovery_AndOneDatabase_Succeeds**
+  - Summary: When list-based discovery provides at least one database, then StartAsync completes without throwing.
+  - Intent: Allow startup with list-based discovery when a database is configured.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/PlatformLifecycleServiceTests.cs#L183](tests/Bravellian.Platform.Tests/PlatformLifecycleServiceTests.cs#L183)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.PlatformMetricCatalogTests.All_ContainsDlqMetrics**
+  - Summary: When the platform metric catalog is enumerated, then it contains the expected DLQ metrics.
+  - Intent: Verify that dead-letter queue metrics are registered in the catalog.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/PlatformMetricCatalogTests.cs#L108](tests/Bravellian.Platform.Tests/PlatformMetricCatalogTests.cs#L108)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.PlatformMetricCatalogTests.All_ContainsInboxMetrics**
+  - Summary: When the platform metric catalog is enumerated, then it contains the expected inbox metrics.
+  - Intent: Verify that inbox metrics are registered in the catalog.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/PlatformMetricCatalogTests.cs#L83](tests/Bravellian.Platform.Tests/PlatformMetricCatalogTests.cs#L83)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.PlatformMetricCatalogTests.All_ContainsOutboxMetrics**
+  - Summary: When the platform metric catalog is enumerated, then it contains the expected outbox metrics.
+  - Intent: Verify that outbox metrics are registered in the catalog.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/PlatformMetricCatalogTests.cs#L58](tests/Bravellian.Platform.Tests/PlatformMetricCatalogTests.cs#L58)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.PlatformMetricCatalogTests.All_CounterMetricsHaveCountUnit**
+  - Summary: When counter metrics are selected from the catalog, then their units are count except for latency or age metrics.
+  - Intent: Validate unit conventions for counter metrics.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/PlatformMetricCatalogTests.cs#L162](tests/Bravellian.Platform.Tests/PlatformMetricCatalogTests.cs#L162)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.PlatformMetricCatalogTests.All_HistogramMetricsHaveTimeUnits**
+  - Summary: When histogram metrics are selected from the catalog, then their units are time-based.
+  - Intent: Ensure histogram metrics report timing in milliseconds or seconds.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/PlatformMetricCatalogTests.cs#L193](tests/Bravellian.Platform.Tests/PlatformMetricCatalogTests.cs#L193)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.PlatformMetricCatalogTests.All_MetricsHaveValidProperties**
+  - Summary: When the platform metric catalog is enumerated, then each metric has required metadata populated.
+  - Intent: Ensure metric definitions have valid names, units, descriptions, tags, and aggregation kinds.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/PlatformMetricCatalogTests.cs#L131](tests/Bravellian.Platform.Tests/PlatformMetricCatalogTests.cs#L131)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.PlatformMetricCatalogTests.All_ReturnsNonEmptyList**
+  - Summary: When the platform metric catalog is enumerated, then it returns a non-empty list.
+  - Intent: Ensure the catalog exposes at least one metric.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/PlatformMetricCatalogTests.cs#L35](tests/Bravellian.Platform.Tests/PlatformMetricCatalogTests.cs#L35)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.PlatformRegistrationTests.AddPlatformMultiDatabaseWithControlPlaneAndDiscovery_ThrowsWhenDirectInboxStoreRegistered**
+  - Summary: When control-plane discovery registration finds a direct IInboxWorkStore registration, then it throws an InvalidOperationException.
+  - Intent: Prevent mixing direct inbox store registrations with platform discovery mode.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/PlatformRegistrationTests.cs#L248](tests/Bravellian.Platform.Tests/PlatformRegistrationTests.cs#L248)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.PlatformRegistrationTests.AddPlatformMultiDatabaseWithControlPlaneAndDiscovery_ThrowsWhenDirectOutboxRegistered**
+  - Summary: When control-plane discovery registration finds a direct IOutbox registration, then it throws an InvalidOperationException.
+  - Intent: Ensure direct outbox services are not registered alongside platform discovery.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/PlatformRegistrationTests.cs#L272](tests/Bravellian.Platform.Tests/PlatformRegistrationTests.cs#L272)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.PlatformRegistrationTests.AddPlatformMultiDatabaseWithControlPlaneAndDiscovery_ThrowsWhenDirectOutboxStoreRegistered**
+  - Summary: When control-plane discovery registration finds a direct IOutboxStore registration, then it throws an InvalidOperationException.
+  - Intent: Prevent mixing direct outbox store registrations with platform discovery mode.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/PlatformRegistrationTests.cs#L224](tests/Bravellian.Platform.Tests/PlatformRegistrationTests.cs#L224)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.PlatformRegistrationTests.AddPlatformMultiDatabaseWithDiscovery_RegistersRequiredServices**
+  - Summary: When AddPlatformMultiDatabaseWithDiscovery is used, then configuration is set for discovery-based multi-database mode.
+  - Intent: Verify discovery-based registration flips the UsesDiscovery flag.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/PlatformRegistrationTests.cs#L154](tests/Bravellian.Platform.Tests/PlatformRegistrationTests.cs#L154)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.PlatformRegistrationTests.AddPlatformMultiDatabaseWithList_CalledTwice_ThrowsException**
+  - Summary: When AddPlatformMultiDatabaseWithList is called twice, then it throws an InvalidOperationException.
+  - Intent: Prevent duplicate multi-database list registration.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/PlatformRegistrationTests.cs#L64](tests/Bravellian.Platform.Tests/PlatformRegistrationTests.cs#L64)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.PlatformRegistrationTests.AddPlatformMultiDatabaseWithList_DuplicateNames_ThrowsException**
+  - Summary: When AddPlatformMultiDatabaseWithList receives duplicate database names, then it throws an ArgumentException.
+  - Intent: Ensure database identifiers are unique in list-based registration.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/PlatformRegistrationTests.cs#L134](tests/Bravellian.Platform.Tests/PlatformRegistrationTests.cs#L134)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.PlatformRegistrationTests.AddPlatformMultiDatabaseWithList_EmptyList_ThrowsException**
+  - Summary: When AddPlatformMultiDatabaseWithList receives an empty list, then it throws an ArgumentException.
+  - Intent: Guard against registering multi-database services without any databases.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/PlatformRegistrationTests.cs#L116](tests/Bravellian.Platform.Tests/PlatformRegistrationTests.cs#L116)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.PlatformRegistrationTests.AddPlatformMultiDatabaseWithList_RegistersRequiredServices**
+  - Summary: When multiple databases are registered via AddPlatformMultiDatabaseWithList, then platform configuration and discovery are registered.
+  - Intent: Ensure list-based registration sets multi-database configuration without discovery mode.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/PlatformRegistrationTests.cs#L88](tests/Bravellian.Platform.Tests/PlatformRegistrationTests.cs#L88)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.PlatformRegistrationTests.AddPlatformMultiDatabaseWithList_SingleDatabase_RegistersRequiredServices**
+  - Summary: When a single database is registered via AddPlatformMultiDatabaseWithList, then core configuration and time abstractions are registered.
+  - Intent: Verify the multi-database list registration sets configuration, discovery, and timing services.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/PlatformRegistrationTests.cs#L29](tests/Bravellian.Platform.Tests/PlatformRegistrationTests.cs#L29)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.PlatformRegistrationTests.ListBasedDatabaseDiscovery_ReturnsConfiguredDatabasesAsync**
+  - Summary: When ListBasedDatabaseDiscovery is queried, then it returns the configured databases as-is.
+  - Intent: Confirm list-based discovery surfaces the configured database metadata.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/PlatformRegistrationTests.cs#L177](tests/Bravellian.Platform.Tests/PlatformRegistrationTests.cs#L177)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.RoundRobinSelectionStrategyTests.Reset_ResetsToFirstStore**
+  - Summary: When Reset is called, then the next selection starts from the first store.
+  - Intent: Validate that reset clears the round-robin cursor.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/RoundRobinSelectionStrategyTests.cs#L86](tests/Bravellian.Platform.Tests/RoundRobinSelectionStrategyTests.cs#L86)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.RoundRobinSelectionStrategyTests.SelectNext_CyclesThroughStores**
+  - Summary: When SelectNext is called repeatedly, then it cycles through stores in order and wraps around.
+  - Intent: Ensure round-robin selection advances deterministically through the store list.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/RoundRobinSelectionStrategyTests.cs#L61](tests/Bravellian.Platform.Tests/RoundRobinSelectionStrategyTests.cs#L61)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.RoundRobinSelectionStrategyTests.SelectNext_WithNoStores_ReturnsNull**
+  - Summary: When SelectNext is called with no stores, then it returns null.
+  - Intent: Verify the round-robin strategy handles empty inputs safely.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/RoundRobinSelectionStrategyTests.cs#L43](tests/Bravellian.Platform.Tests/RoundRobinSelectionStrategyTests.cs#L43)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SchedulerMetricsTests.WorkQueueMetrics_Should_Be_Registered**
+  - Summary: When SchedulerMetrics is referenced, then all work-queue metric definitions are initialized.
+  - Intent: Verify scheduler work-queue metrics are registered and available.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SchedulerMetricsTests.cs#L24](tests/Bravellian.Platform.Tests/SchedulerMetricsTests.cs#L24)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SchedulerRouterTests.SchedulerRouter_WithGuidKey_ReturnsSchedulerClient**
+  - Summary: When a Guid key is requested, then the router returns a scheduler client for the matching identifier string.
+  - Intent: Verify Guid overload routes by string conversion.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SchedulerRouterTests.cs#L133](tests/Bravellian.Platform.Tests/SchedulerRouterTests.cs#L133)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SchedulerRouterTests.SchedulerRouter_WithInvalidKey_ThrowsException**
+  - Summary: When an unknown scheduler key is requested, then the router throws an InvalidOperationException.
+  - Intent: Ensure invalid identifiers fail fast when no scheduler is configured.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SchedulerRouterTests.cs#L77](tests/Bravellian.Platform.Tests/SchedulerRouterTests.cs#L77)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SchedulerRouterTests.SchedulerRouter_WithNullKey_ThrowsException**
+  - Summary: When an empty scheduler key is requested, then the router throws an ArgumentException.
+  - Intent: Validate key input guarding for scheduler routing.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SchedulerRouterTests.cs#L105](tests/Bravellian.Platform.Tests/SchedulerRouterTests.cs#L105)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SchedulerRouterTests.SchedulerRouter_WithValidKey_ReturnsSchedulerClient**
+  - Summary: When a known scheduler key is requested, then the router returns a scheduler client.
+  - Intent: Verify routing to a configured scheduler store by string key.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SchedulerRouterTests.cs#L40](tests/Bravellian.Platform.Tests/SchedulerRouterTests.cs#L40)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SchemaVersionSnapshotTests.SchemaVersions_MatchSnapshot**
+  - Summary: When the schema snapshot is captured, then it matches the stored snapshot file.
+  - Intent: Verify schema version snapshots remain consistent across runs.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SchemaVersionSnapshotTests.cs#L27](tests/Bravellian.Platform.Tests/SchemaVersionSnapshotTests.cs#L27)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreConcurrencyTests.ConcurrentReapAndAcquire_MaintainsCorrectness**
+  - Summary: When reaping and acquiring concurrently, then deletions stay within expired count and acquires stay under limit.
+  - Intent: Verify reaping and acquiring interleave safely.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SemaphoreConcurrencyTests.cs#L261](tests/Bravellian.Platform.Tests/SemaphoreConcurrencyTests.cs#L261)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreConcurrencyTests.ConcurrentUpdateLimit_DoesNotCorruptState**
+  - Summary: When limits are updated concurrently, then the semaphore remains usable.
+  - Intent: Ensure concurrent limit updates do not corrupt semaphore state.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SemaphoreConcurrencyTests.cs#L222](tests/Bravellian.Platform.Tests/SemaphoreConcurrencyTests.cs#L222)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreConcurrencyTests.FencingCounters_StrictlyIncreasingUnderConcurrency**
+  - Summary: When acquiring concurrently, then fencing counters are unique and strictly increasing.
+  - Intent: Ensure fencing counters remain ordered under concurrency.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SemaphoreConcurrencyTests.cs#L318](tests/Bravellian.Platform.Tests/SemaphoreConcurrencyTests.cs#L318)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreConcurrencyTests.HighContentionAcquire_EventuallySucceeds**
+  - Summary: When workers retry under contention, then most eventually acquire a lease.
+  - Intent: Verify retries succeed with short TTLs under high contention.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SemaphoreConcurrencyTests.cs#L172](tests/Bravellian.Platform.Tests/SemaphoreConcurrencyTests.cs#L172)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreConcurrencyTests.ParallelAcquireAndRelease_MaintainsInvariant**
+  - Summary: When workers acquire and release concurrently, then releases match successful acquires.
+  - Intent: Ensure no leases are leaked under parallel acquire/release.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SemaphoreConcurrencyTests.cs#L114](tests/Bravellian.Platform.Tests/SemaphoreConcurrencyTests.cs#L114)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreConcurrencyTests.ParallelAcquires_NeverExceedsLimit**
+  - Summary: When many workers acquire in parallel, then total acquisitions do not exceed the limit.
+  - Intent: Verify concurrent acquisition respects semaphore capacity.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SemaphoreConcurrencyTests.cs#L67](tests/Bravellian.Platform.Tests/SemaphoreConcurrencyTests.cs#L67)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreConcurrencyTests.Renewals_WithIntermittentGcPausesMaintainLeases**
+  - Summary: When leases are renewed with jitter and pauses, then all renewals succeed.
+  - Intent: Validate renewals tolerate intermittent delays.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SemaphoreConcurrencyTests.cs#L363](tests/Bravellian.Platform.Tests/SemaphoreConcurrencyTests.cs#L363)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreConcurrencyTests.StarvedAcquisition_AppliesBackpressureUntilCapacityReturns**
+  - Summary: When the semaphore is saturated, then contenders are backpressured until capacity returns.
+  - Intent: Ensure contention produces backpressure and recovery once released.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SemaphoreConcurrencyTests.cs#L431](tests/Bravellian.Platform.Tests/SemaphoreConcurrencyTests.cs#L431)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreRegistrationTests.SemaphoreService_NotRegistered_InMultiDatabaseWithoutControlPlane**
+  - Summary: When multi-database registration omits a control plane, then ISemaphoreService is not registered.
+  - Intent: Ensure semaphore services remain global and require a control plane.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SemaphoreRegistrationTests.cs#L55](tests/Bravellian.Platform.Tests/SemaphoreRegistrationTests.cs#L55)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.EnsureExists_LimitAboveMaximum_ThrowsArgumentException**
+  - Summary: When EnsureExistsAsync receives a limit above maximum, then it throws ArgumentException.
+  - Intent: Enforce maximum semaphore limit.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L750](tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L750)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.EnsureExists_LimitBelowMinimum_ThrowsArgumentException**
+  - Summary: When EnsureExistsAsync receives a limit below minimum, then it throws ArgumentException.
+  - Intent: Enforce minimum semaphore limit.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L732](tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L732)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.Fencing_StrictlyIncreases**
+  - Summary: When multiple leases are acquired, then fencing counters strictly increase.
+  - Intent: Verify fencing counters are monotonic across acquires.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L287](tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L287)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.MultipleNames_AreIsolated**
+  - Summary: When acquiring leases for different semaphore names, then each name is isolated.
+  - Intent: Verify semaphore names do not share capacity.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L772](tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L772)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.ReapExpired_RemovesExpiredLeases**
+  - Summary: When reaping expired leases, then expired rows are deleted.
+  - Intent: Validate ReapExpiredAsync removes expired leases.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L386](tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L386)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.ReapExpired_WithMaxRows_LimitsDeletions**
+  - Summary: When reaping with a max row limit, then deletions are capped to that limit.
+  - Intent: Ensure ReapExpiredAsync respects the maxRows parameter.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L420](tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L420)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.Release_FreesCapacity**
+  - Summary: When a lease is released, then a new acquire can succeed.
+  - Intent: Verify ReleaseAsync frees capacity for new leases.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L152](tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L152)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.Release_IdempotentWhenCalledTwice**
+  - Summary: When the same token is released twice, then the second release reports NotFound.
+  - Intent: Ensure ReleaseAsync is idempotent.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L188](tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L188)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.Renew_AfterRelease_ReturnsLost**
+  - Summary: When renewing after a release, then the lease is reported as lost.
+  - Intent: Ensure released tokens cannot be renewed.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L254](tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L254)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.Renew_ExtendsLeaseExpiry**
+  - Summary: When renewing an active lease, then the expiry moves forward.
+  - Intent: Verify RenewAsync extends the lease expiration.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L221](tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L221)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.Renew_MonotonicExtension_NeverShortensExpiry**
+  - Summary: When renewing with a shorter TTL, then the expiry does not move backward.
+  - Intent: Ensure RenewAsync enforces a monotonic expiry.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L317](tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L317)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_AfterExpiry_Succeeds**
+  - Summary: When a lease expires, then a subsequent acquire succeeds.
+  - Intent: Verify expired leases free capacity for new acquisitions.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L352](tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L352)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_BeyondLimit_ReturnsNotAcquired**
+  - Summary: When acquisitions exceed the limit, then additional acquire attempts return NotAcquired.
+  - Intent: Ensure the semaphore blocks acquisitions beyond capacity.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L119](tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L119)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_InvalidNameCharacters_ThrowsArgumentException**
+  - Summary: When the semaphore name contains invalid characters, then TryAcquireAsync throws ArgumentException.
+  - Intent: Reject invalid semaphore name characters.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L675](tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L675)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_InvalidName_ThrowsArgumentException**
+  - Summary: When the semaphore name is empty or whitespace, then TryAcquireAsync throws ArgumentException.
+  - Intent: Validate semaphore name input is required.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L609](tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L609)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_NameTooLong_ThrowsArgumentException**
+  - Summary: When the semaphore name exceeds the maximum length, then TryAcquireAsync throws ArgumentException.
+  - Intent: Enforce maximum semaphore name length.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L626](tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L626)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_TtlAboveMaximum_ThrowsArgumentException**
+  - Summary: When the TTL exceeds the maximum, then TryAcquireAsync throws ArgumentException.
+  - Intent: Validate maximum TTL constraints.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L712](tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L712)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_TtlBelowMinimum_ThrowsArgumentException**
+  - Summary: When the TTL is below the minimum, then TryAcquireAsync throws ArgumentException.
+  - Intent: Validate minimum TTL constraints.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L692](tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L692)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_UpToLimit_AllAcquiresSucceed**
+  - Summary: When acquiring up to the configured limit, then each acquisition succeeds with unique tokens.
+  - Intent: Verify limit enforcement allows acquisitions up to capacity.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L89](tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L89)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_ValidNameCharacters_Succeeds**
+  - Summary: When the semaphore name uses allowed characters, then TryAcquireAsync succeeds.
+  - Intent: Verify valid name patterns are accepted.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L651](tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L651)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_WithNonExistentSemaphore_ReturnsNotAcquired**
+  - Summary: When acquiring a semaphore that has not been created, then status is NotAcquired.
+  - Intent: Confirm missing semaphores are not implicitly created.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L68](tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L68)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_WithSameClientRequestId_ReturnsExistingLease**
+  - Summary: When acquiring twice with the same client request id, then the same lease is returned.
+  - Intent: Verify TryAcquireAsync is idempotent by client request id.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L568](tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L568)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.UpdateLimit_Decrease_BlocksNewAcquires**
+  - Summary: When the limit is decreased below active count, then new acquires are blocked until capacity frees.
+  - Intent: Ensure UpdateLimitAsync enforces the lowered limit.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L501](tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L501)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.UpdateLimit_Increase_EnablesMoreAcquires**
+  - Summary: When the limit is increased, then additional acquires can succeed.
+  - Intent: Verify UpdateLimitAsync expands capacity.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L465](tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs#L465)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlInboxServiceTests.AlreadyProcessedAsync_WithHash_StoresHashCorrectly**
+  - Summary: When AlreadyProcessedAsync is called with a hash, then the hash is persisted in the inbox row.
+  - Intent: Verify the optional hash is stored for deduplication checks.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlInboxServiceTests.cs#L219](tests/Bravellian.Platform.Tests/SqlInboxServiceTests.cs#L219)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlInboxServiceTests.AlreadyProcessedAsync_WithInvalidMessageId_ThrowsArgumentException**
+  - Summary: When an invalid message id is provided, then AlreadyProcessedAsync throws an ArgumentException.
+  - Intent: Ensure inbox checks validate message id inputs.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlInboxServiceTests.cs#L248](tests/Bravellian.Platform.Tests/SqlInboxServiceTests.cs#L248)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlInboxServiceTests.AlreadyProcessedAsync_WithInvalidSource_ThrowsArgumentException**
+  - Summary: When an invalid source is provided, then AlreadyProcessedAsync throws an ArgumentException.
+  - Intent: Ensure inbox checks validate source inputs.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlInboxServiceTests.cs#L265](tests/Bravellian.Platform.Tests/SqlInboxServiceTests.cs#L265)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlInboxServiceTests.AlreadyProcessedAsync_WithNewMessage_ReturnsFalseAndRecordsMessage**
+  - Summary: When a new message id is checked, then AlreadyProcessedAsync returns false and records it.
+  - Intent: Verify first-time inbox checks persist the message record.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlInboxServiceTests.cs#L37](tests/Bravellian.Platform.Tests/SqlInboxServiceTests.cs#L37)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlInboxServiceTests.AlreadyProcessedAsync_WithProcessedMessage_ReturnsTrue**
+  - Summary: When a message has been marked processed, then AlreadyProcessedAsync returns true.
+  - Intent: Confirm processed messages are reported as already processed.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlInboxServiceTests.cs#L66](tests/Bravellian.Platform.Tests/SqlInboxServiceTests.cs#L66)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlInboxServiceTests.ConcurrentAlreadyProcessedAsync_WithSameMessage_HandledCorrectly**
+  - Summary: When AlreadyProcessedAsync is called concurrently for the same message, then one row is created and attempts increment.
+  - Intent: Ensure concurrent checks remain idempotent and track attempts.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlInboxServiceTests.cs#L177](tests/Bravellian.Platform.Tests/SqlInboxServiceTests.cs#L177)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlInboxServiceTests.MarkDeadAsync_UpdatesStatus**
+  - Summary: When MarkDeadAsync is called, then the message status becomes Dead.
+  - Intent: Confirm dead-lettering updates the status field.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlInboxServiceTests.cs#L148](tests/Bravellian.Platform.Tests/SqlInboxServiceTests.cs#L148)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlInboxServiceTests.MarkProcessedAsync_SetsProcessedUtcAndStatus**
+  - Summary: When MarkProcessedAsync is called, then ProcessedUtc is set and status becomes Done.
+  - Intent: Verify processed state updates both timestamp and status.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlInboxServiceTests.cs#L89](tests/Bravellian.Platform.Tests/SqlInboxServiceTests.cs#L89)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlInboxServiceTests.MarkProcessingAsync_UpdatesStatus**
+  - Summary: When MarkProcessingAsync is called, then the message status becomes Processing.
+  - Intent: Confirm processing state transitions update the status field.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlInboxServiceTests.cs#L119](tests/Bravellian.Platform.Tests/SqlInboxServiceTests.cs#L119)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlOutboxServiceTests.Constructor_CreatesInstance**
+  - Summary: When constructing the outbox service, then it provides an IOutbox implementation.
+  - Intent: Verify SqlOutboxService instantiation succeeds.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlOutboxServiceTests.cs#L49](tests/Bravellian.Platform.Tests/SqlOutboxServiceTests.cs#L49)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlOutboxServiceTests.EnqueueAsync_MultipleMessages_AllInsertedSuccessfully**
+  - Summary: When enqueueing multiple messages in one transaction, then all rows are inserted.
+  - Intent: Verify batch inserts within a transaction.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlOutboxServiceTests.cs#L228](tests/Bravellian.Platform.Tests/SqlOutboxServiceTests.cs#L228)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlOutboxServiceTests.EnqueueAsync_Standalone_EnsuresTableExists**
+  - Summary: When standalone enqueue targets a missing table, then the table is created and the message is inserted.
+  - Intent: Ensure standalone enqueue creates the outbox table if needed.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlOutboxServiceTests.cs#L391](tests/Bravellian.Platform.Tests/SqlOutboxServiceTests.cs#L391)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlOutboxServiceTests.EnqueueAsync_Standalone_MultipleMessages_AllInsertedSuccessfully**
+  - Summary: When enqueueing multiple standalone messages, then all rows are inserted.
+  - Intent: Verify standalone enqueue handles multiple writes.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlOutboxServiceTests.cs#L349](tests/Bravellian.Platform.Tests/SqlOutboxServiceTests.cs#L349)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlOutboxServiceTests.EnqueueAsync_Standalone_WithNullCorrelationId_InsertsMessageSuccessfully**
+  - Summary: When standalone enqueue uses a null correlation id, then the message is inserted.
+  - Intent: Allow null correlation ids in standalone enqueue.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlOutboxServiceTests.cs#L314](tests/Bravellian.Platform.Tests/SqlOutboxServiceTests.cs#L314)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlOutboxServiceTests.EnqueueAsync_Standalone_WithValidParameters_InsertsMessageToDatabase**
+  - Summary: When enqueueing without an explicit transaction, then the message is inserted.
+  - Intent: Verify standalone enqueue creates an outbox record.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlOutboxServiceTests.cs#L277](tests/Bravellian.Platform.Tests/SqlOutboxServiceTests.cs#L277)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlOutboxServiceTests.EnqueueAsync_WithCustomSchemaAndTable_InsertsMessageToCorrectTable**
+  - Summary: When using custom schema and table options, then the message is inserted into that table.
+  - Intent: Ensure custom outbox table routing is honored.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlOutboxServiceTests.cs#L98](tests/Bravellian.Platform.Tests/SqlOutboxServiceTests.cs#L98)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlOutboxServiceTests.EnqueueAsync_WithNullCorrelationId_InsertsMessageSuccessfully**
+  - Summary: When enqueueing with a null correlation id, then the message is still inserted.
+  - Intent: Allow null correlation ids during transactional enqueue.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlOutboxServiceTests.cs#L150](tests/Bravellian.Platform.Tests/SqlOutboxServiceTests.cs#L150)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlOutboxServiceTests.EnqueueAsync_WithNullTransaction_ThrowsNullReferenceException**
+  - Summary: When the transaction is null, then EnqueueAsync throws ArgumentNullException.
+  - Intent: Enforce a non-null transaction for transactional enqueue.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlOutboxServiceTests.cs#L257](tests/Bravellian.Platform.Tests/SqlOutboxServiceTests.cs#L257)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlOutboxServiceTests.EnqueueAsync_WithValidParameters_InsertsMessageToDatabase**
+  - Summary: When enqueueing with a transaction, then a matching outbox row is inserted.
+  - Intent: Validate enqueue persists messages within a transaction.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlOutboxServiceTests.cs#L64](tests/Bravellian.Platform.Tests/SqlOutboxServiceTests.cs#L64)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlOutboxServiceTests.EnqueueAsync_WithValidParameters_SetsDefaultValues**
+  - Summary: When enqueueing a message, then default outbox columns are initialized.
+  - Intent: Verify insert defaults for processing metadata.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlOutboxServiceTests.cs#L183](tests/Bravellian.Platform.Tests/SqlOutboxServiceTests.cs#L183)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlOutboxStoreTests.ClaimDueAsync_WithDueMessages_ReturnsMessages**
+  - Summary: When a due message exists, then ClaimDueAsync returns it with expected fields.
+  - Intent: Ensure due outbox rows are claimed and materialized correctly.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlOutboxStoreTests.cs#L67](tests/Bravellian.Platform.Tests/SqlOutboxStoreTests.cs#L67)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlOutboxStoreTests.ClaimDueAsync_WithFutureMessages_ReturnsEmpty**
+  - Summary: When a message is scheduled for the future, then ClaimDueAsync does not return it.
+  - Intent: Verify scheduled messages are not claimed before their due time.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlOutboxStoreTests.cs#L103](tests/Bravellian.Platform.Tests/SqlOutboxStoreTests.cs#L103)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlOutboxStoreTests.ClaimDueAsync_WithNoMessages_ReturnsEmptyList**
+  - Summary: When no due messages exist, then ClaimDueAsync returns an empty list.
+  - Intent: Verify the outbox store does not return items when the queue is empty.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlOutboxStoreTests.cs#L53](tests/Bravellian.Platform.Tests/SqlOutboxStoreTests.cs#L53)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlOutboxStoreTests.FailAsync_MarksMessageAsFailed**
+  - Summary: When FailAsync is called, then the message is marked Failed with error details.
+  - Intent: Ensure permanent failures set status and error metadata.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlOutboxStoreTests.cs#L225](tests/Bravellian.Platform.Tests/SqlOutboxStoreTests.cs#L225)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlOutboxStoreTests.MarkDispatchedAsync_UpdatesMessage**
+  - Summary: When MarkDispatchedAsync is called, then the message is marked Done and processed.
+  - Intent: Confirm dispatch updates status and IsProcessed.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlOutboxStoreTests.cs#L137](tests/Bravellian.Platform.Tests/SqlOutboxStoreTests.cs#L137)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlOutboxStoreTests.RescheduleAsync_UpdatesRetryCountAndNextAttempt**
+  - Summary: When RescheduleAsync is called, then retry count increments and last error is recorded.
+  - Intent: Verify rescheduling updates retry metadata and leaves the item ready.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlOutboxStoreTests.cs#L179](tests/Bravellian.Platform.Tests/SqlOutboxStoreTests.cs#L179)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlSchedulerClientTests.CancelTimerAsync_WithNonexistentTimerId_ReturnsFalse**
+  - Summary: When cancelling a missing timer id, then CancelTimerAsync returns false.
+  - Intent: Confirm cancel is a no-op for unknown timers.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlSchedulerClientTests.cs#L212](tests/Bravellian.Platform.Tests/SqlSchedulerClientTests.cs#L212)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlSchedulerClientTests.CancelTimerAsync_WithValidTimerId_UpdatesTimerStatus**
+  - Summary: When cancelling an existing timer, then CancelTimerAsync returns true and status is Cancelled.
+  - Intent: Verify cancellation updates stored timer status.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlSchedulerClientTests.cs#L181](tests/Bravellian.Platform.Tests/SqlSchedulerClientTests.cs#L181)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlSchedulerClientTests.Constructor_WithValidConnectionString_CreatesInstance**
+  - Summary: When constructing the scheduler client, then it provides an ISchedulerClient implementation.
+  - Intent: Verify SqlSchedulerClient instantiation succeeds.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlSchedulerClientTests.cs#L47](tests/Bravellian.Platform.Tests/SqlSchedulerClientTests.cs#L47)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlSchedulerClientTests.CreateOrUpdateJobAsync_ExistingJob_UpdatesJob**
+  - Summary: When a job already exists, then CreateOrUpdateJobAsync updates it without duplication.
+  - Intent: Verify upsert behavior for existing jobs.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlSchedulerClientTests.cs#L286](tests/Bravellian.Platform.Tests/SqlSchedulerClientTests.cs#L286)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlSchedulerClientTests.CreateOrUpdateJobAsync_WithNullPayload_InsertsJobSuccessfully**
+  - Summary: When creating a job with a null payload, then the stored payload remains null.
+  - Intent: Allow null payloads when defining jobs.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlSchedulerClientTests.cs#L260](tests/Bravellian.Platform.Tests/SqlSchedulerClientTests.cs#L260)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlSchedulerClientTests.CreateOrUpdateJobAsync_WithValidParameters_InsertsJobToDatabase**
+  - Summary: When creating a job, then a job row is inserted with name, topic, and cron schedule.
+  - Intent: Validate CreateOrUpdateJobAsync persists new jobs.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlSchedulerClientTests.cs#L230](tests/Bravellian.Platform.Tests/SqlSchedulerClientTests.cs#L230)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlSchedulerClientTests.DeleteJobAsync_WithValidJobName_RemovesJob**
+  - Summary: When deleting an existing job, then the job row is removed.
+  - Intent: Verify DeleteJobAsync removes jobs by name.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlSchedulerClientTests.cs#L324](tests/Bravellian.Platform.Tests/SqlSchedulerClientTests.cs#L324)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlSchedulerClientTests.ScheduleTimerAsync_WithCustomTableNames_InsertsToCorrectTable**
+  - Summary: When custom scheduler table names are used, then timers are stored in the custom table.
+  - Intent: Ensure ScheduleTimerAsync honors custom table options.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlSchedulerClientTests.cs#L94](tests/Bravellian.Platform.Tests/SqlSchedulerClientTests.cs#L94)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlSchedulerClientTests.ScheduleTimerAsync_WithValidParameters_InsertsTimerToDatabase**
+  - Summary: When scheduling a timer, then a timer row with the topic is inserted.
+  - Intent: Validate ScheduleTimerAsync persists timers.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlSchedulerClientTests.cs#L63](tests/Bravellian.Platform.Tests/SqlSchedulerClientTests.cs#L63)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlSchedulerClientTests.ScheduleTimerAsync_WithValidParameters_SetsCorrectDefaults**
+  - Summary: When scheduling a timer, then default timer columns are initialized.
+  - Intent: Verify default status and metadata values on insert.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlSchedulerClientTests.cs#L146](tests/Bravellian.Platform.Tests/SqlSchedulerClientTests.cs#L146)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlSchedulerClientTests.TriggerJobAsync_WithValidJobName_CreatesJobRun**
+  - Summary: When triggering a job, then a job run is created for that job.
+  - Intent: Ensure TriggerJobAsync records a job run.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlSchedulerClientTests.cs#L352](tests/Bravellian.Platform.Tests/SqlSchedulerClientTests.cs#L352)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SqlScriptDeploymentTests.SqlArtifacts_DeployInOrder**
+  - Summary: When SQL artifacts are applied in order, then all scripts execute without errors.
+  - Intent: Verify the ordered SQL script set can be deployed sequentially.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SqlScriptDeploymentTests.cs#L37](tests/Bravellian.Platform.Tests/SqlScriptDeploymentTests.cs#L37)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SystemLeaseTests.AcquireAsync_AfterLeaseReleased_CanAcquireAgain**
+  - Summary: When a lease is released, then the resource can be acquired again with a higher fencing token.
+  - Intent: Validate lease release frees the resource for subsequent acquisition.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SystemLeaseTests.cs#L107](tests/Bravellian.Platform.Tests/SystemLeaseTests.cs#L107)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SystemLeaseTests.AcquireAsync_ReentrantWithSameOwnerToken_Succeeds**
+  - Summary: When the same owner token acquires a lease twice, then both acquisitions succeed with increasing fencing tokens.
+  - Intent: Validate re-entrant acquisition with the same owner token.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SystemLeaseTests.cs#L237](tests/Bravellian.Platform.Tests/SystemLeaseTests.cs#L237)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SystemLeaseTests.AcquireAsync_SameResourceTwice_SecondCallReturnsNull**
+  - Summary: When AcquireAsync is called twice for the same resource, then the second call returns null.
+  - Intent: Ensure a lease cannot be acquired concurrently for the same resource.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SystemLeaseTests.cs#L84](tests/Bravellian.Platform.Tests/SystemLeaseTests.cs#L84)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SystemLeaseTests.AcquireAsync_WithCustomOwnerToken_UsesProvidedToken**
+  - Summary: When a custom owner token is provided, then the acquired lease uses that token.
+  - Intent: Verify custom owner tokens are honored by AcquireAsync.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SystemLeaseTests.cs#L212](tests/Bravellian.Platform.Tests/SystemLeaseTests.cs#L212)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SystemLeaseTests.AcquireAsync_WithDifferentResources_BothSucceed**
+  - Summary: When acquiring leases for different resources, then both acquisitions succeed independently.
+  - Intent: Ensure leases are isolated per resource name.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SystemLeaseTests.cs#L184](tests/Bravellian.Platform.Tests/SystemLeaseTests.cs#L184)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SystemLeaseTests.AcquireAsync_WithValidResource_CanAcquireLease**
+  - Summary: When a lease is acquired for a new resource, then a valid lease instance is returned.
+  - Intent: Verify AcquireAsync produces a lease with expected identifiers and fencing token.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SystemLeaseTests.cs#L59](tests/Bravellian.Platform.Tests/SystemLeaseTests.cs#L59)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SystemLeaseTests.ThrowIfLost_WhenLeaseIsValid_DoesNotThrow**
+  - Summary: When a lease is still valid, then ThrowIfLost does not throw.
+  - Intent: Verify lost-lease guard does not trigger for active leases.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SystemLeaseTests.cs#L163](tests/Bravellian.Platform.Tests/SystemLeaseTests.cs#L163)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.SystemLeaseTests.TryRenewNowAsync_WithValidLease_SucceedsAndIncrementsFencingToken**
+  - Summary: When TryRenewNowAsync is called on an active lease, then it succeeds and increments the fencing token.
+  - Intent: Ensure renewals advance the fencing token for valid leases.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/SystemLeaseTests.cs#L136](tests/Bravellian.Platform.Tests/SystemLeaseTests.cs#L136)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.TimeAbstractionTests.FakeTimeProvider_CanBeUsedForTesting**
+  - Summary: When FakeTimeProvider is advanced, then GetUtcNow reflects the new time.
+  - Intent: Demonstrate deterministic time control with FakeTimeProvider.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/TimeAbstractionTests.cs#L99](tests/Bravellian.Platform.Tests/TimeAbstractionTests.cs#L99)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.TimeAbstractionTests.MonoDeadline_Expired_ReturnsFalseWhenNotReached**
+  - Summary: When a deadline is in the future, then Expired returns false.
+  - Intent: Verify MonoDeadline reports not expired before the deadline.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/TimeAbstractionTests.cs#L63](tests/Bravellian.Platform.Tests/TimeAbstractionTests.cs#L63)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.TimeAbstractionTests.MonoDeadline_Expired_ReturnsTrueWhenReached**
+  - Summary: When a deadline is in the past, then Expired returns true.
+  - Intent: Verify MonoDeadline reports expired once the deadline is reached.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/TimeAbstractionTests.cs#L81](tests/Bravellian.Platform.Tests/TimeAbstractionTests.cs#L81)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.TimeAbstractionTests.MonoDeadline_WorksWithFakeMonotonicClock**
+  - Summary: When a fake monotonic clock advances past a deadline, then Expired flips to true.
+  - Intent: Verify MonoDeadline works with a controllable monotonic clock.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/TimeAbstractionTests.cs#L119](tests/Bravellian.Platform.Tests/TimeAbstractionTests.cs#L119)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.TimeAbstractionTests.MonotonicClock_Seconds_ReturnsPositiveValue**
+  - Summary: When MonotonicClock seconds are read, then the value is positive.
+  - Intent: Ensure the monotonic clock exposes a positive elapsed seconds value.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/TimeAbstractionTests.cs#L46](tests/Bravellian.Platform.Tests/TimeAbstractionTests.cs#L46)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.TimeAbstractionTests.MonotonicClock_Ticks_ReturnsIncreasingValues**
+  - Summary: When MonotonicClock ticks are read twice, then the second value is not less than the first.
+  - Intent: Verify monotonic ticks do not move backwards.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/TimeAbstractionTests.cs#L28](tests/Bravellian.Platform.Tests/TimeAbstractionTests.cs#L28)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.WatchdogServiceTests.GetSnapshot_ReturnsInitialState**
+  - Summary: When a new WatchdogService is created, then its snapshot is empty and timestamps equal the initial time.
+  - Intent: Verify the watchdog snapshot starts with no alerts.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/WatchdogServiceTests.cs#L31](tests/Bravellian.Platform.Tests/WatchdogServiceTests.cs#L31)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.WatchdogServiceTests.WatchdogHealthCheck_ReturnsHealthy_WhenNoAlertsAsync**
+  - Summary: When no alerts are present, then the watchdog health check reports Healthy.
+  - Intent: Validate health check status reflects an alert-free snapshot.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/WatchdogServiceTests.cs#L190](tests/Bravellian.Platform.Tests/WatchdogServiceTests.cs#L190)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.WatchdogServiceTests.WatchdogService_DetectsOverdueJobs**
+  - Summary: When overdue jobs are reported by the scheduler state, then the watchdog emits an overdue-job alert.
+  - Intent: Verify job-overdue detection triggers alert sinks.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/WatchdogServiceTests.cs#L127](tests/Bravellian.Platform.Tests/WatchdogServiceTests.cs#L127)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.WatchdogServiceTests.WatchdogService_EmitsHeartbeat**
+  - Summary: When the heartbeat period elapses, then the watchdog emits a heartbeat to sinks.
+  - Intent: Ensure heartbeat scheduling triggers sink callbacks.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Tests/WatchdogServiceTests.cs#L66](tests/Bravellian.Platform.Tests/WatchdogServiceTests.cs#L66)

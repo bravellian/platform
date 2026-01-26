@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Bravellian.TestDocs.Analyzers</AssemblyName>
+    <IsPackable>true</IsPackable>
+    <PackageId>Bravellian.TestDocs.Analyzers</PackageId>
+    <Description>Analyzers for test documentation XML metadata.</Description>
+    <Authors>Bravellian</Authors>
+    <Company>Bravellian</Company>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>analyzers;testdocs;documentation;mstest;xunit;nunit</PackageTags>
+    <RepositoryType>git</RepositoryType>
+    <IncludeBuildOutput>true</IncludeBuildOutput>
+    <OutputItemType>Analyzer</OutputItemType>
+    <PackageType>Analyzer</PackageType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Required for Roslyn analyzer and code fix APIs. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.12.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

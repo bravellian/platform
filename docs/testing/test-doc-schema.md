@@ -1,14 +1,14 @@
-# Test XML Doc Schema
+# Test Documentation Schema
 
 ## Purpose
-Provide a consistent, minimal XML documentation schema for MSTest test methods so readers can quickly understand intent, setup, and expected behavior.
+Provide a consistent XML documentation schema for MSTest, xUnit, and NUnit test methods so docs can be generated deterministically and reviewed quickly.
 
 ## Required tags
-Use these tags for every test method. Keep each tag value short (about 200 characters or less) and factual.
+Use all required tags on every MSTest, xUnit, or NUnit test method. Values should be short and factual.
 
-- `<summary>`: One-line rule statement, ideally in the form "If/When/Given ..., then ...".
+- `<summary>`: One-line rule statement (If/When/Given ..., then ...).
 - `<intent>`: Why the test exists.
-- `<scenario>`: Setup or inputs that make the case interesting.
+- `<scenario>`: Key setup/inputs that make the case interesting.
 - `<behavior>`: Observable outcome asserted by the test.
 
 Example (required tags only):
@@ -21,16 +21,17 @@ Example (required tags only):
 ```
 
 ## Optional tags
-Include only when the information is obvious from the test name/body or existing comments. If unclear, omit.
+Use these only when the information is already present in the test name/body/inline comments.
 
 - `<failuresignal>`: What a failure likely means or where to look.
-- `<origin>`: Reference only when present in code comments or names. Do not invent.
-  Example: `<origin kind="bug" id="PAY-1842" date="2025-09-03">Fix regression in fee rounding.</origin>`
-- `<risk>`: Impact area such as money, security, compliance, or data-loss.
-- `<notes>`: Non-obvious assumptions, timing, flakiness history, or environment constraints.
-- `<tags>`: Semicolon-separated, 1-3 tags, e.g. `regression; money`.
-- `<category>`: Stable grouping, usually derived from namespace or folder.
-- `<testid>`: Deterministic identifier, e.g. `{RootNamespace}.{ClassName}.{MethodName}`.
+- `<origin>`: Reference a defect or requirement with attributes.
+  - Attributes: `kind`, `id`, `date`
+  - Example: `<origin kind="bug" id="PAY-1842" date="2025-09-03">Fix regression in fee rounding.</origin>`
+- `<risk>`: Impact area (money, security, compliance, data-loss).
+- `<notes>`: Non-obvious assumptions or environmental constraints.
+- `<tags>`: Semicolon-separated list, e.g. `regression; money`.
+- `<category>`: Stable grouping for docs. Use a short, human-readable value.
+- `<testid>`: Deterministic identifier. Use only if you need to override the default.
 
 Example (with optional tags):
 
@@ -43,23 +44,73 @@ Example (with optional tags):
 /// <risk>security</risk>
 /// <tags>security; regression</tags>
 /// <category>Auth.SignIn</category>
+/// <origin kind="bug" id="SEC-194" date="2025-09-03">Disabled users could sign in.</origin>
 /// <testid>Bravellian.Platform.Tests.Auth.SignInTests.Disabled_user_denied</testid>
 ```
 
 ## Formatting rules
-- Place XML doc comments immediately above the method, above any attributes.
-- Do not add information that is not present in the test name/body/comments.
-- Do not include `<origin>` unless a reference already exists.
-- Keep tag values concise; avoid prose paragraphs.
-- Tags are case-sensitive and must match the schema exactly.
+- XML doc comments must appear immediately above the method, above any attributes.
+- Tags are case-sensitive and must match the schema names exactly.
+- Values are trimmed and whitespace runs are collapsed to a single space, except for `<notes>` where whitespace is preserved.
+- `<tags>` values are lowercased, de-duped, and sorted.
+- Omit optional tags rather than guessing.
 
-## Guidance for contributors
-- Keep comments short and factual.
-- Prefer omission over guessing for optional tags.
-- If a method already has XML docs, only add missing required tags.
+## Analyzer guidance
+If you use `Bravellian.TestDocs.Analyzers`, it will warn when required tags are missing (`TD001`) or still contain placeholders/empty values (`TD002`). The default template uses `TODO` placeholders that must be replaced.
 
-## Extending the schema
-Add new optional tags sparingly. Update this document with:
-- The tag definition
-- When to use it
-- A short example
+## Deterministic identifiers
+If `<testid>` is omitted, the generator uses:
+
+```
+{AssemblyName}:{Namespace}.{Class}.{Method}
+```
+
+## Category derivation
+If `<category>` is omitted, the generator derives it from namespace:
+
+- If the namespace contains `.Tests.`, the segment after `.Tests.` is used.
+- Otherwise the first 2-3 namespace segments are used.
+
+## Validation behavior
+- Tests missing any required tag are marked `missing-required`.
+- Tests with invalid metadata (for example, `<origin>` without a `kind`) are marked `invalid-format`.
+- Missing/invalid metadata does not fail the build by default. `--strict` can enforce failures.
+
+## How generation works
+The generator scans C# source for MSTest, xUnit, and NUnit methods (for example `[TestMethod]`, `[Fact]`, `[Theory]`, `[Test]`, `[TestCase]`), parses XML doc comments, normalizes metadata, and produces:
+
+- Markdown docs under `docs/testing/generated/`.
+- A machine-readable `stats.json` report.
+- A human-readable `stats.md` summary.
+
+See `tools/testdocs/README.md` for running the generator locally.
+
+## stats.json schema
+
+```json
+{
+  "generatedAtUtc": "2026-01-25T18:00:00Z",
+  "repo": { "defaultBranch": "main" },
+  "summary": { "total": 0, "compliant": 0, "missingRequired": 0, "invalidFormat": 0 },
+  "byCategory": [ { "category": "X", "total": 0, "compliant": 0 } ],
+  "byTag": [ { "tag": "regression", "total": 0 } ],
+  "byProject": [ { "project": "My.Tests", "total": 0, "compliant": 0 } ],
+  "tests": [
+    {
+      "testId": "...",
+      "category": "...",
+      "tags": ["..."],
+      "origin": { "kind": "bug", "id": "ABC-123", "date": "2025-09-03", "text": "..." },
+      "summary": "...",
+      "intent": "...",
+      "scenario": "...",
+      "behavior": "...",
+      "failureSignal": "...",
+      "risk": "...",
+      "notes": "...",
+      "source": { "file": "path", "line": 123, "member": "Namespace.Class.Method" },
+      "status": "compliant | missing-required | invalid-format"
+    }
+  ]
+}
+```

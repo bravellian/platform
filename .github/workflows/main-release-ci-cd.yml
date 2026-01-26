@@ -75,6 +75,9 @@ jobs:
     - name: Pack NuGet packages
       run: dotnet pack Bravellian.Platform.CI.slnx --configuration Release --output ./nupkgs -p:PackageVersion=${{ steps.git_version.outputs.semVer }}
 
+    - name: Pack TestDocs tool and analyzer
+      run: dotnet pack ./tools/testdocs/TestDocs.sln --configuration Release --output ./nupkgs -p:PackageVersion=${{ steps.git_version.outputs.semVer }}
+
     - name: Upload package artifact
       uses: actions/upload-artifact@v4
       with:
