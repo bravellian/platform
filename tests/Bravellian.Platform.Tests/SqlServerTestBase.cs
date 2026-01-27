@@ -66,8 +66,19 @@ public abstract class SqlServerTestBase : IAsyncLifetime
         }
         else
         {
+            SqlServerTestEnvironment.ThrowIfSqlCmdMissing();
+
             // Using standalone container
-            await msSqlContainer!.StartAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
+            try
+            {
+                await msSqlContainer!.StartAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
+            }
+            catch (NotSupportedException ex) when (ex.Message.Contains("sqlcmd", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new Xunit.Sdk.SkipException(
+                    "SQL Server integration tests require sqlcmd to be available on PATH.",
+                    ex);
+            }
             connectionString = msSqlContainer.GetConnectionString();
         }
 

@@ -254,6 +254,7 @@ public static class SqlPlatformServiceCollectionExtensions
 
         services.TryAddSingleton<IOutbox>(ResolveDefaultOutbox);
         services.TryAddSingleton<IInbox>(ResolveDefaultInbox);
+        services.TryAddSingleton<IInboxWorkStore>(ResolveDefaultInboxWorkStore);
 
         return services;
     }
@@ -508,6 +509,24 @@ public static class SqlPlatformServiceCollectionExtensions
         var router = provider.GetRequiredService<IInboxRouter>();
         var key = storeProvider.GetStoreIdentifier(stores[0]);
         return router.GetInbox(key);
+    }
+
+    private static IInboxWorkStore ResolveDefaultInboxWorkStore(IServiceProvider provider)
+    {
+        var storeProvider = provider.GetRequiredService<IInboxWorkStoreProvider>();
+        var stores = storeProvider.GetAllStoresAsync().GetAwaiter().GetResult();
+
+        if (stores.Count == 0)
+        {
+            throw new InvalidOperationException("No inbox work stores are configured. Configure at least one store or use IInboxRouter.");
+        }
+
+        if (stores.Count > 1)
+        {
+            throw new InvalidOperationException("Multiple inbox work stores are configured. Resolve IInboxRouter instead of IInboxWorkStore for multi-database setups.");
+        }
+
+        return stores[0];
     }
 
     private sealed class SingleExternalSideEffectStoreProvider : IExternalSideEffectStoreProvider

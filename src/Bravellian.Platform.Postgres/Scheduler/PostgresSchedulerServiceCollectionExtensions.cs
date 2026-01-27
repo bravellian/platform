@@ -325,6 +325,7 @@ internal static class PostgresSchedulerServiceCollectionExtensions
 
         // Back-compat convenience: expose the sole inbox instance when exactly one store is configured.
         services.TryAddSingleton<IInbox>(provider => ResolveDefaultInbox(provider));
+        services.TryAddSingleton<IInboxWorkStore>(provider => ResolveDefaultInboxWorkStore(provider));
 
         // Register cleanup service if enabled
         if (options.EnableAutomaticCleanup)
@@ -758,6 +759,24 @@ internal static class PostgresSchedulerServiceCollectionExtensions
         var router = provider.GetRequiredService<IInboxRouter>();
         var key = storeProvider.GetStoreIdentifier(stores[0]);
         return router.GetInbox(key);
+    }
+
+    private static IInboxWorkStore ResolveDefaultInboxWorkStore(IServiceProvider provider)
+    {
+        var storeProvider = provider.GetRequiredService<IInboxWorkStoreProvider>();
+        var stores = storeProvider.GetAllStoresAsync().GetAwaiter().GetResult();
+
+        if (stores.Count == 0)
+        {
+            throw new InvalidOperationException("No inbox work stores are configured. Configure at least one store or use IInboxRouter.");
+        }
+
+        if (stores.Count > 1)
+        {
+            throw new InvalidOperationException("Multiple inbox work stores are configured. Resolve IInboxRouter instead of IInboxWorkStore for multi-database setups.");
+        }
+
+        return stores[0];
     }
 }
 
