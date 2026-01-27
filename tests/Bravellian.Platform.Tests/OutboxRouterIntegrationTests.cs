@@ -216,3 +216,4 @@ public class OutboxRouterIntegrationTests
         public decimal TotalAmount { get; set; }
     }
 }
+

@@ -129,3 +129,4 @@ public class OutboxExtensionsTests : PostgresTestBase
         payload.OnFailPayload.ShouldBeNull();
     }
 }
+

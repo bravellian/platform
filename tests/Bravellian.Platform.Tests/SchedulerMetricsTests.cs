@@ -43,3 +43,4 @@ public sealed class SchedulerMetricsTests
         SchedulerMetrics.WorkQueueBatchSize.ShouldNotBeNull();
     }
 }
+

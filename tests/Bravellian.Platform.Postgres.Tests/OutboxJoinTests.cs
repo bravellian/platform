@@ -625,3 +625,4 @@ public class OutboxJoinTests : PostgresTestBase
             CancellationToken.None).ConfigureAwait(false);
     }
 }
+

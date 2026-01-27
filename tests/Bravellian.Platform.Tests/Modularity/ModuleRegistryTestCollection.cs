@@ -20,3 +20,4 @@ namespace Bravellian.Platform.Tests.Modularity;
 public sealed class ModuleRegistryTestCollection
 {
 }
+

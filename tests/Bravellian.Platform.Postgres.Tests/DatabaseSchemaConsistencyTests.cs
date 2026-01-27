@@ -362,3 +362,4 @@ public class DatabaseSchemaConsistencyTests : PostgresTestBase
         return count > 0;
     }
 }
+

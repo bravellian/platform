@@ -431,3 +431,4 @@ public class SqlOutboxServiceTests : SqlServerTestBase
         }
     }
 }
+

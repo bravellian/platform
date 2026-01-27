@@ -285,3 +285,4 @@ public class SqlInboxServiceTests : SqlServerTestBase
         return new SqlInboxService(options, logger);
     }
 }
+

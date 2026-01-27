@@ -77,3 +77,4 @@ public class SqlScriptDeploymentTests
             .Where(batch => batch.Length > 0);
     }
 }
+

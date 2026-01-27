@@ -194,3 +194,4 @@ public class InboxSelectionStrategyTests
         selected.ShouldBe(store1);
     }
 }
+

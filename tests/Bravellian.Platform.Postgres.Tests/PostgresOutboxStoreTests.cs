@@ -259,3 +259,4 @@ public class PostgresOutboxStoreTests : PostgresTestBase
         ((string)result.ProcessedBy).ShouldContain("FAILED");
     }
 }
+

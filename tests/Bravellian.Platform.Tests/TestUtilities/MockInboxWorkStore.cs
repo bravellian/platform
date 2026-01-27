@@ -70,3 +70,4 @@ public class MockInboxWorkStore : IInboxWorkStore
     /// <inheritdoc/>
     public override string ToString() => name;
 }
+

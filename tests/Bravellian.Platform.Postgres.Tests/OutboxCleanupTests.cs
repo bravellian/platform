@@ -287,3 +287,4 @@ public class OutboxCleanupTests : PostgresTestBase
             new { RetentionSeconds = (int)retentionPeriod.TotalSeconds });
     }
 }
+

@@ -352,3 +352,4 @@ public class InboxWorkStoreTests : PostgresTestBase
         return new PostgresInboxWorkStore(options, TimeProvider.System, logger);
     }
 }
+

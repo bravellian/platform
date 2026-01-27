@@ -459,3 +459,4 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
         return count > 0;
     }
 }
+

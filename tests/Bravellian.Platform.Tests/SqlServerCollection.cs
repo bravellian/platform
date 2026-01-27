@@ -23,3 +23,4 @@ public class SqlServerCollection : ICollectionFixture<SqlServerCollectionFixture
 {
     public const string Name = "SQL Server Collection";
 }
+

@@ -42,7 +42,22 @@ public sealed class SqlServerCollectionFixture : IAsyncLifetime
 
     public async ValueTask InitializeAsync()
     {
-        await msSqlContainer.StartAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
+        if (!IsSqlCmdAvailable())
+        {
+            throw new InvalidOperationException(
+                $"{Xunit.v3.DynamicSkipToken.Value} SQL Server integration tests require sqlcmd to be available on PATH.");
+        }
+
+        try
+        {
+            await msSqlContainer.StartAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
+        }
+        catch (NotSupportedException ex) when (ex.Message.Contains("sqlcmd", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                $"{Xunit.v3.DynamicSkipToken.Value} SQL Server integration tests require sqlcmd to be available on PATH.",
+                ex);
+        }
         connectionString = msSqlContainer.GetConnectionString();
     }
 
@@ -85,4 +100,30 @@ public sealed class SqlServerCollectionFixture : IAsyncLifetime
             }
         }
     }
+
+    private static bool IsSqlCmdAvailable()
+    {
+        var path = Environment.GetEnvironmentVariable("PATH");
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return false;
+        }
+
+        foreach (var segment in path.Split(Path.PathSeparator))
+        {
+            if (string.IsNullOrWhiteSpace(segment))
+            {
+                continue;
+            }
+
+            var candidate = Path.Combine(segment.Trim(), "sqlcmd.exe");
+            if (File.Exists(candidate))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }
+

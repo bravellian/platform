@@ -185,3 +185,4 @@ public sealed class MetricsSchemaTests : SqlServerTestBase
         Assert.Equal(1.5, (double)result.ValueLast, 0.01); // last value wins
     }
 }
+

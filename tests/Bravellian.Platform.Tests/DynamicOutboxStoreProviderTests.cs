@@ -277,3 +277,4 @@ public class DynamicOutboxStoreProviderTests
         updatedStores.Count.ShouldBe(2);
     }
 }
+

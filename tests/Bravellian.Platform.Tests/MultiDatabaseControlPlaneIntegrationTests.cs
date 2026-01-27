@@ -287,7 +287,7 @@ public class MultiDatabaseControlPlaneIntegrationTests
         if (useDiscovery)
         {
             services.AddSingleton<IPlatformDatabaseDiscovery>(new StaticDiscovery(tenants));
-            services.AddPlatformMultiDatabaseWithControlPlaneAndDiscovery(new PlatformControlPlaneOptions
+            services.AddSqlPlatformMultiDatabaseWithControlPlaneAndDiscovery(new PlatformControlPlaneOptions
             {
                 ConnectionString = controlPlaneConnection,
                 SchemaName = "control",
@@ -296,7 +296,7 @@ public class MultiDatabaseControlPlaneIntegrationTests
         }
         else
         {
-            services.AddPlatformMultiDatabaseWithControlPlaneAndList(
+            services.AddSqlPlatformMultiDatabaseWithControlPlaneAndList(
                 tenants,
                 new PlatformControlPlaneOptions
                 {
@@ -334,7 +334,7 @@ public class MultiDatabaseControlPlaneIntegrationTests
             if (useDiscovery)
             {
                 services.AddSingleton<IPlatformDatabaseDiscovery>(new StaticDiscovery(tenants));
-                services.AddPlatformMultiDatabaseWithControlPlaneAndDiscovery(new PlatformControlPlaneOptions
+                services.AddSqlPlatformMultiDatabaseWithControlPlaneAndDiscovery(new PlatformControlPlaneOptions
                 {
                     ConnectionString = controlPlaneConnection,
                     SchemaName = "control",
@@ -343,7 +343,7 @@ public class MultiDatabaseControlPlaneIntegrationTests
             }
             else
             {
-                services.AddPlatformMultiDatabaseWithControlPlaneAndList(
+                services.AddSqlPlatformMultiDatabaseWithControlPlaneAndList(
                     tenants,
                     new PlatformControlPlaneOptions
                     {
@@ -453,3 +453,4 @@ SELECT COUNT(*) FROM [{database.SchemaName}].[Outbox] WHERE IsProcessed = 1
         }
     }
 }
+

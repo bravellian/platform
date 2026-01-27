@@ -254,3 +254,4 @@ public class DynamicInboxWorkStoreProviderTests
         updatedStores.Count.ShouldBe(2);
     }
 }
+

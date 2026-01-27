@@ -204,3 +204,4 @@ public class JoinWaitHandlerTests : PostgresTestBase
         updated!.Status.ShouldBe(JoinStatus.Failed);
     }
 }
+

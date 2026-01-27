@@ -230,3 +230,4 @@ public sealed class PostgresEmailDeliverySinkTests : PostgresTestBase
         public string? CorrelationTagsJson { get; init; }
     }
 }
+

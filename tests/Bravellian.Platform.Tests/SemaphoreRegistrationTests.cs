@@ -48,7 +48,7 @@ public class SemaphoreRegistrationTests : IAsyncLifetime
 
     /// <summary>When multi-database registration omits a control plane, then ISemaphoreService is not registered.</summary>
     /// <intent>Ensure semaphore services remain global and require a control plane.</intent>
-    /// <scenario>Given AddPlatformMultiDatabaseWithList called without control-plane options.</scenario>
+    /// <scenario>Given AddSqlPlatformMultiDatabaseWithList called without control-plane options.</scenario>
     /// <behavior>Then ISemaphoreService is not present in the service provider.</behavior>
     [Fact]
     public void SemaphoreService_NotRegistered_InMultiDatabaseWithoutControlPlane()
@@ -56,7 +56,7 @@ public class SemaphoreRegistrationTests : IAsyncLifetime
         // Arrange & Act
         var services = new ServiceCollection();
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>)); // Add null logger
-        services.AddPlatformMultiDatabaseWithList(
+        services.AddSqlPlatformMultiDatabaseWithList(
             new[]
             {
                 new PlatformDatabase
@@ -75,3 +75,4 @@ public class SemaphoreRegistrationTests : IAsyncLifetime
         semaphoreService.ShouldBeNull();
     }
 }
+

@@ -489,3 +489,4 @@ public class SemaphoreConcurrencyTests : SqlServerTestBase
         recovered.Status.ShouldBe(SemaphoreAcquireStatus.Acquired);
     }
 }
+

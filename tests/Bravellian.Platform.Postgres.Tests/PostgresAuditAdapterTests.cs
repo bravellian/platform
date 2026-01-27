@@ -90,3 +90,4 @@ public sealed class PostgresAuditAdapterTests : PostgresTestBase
         readEvent.Correlation.Tags!["tenant"].ShouldBe("t-42");
     }
 }
+

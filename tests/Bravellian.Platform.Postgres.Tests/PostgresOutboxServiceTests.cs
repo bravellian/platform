@@ -377,3 +377,4 @@ public class PostgresOutboxServiceTests : PostgresTestBase
         }
     }
 }
+

@@ -31,12 +31,12 @@ public class ControlPlaneConfigurationTests
     /// <intent>
     /// Verify control-plane schema settings are propagated to configuration and semaphore options.</intent>
     /// <scenario>
-    /// Given AddPlatformMultiDatabaseWithControlPlaneAndList called with control plane options specifying SchemaName = "control".
+    /// Given AddSqlPlatformMultiDatabaseWithControlPlaneAndList called with control plane options specifying SchemaName = "control".
     /// </scenario>
     /// <behavior>
     /// Then PlatformConfiguration and SemaphoreOptions use the control plane schema and connection string.</behavior>
     [Fact]
-    public void AddPlatformMultiDatabaseWithControlPlaneAndList_WithOptions_ConfiguresSchemaName()
+    public void AddSqlPlatformMultiDatabaseWithControlPlaneAndList_WithOptions_ConfiguresSchemaName()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -60,7 +60,7 @@ public class ControlPlaneConfigurationTests
         };
 
         // Act
-        services.AddPlatformMultiDatabaseWithControlPlaneAndList(databases, controlPlaneOptions);
+        services.AddSqlPlatformMultiDatabaseWithControlPlaneAndList(databases, controlPlaneOptions);
 
         var serviceProvider = services.BuildServiceProvider();
 
@@ -81,12 +81,12 @@ public class ControlPlaneConfigurationTests
     /// <intent>
     /// Verify control-plane settings flow through discovery-based registration.</intent>
     /// <scenario>
-    /// Given AddPlatformMultiDatabaseWithControlPlaneAndDiscovery with a ListBasedDatabaseDiscovery and custom SchemaName.
+    /// Given AddSqlPlatformMultiDatabaseWithControlPlaneAndDiscovery with a ListBasedDatabaseDiscovery and custom SchemaName.
     /// </scenario>
     /// <behavior>
     /// Then PlatformConfiguration reflects the schema and semaphore options use the same values.</behavior>
     [Fact]
-    public void AddPlatformMultiDatabaseWithControlPlaneAndDiscovery_WithOptions_ConfiguresSchemaName()
+    public void AddSqlPlatformMultiDatabaseWithControlPlaneAndDiscovery_WithOptions_ConfiguresSchemaName()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -112,7 +112,7 @@ public class ControlPlaneConfigurationTests
         };
 
         // Act
-        services.AddPlatformMultiDatabaseWithControlPlaneAndDiscovery(controlPlaneOptions);
+        services.AddSqlPlatformMultiDatabaseWithControlPlaneAndDiscovery(controlPlaneOptions);
 
         var serviceProvider = services.BuildServiceProvider();
 
@@ -157,12 +157,12 @@ public class ControlPlaneConfigurationTests
     /// <intent>
     /// Ensure legacy registration paths continue to configure the control plane schema.</intent>
     /// <scenario>
-    /// Given AddPlatformMultiDatabaseWithControlPlaneAndList called via the obsolete signature.
+    /// Given AddSqlPlatformMultiDatabaseWithControlPlaneAndList called via the obsolete signature.
     /// </scenario>
     /// <behavior>
     /// Then PlatformConfiguration and SemaphoreOptions default the schema to "infra".</behavior>
     [Fact]
-    public void AddPlatformMultiDatabaseWithControlPlaneAndList_OldSignature_StillWorks()
+    public void AddSqlPlatformMultiDatabaseWithControlPlaneAndList_OldSignature_StillWorks()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -179,7 +179,7 @@ public class ControlPlaneConfigurationTests
 
         // Act - Using the obsolete signature
 #pragma warning disable CS0618 // Type or member is obsolete
-        services.AddPlatformMultiDatabaseWithControlPlaneAndList(
+        services.AddSqlPlatformMultiDatabaseWithControlPlaneAndList(
             databases,
             "Server=localhost;Database=ControlPlane;",
             enableSchemaDeployment: false);
@@ -201,12 +201,12 @@ public class ControlPlaneConfigurationTests
     /// <intent>
     /// Ensure legacy discovery registration continues to configure the control plane schema.</intent>
     /// <scenario>
-    /// Given AddPlatformMultiDatabaseWithControlPlaneAndDiscovery called via the obsolete signature and a list-based discovery.
+    /// Given AddSqlPlatformMultiDatabaseWithControlPlaneAndDiscovery called via the obsolete signature and a list-based discovery.
     /// </scenario>
     /// <behavior>
     /// Then PlatformConfiguration and SemaphoreOptions default the schema to "infra".</behavior>
     [Fact]
-    public void AddPlatformMultiDatabaseWithControlPlaneAndDiscovery_OldSignature_StillWorks()
+    public void AddSqlPlatformMultiDatabaseWithControlPlaneAndDiscovery_OldSignature_StillWorks()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -224,7 +224,7 @@ public class ControlPlaneConfigurationTests
 
         // Act - Using the obsolete signature
 #pragma warning disable CS0618 // Type or member is obsolete
-        services.AddPlatformMultiDatabaseWithControlPlaneAndDiscovery(
+        services.AddSqlPlatformMultiDatabaseWithControlPlaneAndDiscovery(
             "Server=localhost;Database=ControlPlane;",
             enableSchemaDeployment: false);
 #pragma warning restore CS0618 // Type or member is obsolete
@@ -239,3 +239,4 @@ public class ControlPlaneConfigurationTests
         semaphoreOptions.Value.SchemaName.ShouldBe("infra");
     }
 }
+

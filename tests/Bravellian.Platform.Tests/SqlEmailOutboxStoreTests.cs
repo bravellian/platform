@@ -149,3 +149,4 @@ public sealed class SqlEmailOutboxStoreTests : SqlServerTestBase
             htmlBody: null);
     }
 }
+

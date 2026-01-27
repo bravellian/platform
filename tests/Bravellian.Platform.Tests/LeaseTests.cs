@@ -250,3 +250,4 @@ public class LeaseTests : SqlServerTestBase
         renewResult.leaseUntilUtc.ShouldBeNull();
     }
 }
+

@@ -166,3 +166,4 @@ public sealed class PostgresEmailOutboxStoreTests : PostgresTestBase
             htmlBody: null);
     }
 }
+

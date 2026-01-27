@@ -268,3 +268,4 @@ public class OutboxCleanupTests : SqlServerTestBase
         procExists.ShouldBe(0);
     }
 }
+

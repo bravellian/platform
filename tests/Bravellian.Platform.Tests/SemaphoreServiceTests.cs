@@ -799,3 +799,4 @@ public class SemaphoreServiceTests : SqlServerTestBase
 
     #endregion
 }
+

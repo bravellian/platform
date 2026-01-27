@@ -287,7 +287,7 @@ public class MultiDatabaseControlPlaneIntegrationTests
         if (useDiscovery)
         {
             services.AddSingleton<IPlatformDatabaseDiscovery>(new StaticDiscovery(tenants));
-            services.AddPlatformMultiDatabaseWithControlPlaneAndDiscovery(new PlatformControlPlaneOptions
+            services.AddPostgresPlatformMultiDatabaseWithControlPlaneAndDiscovery(new PlatformControlPlaneOptions
             {
                 ConnectionString = controlPlaneConnection,
                 SchemaName = "control",
@@ -296,7 +296,7 @@ public class MultiDatabaseControlPlaneIntegrationTests
         }
         else
         {
-            services.AddPlatformMultiDatabaseWithControlPlaneAndList(
+            services.AddPostgresPlatformMultiDatabaseWithControlPlaneAndList(
                 tenants,
                 new PlatformControlPlaneOptions
                 {
@@ -334,7 +334,7 @@ public class MultiDatabaseControlPlaneIntegrationTests
             if (useDiscovery)
             {
                 services.AddSingleton<IPlatformDatabaseDiscovery>(new StaticDiscovery(tenants));
-                services.AddPlatformMultiDatabaseWithControlPlaneAndDiscovery(new PlatformControlPlaneOptions
+                services.AddPostgresPlatformMultiDatabaseWithControlPlaneAndDiscovery(new PlatformControlPlaneOptions
                 {
                     ConnectionString = controlPlaneConnection,
                     SchemaName = "control",
@@ -343,7 +343,7 @@ public class MultiDatabaseControlPlaneIntegrationTests
             }
             else
             {
-                services.AddPlatformMultiDatabaseWithControlPlaneAndList(
+                services.AddPostgresPlatformMultiDatabaseWithControlPlaneAndList(
                     tenants,
                     new PlatformControlPlaneOptions
                     {
@@ -448,4 +448,5 @@ SELECT COUNT(*) FROM {outboxTable} WHERE "IsProcessed" = TRUE
         }
     }
 }
+
 

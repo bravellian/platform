@@ -725,3 +725,4 @@ public class OutboxJoinTests : SqlServerTestBase
         return table;
     }
 }
+

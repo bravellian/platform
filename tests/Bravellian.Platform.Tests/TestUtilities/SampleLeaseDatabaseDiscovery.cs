@@ -63,3 +63,4 @@ public class SampleLeaseDatabaseDiscovery : ILeaseDatabaseDiscovery
         return Task.FromResult<IEnumerable<LeaseDatabaseConfig>>(databases.ToList());
     }
 }
+

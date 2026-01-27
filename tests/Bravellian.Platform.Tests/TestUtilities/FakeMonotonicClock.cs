@@ -39,3 +39,4 @@ public class FakeMonotonicClock : IMonotonicClock
         currentSeconds += timeSpan.TotalSeconds;
     }
 }
+

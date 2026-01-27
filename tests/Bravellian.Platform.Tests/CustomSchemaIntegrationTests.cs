@@ -376,3 +376,4 @@ public class CustomSchemaIntegrationTests : SqlServerTestBase
         return count > 0;
     }
 }
+

@@ -38,6 +38,7 @@ public static class PlatformServiceCollectionExtensions
     /// <param name="databases">The list of application databases.</param>
     /// <param name="enableSchemaDeployment">Whether to automatically create platform tables and procedures at startup.</param>
     /// <returns>The service collection for chaining.</returns>
+    [Obsolete("Use AddSqlPlatformMultiDatabaseWithList for SQL Server platform registration.")]
     public static IServiceCollection AddPlatformMultiDatabaseWithList(
         this IServiceCollection services,
         IEnumerable<PlatformDatabase> databases,
@@ -89,6 +90,7 @@ public static class PlatformServiceCollectionExtensions
     /// <remarks>
     /// Requires an implementation of <see cref="IPlatformDatabaseDiscovery"/> to be registered in the service collection.
     /// </remarks>
+    [Obsolete("Use AddSqlPlatformMultiDatabaseWithDiscovery for SQL Server platform registration.")]
     public static IServiceCollection AddPlatformMultiDatabaseWithDiscovery(
         this IServiceCollection services,
         bool enableSchemaDeployment = false)
@@ -128,6 +130,7 @@ public static class PlatformServiceCollectionExtensions
     /// <param name="databases">The list of application databases.</param>
     /// <param name="controlPlaneOptions">The control plane configuration options.</param>
     /// <returns>The service collection for chaining.</returns>
+    [Obsolete("Use AddSqlPlatformMultiDatabaseWithControlPlaneAndList for SQL Server platform registration.")]
     public static IServiceCollection AddPlatformMultiDatabaseWithControlPlaneAndList(
         this IServiceCollection services,
         IEnumerable<PlatformDatabase> databases,
@@ -192,7 +195,7 @@ public static class PlatformServiceCollectionExtensions
     /// <param name="controlPlaneConnectionString">The connection string for the control plane database.</param>
     /// <param name="enableSchemaDeployment">Whether to automatically create platform tables and procedures at startup.</param>
     /// <returns>The service collection for chaining.</returns>
-    [Obsolete("Use the overload that accepts PlatformControlPlaneOptions for more configuration options.")]
+    [Obsolete("Use AddSqlPlatformMultiDatabaseWithControlPlaneAndList and the overload that accepts PlatformControlPlaneOptions for more configuration options.")]
     public static IServiceCollection AddPlatformMultiDatabaseWithControlPlaneAndList(
         this IServiceCollection services,
         IEnumerable<PlatformDatabase> databases,
@@ -219,6 +222,7 @@ public static class PlatformServiceCollectionExtensions
     /// <remarks>
     /// Requires an implementation of <see cref="IPlatformDatabaseDiscovery"/> to be registered in the service collection.
     /// </remarks>
+    [Obsolete("Use AddSqlPlatformMultiDatabaseWithControlPlaneAndDiscovery for SQL Server platform registration.")]
     public static IServiceCollection AddPlatformMultiDatabaseWithControlPlaneAndDiscovery(
         this IServiceCollection services,
         PlatformControlPlaneOptions controlPlaneOptions)
@@ -276,7 +280,7 @@ public static class PlatformServiceCollectionExtensions
     /// <remarks>
     /// Requires an implementation of <see cref="IPlatformDatabaseDiscovery"/> to be registered in the service collection.
     /// </remarks>
-    [Obsolete("Use the overload that accepts PlatformControlPlaneOptions for more configuration options.")]
+    [Obsolete("Use AddSqlPlatformMultiDatabaseWithControlPlaneAndDiscovery and the overload that accepts PlatformControlPlaneOptions for more configuration options.")]
     public static IServiceCollection AddPlatformMultiDatabaseWithControlPlaneAndDiscovery(
         this IServiceCollection services,
         string controlPlaneConnectionString,
@@ -298,6 +302,7 @@ public static class PlatformServiceCollectionExtensions
     /// <param name="discoveryFactory">Factory that creates the IPlatformDatabaseDiscovery instance.</param>
     /// <param name="controlPlaneOptions">The control plane configuration options.</param>
     /// <returns>The service collection for chaining.</returns>
+    [Obsolete("Use AddSqlPlatformMultiDatabaseWithControlPlaneAndDiscovery for SQL Server platform registration.")]
     public static IServiceCollection AddPlatformMultiDatabaseWithControlPlaneAndDiscovery(
         this IServiceCollection services,
         Func<IServiceProvider, IPlatformDatabaseDiscovery> discoveryFactory,
@@ -315,6 +320,7 @@ public static class PlatformServiceCollectionExtensions
     /// <param name="services">The service collection.</param>
     /// <param name="controlPlaneOptions">The control plane configuration options.</param>
     /// <returns>The service collection for chaining.</returns>
+    [Obsolete("Use AddSqlPlatformMultiDatabaseWithControlPlaneAndDiscovery for SQL Server platform registration.")]
     public static IServiceCollection AddPlatformMultiDatabaseWithControlPlaneAndDiscovery<TDiscovery>(
         this IServiceCollection services,
         PlatformControlPlaneOptions controlPlaneOptions)
@@ -332,9 +338,9 @@ public static class PlatformServiceCollectionExtensions
         {
             throw new InvalidOperationException(
                 "Platform registration has already been called. Only one of the four AddPlatform* methods can be used. " +
-                "Ensure you call exactly one of: AddPlatformMultiDatabaseWithList, " +
-                "AddPlatformMultiDatabaseWithDiscovery, AddPlatformMultiDatabaseWithControlPlaneAndList, or " +
-                "AddPlatformMultiDatabaseWithControlPlaneAndDiscovery.");
+                "Ensure you call exactly one of: AddSqlPlatformMultiDatabaseWithList, " +
+                "AddSqlPlatformMultiDatabaseWithDiscovery, AddSqlPlatformMultiDatabaseWithControlPlaneAndList, or " +
+                "AddSqlPlatformMultiDatabaseWithControlPlaneAndDiscovery.");
         }
     }
 
@@ -347,7 +353,7 @@ public static class PlatformServiceCollectionExtensions
         if (discoveryDescriptors.Count == 0)
         {
             throw new InvalidOperationException(
-                "IPlatformDatabaseDiscovery is not registered. Register your discovery implementation before calling AddPlatformMultiDatabaseWithControlPlaneAndDiscovery (or use the overload that accepts a discovery factory/type).");
+                "IPlatformDatabaseDiscovery is not registered. Register your discovery implementation before calling AddSqlPlatformMultiDatabaseWithControlPlaneAndDiscovery (or use the overload that accepts a discovery factory/type).");
         }
 
         if (discoveryDescriptors.Count > 1)

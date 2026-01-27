@@ -260,3 +260,4 @@ public class PostgresSchedulerClientTests : PostgresTestBase
         count.ShouldBeGreaterThan(0);
     }
 }
+

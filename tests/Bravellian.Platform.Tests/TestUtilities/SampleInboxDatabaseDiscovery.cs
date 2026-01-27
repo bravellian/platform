@@ -63,3 +63,4 @@ public class SampleInboxDatabaseDiscovery : IInboxDatabaseDiscovery
         return Task.FromResult<IEnumerable<InboxDatabaseConfig>>(databases.ToList());
     }
 }
+

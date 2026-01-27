@@ -86,6 +86,11 @@ internal sealed class WatchdogService : BackgroundService, IWatchdog
         var opts = options.Value;
         var random = new Random();
 
+        if (heartbeatSequence == 0 && opts.Watchdog.HeartbeatPeriod > TimeSpan.Zero)
+        {
+            lastHeartbeatAt = timeProvider.GetUtcNow() - opts.Watchdog.HeartbeatPeriod;
+        }
+
         while (!stoppingToken.IsCancellationRequested)
         {
             try

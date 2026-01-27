@@ -500,3 +500,4 @@ public sealed class DapperTypeHandlerTests : SqlServerTestBase
         InstanceIdentifier InstanceIdColumn,
         DatabaseIdentifier DatabaseIdColumn);
 }
+

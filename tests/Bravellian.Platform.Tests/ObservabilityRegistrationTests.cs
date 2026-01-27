@@ -209,3 +209,4 @@ public class ObservabilityRegistrationTests
         snapshot.ActiveAlerts[0].Kind.ShouldBe(WatchdogAlertKind.StuckInbox);
     }
 }
+

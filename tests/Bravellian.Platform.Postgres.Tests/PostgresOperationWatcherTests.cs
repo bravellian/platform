@@ -133,3 +133,4 @@ public sealed class PostgresOperationWatcherTests : PostgresTestBase
         ((DateTimeOffset?)row.CompletedAtUtc).ShouldNotBeNull();
     }
 }
+

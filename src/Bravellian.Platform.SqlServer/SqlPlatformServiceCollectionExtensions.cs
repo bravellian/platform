@@ -29,6 +29,164 @@ namespace Bravellian.Platform;
 /// </summary>
 public static class SqlPlatformServiceCollectionExtensions
 {
+#pragma warning disable CS0618 // Compatibility wrappers forward to legacy names.
+    /// <summary>
+    /// Registers the SQL Server platform for a multi-database environment without control plane.
+    /// Features run across the provided list of databases using round-robin scheduling.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="databases">The list of application databases.</param>
+    /// <param name="enableSchemaDeployment">Whether to automatically create platform tables and procedures at startup.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddSqlPlatformMultiDatabaseWithList(
+        this IServiceCollection services,
+        IEnumerable<PlatformDatabase> databases,
+        bool enableSchemaDeployment = true)
+    {
+        return PlatformServiceCollectionExtensions.AddPlatformMultiDatabaseWithList(
+            services,
+            databases,
+            enableSchemaDeployment);
+    }
+
+    /// <summary>
+    /// Registers the SQL Server platform for a multi-database environment without control plane.
+    /// Features run across databases discovered via the provided discovery service using round-robin scheduling.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="enableSchemaDeployment">Whether to automatically create platform tables and procedures at startup.</param>
+    /// <returns>The service collection for chaining.</returns>
+    /// <remarks>
+    /// Requires an implementation of <see cref="IPlatformDatabaseDiscovery"/> to be registered in the service collection.
+    /// </remarks>
+    public static IServiceCollection AddSqlPlatformMultiDatabaseWithDiscovery(
+        this IServiceCollection services,
+        bool enableSchemaDeployment = true)
+    {
+        return PlatformServiceCollectionExtensions.AddPlatformMultiDatabaseWithDiscovery(
+            services,
+            enableSchemaDeployment);
+    }
+
+    /// <summary>
+    /// Registers the SQL Server platform for a multi-database environment with control plane.
+    /// Features run across the provided list of databases with control plane coordination available for future features.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="databases">The list of application databases.</param>
+    /// <param name="controlPlaneOptions">The control plane configuration options.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddSqlPlatformMultiDatabaseWithControlPlaneAndList(
+        this IServiceCollection services,
+        IEnumerable<PlatformDatabase> databases,
+        PlatformControlPlaneOptions controlPlaneOptions)
+    {
+        return PlatformServiceCollectionExtensions.AddPlatformMultiDatabaseWithControlPlaneAndList(
+            services,
+            databases,
+            controlPlaneOptions);
+    }
+
+    /// <summary>
+    /// Registers the SQL Server platform for a multi-database environment with control plane.
+    /// Features run across the provided list of databases with control plane coordination available for future features.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="databases">The list of application databases.</param>
+    /// <param name="controlPlaneConnectionString">The connection string for the control plane database.</param>
+    /// <param name="enableSchemaDeployment">Whether to automatically create platform tables and procedures at startup.</param>
+    /// <returns>The service collection for chaining.</returns>
+    [Obsolete("Use the overload that accepts PlatformControlPlaneOptions for more configuration options.")]
+    public static IServiceCollection AddSqlPlatformMultiDatabaseWithControlPlaneAndList(
+        this IServiceCollection services,
+        IEnumerable<PlatformDatabase> databases,
+        string controlPlaneConnectionString,
+        bool enableSchemaDeployment = true)
+    {
+        return PlatformServiceCollectionExtensions.AddPlatformMultiDatabaseWithControlPlaneAndList(
+            services,
+            databases,
+            controlPlaneConnectionString,
+            enableSchemaDeployment);
+    }
+
+    /// <summary>
+    /// Registers the SQL Server platform for a multi-database environment with control plane.
+    /// Features run across databases discovered via the provided discovery service with control plane coordination available for future features.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="controlPlaneOptions">The control plane configuration options.</param>
+    /// <returns>The service collection for chaining.</returns>
+    /// <remarks>
+    /// Requires an implementation of <see cref="IPlatformDatabaseDiscovery"/> to be registered in the service collection.
+    /// </remarks>
+    public static IServiceCollection AddSqlPlatformMultiDatabaseWithControlPlaneAndDiscovery(
+        this IServiceCollection services,
+        PlatformControlPlaneOptions controlPlaneOptions)
+    {
+        return PlatformServiceCollectionExtensions.AddPlatformMultiDatabaseWithControlPlaneAndDiscovery(
+            services,
+            controlPlaneOptions);
+    }
+
+    /// <summary>
+    /// Registers the SQL Server platform for a multi-database environment with control plane.
+    /// Features run across databases discovered via the provided discovery service with control plane coordination available for future features.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="controlPlaneConnectionString">The connection string for the control plane database.</param>
+    /// <param name="enableSchemaDeployment">Whether to automatically create platform tables and procedures at startup.</param>
+    /// <returns>The service collection for chaining.</returns>
+    /// <remarks>
+    /// Requires an implementation of <see cref="IPlatformDatabaseDiscovery"/> to be registered in the service collection.
+    /// </remarks>
+    [Obsolete("Use the overload that accepts PlatformControlPlaneOptions for more configuration options.")]
+    public static IServiceCollection AddSqlPlatformMultiDatabaseWithControlPlaneAndDiscovery(
+        this IServiceCollection services,
+        string controlPlaneConnectionString,
+        bool enableSchemaDeployment = true)
+    {
+        return PlatformServiceCollectionExtensions.AddPlatformMultiDatabaseWithControlPlaneAndDiscovery(
+            services,
+            controlPlaneConnectionString,
+            enableSchemaDeployment);
+    }
+
+    /// <summary>
+    /// Registers the SQL Server platform for a multi-database environment with control plane using a discovery factory.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="discoveryFactory">Factory that creates the IPlatformDatabaseDiscovery instance.</param>
+    /// <param name="controlPlaneOptions">The control plane configuration options.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddSqlPlatformMultiDatabaseWithControlPlaneAndDiscovery(
+        this IServiceCollection services,
+        Func<IServiceProvider, IPlatformDatabaseDiscovery> discoveryFactory,
+        PlatformControlPlaneOptions controlPlaneOptions)
+    {
+        return PlatformServiceCollectionExtensions.AddPlatformMultiDatabaseWithControlPlaneAndDiscovery(
+            services,
+            discoveryFactory,
+            controlPlaneOptions);
+    }
+
+    /// <summary>
+    /// Registers the SQL Server platform for a multi-database environment with control plane using a discovery type.
+    /// </summary>
+    /// <typeparam name="TDiscovery">The discovery implementation.</typeparam>
+    /// <param name="services">The service collection.</param>
+    /// <param name="controlPlaneOptions">The control plane configuration options.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddSqlPlatformMultiDatabaseWithControlPlaneAndDiscovery<TDiscovery>(
+        this IServiceCollection services,
+        PlatformControlPlaneOptions controlPlaneOptions)
+        where TDiscovery : class, IPlatformDatabaseDiscovery
+    {
+        return PlatformServiceCollectionExtensions.AddPlatformMultiDatabaseWithControlPlaneAndDiscovery<TDiscovery>(
+            services,
+            controlPlaneOptions);
+    }
+#pragma warning restore CS0618
     /// <summary>
     /// Registers all SQL Server-backed platform storage components using a single connection string.
     /// Includes Operations, Audit, Email outbox, Webhooks/Observability dependencies, and shared platform services.

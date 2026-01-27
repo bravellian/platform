@@ -399,3 +399,4 @@ public class JoinWaitHandlerTests : SqlServerTestBase
         updatedJoin!.Status.ShouldBe(JoinStatus.Completed);
     }
 }
+

@@ -37,7 +37,7 @@ public sealed class DynamicDiscoveryEnforcementTests
     /// Enforce discovery-driven configuration for tenant features while allowing global options.
     /// </intent>
     /// <scenario>
-    /// Given AddPlatformMultiDatabaseWithControlPlaneAndDiscovery with a discovery implementation and control plane options.
+    /// Given AddSqlPlatformMultiDatabaseWithControlPlaneAndDiscovery with a discovery implementation and control plane options.
     /// </scenario>
     /// <behavior>
     /// Then Outbox/Inbox/Scheduler/Fanout options remain default while Semaphore options are configured.
@@ -61,7 +61,7 @@ public sealed class DynamicDiscoveryEnforcementTests
         }));
 
         // Register platform with control plane
-        services.AddPlatformMultiDatabaseWithControlPlaneAndDiscovery(
+        services.AddSqlPlatformMultiDatabaseWithControlPlaneAndDiscovery(
             new PlatformControlPlaneOptions
             {
                 ConnectionString = "Server=localhost;Database=ControlPlane;",
@@ -93,7 +93,7 @@ public sealed class DynamicDiscoveryEnforcementTests
     /// Ensure list-based registration still relies on discovery providers rather than direct options.
     /// </intent>
     /// <scenario>
-    /// Given AddPlatformMultiDatabaseWithList with two tenant databases and schema deployment disabled.
+    /// Given AddSqlPlatformMultiDatabaseWithList with two tenant databases and schema deployment disabled.
     /// </scenario>
     /// <behavior>
     /// Then Outbox/Inbox/Scheduler/Fanout options remain default.
@@ -122,7 +122,7 @@ public sealed class DynamicDiscoveryEnforcementTests
         };
 
         // Register platform without control plane
-        services.AddPlatformMultiDatabaseWithList(databases, enableSchemaDeployment: false);
+        services.AddSqlPlatformMultiDatabaseWithList(databases, enableSchemaDeployment: false);
 
         var serviceProvider = services.BuildServiceProvider();
 
@@ -146,7 +146,7 @@ public sealed class DynamicDiscoveryEnforcementTests
     /// Validate provider registration for outbox, inbox, scheduler, fanout, and leases.
     /// </intent>
     /// <scenario>
-    /// Given AddPlatformMultiDatabaseWithDiscovery and a discovery implementation.
+    /// Given AddSqlPlatformMultiDatabaseWithDiscovery and a discovery implementation.
     /// </scenario>
     /// <behavior>
     /// Then the outbox, inbox, scheduler, fanout, and lease providers resolve from the service provider.
@@ -168,7 +168,7 @@ public sealed class DynamicDiscoveryEnforcementTests
             },
         }));
 
-        services.AddPlatformMultiDatabaseWithDiscovery(enableSchemaDeployment: false);
+        services.AddSqlPlatformMultiDatabaseWithDiscovery(enableSchemaDeployment: false);
 
         var serviceProvider = services.BuildServiceProvider();
 
@@ -196,7 +196,7 @@ public sealed class DynamicDiscoveryEnforcementTests
     /// Ensure providers use IPlatformDatabaseDiscovery results for tenant enumeration.
     /// </intent>
     /// <scenario>
-    /// Given discovery returns two tenant databases and AddPlatformMultiDatabaseWithDiscovery is used.
+    /// Given discovery returns two tenant databases and AddSqlPlatformMultiDatabaseWithDiscovery is used.
     /// </scenario>
     /// <behavior>
     /// Then outbox, inbox, scheduler, lease, and fanout providers each return two entries.
@@ -225,7 +225,7 @@ public sealed class DynamicDiscoveryEnforcementTests
         };
 
         services.AddSingleton<IPlatformDatabaseDiscovery>(new ListBasedDatabaseDiscovery(databases));
-        services.AddPlatformMultiDatabaseWithDiscovery(enableSchemaDeployment: false);
+        services.AddSqlPlatformMultiDatabaseWithDiscovery(enableSchemaDeployment: false);
 
         var serviceProvider = services.BuildServiceProvider();
 
@@ -303,3 +303,4 @@ public sealed class DynamicDiscoveryEnforcementTests
         };
     }
 }
+

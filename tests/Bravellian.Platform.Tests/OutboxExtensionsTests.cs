@@ -165,3 +165,4 @@ public class OutboxExtensionsTests : SqlServerTestBase
         payload.OnCompleteTopic.ShouldBe("complete");
     }
 }
+

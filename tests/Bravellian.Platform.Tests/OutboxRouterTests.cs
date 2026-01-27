@@ -345,3 +345,4 @@ public class OutboxRouterTests
         ex.Message.ShouldContain(customerId.ToString());
     }
 }
+

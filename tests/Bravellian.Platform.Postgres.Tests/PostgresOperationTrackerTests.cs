@@ -121,3 +121,4 @@ public sealed class PostgresOperationTrackerTests : PostgresTestBase
         count.ShouldBe(1);
     }
 }
+

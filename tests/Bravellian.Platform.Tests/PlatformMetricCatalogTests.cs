@@ -205,3 +205,4 @@ public class PlatformMetricCatalogTests
         }
     }
 }
+

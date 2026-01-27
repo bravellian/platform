@@ -98,3 +98,4 @@ public class OutboxMessageTests
         toStringMethod.IsVirtual.ShouldBeTrue(); // Records have virtual ToString
     }
 }
+

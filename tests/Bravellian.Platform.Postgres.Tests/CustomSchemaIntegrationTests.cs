@@ -289,3 +289,4 @@ public class CustomSchemaIntegrationTests : PostgresTestBase
         return count > 0;
     }
 }
+

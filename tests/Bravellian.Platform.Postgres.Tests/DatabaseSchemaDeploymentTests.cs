@@ -122,7 +122,7 @@ public class DatabaseSchemaDeploymentTests
     /// <scenario>Given a ServiceCollection, one PlatformDatabase entry, and enableSchemaDeployment set to true.</scenario>
     /// <behavior>IDatabaseSchemaCompletion and DatabaseSchemaBackgroundService are registered.</behavior>
     [Fact]
-    public void AddPlatformMultiDatabaseWithList_WithSchemaDeploymentEnabled_RegistersSchemaService()
+    public void AddPostgresPlatformMultiDatabaseWithList_WithSchemaDeploymentEnabled_RegistersSchemaService()
     {
         var services = new ServiceCollection();
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
@@ -137,7 +137,7 @@ public class DatabaseSchemaDeploymentTests
             },
         };
 
-        services.AddPlatformMultiDatabaseWithList(databases, enableSchemaDeployment: true);
+        services.AddPostgresPlatformMultiDatabaseWithList(databases, enableSchemaDeployment: true);
 
         var schemaCompletionDescriptor = services.FirstOrDefault(s => s.ServiceType == typeof(IDatabaseSchemaCompletion));
         var hostedServiceDescriptor = services.FirstOrDefault(s => s.ServiceType == typeof(IHostedService) && s.ImplementationType == typeof(DatabaseSchemaBackgroundService));
@@ -151,7 +151,7 @@ public class DatabaseSchemaDeploymentTests
     /// <scenario>Given a ServiceCollection, tenant list, and control-plane options with EnableSchemaDeployment set to true.</scenario>
     /// <behavior>IDatabaseSchemaCompletion and DatabaseSchemaBackgroundService are registered.</behavior>
     [Fact]
-    public void AddPlatformMultiDatabaseWithControlPlane_WithSchemaDeploymentEnabled_RegistersSchemaService()
+    public void AddPostgresPlatformMultiDatabaseWithControlPlaneAndList_WithSchemaDeploymentEnabled_RegistersSchemaService()
     {
         var services = new ServiceCollection();
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
@@ -173,7 +173,7 @@ public class DatabaseSchemaDeploymentTests
             EnableSchemaDeployment = true,
         };
 
-        services.AddPlatformMultiDatabaseWithControlPlaneAndList(databases, controlPlaneOptions);
+        services.AddPostgresPlatformMultiDatabaseWithControlPlaneAndList(databases, controlPlaneOptions);
 
         var schemaCompletionDescriptor = services.FirstOrDefault(s => s.ServiceType == typeof(IDatabaseSchemaCompletion));
         var hostedServiceDescriptor = services.FirstOrDefault(s => s.ServiceType == typeof(IHostedService) && s.ImplementationType == typeof(DatabaseSchemaBackgroundService));
@@ -187,7 +187,7 @@ public class DatabaseSchemaDeploymentTests
     /// <scenario>Given a ServiceCollection, one PlatformDatabase entry, and enableSchemaDeployment set to false.</scenario>
     /// <behavior>IDatabaseSchemaCompletion and DatabaseSchemaBackgroundService are absent.</behavior>
     [Fact]
-    public void AddPlatformMultiDatabaseWithList_WithSchemaDeploymentDisabled_DoesNotRegisterSchemaService()
+    public void AddPostgresPlatformMultiDatabaseWithList_WithSchemaDeploymentDisabled_DoesNotRegisterSchemaService()
     {
         var services = new ServiceCollection();
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
@@ -202,7 +202,7 @@ public class DatabaseSchemaDeploymentTests
             },
         };
 
-        services.AddPlatformMultiDatabaseWithList(databases, enableSchemaDeployment: false);
+        services.AddPostgresPlatformMultiDatabaseWithList(databases, enableSchemaDeployment: false);
 
         var schemaCompletionDescriptor = services.FirstOrDefault(s => s.ServiceType == typeof(IDatabaseSchemaCompletion));
         var hostedServiceDescriptor = services.FirstOrDefault(s => s.ServiceType == typeof(IHostedService) && s.ImplementationType == typeof(DatabaseSchemaBackgroundService));
@@ -211,3 +211,4 @@ public class DatabaseSchemaDeploymentTests
         Assert.Null(hostedServiceDescriptor);
     }
 }
+

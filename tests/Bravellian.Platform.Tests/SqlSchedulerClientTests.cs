@@ -374,3 +374,4 @@ public class SqlSchedulerClientTests : SqlServerTestBase
         count.ShouldBeGreaterThan(0);
     }
 }
+

@@ -168,3 +168,4 @@ public class MetricRegistrarTests
         result.ShouldBeFalse();
     }
 }
+

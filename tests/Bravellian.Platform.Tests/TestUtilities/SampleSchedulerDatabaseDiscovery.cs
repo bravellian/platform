@@ -51,3 +51,4 @@ public class SampleSchedulerDatabaseDiscovery : ISchedulerDatabaseDiscovery
         databases.Clear();
     }
 }
+

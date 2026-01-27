@@ -79,7 +79,7 @@ public static class LeaseServiceCollectionExtensions
     /// <param name="connectionString">The database connection string.</param>
     /// <param name="schemaName">The schema name (default: "infra").</param>
     /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
-    [Obsolete("This method uses a hardcoded connection string and bypasses dynamic discovery. Use AddPlatformMultiDatabaseWithDiscovery or AddPlatformMultiDatabaseWithList instead to ensure all databases go through IPlatformDatabaseDiscovery.")]
+    [Obsolete("This method uses a hardcoded connection string and bypasses dynamic discovery. Use AddSqlPlatformMultiDatabaseWithDiscovery or AddSqlPlatformMultiDatabaseWithList instead to ensure all databases go through IPlatformDatabaseDiscovery.")]
     public static IServiceCollection AddSystemLeases(this IServiceCollection services, string connectionString, string schemaName = "infra")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
@@ -147,7 +147,7 @@ public static class LeaseServiceCollectionExtensions
     /// <param name="services">The IServiceCollection to add services to.</param>
     /// <param name="leaseConfigs">List of lease database configurations, one for each database.</param>
     /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
-    [Obsolete("This method uses hardcoded database configurations and bypasses dynamic discovery. Use AddPlatformMultiDatabaseWithDiscovery or AddPlatformMultiDatabaseWithList instead to ensure all databases go through IPlatformDatabaseDiscovery.")]
+    [Obsolete("This method uses hardcoded database configurations and bypasses dynamic discovery. Use AddSqlPlatformMultiDatabaseWithDiscovery or AddSqlPlatformMultiDatabaseWithList instead to ensure all databases go through IPlatformDatabaseDiscovery.")]
     public static IServiceCollection AddMultiSystemLeases(
         this IServiceCollection services,
         IEnumerable<LeaseDatabaseConfig> leaseConfigs)

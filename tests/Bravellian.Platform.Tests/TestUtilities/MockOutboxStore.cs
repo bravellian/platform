@@ -52,3 +52,4 @@ public class MockOutboxStore : IOutboxStore
     /// <inheritdoc/>
     public override string ToString() => name;
 }
+

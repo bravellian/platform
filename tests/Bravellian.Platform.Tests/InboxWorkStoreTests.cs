@@ -317,3 +317,4 @@ public class InboxWorkStoreTests : SqlServerTestBase
         return new SqlInboxWorkStore(options, TimeProvider.System, logger);
     }
 }
+

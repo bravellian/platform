@@ -272,3 +272,4 @@ public class OutboxWorkQueueTests : SqlServerTestBase
         }
     }
 }
+

@@ -108,3 +108,4 @@ public class FanoutSystemTests
         options.LeaseDuration.ShouldBe(TimeSpan.FromSeconds(90));
     }
 }
+

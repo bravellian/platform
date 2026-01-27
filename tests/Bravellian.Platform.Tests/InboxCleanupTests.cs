@@ -268,3 +268,4 @@ public class InboxCleanupTests : SqlServerTestBase
         procExists.ShouldBe(0);
     }
 }
+

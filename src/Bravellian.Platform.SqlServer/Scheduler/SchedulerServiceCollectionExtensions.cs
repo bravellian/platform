@@ -94,7 +94,7 @@ public static class SchedulerServiceCollectionExtensions
     /// <param name="services">The IServiceCollection to add services to.</param>
     /// <param name="options">The configuration, used to set the options.</param>
     /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
-    [Obsolete("This method uses a hardcoded connection string and creates its own lease factories, bypassing dynamic discovery. Use AddPlatformMultiDatabaseWithDiscovery or AddPlatformMultiDatabaseWithList instead to ensure all databases go through IPlatformDatabaseDiscovery.")]
+    [Obsolete("This method uses a hardcoded connection string and creates its own lease factories, bypassing dynamic discovery. Use AddSqlPlatformMultiDatabaseWithDiscovery or AddSqlPlatformMultiDatabaseWithList instead to ensure all databases go through IPlatformDatabaseDiscovery.")]
     public static IServiceCollection AddSqlScheduler(this IServiceCollection services, SqlSchedulerOptions options)
     {
         var validator = new SqlSchedulerOptionsValidator();

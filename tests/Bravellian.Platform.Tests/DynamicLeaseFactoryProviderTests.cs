@@ -379,3 +379,4 @@ public class DynamicLeaseFactoryProviderTests
         ReferenceEquals(initialFactory, updatedFactories[0]).ShouldBeFalse();
     }
 }
+

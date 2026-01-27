@@ -154,3 +154,4 @@ public class InboxRouterTests
         Should.Throw<ArgumentNullException>(() => new InboxRouter(null!));
     }
 }
+

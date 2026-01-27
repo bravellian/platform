@@ -139,3 +139,4 @@ public sealed class RazorPagesConfigurationTests
         public IEnumerable<IModuleEngineDescriptor> DescribeEngines() => Array.Empty<IModuleEngineDescriptor>();
     }
 }
+

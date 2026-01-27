@@ -255,3 +255,4 @@ public class PostgresInboxServiceTests : PostgresTestBase
         return new PostgresInboxService(options, logger);
     }
 }
+

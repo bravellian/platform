@@ -308,3 +308,4 @@ public class InboxCleanupTests : PostgresTestBase
             new { RetentionSeconds = (int)retentionPeriod.TotalSeconds });
     }
 }
+

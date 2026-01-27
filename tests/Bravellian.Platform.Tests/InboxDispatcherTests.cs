@@ -448,3 +448,4 @@ public class InboxDispatcherTests : SqlServerTestBase
         public IInbox? GetInboxByKey(string key) => null;
     }
 }
+

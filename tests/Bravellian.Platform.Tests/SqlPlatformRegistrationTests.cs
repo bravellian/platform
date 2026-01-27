@@ -44,3 +44,4 @@ public sealed class SqlPlatformRegistrationTests
         Assert.NotNull(provider.GetService<IPlatformDatabaseDiscovery>());
     }
 }
+

@@ -261,3 +261,4 @@ public class SystemLeaseTests : SqlServerTestBase
         await secondLease.DisposeAsync();
     }
 }
+

@@ -262,3 +262,4 @@ public class SqlOutboxStoreTests : SqlServerTestBase
         ((string)result.ProcessedBy).ShouldContain("FAILED");
     }
 }
+

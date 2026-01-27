@@ -173,13 +173,13 @@ namespace Bravellian.Platform.Tests
         /// Ensure schema deployment services are added for list-based registration.
         /// </intent>
         /// <scenario>
-        /// Given AddPlatformMultiDatabaseWithList with enableSchemaDeployment set to true.
+        /// Given AddSqlPlatformMultiDatabaseWithList with enableSchemaDeployment set to true.
         /// </scenario>
         /// <behavior>
         /// Then IDatabaseSchemaCompletion and DatabaseSchemaBackgroundService are registered.
         /// </behavior>
         [Fact]
-        public void AddPlatformMultiDatabaseWithList_WithSchemaDeploymentEnabled_RegistersSchemaService()
+        public void AddSqlPlatformMultiDatabaseWithList_WithSchemaDeploymentEnabled_RegistersSchemaService()
         {
             // Arrange
             var services = new ServiceCollection();
@@ -196,7 +196,7 @@ namespace Bravellian.Platform.Tests
             };
 
             // Act
-            services.AddPlatformMultiDatabaseWithList(databases, enableSchemaDeployment: true);
+            services.AddSqlPlatformMultiDatabaseWithList(databases, enableSchemaDeployment: true);
 
             // Assert
             var schemaCompletionDescriptor = services.FirstOrDefault(s => s.ServiceType == typeof(IDatabaseSchemaCompletion));
@@ -213,13 +213,13 @@ namespace Bravellian.Platform.Tests
         /// Ensure schema deployment services are added for control-plane registration.
         /// </intent>
         /// <scenario>
-        /// Given AddPlatformMultiDatabaseWithControlPlaneAndList with EnableSchemaDeployment set to true.
+        /// Given AddSqlPlatformMultiDatabaseWithControlPlaneAndList with EnableSchemaDeployment set to true.
         /// </scenario>
         /// <behavior>
         /// Then IDatabaseSchemaCompletion and DatabaseSchemaBackgroundService are registered.
         /// </behavior>
         [Fact]
-        public void AddPlatformMultiDatabaseWithControlPlane_WithSchemaDeploymentEnabled_RegistersSchemaService()
+        public void AddSqlPlatformMultiDatabaseWithControlPlaneAndList_WithSchemaDeploymentEnabled_RegistersSchemaService()
         {
             // Arrange
             var services = new ServiceCollection();
@@ -243,7 +243,7 @@ namespace Bravellian.Platform.Tests
             };
 
             // Act
-            services.AddPlatformMultiDatabaseWithControlPlaneAndList(databases, controlPlaneOptions);
+            services.AddSqlPlatformMultiDatabaseWithControlPlaneAndList(databases, controlPlaneOptions);
 
             // Assert
             var schemaCompletionDescriptor = services.FirstOrDefault(s => s.ServiceType == typeof(IDatabaseSchemaCompletion));
@@ -260,13 +260,13 @@ namespace Bravellian.Platform.Tests
         /// Avoid schema deployment services when list-based registration disables deployment.
         /// </intent>
         /// <scenario>
-        /// Given AddPlatformMultiDatabaseWithList with enableSchemaDeployment set to false.
+        /// Given AddSqlPlatformMultiDatabaseWithList with enableSchemaDeployment set to false.
         /// </scenario>
         /// <behavior>
         /// Then IDatabaseSchemaCompletion and DatabaseSchemaBackgroundService are absent.
         /// </behavior>
         [Fact]
-        public void AddPlatformMultiDatabaseWithList_WithSchemaDeploymentDisabled_DoesNotRegisterSchemaService()
+        public void AddSqlPlatformMultiDatabaseWithList_WithSchemaDeploymentDisabled_DoesNotRegisterSchemaService()
         {
             // Arrange
             var services = new ServiceCollection();
@@ -283,7 +283,7 @@ namespace Bravellian.Platform.Tests
             };
 
             // Act
-            services.AddPlatformMultiDatabaseWithList(databases, enableSchemaDeployment: false);
+            services.AddSqlPlatformMultiDatabaseWithList(databases, enableSchemaDeployment: false);
 
             // Assert
             var schemaCompletionDescriptor = services.FirstOrDefault(s => s.ServiceType == typeof(IDatabaseSchemaCompletion));
@@ -315,3 +315,4 @@ namespace Bravellian.Platform.Tests
         }
     }
 }
+
