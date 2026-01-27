@@ -22,7 +22,7 @@ internal static class SqlServerTestEnvironment
     {
         if (!IsSqlCmdAvailable())
         {
-            throw Xunit.Sdk.SkipException.ForSkip("SQL Server integration tests require sqlcmd to be available on PATH.");
+            throw new Xunit.Sdk.SkipException("SQL Server integration tests require sqlcmd to be available on PATH.");
         }
     }
 
