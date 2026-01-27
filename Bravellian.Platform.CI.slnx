@@ -11,9 +11,14 @@
     <Project Path="src/Bravellian.Platform.Postgres/Bravellian.Platform.Postgres.csproj" />
     <Project Path="src/Bravellian.Platform.SqlServer/Bravellian.Platform.SqlServer.csproj" />
     <Project Path="src/Bravellian.Platform.HealthProbe/Bravellian.Platform.HealthProbe.csproj" />
+    <Project Path="src/Bravellian.Platform.Webhooks/Bravellian.Platform.Webhooks.csproj" />
+    <Project Path="src/Bravellian.Platform.Webhooks.AspNetCore/Bravellian.Platform.Webhooks.AspNetCore.csproj" />
   </Folder>
   <Project Path="src/Bravellian.Platform/Bravellian.Platform.csproj" />
   <Project Path="tests/Bravellian.Platform.Tests/Bravellian.Platform.Tests.csproj" />
   <Project Path="tests/Bravellian.Platform.HealthProbe.Tests/Bravellian.Platform.HealthProbe.Tests.csproj" />
   <Project Path="tests/Bravellian.Platform.Postgres.Tests/Bravellian.Platform.Postgres.Tests.csproj" />
+  <Project Path="tests/Bravellian.Platform.Webhooks.Tests/Bravellian.Platform.Webhooks.Tests.csproj" />
+  <Project Path="tests/Bravellian.Platform.Webhooks.AspNetCore.Tests/Bravellian.Platform.Webhooks.AspNetCore.Tests.csproj" />
 </Solution>
+

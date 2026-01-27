@@ -9,10 +9,16 @@
     <Project Path="src/Bravellian.Platform.Modularity.AspNetCore/Bravellian.Platform.Modularity.AspNetCore.csproj" />
     <Project Path="src/Bravellian.Platform.Modularity.Razor/Bravellian.Platform.Modularity.Razor.csproj" />
   </Folder>
+  <Folder Name="/webhooks/">
+    <Project Path="src/Bravellian.Platform.Webhooks/Bravellian.Platform.Webhooks.csproj" />
+    <Project Path="src/Bravellian.Platform.Webhooks.AspNetCore/Bravellian.Platform.Webhooks.AspNetCore.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Bravellian.Platform.Tests/Bravellian.Platform.Tests.csproj" />
     <Project Path="tests/Bravellian.Platform.HealthProbe.Tests/Bravellian.Platform.HealthProbe.Tests.csproj" />
     <Project Path="tests/Bravellian.Platform.Postgres.Tests/Bravellian.Platform.Postgres.Tests.csproj" />
+    <Project Path="tests/Bravellian.Platform.Webhooks.Tests/Bravellian.Platform.Webhooks.Tests.csproj" />
+    <Project Path="tests/Bravellian.Platform.Webhooks.AspNetCore.Tests/Bravellian.Platform.Webhooks.AspNetCore.Tests.csproj" />
   </Folder>
   <Folder Name="/_src/">
     <File Path=".editorconfig" />
@@ -30,3 +36,4 @@
   <Project Path="src/Bravellian.Platform.Postgres/Bravellian.Platform.Postgres.csproj" />
   <Project Path="src/Bravellian.Platform.SqlServer/Bravellian.Platform.SqlServer.csproj" />
 </Solution>
+
