@@ -1,0 +1,87 @@
+// Copyright (c) Bravellian
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+namespace Bravellian.Platform.Correlation;
+
+/// <summary>
+/// Represents a stable correlation identifier.
+/// </summary>
+public readonly record struct CorrelationId
+{
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CorrelationId"/> struct.
+    /// </summary>
+    /// <param name="value">Correlation identifier value.</param>
+    /// <exception cref="ArgumentException">Thrown when value is null or whitespace.</exception>
+    public CorrelationId(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            throw new ArgumentException("CorrelationId value is required.", nameof(value));
+        }
+
+        Value = value;
+    }
+
+    /// <summary>
+    /// Gets the correlation identifier value.
+    /// </summary>
+    public string Value { get; }
+
+    /// <summary>
+    /// Parses a correlation identifier from a string.
+    /// </summary>
+    /// <param name="value">String value to parse.</param>
+    /// <returns>Parsed correlation identifier.</returns>
+    /// <exception cref="FormatException">Thrown when the value is invalid.</exception>
+    public static CorrelationId Parse(string value)
+    {
+        if (!TryParse(value, out var id))
+        {
+            throw new FormatException("CorrelationId value is invalid.");
+        }
+
+        return id;
+    }
+
+    /// <summary>
+    /// Attempts to parse a correlation identifier from a string.
+    /// </summary>
+    /// <param name="value">String value to parse.</param>
+    /// <param name="correlationId">Parsed correlation identifier.</param>
+    /// <returns><c>true</c> if parsing succeeds; otherwise <c>false</c>.</returns>
+    public static bool TryParse(string? value, out CorrelationId correlationId)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            correlationId = default;
+            return false;
+        }
+
+        correlationId = new CorrelationId(value.Trim());
+        return true;
+    }
+
+    /// <summary>
+    /// Creates a new correlation identifier.
+    /// </summary>
+    /// <returns>New correlation identifier.</returns>
+    public static CorrelationId NewId()
+    {
+        return new CorrelationId(Guid.NewGuid().ToString("n"));
+    }
+
+    /// <inheritdoc />
+    public override string ToString() => Value;
+}

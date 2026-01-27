@@ -9,6 +9,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Bravellian.Platform.Webhooks.AspNetCore\Bravellian.Platform.Webhooks.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\tools\testdocs\src\Bravellian.TestDocs.Analyzers\Bravellian.TestDocs.Analyzers.csproj">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </ProjectReference>
   </ItemGroup>
 
   <ItemGroup>

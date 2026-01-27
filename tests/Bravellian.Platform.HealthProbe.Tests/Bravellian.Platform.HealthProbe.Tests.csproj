@@ -8,6 +8,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Bravellian.Platform.HealthProbe\Bravellian.Platform.HealthProbe.csproj" />
+    <ProjectReference Include="..\..\tools\testdocs\src\Bravellian.TestDocs.Analyzers\Bravellian.TestDocs.Analyzers.csproj">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </ProjectReference>
   </ItemGroup>
 
   <ItemGroup>

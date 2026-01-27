@@ -4,7 +4,7 @@
   <PropertyGroup>
     <NoWarn>$(NoWarn);MA0051;CA1848;CA1873</NoWarn>
   </PropertyGroup>
-  
+
   <!-- Keep global Using directives -->
   <ItemGroup Condition="'$(MSBuildProjectExtension)' != '.dcproj' AND '$(MSBuildProjectExtension)' != '.sqlproj' AND $(MSBuildProjectName.StartsWith('Bravellian.Generators')) == false AND $(MSBuildProjectName.StartsWith('Bravellian.Database')) == false">
     <Using Include="System" />
@@ -31,8 +31,8 @@
     </AssemblyAttribute>
 
     <!-- Keep SourceLink, ReproducibleBuilds, GitVersion -->
-    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" Version="8.0.0" />
-    <PackageReference Include="DotNet.ReproducibleBuilds" Version="1.2.39" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" Version="10.0.102" />
+    <PackageReference Include="DotNet.ReproducibleBuilds" Version="2.0.1" PrivateAssets="All" />
 
     <!-- <PackageReference Include="StyleCop.Analyzers" Condition="$(MSBuildProjectExtension) == '.csproj'" Version="1.1.118">
 			<PrivateAssets>all</PrivateAssets>
@@ -46,19 +46,19 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Roslynator.Formatting.Analyzers" Condition="$(MSBuildProjectExtension) == '.csproj'" Version="4.13.1">
+    <PackageReference Include="Roslynator.Formatting.Analyzers" Condition="$(MSBuildProjectExtension) == '.csproj'" Version="4.15.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Roslynator.CodeAnalysis.Analyzers" Condition="$(MSBuildProjectExtension) == '.csproj'" Version="4.13.1">
+    <PackageReference Include="Roslynator.CodeAnalysis.Analyzers" Condition="$(MSBuildProjectExtension) == '.csproj'" Version="4.15.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Roslynator.Analyzers" Condition="$(MSBuildProjectExtension) == '.csproj'" Version="4.13.1">
+    <PackageReference Include="Roslynator.Analyzers" Condition="$(MSBuildProjectExtension) == '.csproj'" Version="4.15.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Meziantou.Analyzer" Condition="$(MSBuildProjectExtension) == '.csproj'" Version="2.0.205">
+    <PackageReference Include="Meziantou.Analyzer" Condition="$(MSBuildProjectExtension) == '.csproj'" Version="2.0.286">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
@@ -77,10 +77,10 @@
     <Using Include="Shouldly" />
     <Using Include="Xunit" />
 
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
     <PackageReference Include="Shouldly" Version="4.3.0" />
-    <PackageReference Include="xunit.v3" Version="3.0.0" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.3" />
+    <PackageReference Include="xunit.v3" Version="3.2.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
     <PackageReference Include="coverlet.collector" Version="6.0.4">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>

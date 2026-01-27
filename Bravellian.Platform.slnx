@@ -9,6 +9,29 @@
     <Project Path="src/Bravellian.Platform.Modularity.AspNetCore/Bravellian.Platform.Modularity.AspNetCore.csproj" />
     <Project Path="src/Bravellian.Platform.Modularity.Razor/Bravellian.Platform.Modularity.Razor.csproj" />
   </Folder>
+  <Folder Name="/email/">
+    <Project Path="src/Bravellian.Platform.Email/Bravellian.Platform.Email.csproj" />
+    <Project Path="src/Bravellian.Platform.Email.Postmark/Bravellian.Platform.Email.Postmark.csproj" />
+    <Project Path="src/Bravellian.Platform.Email.AspNetCore/Bravellian.Platform.Email.AspNetCore.csproj" />
+  </Folder>
+  <Folder Name="/operations/">
+    <Project Path="src/Bravellian.Platform.Operations/Bravellian.Platform.Operations.csproj" />
+    <Project Path="src/Bravellian.Platform.Operations.Storage.SqlServer/Bravellian.Platform.Operations.Storage.SqlServer.csproj" />
+  </Folder>
+  <Folder Name="/audit/">
+    <Project Path="src/Bravellian.Platform.Audit/Bravellian.Platform.Audit.csproj" />
+    <Project Path="src/Bravellian.Platform.Audit.Storage.SqlServer/Bravellian.Platform.Audit.Storage.SqlServer.csproj" />
+  </Folder>
+  <Folder Name="/correlation/">
+    <Project Path="src/Bravellian.Platform.Correlation/Bravellian.Platform.Correlation.csproj" />
+  </Folder>
+  <Folder Name="/observability/">
+    <Project Path="src/Bravellian.Platform.Observability/Bravellian.Platform.Observability.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/testdocs/src/Bravellian.TestDocs.Analyzers/Bravellian.TestDocs.Analyzers.csproj" />
+    <Project Path="tools/testdocs/src/TestDocs.Cli/TestDocs.Cli.csproj" />
+  </Folder>
   <Folder Name="/webhooks/">
     <Project Path="src/Bravellian.Platform.Webhooks/Bravellian.Platform.Webhooks.csproj" />
     <Project Path="src/Bravellian.Platform.Webhooks.AspNetCore/Bravellian.Platform.Webhooks.AspNetCore.csproj" />
@@ -17,8 +40,14 @@
     <Project Path="tests/Bravellian.Platform.Tests/Bravellian.Platform.Tests.csproj" />
     <Project Path="tests/Bravellian.Platform.HealthProbe.Tests/Bravellian.Platform.HealthProbe.Tests.csproj" />
     <Project Path="tests/Bravellian.Platform.Postgres.Tests/Bravellian.Platform.Postgres.Tests.csproj" />
+    <Project Path="tests/Bravellian.Platform.Email.Tests/Bravellian.Platform.Email.Tests.csproj" />
+    <Project Path="tests/Bravellian.Platform.Email.Postmark.Tests/Bravellian.Platform.Email.Postmark.Tests.csproj" />
     <Project Path="tests/Bravellian.Platform.Webhooks.Tests/Bravellian.Platform.Webhooks.Tests.csproj" />
     <Project Path="tests/Bravellian.Platform.Webhooks.AspNetCore.Tests/Bravellian.Platform.Webhooks.AspNetCore.Tests.csproj" />
+    <Project Path="tests/Bravellian.Platform.Operations.Tests/Bravellian.Platform.Operations.Tests.csproj" />
+    <Project Path="tests/Bravellian.Platform.Audit.Tests/Bravellian.Platform.Audit.Tests.csproj" />
+    <Project Path="tests/Bravellian.Platform.Correlation.Tests/Bravellian.Platform.Correlation.Tests.csproj" />
+    <Project Path="tests/Bravellian.Platform.Observability.Tests/Bravellian.Platform.Observability.Tests.csproj" />
   </Folder>
   <Folder Name="/_src/">
     <File Path=".editorconfig" />
@@ -36,4 +65,3 @@
   <Project Path="src/Bravellian.Platform.Postgres/Bravellian.Platform.Postgres.csproj" />
   <Project Path="src/Bravellian.Platform.SqlServer/Bravellian.Platform.SqlServer.csproj" />
 </Solution>
-

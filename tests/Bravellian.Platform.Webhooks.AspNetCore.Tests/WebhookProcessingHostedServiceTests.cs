@@ -34,7 +34,7 @@ public sealed class WebhookProcessingHostedServiceTests
 
         await service.StartAsync(CancellationToken.None);
 
-        var completed = await processor.FirstCall.Task.WaitAsync(TimeSpan.FromSeconds(1));
+        var completed = await processor.FirstCall.Task.WaitAsync(TimeSpan.FromSeconds(1), Xunit.TestContext.Current.CancellationToken);
         completed.ShouldBeTrue();
 
         await service.StopAsync(CancellationToken.None);

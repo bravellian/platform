@@ -1,0 +1,65 @@
+// Copyright (c) Bravellian
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+using Bravellian.Platform.Audit;
+using Bravellian.Platform.Correlation;
+using Bravellian.Platform.Operations;
+
+namespace Bravellian.Platform.Observability;
+
+/// <summary>
+/// Emits platform events that coordinate audit and operation tracking.
+/// </summary>
+public interface IPlatformEventEmitter
+{
+    /// <summary>
+    /// Emits an operation started event and returns the operation identifier.
+    /// </summary>
+    /// <param name="name">Operation name.</param>
+    /// <param name="correlationContext">Optional correlation context.</param>
+    /// <param name="parentOperationId">Optional parent operation identifier.</param>
+    /// <param name="tags">Optional tags.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Operation identifier.</returns>
+    Task<OperationId> EmitOperationStartedAsync(
+        string name,
+        CorrelationContext? correlationContext,
+        OperationId? parentOperationId,
+        IReadOnlyDictionary<string, string>? tags,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Emits an operation completion event.
+    /// </summary>
+    /// <param name="operationId">Operation identifier.</param>
+    /// <param name="status">Final operation status.</param>
+    /// <param name="message">Optional completion message.</param>
+    /// <param name="correlationContext">Optional correlation context.</param>
+    /// <param name="tags">Optional tags.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task EmitOperationCompletedAsync(
+        OperationId operationId,
+        OperationStatus status,
+        string? message,
+        CorrelationContext? correlationContext,
+        IReadOnlyDictionary<string, string>? tags,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Emits an audit event.
+    /// </summary>
+    /// <param name="auditEvent">Audit event to emit.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task EmitAuditEventAsync(AuditEvent auditEvent, CancellationToken cancellationToken);
+}
