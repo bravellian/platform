@@ -39,17 +39,17 @@ public sealed record OutboundEmailMessage
     public OutboundEmailMessage(
         string messageKey,
         EmailAddress from,
-        IEnumerable<EmailAddress> to,
+        IReadOnlyList<EmailAddress> to,
         string subject,
         string? textBody = null,
         string? htmlBody = null,
-        IEnumerable<EmailAddress>? cc = null,
-        IEnumerable<EmailAddress>? bcc = null,
+        IReadOnlyList<EmailAddress>? cc = null,
+        IReadOnlyList<EmailAddress>? bcc = null,
         EmailAddress? replyTo = null,
-        IEnumerable<EmailAttachment>? attachments = null,
+        IReadOnlyList<EmailAttachment>? attachments = null,
         IReadOnlyDictionary<string, string>? headers = null,
         IReadOnlyDictionary<string, string>? metadata = null,
-        IEnumerable<string>? tags = null,
+        IReadOnlyList<string>? tags = null,
         DateTimeOffset? requestedSendAtUtc = null)
     {
         if (string.IsNullOrWhiteSpace(messageKey))

@@ -19,6 +19,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
 namespace Bravellian.Platform;
@@ -41,6 +42,9 @@ public static class SchedulerServiceCollectionExtensions
     {
         var validator = new SqlOutboxOptionsValidator();
         OptionsValidationHelper.ValidateAndThrow(options, validator);
+
+        services.TryAddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
+        services.TryAddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
 
         services.AddOptions<SqlOutboxOptions>().ValidateOnStart();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<SqlOutboxOptions>>(validator));
@@ -622,6 +626,9 @@ public static class SchedulerServiceCollectionExtensions
             OptionsValidationHelper.ValidateAndThrow(option, validator);
         }
 
+        services.TryAddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
+        services.TryAddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
+
         // Add time abstractions
         services.AddTimeAbstractions();
 
@@ -702,6 +709,9 @@ public static class SchedulerServiceCollectionExtensions
         IOutboxSelectionStrategy? selectionStrategy = null,
         TimeSpan? refreshInterval = null)
     {
+        services.TryAddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
+        services.TryAddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
+
         // Add time abstractions
         services.AddTimeAbstractions();
 

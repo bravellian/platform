@@ -44,27 +44,12 @@ public sealed record AuditEvent
         AuditActor? actor = null,
         CorrelationContext? correlation = null)
     {
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            throw new ArgumentException("Event name is required.", nameof(name));
-        }
-
-        if (string.IsNullOrWhiteSpace(displayMessage))
-        {
-            throw new ArgumentException("Display message is required.", nameof(displayMessage));
-        }
-
-        if (anchors is null || anchors.Count == 0)
-        {
-            throw new ArgumentException("At least one anchor is required.", nameof(anchors));
-        }
-
         EventId = eventId;
         OccurredAtUtc = occurredAtUtc;
-        Name = name.Trim();
-        DisplayMessage = displayMessage.Trim();
+        Name = string.IsNullOrWhiteSpace(name) ? string.Empty : name.Trim();
+        DisplayMessage = string.IsNullOrWhiteSpace(displayMessage) ? string.Empty : displayMessage.Trim();
         Outcome = outcome;
-        Anchors = anchors;
+        Anchors = anchors ?? Array.Empty<EventAnchor>();
         DataJson = dataJson;
         Actor = actor;
         Correlation = correlation;

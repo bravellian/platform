@@ -121,18 +121,17 @@ public sealed class OperationScope : IDisposable, IAsyncDisposable
         await using (scope.ConfigureAwait(false))
         {
             try
-        {
-            await action(cancellationToken).ConfigureAwait(false);
-            await scope.CompleteAsync(OperationStatus.Succeeded, successMessage, cancellationToken)
-                .ConfigureAwait(false);
-            return scope.OperationId;
-        }
-        catch (Exception ex)
-        {
-            await tracker.RecordFailureAsync(scope.OperationId, ex, failureMessage, cancellationToken)
-                .ConfigureAwait(false);
-            throw;
-        }
+            {
+                await action(cancellationToken).ConfigureAwait(false);
+                await scope.CompleteAsync(OperationStatus.Succeeded, successMessage, cancellationToken)
+                    .ConfigureAwait(false);
+                return scope.OperationId;
+            }
+            catch (Exception ex)
+            {
+                scope.Fail(ex, failureMessage);
+                throw;
+            }
         }
     }
 

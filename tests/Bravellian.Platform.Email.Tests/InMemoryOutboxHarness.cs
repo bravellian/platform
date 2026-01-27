@@ -22,7 +22,6 @@ internal sealed class InMemoryOutboxHarness : IOutbox, IOutboxStore
 {
     private readonly List<Entry> entries = new();
     private readonly ManualTimeProvider timeProvider;
-    private Entry? lastClaimed;
 
     public InMemoryOutboxHarness(ManualTimeProvider timeProvider)
     {
@@ -132,7 +131,6 @@ internal sealed class InMemoryOutboxHarness : IOutbox, IOutboxStore
         foreach (var entry in due)
         {
             entry.Claimed = true;
-            lastClaimed = entry;
         }
 
         var messages = due.Select(CreateMessage).ToList();
@@ -141,10 +139,11 @@ internal sealed class InMemoryOutboxHarness : IOutbox, IOutboxStore
 
     public Task MarkDispatchedAsync(OutboxWorkItemIdentifier id, CancellationToken cancellationToken)
     {
-        if (lastClaimed != null)
+        var entry = FindEntry(id);
+        if (entry != null)
         {
-            lastClaimed.Dispatched = true;
-            lastClaimed.Claimed = false;
+            entry.Dispatched = true;
+            entry.Claimed = false;
         }
 
         return Task.CompletedTask;
@@ -152,12 +151,13 @@ internal sealed class InMemoryOutboxHarness : IOutbox, IOutboxStore
 
     public Task RescheduleAsync(OutboxWorkItemIdentifier id, TimeSpan delay, string lastError, CancellationToken cancellationToken)
     {
-        if (lastClaimed != null)
+        var entry = FindEntry(id);
+        if (entry != null)
         {
-            lastClaimed.RetryCount++;
-            lastClaimed.LastError = lastError;
-            lastClaimed.DueTimeUtc = timeProvider.GetUtcNow().Add(delay);
-            lastClaimed.Claimed = false;
+            entry.RetryCount++;
+            entry.LastError = lastError;
+            entry.DueTimeUtc = timeProvider.GetUtcNow().Add(delay);
+            entry.Claimed = false;
         }
 
         return Task.CompletedTask;
@@ -165,11 +165,12 @@ internal sealed class InMemoryOutboxHarness : IOutbox, IOutboxStore
 
     public Task FailAsync(OutboxWorkItemIdentifier id, string lastError, CancellationToken cancellationToken)
     {
-        if (lastClaimed != null)
+        var entry = FindEntry(id);
+        if (entry != null)
         {
-            lastClaimed.Failed = true;
-            lastClaimed.LastError = lastError;
-            lastClaimed.Claimed = false;
+            entry.Failed = true;
+            entry.LastError = lastError;
+            entry.Claimed = false;
         }
 
         return Task.CompletedTask;
@@ -203,6 +204,24 @@ internal sealed class InMemoryOutboxHarness : IOutbox, IOutboxStore
         var prop = type.GetProperty("Value", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
         prop?.SetValue(instance, value);
         return (OutboxWorkItemIdentifier)instance!;
+    }
+
+    private Entry? FindEntry(OutboxWorkItemIdentifier id)
+    {
+        var value = GetWorkItemGuid(id);
+        return entries.FirstOrDefault(entry => entry.Id == value);
+    }
+
+    private static Guid GetWorkItemGuid(OutboxWorkItemIdentifier id)
+    {
+        var type = typeof(OutboxWorkItemIdentifier);
+        var prop = type.GetProperty("Value", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (prop?.PropertyType == typeof(Guid))
+        {
+            return (Guid)(prop.GetValue(id) ?? Guid.Empty);
+        }
+
+        return Guid.Empty;
     }
 
     private sealed class Entry
