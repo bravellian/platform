@@ -14,6 +14,7 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Bravellian.Platform.Observability;
 
 namespace Bravellian.Platform.Email;
 
@@ -30,6 +31,7 @@ public sealed class EmailOutbox : IEmailOutbox
     private readonly IOutbox outbox;
     private readonly EmailMessageValidator validator;
     private readonly IEmailDeliverySink deliverySink;
+    private readonly IPlatformEventEmitter? eventEmitter;
     private readonly EmailOutboxOptions options;
 
     /// <summary>
@@ -49,6 +51,26 @@ public sealed class EmailOutbox : IEmailOutbox
         this.deliverySink = deliverySink ?? throw new ArgumentNullException(nameof(deliverySink));
         this.validator = validator ?? new EmailMessageValidator();
         this.options = options ?? new EmailOutboxOptions();
+        eventEmitter = null;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="EmailOutbox"/> class with observability support.
+    /// </summary>
+    /// <param name="outbox">Outbox instance.</param>
+    /// <param name="deliverySink">Delivery sink.</param>
+    /// <param name="eventEmitter">Optional platform event emitter.</param>
+    /// <param name="validator">Message validator.</param>
+    /// <param name="options">Outbox options.</param>
+    public EmailOutbox(
+        IOutbox outbox,
+        IEmailDeliverySink deliverySink,
+        IPlatformEventEmitter? eventEmitter,
+        EmailMessageValidator? validator = null,
+        EmailOutboxOptions? options = null)
+        : this(outbox, deliverySink, validator, options)
+    {
+        this.eventEmitter = eventEmitter;
     }
 
     /// <inheritdoc />
@@ -70,5 +92,8 @@ public sealed class EmailOutbox : IEmailOutbox
             cancellationToken).ConfigureAwait(false);
 
         await deliverySink.RecordQueuedAsync(message, cancellationToken).ConfigureAwait(false);
+
+        EmailMetrics.RecordQueued(message, provider: null);
+        await EmailAuditEvents.EmitQueuedAsync(eventEmitter, message, provider: null, cancellationToken).ConfigureAwait(false);
     }
 }

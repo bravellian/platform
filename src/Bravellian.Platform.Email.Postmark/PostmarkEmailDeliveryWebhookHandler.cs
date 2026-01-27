@@ -13,6 +13,7 @@
 // limitations under the License.
 
 using Bravellian.Platform.Email;
+using Bravellian.Platform.Observability;
 using Bravellian.Platform.Webhooks;
 
 namespace Bravellian.Platform.Email.Postmark;
@@ -20,16 +21,20 @@ namespace Bravellian.Platform.Email.Postmark;
 internal sealed class PostmarkEmailDeliveryWebhookHandler : IWebhookHandler
 {
     private readonly IEmailDeliverySink deliverySink;
+    private readonly IPlatformEventEmitter? eventEmitter;
 
-    public PostmarkEmailDeliveryWebhookHandler(IEmailDeliverySink deliverySink)
+    public PostmarkEmailDeliveryWebhookHandler(IEmailDeliverySink deliverySink, IPlatformEventEmitter? eventEmitter = null)
     {
         this.deliverySink = deliverySink ?? throw new ArgumentNullException(nameof(deliverySink));
+        this.eventEmitter = eventEmitter;
     }
 
     public bool CanHandle(string eventType)
     {
         return string.Equals(eventType, PostmarkWebhookEventTypes.Bounce, StringComparison.OrdinalIgnoreCase)
-            || string.Equals(eventType, PostmarkWebhookEventTypes.Suppression, StringComparison.OrdinalIgnoreCase);
+            || string.Equals(eventType, PostmarkWebhookEventTypes.Suppression, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(eventType, PostmarkWebhookEventTypes.SpamComplaint, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(eventType, PostmarkWebhookEventTypes.SubscriptionChange, StringComparison.OrdinalIgnoreCase);
     }
 
     public async Task HandleAsync(WebhookEventContext context, CancellationToken cancellationToken)
@@ -46,7 +51,7 @@ internal sealed class PostmarkEmailDeliveryWebhookHandler : IWebhookHandler
             return;
         }
 
-        var status = string.Equals(context.EventType, PostmarkWebhookEventTypes.Suppression, StringComparison.OrdinalIgnoreCase)
+        var status = IsSuppressionEvent(context.EventType)
             ? EmailDeliveryStatus.Suppressed
             : EmailDeliveryStatus.Bounced;
 
@@ -59,5 +64,21 @@ internal sealed class PostmarkEmailDeliveryWebhookHandler : IWebhookHandler
             payload.Description);
 
         await deliverySink.RecordExternalAsync(update, cancellationToken).ConfigureAwait(false);
+
+        EmailMetrics.RecordWebhookReceived(context.Provider, context.EventType);
+        await EmailAuditEvents.EmitWebhookReceivedAsync(
+            eventEmitter,
+            context.Provider,
+            context.EventType,
+            payload.MessageKey ?? payload.MessageId,
+            context.ProviderEventId,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private static bool IsSuppressionEvent(string? eventType)
+    {
+        return string.Equals(eventType, PostmarkWebhookEventTypes.Suppression, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(eventType, PostmarkWebhookEventTypes.SpamComplaint, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(eventType, PostmarkWebhookEventTypes.SubscriptionChange, StringComparison.OrdinalIgnoreCase);
     }
 }

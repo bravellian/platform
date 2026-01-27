@@ -35,6 +35,31 @@ public static class PlatformEventNames
     public const string EmailSent = "email.sent";
 
     /// <summary>
+    /// Audit event emitted when an email is queued.
+    /// </summary>
+    public const string EmailQueued = "email.queued";
+
+    /// <summary>
+    /// Audit event emitted when an email send attempt occurs.
+    /// </summary>
+    public const string EmailAttempted = "email.attempted";
+
+    /// <summary>
+    /// Audit event emitted when an email fails.
+    /// </summary>
+    public const string EmailFailed = "email.failed";
+
+    /// <summary>
+    /// Audit event emitted when an email is suppressed.
+    /// </summary>
+    public const string EmailSuppressed = "email.suppressed";
+
+    /// <summary>
+    /// Audit event emitted when an email bounces.
+    /// </summary>
+    public const string EmailBounced = "email.bounced";
+
+    /// <summary>
     /// Audit event emitted when an operation starts.
     /// </summary>
     public const string OperationStarted = "operation.started";

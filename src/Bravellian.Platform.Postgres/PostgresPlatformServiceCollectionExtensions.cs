@@ -504,6 +504,9 @@ public static class PostgresPlatformServiceCollectionExtensions
             cleanupInterval: TimeSpan.FromHours(1),
             schemaCompletion: sp.GetService<IDatabaseSchemaCompletion>()));
 
+        // Idempotency
+        services.AddPlatformIdempotency(enableSchemaDeployment: enableSchemaDeployment);
+
         // Scheduler (Timers + Jobs)
         services.AddMultiPostgresScheduler(
             sp => new PlatformSchedulerStoreProvider(

@@ -489,6 +489,9 @@ public static class PlatformServiceCollectionExtensions
         // External side effects
         services.AddPlatformExternalSideEffects(enableSchemaDeployment: enableSchemaDeployment);
 
+        // Idempotency
+        services.AddPlatformIdempotency(enableSchemaDeployment: enableSchemaDeployment);
+
         // Inbox
         services.AddMultiSqlInbox(
             sp => new PlatformInboxWorkStoreProvider(

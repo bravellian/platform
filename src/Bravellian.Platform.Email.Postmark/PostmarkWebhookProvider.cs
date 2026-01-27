@@ -13,6 +13,7 @@
 // limitations under the License.
 
 using Bravellian.Platform.Email;
+using Bravellian.Platform.Observability;
 using Bravellian.Platform.Webhooks;
 
 namespace Bravellian.Platform.Email.Postmark;
@@ -33,12 +34,27 @@ public sealed class PostmarkWebhookProvider : WebhookProviderBase
     /// Initializes a new instance of the <see cref="PostmarkWebhookProvider"/> class.
     /// </summary>
     /// <param name="deliverySink">Delivery sink for recording provider updates.</param>
+    /// <param name="eventEmitter">Optional platform event emitter.</param>
     /// <param name="options">Webhook options.</param>
     public PostmarkWebhookProvider(IEmailDeliverySink deliverySink, PostmarkWebhookOptions? options = null)
+        : this(deliverySink, null, options)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PostmarkWebhookProvider"/> class.
+    /// </summary>
+    /// <param name="deliverySink">Delivery sink for recording provider updates.</param>
+    /// <param name="eventEmitter">Optional platform event emitter.</param>
+    /// <param name="options">Webhook options.</param>
+    public PostmarkWebhookProvider(
+        IEmailDeliverySink deliverySink,
+        IPlatformEventEmitter? eventEmitter,
+        PostmarkWebhookOptions? options = null)
         : base(
             new PostmarkWebhookAuthenticator(options ?? new PostmarkWebhookOptions()),
             new PostmarkWebhookClassifier(),
-            new IWebhookHandler[] { new PostmarkEmailDeliveryWebhookHandler(deliverySink) })
+            new IWebhookHandler[] { new PostmarkEmailDeliveryWebhookHandler(deliverySink, eventEmitter) })
     {
         this.options = options ?? new PostmarkWebhookOptions();
         if (string.IsNullOrWhiteSpace(this.options.ProviderName))

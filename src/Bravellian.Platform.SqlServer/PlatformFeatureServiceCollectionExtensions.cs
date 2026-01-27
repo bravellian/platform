@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Bravellian.Platform.Idempotency;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -178,6 +179,60 @@ public static class PlatformFeatureServiceCollectionExtensions
 
         services.AddOptions<ExternalSideEffectCoordinatorOptions>();
         services.TryAddSingleton<IExternalSideEffectCoordinator, ExternalSideEffectCoordinator>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers multi-database idempotency tracking backed by <see cref="IPlatformDatabaseDiscovery"/>.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="tableName">Optional table name override. Defaults to "Idempotency".</param>
+    /// <param name="lockDuration">Lock duration for in-progress keys.</param>
+    /// <param name="lockDurationProvider">Optional per-key lock duration provider.</param>
+    /// <param name="enableSchemaDeployment">Whether to deploy schemas for discovered databases.</param>
+    /// <returns>The updated service collection.</returns>
+    public static IServiceCollection AddPlatformIdempotency(
+        this IServiceCollection services,
+        string tableName = "Idempotency",
+        TimeSpan? lockDuration = null,
+        Func<string, TimeSpan>? lockDurationProvider = null,
+        bool enableSchemaDeployment = false)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(tableName);
+
+        var duration = lockDuration ?? TimeSpan.FromMinutes(5);
+
+        services.TryAddSingleton<IIdempotencyStoreProvider>(sp => new PlatformIdempotencyStoreProvider(
+            sp.GetRequiredService<IPlatformDatabaseDiscovery>(),
+            sp.GetRequiredService<TimeProvider>(),
+            sp.GetRequiredService<ILoggerFactory>(),
+            tableName,
+            duration,
+            lockDurationProvider,
+            enableSchemaDeployment,
+            sp.GetService<PlatformConfiguration>()));
+
+        services.TryAddSingleton<IIdempotencyStoreRouter, IdempotencyStoreRouter>();
+        services.TryAddSingleton<IIdempotencyStore>(provider =>
+        {
+            var storeProvider = provider.GetRequiredService<IIdempotencyStoreProvider>();
+            var stores = storeProvider.GetAllStoresAsync().GetAwaiter().GetResult();
+            if (stores.Count == 0)
+            {
+                throw new InvalidOperationException(
+                    "No idempotency stores are configured. Configure at least one store or use IIdempotencyStoreRouter.");
+            }
+
+            if (stores.Count > 1)
+            {
+                throw new InvalidOperationException(
+                    "Multiple idempotency stores are configured. Resolve IIdempotencyStoreRouter instead of IIdempotencyStore for multi-database setups.");
+            }
+
+            var key = storeProvider.GetStoreIdentifier(stores[0]);
+            return provider.GetRequiredService<IIdempotencyStoreRouter>().GetStore(key);
+        });
 
         return services;
     }

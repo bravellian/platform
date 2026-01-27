@@ -15,12 +15,12 @@
 namespace Bravellian.Platform;
 
 /// <summary>
-/// Configuration options for the SQL Server idempotency store.
+/// Configuration options for the Postgres idempotency store.
 /// </summary>
-public sealed class SqlIdempotencyOptions
+public sealed class PostgresIdempotencyOptions
 {
     /// <summary>
-    /// Gets or sets the SQL Server connection string.
+    /// Gets or sets the Postgres connection string.
     /// </summary>
     public string ConnectionString { get; set; } = string.Empty;
 

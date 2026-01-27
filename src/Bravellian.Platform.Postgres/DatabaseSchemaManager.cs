@@ -122,6 +122,19 @@ internal static class DatabaseSchemaManager
             CancellationToken.None);
     }
 
+    public static Task EnsureIdempotencySchemaAsync(
+        string connectionString,
+        string schemaName = "infra",
+        string tableName = "Idempotency")
+    {
+        return PostgresSchemaMigrations.ApplyIdempotencyAsync(
+            connectionString,
+            schemaName,
+            tableName,
+            NullLogger.Instance,
+            CancellationToken.None);
+    }
+
     public static Task EnsureSemaphoreSchemaAsync(
         string connectionString,
         string schemaName = "infra")
@@ -179,6 +192,7 @@ internal static class DatabaseSchemaManager
             ["inbox"] = ComputeSchemaHash(PostgresSchemaMigrations.GetInboxScriptsForSnapshot()),
             ["scheduler"] = ComputeSchemaHash(PostgresSchemaMigrations.GetSchedulerScriptsForSnapshot()),
             ["fanout"] = ComputeSchemaHash(PostgresSchemaMigrations.GetFanoutScriptsForSnapshot()),
+            ["idempotency"] = ComputeSchemaHash(PostgresSchemaMigrations.GetIdempotencyScriptsForSnapshot()),
         };
     }
 

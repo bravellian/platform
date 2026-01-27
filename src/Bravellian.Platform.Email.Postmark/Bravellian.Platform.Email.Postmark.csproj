@@ -25,6 +25,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Bravellian.Platform.Email\Bravellian.Platform.Email.csproj" />
     <ProjectReference Include="..\Bravellian.Platform.Webhooks\Bravellian.Platform.Webhooks.csproj" />
+    <ProjectReference Include="..\Bravellian.Platform.Observability\Bravellian.Platform.Observability.csproj" />
   </ItemGroup>
 
   <ItemGroup>

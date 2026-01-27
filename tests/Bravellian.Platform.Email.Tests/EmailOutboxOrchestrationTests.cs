@@ -156,8 +156,8 @@ public sealed class EmailOutboxOrchestrationTests
             sender,
             idempotency,
             sink,
-            policy,
-            timeProvider);
+            policy: policy,
+            timeProvider: timeProvider);
         var first = EmailFixtures.CreateMessage(messageKey: "key-delay-1");
         var second = EmailFixtures.CreateMessage(messageKey: "key-delay-2");
 
@@ -186,8 +186,8 @@ public sealed class EmailOutboxOrchestrationTests
             sender,
             idempotency,
             sink,
-            policy,
-            timeProvider);
+            policy: policy,
+            timeProvider: timeProvider);
         var message = EmailFixtures.CreateMessage(messageKey: "key-reject");
 
         await harness.EnqueueAsync(EmailOutboxDefaults.Topic, Serialize(message), message.MessageKey, null, CancellationToken.None);

@@ -25,8 +25,20 @@ services.AddSqlIdempotency(
     enableSchemaDeployment: true);
 ```
 
+Postgres registration:
+
+```csharp
+services.AddPostgresIdempotency(
+    connectionString: "Host=localhost;Database=app;Username=app;Password=secret;",
+    schemaName: "infra",
+    tableName: "Idempotency",
+    lockDuration: TimeSpan.FromMinutes(5),
+    enableSchemaDeployment: true);
+```
+
 ## Notes
 
 - Use stable, deterministic idempotency keys.
 - Call `FailAsync` when the operation should be retried later.
 - Use `CompleteAsync` only for terminal success or failure outcomes.
+- For indefinite locks, pass `Timeout.InfiniteTimeSpan` or use `lockDurationProvider` to return it per key.

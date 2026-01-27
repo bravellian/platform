@@ -20,6 +20,7 @@ The system separates enqueue from processing for reliability and control:
 ```csharp
 services.AddSqlOutbox("Server=.;Database=app;Trusted_Connection=True;");
 services.AddSqlIdempotency("Server=.;Database=app;Trusted_Connection=True;");
+// For Postgres use AddPostgresOutbox/AddPostgresIdempotency instead.
 services.AddBravellianEmailCore();
 services.AddBravellianEmailProcessingHostedService();
 
@@ -126,6 +127,23 @@ Policy outcomes:
 - Inject provider headers/metadata (including `MessageKey`).
 - Classify Postmark HTTP errors into transient vs permanent results.
 - Provide webhook integration for bounce/suppression tracking.
+- Expose Postmark-specific validation and reconciliation helpers.
+
+### Postmark validation (provider-specific)
+
+Use `IPostmarkEmailValidator` to validate against Postmark size limits and attachment restrictions without
+embedding provider rules in your application code.
+
+```csharp
+services.AddBravellianEmailPostmark();
+
+var validator = serviceProvider.GetRequiredService<IPostmarkEmailValidator>();
+var result = validator.Validate(message);
+if (!result.Succeeded)
+{
+    // Present validation errors to the caller or UI.
+}
+```
 
 ### App-specific responsibilities
 
@@ -138,6 +156,7 @@ Policy outcomes:
 
 - Register `PostmarkWebhookProvider` to translate Postmark webhooks into provider-neutral delivery updates.
 - Correlation is performed via `MessageKey` (sent in metadata/header) and/or provider message id.
+- Webhook types recognized by the Postmark adapter: `bounce`, `suppression`, `spam-complaint`, `subscription-change`, `inbound`.
 
 ```csharp
 services.AddSingleton<IWebhookProvider>(sp =>
@@ -157,6 +176,14 @@ services.AddBravellianWebhooks();
 app.MapPost("/webhooks/{provider}", (HttpContext ctx, IWebhookIngestor ingestor) =>
     WebhookEndpoint.HandleAsync(ctx, ingestor));
 ```
+
+## Reconciliation (send exactly once)
+
+When a send fails with an ambiguous response, the processor can probe the provider to confirm whether the
+message was actually accepted. The Postmark probe searches by `MessageKey` metadata and converts the result
+into a confirmed delivery status. This probe is **additive** and does not replace the normal send flow.
+
+If the probe confirms delivery, the message is finalized without retrying; if not found, normal retries apply.
 
 ## ASP.NET Core Helpers
 
@@ -206,13 +233,34 @@ services.AddBravellianEmailProcessingHostedService(options =>
 });
 ```
 
+### Idempotency cleanup
+
+To remove old idempotency records, register the cleanup hosted service:
+
+```csharp
+services.AddBravellianEmailIdempotencyCleanupHostedService(options =>
+{
+    options.RetentionPeriod = TimeSpan.FromDays(7);
+    options.CleanupInterval = TimeSpan.FromHours(1);
+});
+```
+
 ## Observability integration
 
 Use `Bravellian.Platform.Observability` conventions to tie email sends and webhooks into audit + operations.
 
-- Use `PlatformEventNames.EmailSent` and `PlatformEventNames.WebhookReceived` for audit events.
+- Audit events emitted by the email subsystem include:
+  - `PlatformEventNames.EmailQueued`
+  - `PlatformEventNames.EmailAttempted`
+  - `PlatformEventNames.EmailSent`
+  - `PlatformEventNames.EmailFailed`
+  - `PlatformEventNames.EmailSuppressed`
+  - `PlatformEventNames.EmailBounced`
+  - `PlatformEventNames.WebhookReceived`
 - Include `PlatformTagKeys.MessageKey`, `PlatformTagKeys.Provider`, and `PlatformTagKeys.WebhookEventId` in tags.
 - If you are tracking long-running sends, emit operation events via `IPlatformEventEmitter`.
+- Metrics emitted include counts for queued/attempted/sent/failed/suppressed/bounced, webhook received,
+  and size histograms for body/attachment/total bytes.
 
 Example:
 

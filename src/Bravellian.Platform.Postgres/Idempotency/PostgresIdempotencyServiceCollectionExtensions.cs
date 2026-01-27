@@ -22,27 +22,27 @@ using Microsoft.Extensions.Options;
 namespace Bravellian.Platform;
 
 /// <summary>
-/// Service collection extensions for SQL Server idempotency stores.
+/// Service collection extensions for Postgres idempotency stores.
 /// </summary>
-public static class IdempotencyServiceCollectionExtensions
+public static class PostgresIdempotencyServiceCollectionExtensions
 {
     /// <summary>
-    /// Adds SQL Server idempotency tracking with the specified options.
+    /// Adds Postgres idempotency tracking with the specified options.
     /// </summary>
     /// <param name="services">Service collection.</param>
     /// <param name="options">Idempotency options.</param>
     /// <returns>The updated service collection.</returns>
-    public static IServiceCollection AddSqlIdempotency(
+    public static IServiceCollection AddPostgresIdempotency(
         this IServiceCollection services,
-        SqlIdempotencyOptions options)
+        PostgresIdempotencyOptions options)
     {
-        var validator = new SqlIdempotencyOptionsValidator();
+        var validator = new PostgresIdempotencyOptionsValidator();
         OptionsValidationHelper.ValidateAndThrow(options, validator);
 
-        services.AddOptions<SqlIdempotencyOptions>().ValidateOnStart();
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<SqlIdempotencyOptions>>(validator));
+        services.AddOptions<PostgresIdempotencyOptions>().ValidateOnStart();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<PostgresIdempotencyOptions>>(validator));
 
-        services.Configure<SqlIdempotencyOptions>(o =>
+        services.Configure<PostgresIdempotencyOptions>(o =>
         {
             o.ConnectionString = options.ConnectionString;
             o.SchemaName = options.SchemaName;
@@ -73,16 +73,17 @@ public static class IdempotencyServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Adds SQL Server idempotency tracking with custom schema and table names.
+    /// Adds Postgres idempotency tracking with custom schema and table names.
     /// </summary>
     /// <param name="services">Service collection.</param>
     /// <param name="connectionString">Connection string.</param>
     /// <param name="schemaName">Schema name.</param>
     /// <param name="tableName">Table name.</param>
     /// <param name="lockDuration">Lock duration.</param>
+    /// <param name="lockDurationProvider">Optional per-key lock duration provider.</param>
     /// <param name="enableSchemaDeployment">Whether schema deployment should run at startup.</param>
     /// <returns>The updated service collection.</returns>
-    public static IServiceCollection AddSqlIdempotency(
+    public static IServiceCollection AddPostgresIdempotency(
         this IServiceCollection services,
         string connectionString,
         string schemaName = "infra",
@@ -91,7 +92,7 @@ public static class IdempotencyServiceCollectionExtensions
         Func<string, TimeSpan>? lockDurationProvider = null,
         bool enableSchemaDeployment = false)
     {
-        return services.AddSqlIdempotency(new SqlIdempotencyOptions
+        return services.AddPostgresIdempotency(new PostgresIdempotencyOptions
         {
             ConnectionString = connectionString,
             SchemaName = schemaName,

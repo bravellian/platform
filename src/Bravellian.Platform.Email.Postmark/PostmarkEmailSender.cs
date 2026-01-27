@@ -35,6 +35,7 @@ public sealed class PostmarkEmailSender : IOutboundEmailSender
 
     private readonly HttpClient httpClient;
     private readonly PostmarkOptions options;
+    private readonly IPostmarkEmailValidator validator;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PostmarkEmailSender"/> class.
@@ -42,9 +43,21 @@ public sealed class PostmarkEmailSender : IOutboundEmailSender
     /// <param name="httpClient">HTTP client.</param>
     /// <param name="options">Postmark options.</param>
     public PostmarkEmailSender(HttpClient httpClient, PostmarkOptions options)
+        : this(httpClient, options, new PostmarkEmailValidator())
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PostmarkEmailSender"/> class.
+    /// </summary>
+    /// <param name="httpClient">HTTP client.</param>
+    /// <param name="options">Postmark options.</param>
+    /// <param name="validator">Postmark validator.</param>
+    public PostmarkEmailSender(HttpClient httpClient, PostmarkOptions options, IPostmarkEmailValidator validator)
     {
         this.httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         this.options = options ?? throw new ArgumentNullException(nameof(options));
+        this.validator = validator ?? throw new ArgumentNullException(nameof(validator));
         this.options.Validate();
 
         if (this.httpClient.BaseAddress == null)
@@ -59,6 +72,12 @@ public sealed class PostmarkEmailSender : IOutboundEmailSender
         if (message is null)
         {
             throw new ArgumentNullException(nameof(message));
+        }
+
+        var validation = validator.Validate(message);
+        if (!validation.Succeeded)
+        {
+            return EmailSendResult.PermanentFailure("validation", string.Join(" ", validation.Errors));
         }
 
         var payload = BuildRequest(message, options.MessageStream);

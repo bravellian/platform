@@ -16,9 +16,9 @@ using Microsoft.Extensions.Options;
 
 namespace Bravellian.Platform;
 
-internal sealed class SqlIdempotencyOptionsValidator : IValidateOptions<SqlIdempotencyOptions>
+internal sealed class PostgresIdempotencyOptionsValidator : IValidateOptions<PostgresIdempotencyOptions>
 {
-    public ValidateOptionsResult Validate(string? name, SqlIdempotencyOptions options)
+    public ValidateOptionsResult Validate(string? name, PostgresIdempotencyOptions options)
     {
         if (options == null)
         {

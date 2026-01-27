@@ -18,6 +18,7 @@ using Shouldly;
 using Bravellian.Platform;
 using Bravellian.Platform.Email;
 using Bravellian.Platform.Email.Postmark;
+using Bravellian.Platform.Observability;
 using Bravellian.Platform.Webhooks;
 
 namespace Bravellian.Platform.Email.Postmark.Tests;
@@ -45,6 +46,69 @@ public sealed class PostmarkWebhookTests
         record.ShouldNotBeNull();
         record!.EventType.ShouldBe(PostmarkWebhookEventTypes.Bounce);
         record.ProviderEventId.ShouldBe("42");
+    }
+
+    [Fact]
+    public async Task WebhookIngestorStoresPostmarkSpamComplaintAsync()
+    {
+        var inbox = new FakeInbox();
+        var sink = new TestEmailDeliverySink();
+        var provider = new PostmarkWebhookProvider(sink, new PostmarkWebhookOptions());
+        var registry = new WebhookProviderRegistry(new[] { provider });
+        var ingestor = new WebhookIngestor(registry, inbox, new FixedTimeProvider(FixedNow));
+
+        var envelope = CreateEnvelope(CreateSpamComplaintPayload());
+        var result = await ingestor.IngestAsync(PostmarkWebhookProvider.DefaultProviderName, envelope, CancellationToken.None);
+
+        result.Decision.ShouldBe(WebhookIngestDecision.Accepted);
+        inbox.Enqueued.Count.ShouldBe(1);
+
+        var record = JsonSerializer.Deserialize<WebhookEventRecord>(inbox.Enqueued[0].Payload);
+        record.ShouldNotBeNull();
+        record!.EventType.ShouldBe(PostmarkWebhookEventTypes.SpamComplaint);
+        record.ProviderEventId.ShouldBe("spam-1");
+    }
+
+    [Fact]
+    public async Task WebhookIngestorStoresPostmarkSubscriptionChangeAsync()
+    {
+        var inbox = new FakeInbox();
+        var sink = new TestEmailDeliverySink();
+        var provider = new PostmarkWebhookProvider(sink, new PostmarkWebhookOptions());
+        var registry = new WebhookProviderRegistry(new[] { provider });
+        var ingestor = new WebhookIngestor(registry, inbox, new FixedTimeProvider(FixedNow));
+
+        var envelope = CreateEnvelope(CreateSubscriptionChangePayload());
+        var result = await ingestor.IngestAsync(PostmarkWebhookProvider.DefaultProviderName, envelope, CancellationToken.None);
+
+        result.Decision.ShouldBe(WebhookIngestDecision.Accepted);
+        inbox.Enqueued.Count.ShouldBe(1);
+
+        var record = JsonSerializer.Deserialize<WebhookEventRecord>(inbox.Enqueued[0].Payload);
+        record.ShouldNotBeNull();
+        record!.EventType.ShouldBe(PostmarkWebhookEventTypes.SubscriptionChange);
+        record.ProviderEventId.ShouldBe("sub-1");
+    }
+
+    [Fact]
+    public async Task WebhookIngestorStoresPostmarkInboundAsync()
+    {
+        var inbox = new FakeInbox();
+        var sink = new TestEmailDeliverySink();
+        var provider = new PostmarkWebhookProvider(sink, new PostmarkWebhookOptions());
+        var registry = new WebhookProviderRegistry(new[] { provider });
+        var ingestor = new WebhookIngestor(registry, inbox, new FixedTimeProvider(FixedNow));
+
+        var envelope = CreateEnvelope(CreateInboundPayload());
+        var result = await ingestor.IngestAsync(PostmarkWebhookProvider.DefaultProviderName, envelope, CancellationToken.None);
+
+        result.Decision.ShouldBe(WebhookIngestDecision.Accepted);
+        inbox.Enqueued.Count.ShouldBe(1);
+
+        var record = JsonSerializer.Deserialize<WebhookEventRecord>(inbox.Enqueued[0].Payload);
+        record.ShouldNotBeNull();
+        record!.EventType.ShouldBe(PostmarkWebhookEventTypes.Inbound);
+        record.ProviderEventId.ShouldBe("inb-1");
     }
 
     [Fact]
@@ -82,6 +146,73 @@ public sealed class PostmarkWebhookTests
         update.MessageKey.ShouldBe("message-key");
         update.ProviderMessageId.ShouldBe("pm_123");
         update.ProviderEventId.ShouldBe("evt-1");
+        update.ErrorCode.ShouldBe("HardBounce");
+        update.ErrorMessage.ShouldBe("Mailbox not found");
+    }
+
+    [Fact]
+    public async Task WebhookProcessor_EmitsWebhookReceivedAuditEvent()
+    {
+        var workStore = new FakeInboxWorkStore(new FixedTimeProvider(FixedNow));
+        var sink = new TestEmailDeliverySink();
+        var emitter = new RecordingEventEmitter();
+        var provider = new PostmarkWebhookProvider(sink, emitter, new PostmarkWebhookOptions());
+        var registry = new WebhookProviderRegistry(new[] { provider });
+        var processor = new WebhookProcessor(workStore, registry);
+
+        var payloadBytes = JsonSerializer.SerializeToUtf8Bytes(CreateBouncePayload());
+        var record = new WebhookEventRecord(
+            PostmarkWebhookProvider.DefaultProviderName,
+            FixedNow,
+            "evt-2",
+            PostmarkWebhookEventTypes.Bounce,
+            "dedupe-2",
+            null,
+            JsonSerializer.Serialize(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)),
+            payloadBytes,
+            "application/json",
+            WebhookEventStatus.Pending,
+            0,
+            null);
+
+        workStore.AddMessage(JsonSerializer.Serialize(record));
+
+        await processor.RunOnceAsync(CancellationToken.None);
+
+        emitter.AuditEvents.ShouldContain(e => e.Name == PlatformEventNames.WebhookReceived);
+    }
+
+    [Fact]
+    public async Task WebhookProcessorDispatchesSpamComplaintAsSuppressedAsync()
+    {
+        var workStore = new FakeInboxWorkStore(new FixedTimeProvider(FixedNow));
+        var sink = new TestEmailDeliverySink();
+        var provider = new PostmarkWebhookProvider(sink, new PostmarkWebhookOptions());
+        var registry = new WebhookProviderRegistry(new[] { provider });
+        var processor = new WebhookProcessor(workStore, registry);
+
+        var payloadBytes = JsonSerializer.SerializeToUtf8Bytes(CreateSpamComplaintPayload());
+        var record = new WebhookEventRecord(
+            PostmarkWebhookProvider.DefaultProviderName,
+            FixedNow,
+            "spam-evt-1",
+            PostmarkWebhookEventTypes.SpamComplaint,
+            "dedupe-2",
+            null,
+            JsonSerializer.Serialize(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)),
+            payloadBytes,
+            "application/json",
+            WebhookEventStatus.Pending,
+            0,
+            null);
+
+        workStore.AddMessage(JsonSerializer.Serialize(record));
+
+        var processed = await processor.RunOnceAsync(CancellationToken.None);
+
+        processed.ShouldBe(1);
+        sink.ExternalUpdates.Count.ShouldBe(1);
+        sink.ExternalUpdates[0].Status.ShouldBe(EmailDeliveryStatus.Suppressed);
     }
 
     private static WebhookEnvelope CreateEnvelope(object payload)
@@ -114,6 +245,54 @@ public sealed class PostmarkWebhookTests
         };
     }
 
+    private static object CreateSpamComplaintPayload()
+    {
+        return new
+        {
+            RecordType = "SpamComplaint",
+            ID = "spam-1",
+            MessageID = "pm_456",
+            Type = "SpamComplaint",
+            Description = "Marked as spam",
+            Metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["MessageKey"] = "message-key-spam",
+            },
+        };
+    }
+
+    private static object CreateSubscriptionChangePayload()
+    {
+        return new
+        {
+            RecordType = "SubscriptionChange",
+            ID = "sub-1",
+            MessageID = "pm_789",
+            Type = "SubscriptionChange",
+            Description = "Recipient unsubscribed",
+            Metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["MessageKey"] = "message-key-sub",
+            },
+        };
+    }
+
+    private static object CreateInboundPayload()
+    {
+        return new
+        {
+            RecordType = "Inbound",
+            ID = "inb-1",
+            MessageID = "pm_inbound_1",
+            From = "sender@acme.test",
+            Subject = "Reply",
+            Metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["MessageKey"] = "message-key-inbound",
+            },
+        };
+    }
+
     private sealed class TestEmailDeliverySink : IEmailDeliverySink
     {
         public List<EmailDeliveryUpdate> ExternalUpdates { get; } = new();
@@ -142,6 +321,38 @@ public sealed class PostmarkWebhookTests
         public Task RecordExternalAsync(EmailDeliveryUpdate update, CancellationToken cancellationToken)
         {
             ExternalUpdates.Add(update);
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class RecordingEventEmitter : IPlatformEventEmitter
+    {
+        public List<Bravellian.Platform.Audit.AuditEvent> AuditEvents { get; } = new();
+
+        public Task<Bravellian.Platform.Operations.OperationId> EmitOperationStartedAsync(
+            string name,
+            Bravellian.Platform.Correlation.CorrelationContext? correlationContext,
+            Bravellian.Platform.Operations.OperationId? parentOperationId,
+            IReadOnlyDictionary<string, string>? tags,
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult(Bravellian.Platform.Operations.OperationId.NewId());
+        }
+
+        public Task EmitOperationCompletedAsync(
+            Bravellian.Platform.Operations.OperationId operationId,
+            Bravellian.Platform.Operations.OperationStatus status,
+            string? message,
+            Bravellian.Platform.Correlation.CorrelationContext? correlationContext,
+            IReadOnlyDictionary<string, string>? tags,
+            CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task EmitAuditEventAsync(Bravellian.Platform.Audit.AuditEvent auditEvent, CancellationToken cancellationToken)
+        {
+            AuditEvents.Add(auditEvent);
             return Task.CompletedTask;
         }
     }

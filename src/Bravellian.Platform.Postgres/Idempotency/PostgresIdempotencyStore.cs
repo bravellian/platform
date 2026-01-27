@@ -14,34 +14,31 @@
 
 using System.Data;
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using Bravellian.Platform.Idempotency;
 using Dapper;
-using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Npgsql;
 
 namespace Bravellian.Platform;
 
-internal sealed class SqlIdempotencyStore : IIdempotencyStore, IIdempotencyCleanupStore
+internal sealed class PostgresIdempotencyStore : IIdempotencyStore, IIdempotencyCleanupStore
 {
-    private const int StoredProcedureMissing = 2812;
-    private const int TableMissing = 208;
-    private const byte StatusFailed = 0;
-    private const byte StatusCompleted = 2;
+    private const short StatusFailed = 0;
+    private const short StatusCompleted = 2;
     private readonly string connectionString;
     private readonly string schemaName;
     private readonly string tableName;
     private readonly TimeSpan lockDuration;
     private readonly Func<string, TimeSpan>? lockDurationProvider;
     private readonly TimeProvider timeProvider;
-    private readonly ILogger<SqlIdempotencyStore> logger;
+    private readonly ILogger<PostgresIdempotencyStore> logger;
     private readonly OwnerToken ownerToken;
 
-    public SqlIdempotencyStore(
-        IOptions<SqlIdempotencyOptions> options,
+    public PostgresIdempotencyStore(
+        IOptions<PostgresIdempotencyOptions> options,
         TimeProvider timeProvider,
-        ILogger<SqlIdempotencyStore> logger)
+        ILogger<PostgresIdempotencyStore> logger)
     {
         var opts = options.Value;
         if (string.IsNullOrWhiteSpace(opts.ConnectionString))
@@ -90,21 +87,21 @@ internal sealed class SqlIdempotencyStore : IIdempotencyStore, IIdempotencyClean
 
         var lockedUntil = duration == Timeout.InfiniteTimeSpan ? (DateTimeOffset?)null : now.Add(duration);
 
-        using var connection = new SqlConnection(connectionString);
+        await using var connection = new NpgsqlConnection(connectionString);
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        await using var transaction = await connection.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken).ConfigureAwait(false);
 
         var record = await GetRecordForUpdateAsync(connection, transaction, key).ConfigureAwait(false);
         if (record == null)
         {
             await InsertRecordAsync(connection, transaction, key, now, lockedUntil).ConfigureAwait(false);
-            transaction.Commit();
+            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
             return true;
         }
 
         if (record.Status == IdempotencyStatus.Completed)
         {
-            transaction.Commit();
+            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
             return false;
         }
 
@@ -114,12 +111,12 @@ internal sealed class SqlIdempotencyStore : IIdempotencyStore, IIdempotencyClean
             && IsLocked(existingLock, now))
         {
             logger.LogDebug("Idempotency key '{Key}' is locked until {LockedUntil}.", key, existingLock);
-            transaction.Commit();
+            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
             return false;
         }
 
         await MarkInProgressAsync(connection, transaction, key, now, lockedUntil).ConfigureAwait(false);
-        transaction.Commit();
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
         return true;
     }
 
@@ -131,22 +128,22 @@ internal sealed class SqlIdempotencyStore : IIdempotencyStore, IIdempotencyClean
         }
 
         var now = timeProvider.GetUtcNow();
-        using var connection = new SqlConnection(connectionString);
+        await using var connection = new NpgsqlConnection(connectionString);
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
         var rows = await connection.ExecuteAsync(
             $"""
-            UPDATE [{schemaName}].[{tableName}]
-            SET Status = @Status,
-                LockedUntil = NULL,
-                LockedBy = NULL,
-                CompletedAt = @CompletedAt,
-                UpdatedAt = @UpdatedAt
-            WHERE IdempotencyKey = @Key;
+            UPDATE "{schemaName}"."{tableName}"
+            SET "Status" = @Status,
+                "LockedUntil" = NULL,
+                "LockedBy" = NULL,
+                "CompletedAt" = @CompletedAt,
+                "UpdatedAt" = @UpdatedAt
+            WHERE "IdempotencyKey" = @Key;
             """,
             new
             {
-                Status = (byte)IdempotencyStatus.Completed,
+                Status = (short)IdempotencyStatus.Completed,
                 CompletedAt = now,
                 UpdatedAt = now,
                 Key = key,
@@ -166,22 +163,22 @@ internal sealed class SqlIdempotencyStore : IIdempotencyStore, IIdempotencyClean
         }
 
         var now = timeProvider.GetUtcNow();
-        using var connection = new SqlConnection(connectionString);
+        await using var connection = new NpgsqlConnection(connectionString);
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
         var rows = await connection.ExecuteAsync(
             $"""
-            UPDATE [{schemaName}].[{tableName}]
-            SET Status = @Status,
-                LockedUntil = NULL,
-                LockedBy = NULL,
-                UpdatedAt = @UpdatedAt,
-                FailureCount = FailureCount + 1
-            WHERE IdempotencyKey = @Key;
+            UPDATE "{schemaName}"."{tableName}"
+            SET "Status" = @Status,
+                "LockedUntil" = NULL,
+                "LockedBy" = NULL,
+                "UpdatedAt" = @UpdatedAt,
+                "FailureCount" = "FailureCount" + 1
+            WHERE "IdempotencyKey" = @Key;
             """,
             new
             {
-                Status = (byte)IdempotencyStatus.Failed,
+                Status = (short)IdempotencyStatus.Failed,
                 UpdatedAt = now,
                 Key = key,
             }).ConfigureAwait(false);
@@ -192,39 +189,37 @@ internal sealed class SqlIdempotencyStore : IIdempotencyStore, IIdempotencyClean
         }
     }
 
-    private async Task<IdempotencyRecord?> GetRecordForUpdateAsync(
-        SqlConnection connection,
-        SqlTransaction transaction,
+    private Task<IdempotencyRecord?> GetRecordForUpdateAsync(
+        NpgsqlConnection connection,
+        NpgsqlTransaction transaction,
         string key)
     {
         var sql = $"""
-            SELECT Status AS StatusValue, LockedUntil, LockedBy
-            FROM [{schemaName}].[{tableName}] WITH (UPDLOCK, HOLDLOCK)
-            WHERE IdempotencyKey = @Key;
+            SELECT "Status" AS "StatusValue", "LockedUntil", "LockedBy"
+            FROM "{schemaName}"."{tableName}"
+            WHERE "IdempotencyKey" = @Key
+            FOR UPDATE;
             """;
 
-        return await connection.QuerySingleOrDefaultAsync<IdempotencyRecord>(
-            sql,
-            new { Key = key },
-            transaction).ConfigureAwait(false);
+        return connection.QuerySingleOrDefaultAsync<IdempotencyRecord>(sql, new { Key = key }, transaction);
     }
 
     private Task InsertRecordAsync(
-        SqlConnection connection,
-        SqlTransaction transaction,
+        NpgsqlConnection connection,
+        NpgsqlTransaction transaction,
         string key,
         DateTimeOffset now,
         DateTimeOffset? lockedUntil)
     {
         var sql = $"""
-            INSERT INTO [{schemaName}].[{tableName}] (
-                IdempotencyKey,
-                Status,
-                LockedUntil,
-                LockedBy,
-                FailureCount,
-                CreatedAt,
-                UpdatedAt)
+            INSERT INTO "{schemaName}"."{tableName}" (
+                "IdempotencyKey",
+                "Status",
+                "LockedUntil",
+                "LockedBy",
+                "FailureCount",
+                "CreatedAt",
+                "UpdatedAt")
             VALUES (
                 @Key,
                 @Status,
@@ -240,7 +235,7 @@ internal sealed class SqlIdempotencyStore : IIdempotencyStore, IIdempotencyClean
             new
             {
                 Key = key,
-                Status = (byte)IdempotencyStatus.InProgress,
+                Status = (short)IdempotencyStatus.InProgress,
                 LockedUntil = lockedUntil,
                 LockedBy = ownerToken.Value,
                 CreatedAt = now,
@@ -250,26 +245,26 @@ internal sealed class SqlIdempotencyStore : IIdempotencyStore, IIdempotencyClean
     }
 
     private Task MarkInProgressAsync(
-        SqlConnection connection,
-        SqlTransaction transaction,
+        NpgsqlConnection connection,
+        NpgsqlTransaction transaction,
         string key,
         DateTimeOffset now,
         DateTimeOffset? lockedUntil)
     {
         var sql = $"""
-            UPDATE [{schemaName}].[{tableName}]
-            SET Status = @Status,
-                LockedUntil = @LockedUntil,
-                LockedBy = @LockedBy,
-                UpdatedAt = @UpdatedAt
-            WHERE IdempotencyKey = @Key;
+            UPDATE "{schemaName}"."{tableName}"
+            SET "Status" = @Status,
+                "LockedUntil" = @LockedUntil,
+                "LockedBy" = @LockedBy,
+                "UpdatedAt" = @UpdatedAt
+            WHERE "IdempotencyKey" = @Key;
             """;
 
         return connection.ExecuteAsync(
             sql,
             new
             {
-                Status = (byte)IdempotencyStatus.InProgress,
+                Status = (short)IdempotencyStatus.InProgress,
                 LockedUntil = lockedUntil,
                 LockedBy = ownerToken.Value,
                 UpdatedAt = now,
@@ -278,16 +273,16 @@ internal sealed class SqlIdempotencyStore : IIdempotencyStore, IIdempotencyClean
             transaction);
     }
 
-    private Task InsertCompletionAsync(SqlConnection connection, string key, DateTimeOffset now)
+    private Task InsertCompletionAsync(NpgsqlConnection connection, string key, DateTimeOffset now)
     {
         var sql = $"""
-            INSERT INTO [{schemaName}].[{tableName}] (
-                IdempotencyKey,
-                Status,
-                FailureCount,
-                CreatedAt,
-                UpdatedAt,
-                CompletedAt)
+            INSERT INTO "{schemaName}"."{tableName}" (
+                "IdempotencyKey",
+                "Status",
+                "FailureCount",
+                "CreatedAt",
+                "UpdatedAt",
+                "CompletedAt")
             VALUES (
                 @Key,
                 @Status,
@@ -302,22 +297,22 @@ internal sealed class SqlIdempotencyStore : IIdempotencyStore, IIdempotencyClean
             new
             {
                 Key = key,
-                Status = (byte)IdempotencyStatus.Completed,
+                Status = (short)IdempotencyStatus.Completed,
                 CreatedAt = now,
                 UpdatedAt = now,
                 CompletedAt = now,
             });
     }
 
-    private Task InsertFailureAsync(SqlConnection connection, string key, DateTimeOffset now)
+    private Task InsertFailureAsync(NpgsqlConnection connection, string key, DateTimeOffset now)
     {
         var sql = $"""
-            INSERT INTO [{schemaName}].[{tableName}] (
-                IdempotencyKey,
-                Status,
-                FailureCount,
-                CreatedAt,
-                UpdatedAt)
+            INSERT INTO "{schemaName}"."{tableName}" (
+                "IdempotencyKey",
+                "Status",
+                "FailureCount",
+                "CreatedAt",
+                "UpdatedAt")
             VALUES (
                 @Key,
                 @Status,
@@ -331,18 +326,18 @@ internal sealed class SqlIdempotencyStore : IIdempotencyStore, IIdempotencyClean
             new
             {
                 Key = key,
-                Status = (byte)IdempotencyStatus.Failed,
+                Status = (short)IdempotencyStatus.Failed,
                 CreatedAt = now,
                 UpdatedAt = now,
             });
     }
 
-    private sealed record IdempotencyRecord(byte StatusValue, DateTimeOffset? LockedUntil, Guid? LockedBy)
+    private sealed record IdempotencyRecord(short StatusValue, DateTimeOffset? LockedUntil, Guid? LockedBy)
     {
         public IdempotencyStatus Status => (IdempotencyStatus)StatusValue;
     }
 
-    private enum IdempotencyStatus : byte
+    private enum IdempotencyStatus : short
     {
         Failed = 0,
         InProgress = 1,
@@ -358,60 +353,27 @@ internal sealed class SqlIdempotencyStore : IIdempotencyStore, IIdempotencyClean
         }
 
         var retentionSeconds = (int)retentionPeriod.TotalSeconds;
-        var proc = $"[{schemaName}].[{tableName}_Cleanup]";
 
-        try
-        {
-            using var connection = new SqlConnection(connectionString);
-            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using var connection = new NpgsqlConnection(connectionString);
+        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-            using (var command = new SqlCommand($"EXEC {proc} @RetentionSeconds", connection))
+        var sql = $"""
+            DELETE FROM "{schemaName}"."{tableName}"
+            WHERE ("Status" = @StatusCompleted OR "Status" = @StatusFailed)
+              AND (
+                    ("CompletedAt" IS NOT NULL AND "CompletedAt" < (CURRENT_TIMESTAMP - (@RetentionSeconds || ' seconds')::interval))
+                    OR ("CompletedAt" IS NULL AND "UpdatedAt" < (CURRENT_TIMESTAMP - (@RetentionSeconds || ' seconds')::interval))
+                  );
+            """;
+
+        return await connection.ExecuteAsync(
+            sql,
+            new
             {
-                command.Parameters.AddWithValue("@RetentionSeconds", retentionSeconds);
-                var result = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
-                return result != null && result != DBNull.Value
-                    ? Convert.ToInt32(result, CultureInfo.InvariantCulture)
-                    : 0;
-            }
-        }
-        catch (SqlException ex) when (ex.Number == StoredProcedureMissing)
-        {
-            // fall back to direct delete
-        }
-
-        try
-        {
-            using var connection = new SqlConnection(connectionString);
-            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-
-            var sql = $"""
-                DELETE FROM [{schemaName}].[{tableName}]
-                WHERE (Status = @StatusCompleted OR Status = @StatusFailed)
-                  AND (
-                        (CompletedAt IS NOT NULL AND CompletedAt < DATEADD(SECOND, -@RetentionSeconds, SYSUTCDATETIME()))
-                        OR (CompletedAt IS NULL AND UpdatedAt < DATEADD(SECOND, -@RetentionSeconds, SYSUTCDATETIME()))
-                      );
-                """;
-
-            var deleted = await connection.ExecuteAsync(
-                sql,
-                new
-                {
-                    StatusCompleted = StatusCompleted,
-                    StatusFailed = StatusFailed,
-                    RetentionSeconds = retentionSeconds,
-                }).ConfigureAwait(false);
-
-            return deleted;
-        }
-        catch (SqlException ex) when (ex.Number == TableMissing)
-        {
-            logger.LogWarning(
-                "Idempotency cleanup skipped because table [{SchemaName}].[{TableName}] is missing.",
-                schemaName,
-                tableName);
-            return 0;
-        }
+                StatusCompleted = StatusCompleted,
+                StatusFailed = StatusFailed,
+                RetentionSeconds = retentionSeconds,
+            }).ConfigureAwait(false);
     }
 
     private static bool IsValidLockDuration(TimeSpan duration)

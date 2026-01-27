@@ -18,6 +18,9 @@ internal static class PostmarkWebhookEventTypes
 {
     public const string Bounce = "bounce";
     public const string Suppression = "suppression";
+    public const string SpamComplaint = "spam-complaint";
+    public const string SubscriptionChange = "subscription-change";
+    public const string Inbound = "inbound";
 
     public static string? Map(string? recordType)
     {
@@ -33,12 +36,22 @@ internal static class PostmarkWebhookEventTypes
 
         if (string.Equals(recordType, "SpamComplaint", StringComparison.OrdinalIgnoreCase))
         {
-            return Suppression;
+            return SpamComplaint;
         }
 
         if (string.Equals(recordType, "SubscriptionChange", StringComparison.OrdinalIgnoreCase))
         {
+            return SubscriptionChange;
+        }
+
+        if (string.Equals(recordType, "Suppression", StringComparison.OrdinalIgnoreCase))
+        {
             return Suppression;
+        }
+
+        if (string.Equals(recordType, "Inbound", StringComparison.OrdinalIgnoreCase))
+        {
+            return Inbound;
         }
 
         return recordType;

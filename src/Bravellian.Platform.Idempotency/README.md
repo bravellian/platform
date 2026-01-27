@@ -5,6 +5,7 @@ Bravellian.Platform.Idempotency provides a small abstraction for tracking idempo
 ## Core abstraction
 
 - `IIdempotencyStore` manages the lifecycle of an idempotency key.
+- `IIdempotencyStoreProvider` and `IIdempotencyStoreRouter` help resolve stores in multi-database setups.
 
 ## Typical flow
 

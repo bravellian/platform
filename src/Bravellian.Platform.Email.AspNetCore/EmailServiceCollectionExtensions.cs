@@ -16,7 +16,9 @@ using Bravellian.Platform;
 using Bravellian.Platform.Email;
 using Bravellian.Platform.Email.Postmark;
 using Bravellian.Platform.Idempotency;
+using Bravellian.Platform.Observability;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 
 namespace Bravellian.Platform.Email.AspNetCore;
@@ -68,6 +70,7 @@ public static class EmailServiceCollectionExtensions
         services.AddSingleton<IEmailOutbox>(sp => new EmailOutbox(
             sp.GetRequiredService<IOutbox>(),
             sp.GetRequiredService<IEmailDeliverySink>(),
+            sp.GetService<IPlatformEventEmitter>(),
             sp.GetService<EmailMessageValidator>(),
             sp.GetService<IOptions<EmailOutboxOptions>>()?.Value));
         services.AddSingleton<IEmailOutboxProcessor>(sp => new EmailOutboxProcessor(
@@ -75,6 +78,8 @@ public static class EmailServiceCollectionExtensions
             sp.GetRequiredService<IOutboundEmailSender>(),
             sp.GetRequiredService<IIdempotencyStore>(),
             sp.GetRequiredService<IEmailDeliverySink>(),
+            sp.GetService<IOutboundEmailProbe>(),
+            sp.GetService<IPlatformEventEmitter>(),
             sp.GetService<IEmailSendPolicy>(),
             sp.GetService<TimeProvider>(),
             sp.GetService<IOptions<EmailOutboxProcessorOptions>>()?.Value));
@@ -103,9 +108,20 @@ public static class EmailServiceCollectionExtensions
         }
 
         services.AddOptions<PostmarkOptions>();
+        services.AddOptions<PostmarkValidationOptions>();
+        services.AddSingleton<IPostmarkEmailValidator>(sp =>
+            new PostmarkEmailValidator(sp.GetRequiredService<IOptions<PostmarkValidationOptions>>().Value));
+        services.AddHttpClient<PostmarkOutboundMessageClient>()
+            .AddTypedClient((httpClient, sp) =>
+                new PostmarkOutboundMessageClient(httpClient, sp.GetRequiredService<IOptions<PostmarkOptions>>().Value));
+        services.AddSingleton<IOutboundEmailProbe>(sp =>
+            new PostmarkEmailProbe(sp.GetRequiredService<PostmarkOutboundMessageClient>()));
         services.AddHttpClient<PostmarkEmailSender>()
             .AddTypedClient((httpClient, sp) =>
-                new PostmarkEmailSender(httpClient, sp.GetRequiredService<IOptions<PostmarkOptions>>().Value));
+                new PostmarkEmailSender(
+                    httpClient,
+                    sp.GetRequiredService<IOptions<PostmarkOptions>>().Value,
+                    sp.GetRequiredService<IPostmarkEmailValidator>()));
         services.AddTransient<IOutboundEmailSender>(sp => sp.GetRequiredService<PostmarkEmailSender>());
         return services;
     }
@@ -132,6 +148,46 @@ public static class EmailServiceCollectionExtensions
 
         services.AddOptions<EmailProcessingOptions>();
         services.AddHostedService<EmailProcessingHostedService>();
+        return services;
+    }
+
+    /// <summary>
+    /// Registers a hosted service that periodically cleans up idempotency records.
+    /// </summary>
+    /// <param name="services">Service collection.</param>
+    /// <param name="configureOptions">Optional cleanup options configuration.</param>
+    /// <returns>The service collection.</returns>
+    public static IServiceCollection AddBravellianEmailIdempotencyCleanupHostedService(
+        this IServiceCollection services,
+        Action<EmailIdempotencyCleanupOptions>? configureOptions = null)
+    {
+        if (services is null)
+        {
+            throw new ArgumentNullException(nameof(services));
+        }
+
+        var options = new EmailIdempotencyCleanupOptions();
+        configureOptions?.Invoke(options);
+
+        var validator = new EmailIdempotencyCleanupOptionsValidator();
+        var validation = validator.Validate(Options.DefaultName, options);
+        if (validation.Failed)
+        {
+            throw new OptionsValidationException(
+                Options.DefaultName,
+                typeof(EmailIdempotencyCleanupOptions),
+                validation.Failures);
+        }
+
+        services.AddOptions<EmailIdempotencyCleanupOptions>().ValidateOnStart();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<EmailIdempotencyCleanupOptions>>(validator));
+
+        if (configureOptions != null)
+        {
+            services.Configure(configureOptions);
+        }
+
+        services.AddHostedService<EmailIdempotencyCleanupService>();
         return services;
     }
 }

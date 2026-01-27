@@ -15,6 +15,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Bravellian.Platform.Idempotency;
+using Bravellian.Platform.Observability;
 
 namespace Bravellian.Platform.Email;
 
@@ -32,6 +33,8 @@ public sealed class EmailOutboxProcessor : IEmailOutboxProcessor
     private readonly IOutboundEmailSender sender;
     private readonly IIdempotencyStore idempotencyStore;
     private readonly IEmailDeliverySink deliverySink;
+    private readonly IOutboundEmailProbe? probe;
+    private readonly IPlatformEventEmitter? eventEmitter;
     private readonly IEmailSendPolicy policy;
     private readonly TimeProvider timeProvider;
     private readonly EmailOutboxProcessorOptions options;
@@ -44,6 +47,8 @@ public sealed class EmailOutboxProcessor : IEmailOutboxProcessor
     /// <param name="sender">Outbound email sender.</param>
     /// <param name="idempotencyStore">Idempotency store.</param>
     /// <param name="deliverySink">Delivery sink.</param>
+    /// <param name="probe">Optional outbound probe.</param>
+    /// <param name="eventEmitter">Optional platform event emitter.</param>
     /// <param name="policy">Send policy.</param>
     /// <param name="timeProvider">Time provider.</param>
     /// <param name="options">Processor options.</param>
@@ -52,6 +57,8 @@ public sealed class EmailOutboxProcessor : IEmailOutboxProcessor
         IOutboundEmailSender sender,
         IIdempotencyStore idempotencyStore,
         IEmailDeliverySink deliverySink,
+        IOutboundEmailProbe? probe = null,
+        IPlatformEventEmitter? eventEmitter = null,
         IEmailSendPolicy? policy = null,
         TimeProvider? timeProvider = null,
         EmailOutboxProcessorOptions? options = null)
@@ -60,6 +67,8 @@ public sealed class EmailOutboxProcessor : IEmailOutboxProcessor
         this.sender = sender ?? throw new ArgumentNullException(nameof(sender));
         this.idempotencyStore = idempotencyStore ?? throw new ArgumentNullException(nameof(idempotencyStore));
         this.deliverySink = deliverySink ?? throw new ArgumentNullException(nameof(deliverySink));
+        this.probe = probe;
+        this.eventEmitter = eventEmitter;
         this.policy = policy ?? NoOpEmailSendPolicy.Instance;
         this.timeProvider = timeProvider ?? TimeProvider.System;
         this.options = options ?? new EmailOutboxProcessorOptions();
@@ -132,6 +141,15 @@ public sealed class EmailOutboxProcessor : IEmailOutboxProcessor
                 null,
                 "Duplicate message key suppressed.",
                 cancellationToken).ConfigureAwait(false);
+            EmailMetrics.RecordResult(payload, EmailDeliveryStatus.Suppressed, provider: null);
+            await EmailAuditEvents.EmitFinalAsync(
+                eventEmitter,
+                payload,
+                provider: null,
+                EmailDeliveryStatus.Suppressed,
+                errorCode: null,
+                errorMessage: "Duplicate message key suppressed.",
+                cancellationToken).ConfigureAwait(false);
             await outboxStore.MarkDispatchedAsync(message.Id, cancellationToken).ConfigureAwait(false);
             return false;
         }
@@ -193,6 +211,15 @@ public sealed class EmailOutboxProcessor : IEmailOutboxProcessor
                 null,
                 reason,
                 cancellationToken).ConfigureAwait(false);
+            EmailMetrics.RecordResult(payload, EmailDeliveryStatus.FailedPermanent, provider: null);
+            await EmailAuditEvents.EmitFinalAsync(
+                eventEmitter,
+                payload,
+                provider: null,
+                EmailDeliveryStatus.FailedPermanent,
+                errorCode: null,
+                errorMessage: reason,
+                cancellationToken).ConfigureAwait(false);
             return;
         }
 
@@ -205,6 +232,46 @@ public sealed class EmailOutboxProcessor : IEmailOutboxProcessor
             sendResult.ErrorCode,
             sendResult.ErrorMessage);
         await deliverySink.RecordAttemptAsync(payload, sendAttempt, cancellationToken).ConfigureAwait(false);
+        EmailMetrics.RecordAttempted(payload, provider: null);
+        await EmailAuditEvents.EmitAttemptedAsync(
+            eventEmitter,
+            payload,
+            provider: null,
+            attemptNumber,
+            sendResult.Status,
+            cancellationToken).ConfigureAwait(false);
+
+        if (sendResult.Status == EmailDeliveryStatus.FailedTransient
+            || sendResult.Status == EmailDeliveryStatus.FailedPermanent)
+        {
+            if (probe != null && !IsValidationFailure(sendResult))
+            {
+                var probeResult = await probe.ProbeAsync(payload, cancellationToken).ConfigureAwait(false);
+                if (probeResult.Outcome == EmailProbeOutcome.Confirmed)
+                {
+                var confirmedStatus = probeResult.Status ?? EmailDeliveryStatus.Sent;
+                await outboxStore.MarkDispatchedAsync(message.Id, cancellationToken).ConfigureAwait(false);
+                await idempotencyStore.CompleteAsync(payload.MessageKey, cancellationToken).ConfigureAwait(false);
+                await deliverySink.RecordFinalAsync(
+                    payload,
+                    confirmedStatus,
+                    probeResult.ProviderMessageId,
+                    probeResult.ErrorCode,
+                    probeResult.ErrorMessage,
+                    cancellationToken).ConfigureAwait(false);
+                EmailMetrics.RecordResult(payload, confirmedStatus, provider: null);
+                await EmailAuditEvents.EmitFinalAsync(
+                    eventEmitter,
+                    payload,
+                    provider: null,
+                    confirmedStatus,
+                    probeResult.ErrorCode,
+                    probeResult.ErrorMessage,
+                    cancellationToken).ConfigureAwait(false);
+                return;
+            }
+        }
+        }
 
         if (sendResult.Status == EmailDeliveryStatus.Sent
             || sendResult.Status == EmailDeliveryStatus.Bounced
@@ -216,6 +283,15 @@ public sealed class EmailOutboxProcessor : IEmailOutboxProcessor
                 payload,
                 sendResult.Status,
                 sendResult.ProviderMessageId,
+                sendResult.ErrorCode,
+                sendResult.ErrorMessage,
+                cancellationToken).ConfigureAwait(false);
+            EmailMetrics.RecordResult(payload, sendResult.Status, provider: null);
+            await EmailAuditEvents.EmitFinalAsync(
+                eventEmitter,
+                payload,
+                provider: null,
+                sendResult.Status,
                 sendResult.ErrorCode,
                 sendResult.ErrorMessage,
                 cancellationToken).ConfigureAwait(false);
@@ -240,6 +316,20 @@ public sealed class EmailOutboxProcessor : IEmailOutboxProcessor
             sendResult.ErrorCode,
             sendResult.ErrorMessage,
             cancellationToken).ConfigureAwait(false);
+        EmailMetrics.RecordResult(payload, EmailDeliveryStatus.FailedPermanent, provider: null);
+        await EmailAuditEvents.EmitFinalAsync(
+            eventEmitter,
+            payload,
+            provider: null,
+            EmailDeliveryStatus.FailedPermanent,
+            sendResult.ErrorCode,
+            sendResult.ErrorMessage,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private static bool IsValidationFailure(EmailSendResult sendResult)
+    {
+        return string.Equals(sendResult.ErrorCode, "validation", StringComparison.OrdinalIgnoreCase);
     }
 
     private static OutboundEmailMessage? Deserialize(OutboxMessage message, out string? error)
