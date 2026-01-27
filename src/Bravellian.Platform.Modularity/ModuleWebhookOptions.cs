@@ -38,7 +38,8 @@ public sealed class ModuleWebhookOptions
     public JsonSerializerOptions? SerializerOptions { get; set; }
 
     /// <summary>
-    /// Optional factory for supplying a custom authenticator for module webhook providers.
+    /// Optional authenticators that must succeed before webhook processing continues.
     /// </summary>
-    public Func<ModuleWebhookAuthenticatorContext, IWebhookAuthenticator>? AuthenticatorFactory { get; set; }
+    public ICollection<Func<ModuleWebhookAuthenticatorContext, IWebhookAuthenticator>> Authenticators { get; } =
+        new List<Func<ModuleWebhookAuthenticatorContext, IWebhookAuthenticator>>();
 }

@@ -94,10 +94,14 @@ ModuleRegistry.RegisterModule<OcrModule>();
 
 builder.Services.AddModuleServices(builder.Configuration);
 
-// Adapters / webhook pipeline
 builder.Services.AddSingleton<UiEngineAdapter>();
 builder.Services.AddBravellianWebhooks();
-builder.Services.AddModuleWebhookProviders();
+builder.Services.AddModuleWebhookProviders(options =>
+{
+    // All authenticators must succeed when provided.
+    options.AddModuleWebhookAuthenticator(ctx => new SignatureAuthenticator());
+    options.AddModuleWebhookAuthenticator(ctx => new ActiveCustomerAuthenticator(ctx.Services));
+});
 
 // Required when engines declare RequiredServices
 builder.Services.AddSingleton<IRequiredServiceValidator, MyRequiredServiceValidator>();
@@ -134,6 +138,52 @@ app.MapWebhookEngineEndpoints(options =>
 ```
 
 If you need typed endpoints instead of generic ones, call `UiEngineAdapter` directly or use `WebhookEndpoint.HandleAsync` with the webhook pipeline.
+
+### Sample authenticators
+
+```csharp
+public sealed class SignatureAuthenticator : IWebhookAuthenticator
+{
+    public Task<AuthResult> AuthenticateAsync(WebhookEnvelope envelope, CancellationToken ct)
+    {
+        if (!envelope.Headers.TryGetValue("X-Signature", out var signature)
+            || string.IsNullOrWhiteSpace(signature))
+        {
+            return Task.FromResult(new AuthResult(false, "Missing signature."));
+        }
+
+        // Implement provider-specific verification using envelope.BodyBytes.
+        var isValid = signature == "ok";
+        return Task.FromResult(isValid
+            ? new AuthResult(true, null)
+            : new AuthResult(false, "Invalid signature."));
+    }
+}
+
+public sealed class ActiveCustomerAuthenticator : IWebhookAuthenticator
+{
+    private readonly ICustomerStatusService customerStatus;
+
+    public ActiveCustomerAuthenticator(IServiceProvider services)
+    {
+        customerStatus = services.GetRequiredService<ICustomerStatusService>();
+    }
+
+    public async Task<AuthResult> AuthenticateAsync(WebhookEnvelope envelope, CancellationToken ct)
+    {
+        var customerId = envelope.Headers.TryGetValue("X-Customer-Id", out var id) ? id : null;
+        if (string.IsNullOrWhiteSpace(customerId))
+        {
+            return new AuthResult(false, "Missing customer.");
+        }
+
+        var active = await customerStatus.IsActiveAsync(customerId, ct);
+        return active
+            ? new AuthResult(true, null)
+            : new AuthResult(false, "Customer inactive.");
+    }
+}
+```
 
 ## 4) Razor Pages adapter (optional)
 

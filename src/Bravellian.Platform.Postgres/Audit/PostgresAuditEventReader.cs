@@ -136,6 +136,7 @@ public sealed class PostgresAuditEventReader : IAuditEventReader
 
         if (events.Count == 0)
         {
+            PostgresAuditMetrics.RecordRead(0);
             return Array.Empty<AuditEvent>();
         }
 
@@ -157,7 +158,9 @@ public sealed class PostgresAuditEventReader : IAuditEventReader
                 group => (IReadOnlyList<EventAnchor>)group.Select(item => new EventAnchor(item.AnchorType, item.AnchorId, item.Role)).ToList(),
                 StringComparer.Ordinal);
 
-        return events.Select(evt => MapAuditEvent(evt, anchorLookup)).ToList();
+        var mapped = events.Select(evt => MapAuditEvent(evt, anchorLookup)).ToList();
+        PostgresAuditMetrics.RecordRead(mapped.Count);
+        return mapped;
     }
 
     private static AuditEvent MapAuditEvent(AuditEventRow row, IReadOnlyDictionary<string, IReadOnlyList<EventAnchor>> anchorLookup)

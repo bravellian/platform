@@ -47,10 +47,7 @@ public sealed class PostgresAuditEventWriter : IAuditEventWriter
     /// <inheritdoc />
     public async Task WriteAsync(AuditEvent auditEvent, CancellationToken cancellationToken)
     {
-        if (auditEvent is null)
-        {
-            throw new ArgumentNullException(nameof(auditEvent));
-        }
+        ArgumentNullException.ThrowIfNull(auditEvent);
 
         var validation = AuditEventValidator.Validate(auditEvent, options.ValidationOptions);
         if (!validation.IsValid)
@@ -151,6 +148,7 @@ public sealed class PostgresAuditEventWriter : IAuditEventWriter
 
             await connection.ExecuteAsync(anchorSql, anchors, transaction).ConfigureAwait(false);
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+            PostgresAuditMetrics.RecordWritten(auditEvent.Outcome.ToString());
         }
         catch (Exception ex)
         {

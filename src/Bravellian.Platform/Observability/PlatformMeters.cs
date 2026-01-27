@@ -14,6 +14,7 @@
 
 
 using System.Diagnostics.Metrics;
+using Bravellian.Platform.Metrics;
 
 namespace Bravellian.Platform.Observability;
 /// <summary>
@@ -21,7 +22,10 @@ namespace Bravellian.Platform.Observability;
 /// </summary>
 internal static class PlatformMeters
 {
-    internal static readonly Meter Meter = new("Bravellian.Platform", "1.0.0");
+    private static readonly PlatformMeterProvider MeterProvider = new(
+        "Bravellian.Platform",
+        "1.0.0");
+    internal static readonly Meter Meter = MeterProvider.Meter;
 
     // Watchdog & Heartbeat
     internal static readonly Counter<long> WatchdogHeartbeatTotal =

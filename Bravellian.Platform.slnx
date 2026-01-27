@@ -29,6 +29,10 @@
   <Folder Name="/observability/">
     <Project Path="src/Bravellian.Platform.Observability/Bravellian.Platform.Observability.csproj" />
   </Folder>
+  <Folder Name="/metrics/">
+    <Project Path="src/Bravellian.Platform.Metrics.AspNetCore/Bravellian.Platform.Metrics.AspNetCore.csproj" />
+    <Project Path="src/Bravellian.Platform.Metrics.HttpServer/Bravellian.Platform.Metrics.HttpServer.csproj" />
+  </Folder>
   <Folder Name="/tools/">
     <Project Path="tools/observability/src/Bravellian.Platform.Observability.Analyzers/Bravellian.Platform.Observability.Analyzers.csproj" />
     <Project Path="tools/testdocs/src/Bravellian.TestDocs.Analyzers/Bravellian.TestDocs.Analyzers.csproj" />

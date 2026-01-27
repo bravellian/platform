@@ -130,6 +130,7 @@ public sealed class SqlOperationTracker : IOperationTracker
             {
                 await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
                 await connection.ExecuteAsync(sql, parameters).ConfigureAwait(false);
+                SqlOperationMetrics.RecordStarted();
                 return operationId;
             }
         }
@@ -192,6 +193,7 @@ public sealed class SqlOperationTracker : IOperationTracker
                 }
 
                 await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+                SqlOperationMetrics.RecordProgressUpdated();
             }
         }
     }
@@ -305,6 +307,7 @@ public sealed class SqlOperationTracker : IOperationTracker
                 }
 
                 await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+                SqlOperationMetrics.RecordCompleted(status);
             }
         }
     }
@@ -343,6 +346,7 @@ public sealed class SqlOperationTracker : IOperationTracker
                 sql,
                 new { OperationId = operationId.Value }).ConfigureAwait(false);
 
+            SqlOperationMetrics.RecordSnapshotRead(row != null);
             return row == null ? null : MapSnapshot(row);
         }
     }

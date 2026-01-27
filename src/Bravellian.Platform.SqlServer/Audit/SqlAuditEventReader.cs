@@ -134,6 +134,7 @@ public sealed class SqlAuditEventReader : IAuditEventReader
 
         if (events.Count == 0)
         {
+            SqlAuditMetrics.RecordRead(0);
             return Array.Empty<AuditEvent>();
         }
 
@@ -154,7 +155,9 @@ public sealed class SqlAuditEventReader : IAuditEventReader
                 group => (IReadOnlyList<EventAnchor>)group.Select(item => new EventAnchor(item.AnchorType, item.AnchorId, item.Role)).ToList(),
                 StringComparer.Ordinal);
 
-        return events.Select(evt => MapAuditEvent(evt, anchorLookup)).ToList();
+        var mapped = events.Select(evt => MapAuditEvent(evt, anchorLookup)).ToList();
+        SqlAuditMetrics.RecordRead(mapped.Count);
+        return mapped;
         }
     }
 

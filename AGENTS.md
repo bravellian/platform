@@ -8,6 +8,10 @@ We do not have LSP, so run these skills first to build a semantic picture and av
 - dotnet-format-analyzers (only before finalizing a PR / when touching C# code style): Verify formatting and analyzers. Run: `pwsh -File .codex/skills/dotnet-format-analyzers/scripts/run-format-analyzers.ps1`
 - dotnet-symbol-grep-recipes: Use rg navigation recipes during investigation. Run: `rg -n "\b(class|interface|record|struct)\s+<Name>\b" -g "*.cs"`
 
+## LLM Context File (llms.txt)
+- Read `llms.txt` at the start of any task to understand the repository's curated map and key references.
+- Keep `llms.txt` up to date whenever repository structure, documentation, or core workflows change.
+
 Decision checklist:
 - If the task mentions build failures or compiler errors, run dotnet-build-diagnostics.
 - If the task mentions failing tests or modifying code with tests, run dotnet-test-triage.

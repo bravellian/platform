@@ -229,6 +229,8 @@ public sealed class PostgresEmailDeliverySink : IEmailDeliverySink
                     CorrelationCreatedAtUtc = correlation?.CreatedAtUtc,
                     CorrelationTagsJson = SerializeTags(correlation?.Tags),
                 }).ConfigureAwait(false);
+
+            EmailMetrics.RecordDeliveryEvent(eventType.ToString(), status, provider: null);
         }
         catch (Exception ex)
         {

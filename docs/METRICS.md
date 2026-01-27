@@ -41,6 +41,42 @@ builder.Services.AddMetricsExporterHealthCheck();
 // Platform metrics are automatically registered!
 ```
 
+### Prometheus Exporters (OpenTelemetry)
+
+Use the OpenTelemetry-based exporters to expose platform and application metrics for Prometheus scraping.
+These packages complement the database-backed exporter and use the same `Meter` sources.
+
+**ASP.NET Core**
+
+```csharp
+using Bravellian.Platform.Metrics.AspNetCore;
+
+builder.Services.AddPlatformMetrics(options =>
+{
+    options.EnablePrometheusExporter = true;
+    options.PrometheusEndpointPath = "/metrics";
+    options.Meter.MeterName = "Bravellian.Platform.MyApp";
+});
+
+app.MapPlatformMetricsEndpoint();
+```
+
+**Self-hosted HTTP listener**
+
+```csharp
+using Bravellian.Platform.Metrics.HttpServer;
+
+using var server = new PlatformMetricsHttpServer(new PlatformMetricsHttpServerOptions
+{
+    Meter = new PlatformMeterOptions
+    {
+        MeterName = "Bravellian.Platform.MyApp"
+    },
+    UriPrefixes = ["http://localhost:9464/"],
+    ScrapeEndpointPath = "/metrics"
+});
+```
+
 ### 2. Register Application-Specific Metrics
 
 ```csharp

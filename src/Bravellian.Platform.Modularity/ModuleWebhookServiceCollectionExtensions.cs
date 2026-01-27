@@ -37,4 +37,18 @@ public static class ModuleWebhookServiceCollectionExtensions
         services.AddSingleton<IWebhookProviderRegistry, ModuleWebhookProviderRegistry>();
         return services;
     }
+
+    /// <summary>
+    /// Adds a module webhook authenticator factory to the options.
+    /// </summary>
+    public static ModuleWebhookOptions AddModuleWebhookAuthenticator(
+        this ModuleWebhookOptions options,
+        Func<ModuleWebhookAuthenticatorContext, IWebhookAuthenticator> factory)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(factory);
+
+        options.Authenticators.Add(factory);
+        return options;
+    }
 }

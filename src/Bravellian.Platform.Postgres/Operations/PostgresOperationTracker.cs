@@ -131,6 +131,7 @@ public sealed class PostgresOperationTracker : IOperationTracker
             using var connection = new NpgsqlConnection(options.ConnectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
             await connection.ExecuteAsync(sql, parameters).ConfigureAwait(false);
+            PostgresOperationMetrics.RecordStarted();
             return operationId;
         }
         catch (Exception ex)
@@ -190,6 +191,7 @@ public sealed class PostgresOperationTracker : IOperationTracker
         }
 
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        PostgresOperationMetrics.RecordProgressUpdated();
     }
 
     /// <inheritdoc />
@@ -243,6 +245,7 @@ public sealed class PostgresOperationTracker : IOperationTracker
                 Message = message.Trim(),
                 DataJson = dataJson,
             }).ConfigureAwait(false);
+        PostgresOperationMetrics.RecordEventAdded(kind);
     }
 
     /// <inheritdoc />
@@ -295,6 +298,7 @@ public sealed class PostgresOperationTracker : IOperationTracker
         }
 
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        PostgresOperationMetrics.RecordCompleted(status);
     }
 
     /// <inheritdoc />
@@ -330,6 +334,7 @@ public sealed class PostgresOperationTracker : IOperationTracker
             sql,
             new { OperationId = operationId.Value }).ConfigureAwait(false);
 
+        PostgresOperationMetrics.RecordSnapshotRead(row != null);
         return row == null ? null : MapSnapshot(row);
     }
 

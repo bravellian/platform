@@ -44,6 +44,9 @@ app.MapWebhookEngineEndpoints(options =>
 });
 ```
 
+Register authenticators only when you want them enforced; multiple authenticators can be
+added and all must succeed.
+
 Webhook ingestion uses the default pipeline responses (202 for accepted and 401/403 for rejected).
 
 ## Documentation

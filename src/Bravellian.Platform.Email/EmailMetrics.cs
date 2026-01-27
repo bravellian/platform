@@ -14,6 +14,7 @@
 
 using System.Diagnostics.Metrics;
 using System.Runtime.InteropServices;
+using Bravellian.Platform.Metrics;
 using Bravellian.Platform.Observability;
 
 namespace Bravellian.Platform.Email;
@@ -23,7 +24,10 @@ namespace Bravellian.Platform.Email;
 /// </summary>
 public static class EmailMetrics
 {
-    private static readonly Meter Meter = new("Bravellian.Platform.Email", "1.0.0");
+    private static readonly PlatformMeterProvider MeterProvider = new(
+        "Bravellian.Platform.Email",
+        "1.0.0");
+    private static readonly Meter Meter = MeterProvider.Meter;
 
     private static readonly Counter<long> EmailQueuedTotal =
         Meter.CreateCounter<long>("bravellian.platform.email.queued_total", unit: "items", description: "Total number of emails queued.");
@@ -45,6 +49,9 @@ public static class EmailMetrics
 
     private static readonly Counter<long> WebhookReceivedTotal =
         Meter.CreateCounter<long>("bravellian.platform.email.webhook_received_total", unit: "items", description: "Total number of email webhooks received.");
+
+    private static readonly Counter<long> EmailDeliveryEventTotal =
+        Meter.CreateCounter<long>("bravellian.platform.email.delivery_event_total", unit: "items", description: "Total number of email delivery events recorded.");
 
     private static readonly Histogram<long> EmailBodyBytes =
         Meter.CreateHistogram<long>("bravellian.platform.email.body_bytes", unit: "bytes", description: "Total email body size.");
@@ -120,6 +127,21 @@ public static class EmailMetrics
         };
 
         WebhookReceivedTotal.Add(1, tags);
+    }
+
+    /// <summary>
+    /// Records a delivery event captured by a sink.
+    /// </summary>
+    public static void RecordDeliveryEvent(string eventType, EmailDeliveryStatus status, string? provider)
+    {
+        var tags = new[]
+        {
+            new KeyValuePair<string, object?>(PlatformTagKeys.Provider, NormalizeProvider(provider)),
+            new KeyValuePair<string, object?>("eventType", eventType),
+            new KeyValuePair<string, object?>("status", status.ToString()),
+        };
+
+        EmailDeliveryEventTotal.Add(1, tags);
     }
 
     internal static EmailSizeInfo GetSizeInfo(OutboundEmailMessage message)

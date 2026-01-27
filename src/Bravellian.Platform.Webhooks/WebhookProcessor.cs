@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Bravellian.Platform;
@@ -57,13 +58,23 @@ public sealed class WebhookProcessor : IWebhookProcessor
             return 0;
         }
 
+        WebhookMetrics.RecordClaimed(claimedIds.Count);
+
         var toAck = new List<string>();
         var toRetry = new Dictionary<string, string>(StringComparer.Ordinal);
         var retryContexts = new Dictionary<string, WebhookEventContext?>(StringComparer.Ordinal);
 
         foreach (var messageId in claimedIds)
         {
+            var stopwatch = Stopwatch.StartNew();
             var outcome = await ProcessSingleAsync(ownerToken, messageId, cancellationToken).ConfigureAwait(false);
+            stopwatch.Stop();
+
+            var status = outcome.Status ?? (outcome.Disposition == ProcessDisposition.Retry
+                ? WebhookEventStatus.FailedRetryable
+                : WebhookEventStatus.Poisoned);
+            WebhookMetrics.RecordProcessed(outcome.Context?.Provider, status, stopwatch.Elapsed);
+
             switch (outcome.Disposition)
             {
                 case ProcessDisposition.Ack:

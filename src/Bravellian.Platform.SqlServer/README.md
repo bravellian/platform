@@ -10,6 +10,25 @@ dotnet add package Bravellian.Platform.SqlServer
 
 ## Usage
 
+### Single-call platform registration
+
+Register the full SQL Server-backed platform stack (outbox/inbox/scheduler/fanout/idempotency, audit, operations,
+email outbox, metrics exporter, leases, semaphores, external side effects) with one call:
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddSqlPlatform(
+    "Server=localhost;Database=MyApp;Trusted_Connection=true;",
+    options =>
+    {
+        options.EnableSchemaDeployment = true;
+        options.EnableSchedulerWorkers = true;
+    });
+
+var app = builder.Build();
+```
+
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
 

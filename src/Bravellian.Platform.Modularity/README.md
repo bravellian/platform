@@ -17,7 +17,12 @@ builder.Services.AddModuleServices(builder.Configuration);
 
 builder.Services.AddSingleton<UiEngineAdapter>();
 builder.Services.AddBravellianWebhooks();
-builder.Services.AddModuleWebhookProviders();
+builder.Services.AddModuleWebhookProviders(options =>
+{
+    // Add one or more authenticators; all must succeed.
+    options.AddModuleWebhookAuthenticator(ctx => new SignatureAuthenticator());
+    options.AddModuleWebhookAuthenticator(ctx => new ActiveCustomerAuthenticator(ctx.Services));
+});
 
 builder.Services.AddSingleton<IRequiredServiceValidator, MyRequiredServiceValidator>();
 ```

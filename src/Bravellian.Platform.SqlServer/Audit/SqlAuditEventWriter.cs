@@ -152,6 +152,7 @@ public sealed class SqlAuditEventWriter : IAuditEventWriter
 
                     await connection.ExecuteAsync(anchorSql, anchors, transaction).ConfigureAwait(false);
                     transaction.Commit();
+                    SqlAuditMetrics.RecordWritten(auditEvent.Outcome.ToString());
                 }
                 catch (Exception ex)
                 {

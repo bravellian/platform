@@ -1,0 +1,57 @@
+# Bravellian Platform
+
+> .NET 10 platform for SQL-backed distributed work-queue primitives (outbox/inbox, schedulers, leases) with claim-ack-abandon semantics and database-authoritative timing.
+
+Primary solutions: `Bravellian.Platform.slnx` and `Bravellian.Platform.CI.slnx`. Packages live under `src/`, tests under `tests/`, docs under `docs/`, and SQL schema artifacts under `src/Bravellian.Platform.Database/`.
+
+## Getting Started
+Install the core package and a provider (SqlServer or Postgres), register the scheduler/outbox/inbox services, and enable schema deployment if you want automatic table creation. Use discovery-based registration for multi-tenant scenarios.
+
+## Core Patterns and APIs
+
+Outbox, inbox, scheduler, fanout, and leases are built on a work-queue pattern: claim → ack → abandon, with database-authoritative timing. Use these primitives when you need durable background processing, predictable retries, and at-least-once delivery with idempotency guards.
+
+## Module Overview (When to use / How it works)
+
+- Bravellian.Platform: Core abstractions and orchestration for platform primitives; provider packages supply concrete storage and schema deployment.
+- Bravellian.Platform.SqlServer / Postgres: Database-backed implementations of outbox/inbox/scheduler/fanout/leases/metrics with optional schema deployment.
+- Bravellian.Platform.Audit: Immutable audit timeline; write append-only events and query by anchors.
+- Bravellian.Platform.Correlation: Correlation context and header propagation to stitch workflows end-to-end.
+- Bravellian.Platform.Operations: Track long-running operations with progress, events, and stalled detection.
+- Bravellian.Platform.Observability: Shared conventions and helpers (event names, tag keys, emitters) for audit/ops/metrics consistency.
+- Bravellian.Platform.Idempotency: At-most-once semantics for a logical key with TryBegin/Complete/Fail.
+- Bravellian.Platform.Email: Outbox-driven email delivery with idempotency, send policies, and provider adapters.
+- Bravellian.Platform.Email.Postmark: Postmark outbound adapter.
+- Bravellian.Platform.Email.AspNetCore: ASP.NET Core DI helpers and hosted processing loop.
+- Bravellian.Platform.Webhooks: Provider-agnostic webhook ingestion; authenticate/classify/enqueue/handle with retries.
+- Bravellian.Platform.Webhooks.AspNetCore: ASP.NET Core endpoints and DI wiring for webhooks.
+- Bravellian.Platform.Modularity: Engine-first module model for UI, webhooks, and background workflows.
+- Bravellian.Platform.Modularity.AspNetCore: ASP.NET Core helpers for modularity hosting.
+- Bravellian.Platform.Modularity.Razor: Razor UI module integration.
+- Bravellian.Platform.Metrics.AspNetCore: ASP.NET Core OpenTelemetry/Prometheus exports.
+- Bravellian.Platform.Metrics.HttpServer: Self-hosted Prometheus scrape endpoint.
+- Bravellian.Platform.HealthProbe: Deploy-time healthcheck CLI with standardized exit codes.
+
+## Modularity and Engines
+
+Modularity provides engine descriptors and manifests to expose UI/webhook/worker capabilities. Use it when you need discovery and composition of modules with structured inputs/outputs.
+
+## Observability and Operations
+
+Observability focuses on consistent audit/operation/metric conventions. Operations track long-running jobs and provide progress snapshots; audit records immutable timeline events.
+
+## Database and Schema
+
+SQL schema scripts live under `src/Bravellian.Platform.Database/`. Providers can auto-deploy schema or use manual scripts. Multi-database patterns use discovery and routers to span tenant databases.
+
+## Specifications
+
+Outbox, inbox, and join coordination specifications define behavior requirements and guarantees.
+
+## Testing
+
+Tests use xUnit v3, Shouldly, and NSubstitute. Integration tests rely on Docker SQL Server via Testcontainers.
+
+## Optional
+
+Advanced patterns: multi-database routing, fanout/join coordination, and internal work-queue mechanics.

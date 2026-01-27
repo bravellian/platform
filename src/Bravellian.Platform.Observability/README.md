@@ -63,3 +63,12 @@ await emitter.EmitOperationCompletedAsync(
 
 For webhooks and email, use `PlatformTagKeys` to capture provider, message keys, and webhook IDs
 and emit audit events with `PlatformEventNames`.
+
+## Metrics Integration
+
+For Prometheus scraping and OpenTelemetry-based exports, use:
+
+- `Bravellian.Platform.Metrics.AspNetCore` for ASP.NET Core apps
+- `Bravellian.Platform.Metrics.HttpServer` for self-hosted scrapers
+
+These packages complement the database-backed metrics exporter and reuse the same `Meter` sources.

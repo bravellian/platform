@@ -67,6 +67,7 @@ public sealed class WebhookIngestor : IWebhookIngestor
         }
 
         ArgumentNullException.ThrowIfNull(envelope);
+        WebhookMetrics.RecordReceived(providerName);
 
         var provider = providerRegistry.Get(providerName) ?? throw new InvalidOperationException($"No webhook provider registered for '{providerName}'.");
 
@@ -89,6 +90,7 @@ public sealed class WebhookIngestor : IWebhookIngestor
                 await StoreRejectedAsync(providerName, envelope, null, null, null, authResult.FailureReason, cancellationToken).ConfigureAwait(false);
             }
 
+            WebhookMetrics.RecordRejected(providerName, "auth");
             options.OnRejected?.Invoke(authResult.FailureReason, envelope, rejection);
             options.OnIngested?.Invoke(rejection, envelope);
             return rejection;
@@ -107,6 +109,7 @@ public sealed class WebhookIngestor : IWebhookIngestor
                 classifyResult.PartitionKey,
                 classifyResult.ParsedSummaryJson,
                 false);
+            WebhookMetrics.RecordRejected(providerName, "ignored");
             options.OnIngested?.Invoke(ignored, envelope);
             return ignored;
         }
@@ -136,6 +139,7 @@ public sealed class WebhookIngestor : IWebhookIngestor
                     cancellationToken).ConfigureAwait(false);
             }
 
+            WebhookMetrics.RecordRejected(providerName, "classify");
             options.OnRejected?.Invoke(classifyResult.FailureReason, envelope, rejection);
             options.OnIngested?.Invoke(rejection, envelope);
             return rejection;
@@ -166,6 +170,10 @@ public sealed class WebhookIngestor : IWebhookIngestor
             var topic = string.IsNullOrWhiteSpace(classifyResult.EventType) ? DefaultTopic : classifyResult.EventType;
             await targetInbox.EnqueueAsync(topic, providerName, dedupeKey, payloadJson, cancellationToken).ConfigureAwait(false);
         }
+        else
+        {
+            WebhookMetrics.RecordDuplicate(providerName);
+        }
 
         var accepted = new WebhookIngestResult(
             WebhookIngestDecision.Accepted,
@@ -177,6 +185,7 @@ public sealed class WebhookIngestor : IWebhookIngestor
             partitionKey,
             classifyResult.ParsedSummaryJson,
             duplicate);
+        WebhookMetrics.RecordAccepted(providerName);
         options.OnIngested?.Invoke(accepted, envelope);
         return accepted;
     }

@@ -136,8 +136,7 @@ public sealed class ModuleWebhookProviderRegistry : IWebhookProviderRegistry
             this.discovery = discovery;
             this.services = services;
             this.options = options;
-            Authenticator = options.AuthenticatorFactory?.Invoke(new ModuleWebhookAuthenticatorContext(name, services))
-                ?? new ModuleWebhookAuthenticator(events, options);
+            Authenticator = BuildAuthenticator(name, services, options, events);
             Classifier = new ModuleWebhookClassifier(events, options);
             handlers = new[] { new ModuleWebhookHandler(name, events, discovery, services, options) };
         }
@@ -178,6 +177,30 @@ public sealed class ModuleWebhookProviderRegistry : IWebhookProviderRegistry
             }
 
             return Task.FromResult(new AuthResult(true, null));
+        }
+    }
+
+    private sealed class CompositeWebhookAuthenticator : IWebhookAuthenticator
+    {
+        private readonly IReadOnlyList<IWebhookAuthenticator> authenticators;
+
+        public CompositeWebhookAuthenticator(IReadOnlyList<IWebhookAuthenticator> authenticators)
+        {
+            this.authenticators = authenticators;
+        }
+
+        public async Task<AuthResult> AuthenticateAsync(WebhookEnvelope envelope, CancellationToken cancellationToken)
+        {
+            foreach (var authenticator in authenticators)
+            {
+                var result = await authenticator.AuthenticateAsync(envelope, cancellationToken).ConfigureAwait(false);
+                if (!result.IsAuthenticated)
+                {
+                    return result;
+                }
+            }
+
+            return new AuthResult(true, null);
         }
     }
 
@@ -390,4 +413,31 @@ public sealed class ModuleWebhookProviderRegistry : IWebhookProviderRegistry
         string EventType,
         ModuleEngineSecurity? Security,
         IReadOnlyList<ModuleWebhookEngineBinding> Bindings);
+
+    private static IWebhookAuthenticator BuildAuthenticator(
+        string providerName,
+        IServiceProvider services,
+        ModuleWebhookOptions options,
+        IReadOnlyDictionary<string, ModuleWebhookEventDefinition> events)
+    {
+        if (options.Authenticators.Count == 0)
+        {
+            return new ModuleWebhookAuthenticator(events, options);
+        }
+
+        var context = new ModuleWebhookAuthenticatorContext(providerName, services);
+        var authenticators = options.Authenticators
+            .Select(factory => factory(context))
+            .OfType<IWebhookAuthenticator>()
+            .ToArray();
+
+        if (authenticators.Length == 0)
+        {
+            return new ModuleWebhookAuthenticator(events, options);
+        }
+
+        return authenticators.Length == 1
+            ? authenticators[0]
+            : new CompositeWebhookAuthenticator(authenticators);
+    }
 }

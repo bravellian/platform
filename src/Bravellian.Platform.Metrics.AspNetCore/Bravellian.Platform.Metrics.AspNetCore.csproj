@@ -1,16 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <Deterministic>true</Deterministic>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <PackageId>Bravellian.Platform.Webhooks</PackageId>
+    <PackageId>Bravellian.Platform.Metrics.AspNetCore</PackageId>
     <Version>1.0.0</Version>
     <Authors>Bravellian</Authors>
     <Owners>Bravellian</Owners>
-    <Description>Provider-agnostic webhook primitives and processing pipeline.</Description>
+    <Description>ASP.NET Core helpers for Bravellian.Platform metrics with OpenTelemetry and Prometheus.</Description>
     <PackageProjectUrl>https://github.com/bravellian/platform</PackageProjectUrl>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/bravellian/platform</RepositoryUrl>
@@ -23,8 +22,19 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Bravellian.Platform.Observability\Bravellian.Platform.Observability.csproj" />
     <ProjectReference Include="..\Bravellian.Platform\Bravellian.Platform.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.9.0-alpha.1" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.14.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.14.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Process" Version="0.5.0-beta.1" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.14.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -39,20 +49,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-      <_Parameter1>Bravellian.Platform.Webhooks.Tests</_Parameter1>
-    </AssemblyAttribute>
-    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-      <_Parameter1>Bravellian.Platform.Webhooks.AspNetCore.Tests</_Parameter1>
-    </AssemblyAttribute>
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Update="Meziantou.Analyzer" Version="2.0.284" />
     <PackageReference Update="Microsoft.SourceLink.GitHub" Version="10.0.102" />
     <PackageReference Update="Roslynator.Analyzers" Version="4.15.0" />
     <PackageReference Update="Roslynator.CodeAnalysis.Analyzers" Version="4.15.0" />
     <PackageReference Update="Roslynator.Formatting.Analyzers" Version="4.15.0" />
   </ItemGroup>
-
 </Project>

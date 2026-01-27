@@ -13,12 +13,16 @@
 // limitations under the License.
 
 using System.Diagnostics.Metrics;
+using Bravellian.Platform.Metrics;
 
 namespace Bravellian.Platform;
 
 internal static class SchedulerMetrics
 {
-    private static readonly Meter Meter = new("Bravellian.Platform", "1.0.0");
+    private static readonly PlatformMeterProvider MeterProvider = new(
+        "Bravellian.Platform",
+        "1.0.0");
+    private static readonly Meter Meter = MeterProvider.Meter;
     private static readonly ActivitySource ActivitySource = new("Bravellian.Platform");
 
     // Work Queue Counters
