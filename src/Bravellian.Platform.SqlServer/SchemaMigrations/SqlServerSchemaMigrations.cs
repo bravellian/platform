@@ -39,6 +39,7 @@ internal static class SqlServerSchemaMigrations
     private const string MetricsJournalTable = "BravellianPlatform_MetricsJournal";
     private const string CentralMetricsJournalTable = "BravellianPlatform_CentralMetricsJournal";
     private const string ExternalSideEffectJournalTable = "BravellianPlatform_ExternalSideEffectsJournal";
+    private const string IdempotencyJournalTable = "BravellianPlatform_IdempotencyJournal";
 
     public static Task ApplyOutboxAsync(
         string connectionString,
@@ -293,6 +294,29 @@ internal static class SqlServerSchemaMigrations
             cancellationToken);
     }
 
+    public static Task ApplyIdempotencyAsync(
+        string connectionString,
+        string schemaName,
+        string tableName,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        var variables = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["SchemaName"] = schemaName,
+            ["IdempotencyTable"] = tableName,
+        };
+
+        return ApplyModuleAsync(
+            connectionString,
+            "Idempotency",
+            schemaName,
+            IdempotencyJournalTable,
+            variables,
+            logger,
+            cancellationToken);
+    }
+
     public static IReadOnlyList<string> GetOutboxScriptsForSnapshot()
     {
         var variables = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -349,6 +373,17 @@ internal static class SqlServerSchemaMigrations
         };
 
         return GetModuleScriptsText("ExternalSideEffects", variables);
+    }
+
+    public static IReadOnlyList<string> GetIdempotencyScriptsForSnapshot()
+    {
+        var variables = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["SchemaName"] = "infra",
+            ["IdempotencyTable"] = "Idempotency",
+        };
+
+        return GetModuleScriptsText("Idempotency", variables);
     }
 
     private static Task ApplyModuleAsync(

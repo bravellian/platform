@@ -14,6 +14,7 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Bravellian.Platform.Idempotency;
 
 namespace Bravellian.Platform.Email;
 

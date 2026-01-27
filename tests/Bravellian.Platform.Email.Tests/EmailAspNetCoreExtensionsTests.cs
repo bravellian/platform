@@ -15,6 +15,7 @@
 using System.Data;
 using Bravellian.Platform;
 using Bravellian.Platform.Email.AspNetCore;
+using Bravellian.Platform.Idempotency;
 using Bravellian.Platform.Outbox;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;

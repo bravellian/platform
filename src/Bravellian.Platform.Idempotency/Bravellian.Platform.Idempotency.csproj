@@ -6,11 +6,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Deterministic>true</Deterministic>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <PackageId>Bravellian.Platform.Email</PackageId>
+    <PackageId>Bravellian.Platform.Idempotency</PackageId>
     <Version>1.0.0</Version>
     <Authors>Bravellian</Authors>
     <Owners>Bravellian</Owners>
-    <Description>Provider-agnostic email outbox primitives and dispatching.</Description>
+    <Description>Idempotency primitives for consistent, deduplicated operations.</Description>
     <PackageProjectUrl>https://github.com/bravellian/platform</PackageProjectUrl>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/bravellian/platform</RepositoryUrl>
@@ -23,11 +23,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Bravellian.Platform\Bravellian.Platform.csproj" />
-    <ProjectReference Include="..\Bravellian.Platform.Idempotency\Bravellian.Platform.Idempotency.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
     <None Include="..\..\assets\nuget_logo.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
@@ -36,15 +31,6 @@
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
-  </ItemGroup>
-
-  <ItemGroup>
-    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-      <_Parameter1>Bravellian.Platform.Email.Tests</_Parameter1>
-    </AssemblyAttribute>
-    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-      <_Parameter1>Bravellian.Platform.Email.Postmark.Tests</_Parameter1>
-    </AssemblyAttribute>
   </ItemGroup>
 
   <ItemGroup>

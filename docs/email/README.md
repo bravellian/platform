@@ -12,13 +12,18 @@ The system separates enqueue from processing for reliability and control:
   - `IEmailDeliverySink.RecordQueuedAsync` is called for observability.
 - **Processing**: a worker calls `EmailOutboxProcessor.ProcessOnceAsync` (or the hosted service loop).
   - `IOutboxStore` claims due messages, `IOutboundEmailSender` sends them, and `IEmailDeliverySink` records attempts and final state.
-  - `IIdempotencyStore` enforces message-key dedupe across workers.
+  - `IIdempotencyStore` (from `Bravellian.Platform.Idempotency`) enforces message-key dedupe across workers.
   - `IEmailSendPolicy` can throttle, delay, or reject sends before the provider call.
 
 ## Quick Start
 
 ```csharp
-var outbox = new EmailOutbox(platformOutbox, deliverySink);
+services.AddSqlOutbox("Server=.;Database=app;Trusted_Connection=True;");
+services.AddSqlIdempotency("Server=.;Database=app;Trusted_Connection=True;");
+services.AddBravellianEmailCore();
+services.AddBravellianEmailProcessingHostedService();
+
+var outbox = serviceProvider.GetRequiredService<IEmailOutbox>();
 
 var message = new OutboundEmailMessage(
     messageKey: "postmark:welcome:123",
@@ -30,12 +35,8 @@ var message = new OutboundEmailMessage(
 
 await outbox.EnqueueAsync(message, CancellationToken.None);
 
-var processor = new EmailOutboxProcessor(
-    outboxStore,
-    outboundSender,
-    idempotencyStore,
-    deliverySink);
-
+// Manual processing when you are not running the hosted service:
+var processor = serviceProvider.GetRequiredService<IEmailOutboxProcessor>();
 await processor.ProcessOnceAsync(CancellationToken.None);
 ```
 
@@ -116,7 +117,7 @@ Policy outcomes:
 
 - Provider-agnostic message model and validation (`OutboundEmailMessage`, `EmailMessageValidator`).
 - Outbox enqueue and processing (`IEmailOutbox`, `EmailOutboxProcessor`).
-- Idempotency and delivery tracking interfaces (`IIdempotencyStore`, `IEmailDeliverySink`).
+- Idempotency and delivery tracking interfaces (`IIdempotencyStore`, `IEmailDeliverySink`), with idempotency supplied by `Bravellian.Platform.Idempotency`.
 - Throttling policy (`IEmailSendPolicy`).
 
 ### Postmark adapter responsibilities (Bravellian.Platform.Email.Postmark)
@@ -160,7 +161,7 @@ app.MapPost("/webhooks/{provider}", (HttpContext ctx, IWebhookIngestor ingestor)
 ## ASP.NET Core Helpers
 
 - `Bravellian.Platform.Email.AspNetCore` supplies DI helpers for registering the outbox components.
-- Hosting layers should wire up `IOutbox`/`IOutboxStore`, `IOutboundEmailSender`, and `IIdempotencyStore`.
+- Hosting layers should wire up `IOutbox`/`IOutboxStore`, `IOutboundEmailSender`, and `IIdempotencyStore` (for SQL Server, register `AddSqlIdempotency`).
 
 Enqueue usage:
 

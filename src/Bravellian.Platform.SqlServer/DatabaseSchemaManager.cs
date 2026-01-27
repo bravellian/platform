@@ -174,6 +174,26 @@ internal static class DatabaseSchemaManager
     }
 
     /// <summary>
+    /// Ensures that the required database schema exists for idempotency tracking.
+    /// </summary>
+    /// <param name="connectionString">The database connection string.</param>
+    /// <param name="schemaName">The schema name (default: "infra").</param>
+    /// <param name="tableName">The table name (default: "Idempotency").</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public static async Task EnsureIdempotencySchemaAsync(
+        string connectionString,
+        string schemaName = "infra",
+        string tableName = "Idempotency")
+    {
+        await SqlServerSchemaMigrations.ApplyIdempotencyAsync(
+            connectionString,
+            schemaName,
+            tableName,
+            NullLogger.Instance,
+            CancellationToken.None).ConfigureAwait(false);
+    }
+
+    /// <summary>
     /// Ensures that a schema exists in the database.
     /// </summary>
     /// <param name="connection">The database connection.</param>
@@ -291,6 +311,7 @@ internal static class DatabaseSchemaManager
             ["inbox"] = ComputeSchemaHash(GetInboxSchemaScripts()),
             ["scheduler"] = ComputeSchemaHash(GetSchedulerSchemaScripts()),
             ["fanout"] = ComputeSchemaHash(GetFanoutSchemaScripts()),
+            ["idempotency"] = ComputeSchemaHash(GetIdempotencySchemaScripts()),
         };
     }
 
@@ -371,6 +392,14 @@ internal static class DatabaseSchemaManager
     private static IEnumerable<string> GetFanoutSchemaScripts()
     {
         foreach (var script in SqlServerSchemaMigrations.GetFanoutScriptsForSnapshot())
+        {
+            yield return script;
+        }
+    }
+
+    private static IEnumerable<string> GetIdempotencySchemaScripts()
+    {
+        foreach (var script in SqlServerSchemaMigrations.GetIdempotencyScriptsForSnapshot())
         {
             yield return script;
         }

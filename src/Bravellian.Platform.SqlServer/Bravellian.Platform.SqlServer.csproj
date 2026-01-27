@@ -48,6 +48,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Bravellian.Platform\Bravellian.Platform.csproj" />
+    <ProjectReference Include="..\Bravellian.Platform.Idempotency\Bravellian.Platform.Idempotency.csproj" />
   </ItemGroup>
 
   <ItemGroup>

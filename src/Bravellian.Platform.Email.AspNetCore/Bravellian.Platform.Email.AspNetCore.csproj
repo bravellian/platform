@@ -24,6 +24,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Bravellian.Platform.Email\Bravellian.Platform.Email.csproj" />
     <ProjectReference Include="..\Bravellian.Platform.Email.Postmark\Bravellian.Platform.Email.Postmark.csproj" />
+    <ProjectReference Include="..\Bravellian.Platform.Idempotency\Bravellian.Platform.Idempotency.csproj" />
   </ItemGroup>
 
   <ItemGroup>

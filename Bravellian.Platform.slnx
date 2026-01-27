@@ -25,6 +25,9 @@
   <Folder Name="/correlation/">
     <Project Path="src/Bravellian.Platform.Correlation/Bravellian.Platform.Correlation.csproj" />
   </Folder>
+  <Folder Name="/idempotency/">
+    <Project Path="src/Bravellian.Platform.Idempotency/Bravellian.Platform.Idempotency.csproj" />
+  </Folder>
   <Folder Name="/observability/">
     <Project Path="src/Bravellian.Platform.Observability/Bravellian.Platform.Observability.csproj" />
   </Folder>

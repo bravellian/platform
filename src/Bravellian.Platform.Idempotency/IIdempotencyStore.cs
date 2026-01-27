@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Email;
+namespace Bravellian.Platform.Idempotency;
 
 /// <summary>
-/// Stores idempotency keys to prevent duplicate outbound sends.
+/// Stores idempotency keys to prevent duplicate operations.
 /// </summary>
 public interface IIdempotencyStore
 {

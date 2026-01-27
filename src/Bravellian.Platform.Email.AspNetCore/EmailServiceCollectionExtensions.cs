@@ -15,6 +15,7 @@
 using Bravellian.Platform;
 using Bravellian.Platform.Email;
 using Bravellian.Platform.Email.Postmark;
+using Bravellian.Platform.Idempotency;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
