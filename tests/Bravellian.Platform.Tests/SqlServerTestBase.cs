@@ -75,9 +75,7 @@ public abstract class SqlServerTestBase : IAsyncLifetime
             }
             catch (NotSupportedException ex) when (ex.Message.Contains("sqlcmd", StringComparison.OrdinalIgnoreCase))
             {
-                throw new Xunit.Sdk.SkipException(
-                    "SQL Server integration tests require sqlcmd to be available on PATH.",
-                    ex);
+                throw Xunit.Sdk.SkipException.ForSkip("SQL Server integration tests require sqlcmd to be available on PATH. Error: " + ex.ToString());
             }
             connectionString = msSqlContainer.GetConnectionString();
         }
