@@ -32,7 +32,7 @@ public abstract class WebhookProviderBase : IWebhookProvider
     {
         Authenticator = authenticator ?? throw new ArgumentNullException(nameof(authenticator));
         Classifier = classifier ?? throw new ArgumentNullException(nameof(classifier));
-        Handlers = handlers ?? throw new ArgumentNullException(nameof(handlers));
+        Handlers = handlers?.ToList() ?? throw new ArgumentNullException(nameof(handlers));
     }
 
     /// <inheritdoc />
@@ -45,5 +45,5 @@ public abstract class WebhookProviderBase : IWebhookProvider
     public IWebhookClassifier Classifier { get; }
 
     /// <inheritdoc />
-    public IReadOnlyCollection<IWebhookHandler> Handlers { get; }
+    public IReadOnlyList<IWebhookHandler> Handlers { get; }
 }

@@ -172,7 +172,7 @@ public sealed class WebhookIngestorTests
 
         public IWebhookClassifier Classifier { get; }
 
-        public IReadOnlyCollection<IWebhookHandler> Handlers { get; }
+        public IReadOnlyList<IWebhookHandler> Handlers { get; }
     }
 
     private sealed class FakeAuthenticator : IWebhookAuthenticator

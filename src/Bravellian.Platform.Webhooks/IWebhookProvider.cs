@@ -37,5 +37,5 @@ public interface IWebhookProvider
     /// <summary>
     /// Gets the handlers that process classified events.
     /// </summary>
-    IReadOnlyCollection<IWebhookHandler> Handlers { get; }
+    IReadOnlyList<IWebhookHandler> Handlers { get; }
 }

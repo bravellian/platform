@@ -169,7 +169,7 @@ public sealed class WebhookProcessorTests
         public FakeWebhookProvider(string name, IReadOnlyCollection<IWebhookHandler> handlers)
         {
             Name = name;
-            Handlers = handlers;
+            Handlers = handlers.ToList();
             Authenticator = new FakeAuthenticator();
             Classifier = new FakeClassifier();
         }
@@ -180,7 +180,7 @@ public sealed class WebhookProcessorTests
 
         public IWebhookClassifier Classifier { get; }
 
-        public IReadOnlyCollection<IWebhookHandler> Handlers { get; }
+        public IReadOnlyList<IWebhookHandler> Handlers { get; }
     }
 
     private sealed class CountingWebhookHandler : IWebhookHandler
