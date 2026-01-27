@@ -33,10 +33,7 @@ public static class WebhookServiceCollectionExtensions
         this IServiceCollection services,
         Action<WebhookOptions>? configureOptions = null)
     {
-        if (services == null)
-        {
-            throw new ArgumentNullException(nameof(services));
-        }
+        ArgumentNullException.ThrowIfNull(services);
 
         if (configureOptions != null)
         {
@@ -82,10 +79,7 @@ public static class WebhookServiceCollectionExtensions
     /// <returns>The service collection.</returns>
     public static IServiceCollection AddWebhookProcessingHostedService(this IServiceCollection services)
     {
-        if (services == null)
-        {
-            throw new ArgumentNullException(nameof(services));
-        }
+        ArgumentNullException.ThrowIfNull(services);
 
         services.AddHostedService<WebhookProcessingHostedService>();
         return services;

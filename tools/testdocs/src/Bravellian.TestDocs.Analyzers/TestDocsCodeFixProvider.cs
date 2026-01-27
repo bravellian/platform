@@ -6,16 +6,34 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Bravellian.TestDocs.Analyzers;
 
+/// <summary>
+/// Code fixes for missing test documentation metadata.
+/// </summary>
 [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(TestDocsCodeFixProvider))]
 public sealed class TestDocsCodeFixProvider : CodeFixProvider
 {
+    /// <summary>
+    /// Gets the diagnostic IDs this provider can fix.
+    /// </summary>
     public override ImmutableArray<string> FixableDiagnosticIds =>
         ImmutableArray.Create(Diagnostics.MissingMetadataId);
 
+    /// <summary>
+    /// Gets the fix-all provider.
+    /// </summary>
     public override FixAllProvider GetFixAllProvider() => WellKnownFixAllProviders.BatchFixer;
 
+    /// <summary>
+    /// Registers code fixes.
+    /// </summary>
+    /// <param name="context">Code fix context.</param>
     public override async Task RegisterCodeFixesAsync(CodeFixContext context)
     {
+        if (context.Document is null)
+        {
+            return;
+        }
+
         var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
         if (root == null)
         {
@@ -51,9 +69,9 @@ public sealed class TestDocsCodeFixProvider : CodeFixProvider
 
     private static async Task<Document> AddTemplateAsync(Document document, MethodDeclarationSyntax method, CancellationToken cancellationToken)
     {
-        var indentation = await XmlDocHelper.GetIndentationAsync(document, method, cancellationToken).ConfigureAwait(false);
-        var newline = await XmlDocHelper.GetNewLineAsync(document, cancellationToken).ConfigureAwait(false);
-        var updatedMethod = XmlDocHelper.AddTemplate(method, indentation, newline);
+        var indentation = await XmlDocCodeFixHelper.GetIndentationAsync(document, method, cancellationToken).ConfigureAwait(false);
+        var newline = await XmlDocCodeFixHelper.GetNewLineAsync(document, cancellationToken).ConfigureAwait(false);
+        var updatedMethod = XmlDocCodeFixHelper.AddTemplate(method, indentation, newline);
 
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
         if (root == null)

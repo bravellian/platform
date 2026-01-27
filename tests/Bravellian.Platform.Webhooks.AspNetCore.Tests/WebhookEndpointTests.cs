@@ -33,7 +33,8 @@ public sealed class WebhookEndpointTests
         await using var app = await BuildAppAsync(fake);
         var client = app.GetTestClient();
 
-        var response = await client.PostAsync("/webhooks/stripe?source=test", new StringContent(payload, Encoding.UTF8, "application/json"), Xunit.TestContext.Current.CancellationToken);
+        using var content = new StringContent(payload, Encoding.UTF8, "application/json");
+        var response = await client.PostAsync(new Uri("/webhooks/stripe?source=test", UriKind.Relative), content, Xunit.TestContext.Current.CancellationToken);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
         fake.Calls.Count.ShouldBe(1);
@@ -52,7 +53,8 @@ public sealed class WebhookEndpointTests
         await using var app = await BuildAppAsync(fake);
         var client = app.GetTestClient();
 
-        var response = await client.PostAsync("/webhooks/stripe", new StringContent("{}", Encoding.UTF8, "application/json"), Xunit.TestContext.Current.CancellationToken);
+        using var content = new StringContent("{}", Encoding.UTF8, "application/json");
+        var response = await client.PostAsync(new Uri("/webhooks/stripe", UriKind.Relative), content, Xunit.TestContext.Current.CancellationToken);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
         fake.Calls.Count.ShouldBe(1);
@@ -61,7 +63,7 @@ public sealed class WebhookEndpointTests
     [Fact]
     public void LoggingCallbacksEmitEvents()
     {
-        var loggerFactory = new CapturingLoggerFactory();
+        using var loggerFactory = new CapturingLoggerFactory();
         var setup = new WebhookLoggingOptionsSetup(loggerFactory);
         var options = new WebhookOptions();
 

@@ -65,27 +65,6 @@ internal static class ModuleEngineRegistry
                 throw new InvalidOperationException(
                     $"Engine '{descriptor.ModuleKey}/{descriptor.Manifest.Id}' declares duplicate webhook metadata for provider '{entry.Provider}' and event '{entry.EventType}'.");
             }
-
-            foreach (var existingList in Engines.Values)
-            {
-                foreach (var existing in existingList)
-                {
-                    if (existing.Manifest.WebhookMetadata is null)
-                    {
-                        continue;
-                    }
-
-                    foreach (var existingEntry in existing.Manifest.WebhookMetadata)
-                    {
-                        if (string.Equals(existingEntry.Provider, entry.Provider, StringComparison.OrdinalIgnoreCase)
-                            && string.Equals(existingEntry.EventType, entry.EventType, StringComparison.OrdinalIgnoreCase))
-                        {
-                            throw new InvalidOperationException(
-                                $"Webhook provider '{entry.Provider}' and event '{entry.EventType}' are already handled by engine '{existing.ModuleKey}/{existing.Manifest.Id}'.");
-                        }
-                    }
-                }
-            }
         }
     }
 
@@ -119,41 +98,6 @@ internal static class ModuleEngineRegistry
             cached = lists.SelectMany(list => list).ToArray();
             CachedSnapshot = cached;
             return cached;
-        }
-    }
-
-    public static IModuleEngineDescriptor? FindWebhookEngine(string provider, string eventType)
-    {
-        lock (RegistryLock)
-        {
-            // Search for webhook engine matching the provider and event type.
-            foreach (var list in Engines.Values)
-            {
-                foreach (var descriptor in list)
-                {
-                    if (descriptor.Manifest.Kind != EngineKind.Webhook)
-                    {
-                        continue;
-                    }
-
-                    var metadataCollection = descriptor.Manifest.WebhookMetadata;
-                    if (metadataCollection == null)
-                    {
-                        continue;
-                    }
-
-                    foreach (var meta in metadataCollection)
-                    {
-                        if (string.Equals(meta.Provider, provider, StringComparison.OrdinalIgnoreCase)
-                            && string.Equals(meta.EventType, eventType, StringComparison.OrdinalIgnoreCase))
-                        {
-                            return descriptor;
-                        }
-                    }
-                }
-            }
-
-            return null;
         }
     }
 

@@ -8,9 +8,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Bravellian.Platform\Bravellian.Platform.csproj" />
+    <ProjectReference Include="..\..\src\Bravellian.Platform.Email\Bravellian.Platform.Email.csproj" />
     <ProjectReference Include="..\..\src\Bravellian.Platform.SqlServer\Bravellian.Platform.SqlServer.csproj" />
-    <ProjectReference Include="..\..\src\Bravellian.Platform.Operations.Storage.SqlServer\Bravellian.Platform.Operations.Storage.SqlServer.csproj" />
-    <ProjectReference Include="..\..\src\Bravellian.Platform.Audit.Storage.SqlServer\Bravellian.Platform.Audit.Storage.SqlServer.csproj" />
     <ProjectReference Include="..\..\src\Bravellian.Platform.Modularity\Bravellian.Platform.Modularity.csproj" />
     <ProjectReference Include="..\..\src\Bravellian.Platform.Modularity.Razor\Bravellian.Platform.Modularity.Razor.csproj" />
     <ProjectReference Include="..\..\tools\testdocs\src\Bravellian.TestDocs.Analyzers\Bravellian.TestDocs.Analyzers.csproj">

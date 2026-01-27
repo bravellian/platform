@@ -68,7 +68,7 @@ public sealed class OperationScope : IDisposable, IAsyncDisposable
     {
         if (tracker is null)
         {
-            throw new ArgumentNullException(nameof(tracker));
+            ArgumentNullException.ThrowIfNull(tracker);
         }
 
         var trackedOperationId = await tracker.StartAsync(
@@ -107,7 +107,7 @@ public sealed class OperationScope : IDisposable, IAsyncDisposable
     {
         if (action is null)
         {
-            throw new ArgumentNullException(nameof(action));
+            ArgumentNullException.ThrowIfNull(action);
         }
 
         var scope = await StartAsync(
@@ -145,7 +145,7 @@ public sealed class OperationScope : IDisposable, IAsyncDisposable
     {
         if (exception is null)
         {
-            throw new ArgumentNullException(nameof(exception));
+            ArgumentNullException.ThrowIfNull(exception);
         }
 
         this.exception = exception;

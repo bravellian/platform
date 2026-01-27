@@ -36,10 +36,7 @@ public static class WebhookEndpoint
         IWebhookIngestor ingestor,
         CancellationToken cancellationToken)
     {
-        if (context == null)
-        {
-            throw new ArgumentNullException(nameof(context));
-        }
+        ArgumentNullException.ThrowIfNull(context);
 
         if (string.IsNullOrWhiteSpace(providerName))
         {
@@ -48,7 +45,7 @@ public static class WebhookEndpoint
 
         if (ingestor == null)
         {
-            throw new ArgumentNullException(nameof(ingestor));
+            ArgumentNullException.ThrowIfNull(ingestor);
         }
 
         var request = context.Request;

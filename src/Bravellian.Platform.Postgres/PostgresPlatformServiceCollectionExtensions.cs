@@ -13,6 +13,7 @@
 // limitations under the License.
 
 
+using Bravellian.Platform.Email;
 using Bravellian.Platform.Metrics;
 using Bravellian.Platform.Semaphore;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,6 +27,77 @@ namespace Bravellian.Platform;
 /// </summary>
 public static class PostgresPlatformServiceCollectionExtensions
 {
+    /// <summary>
+    /// Registers all Postgres-backed platform storage components using a single connection string.
+    /// Includes Operations, Audit, Email (outbox + delivery), Webhooks/Observability dependencies, and shared platform services.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="connectionString">Postgres connection string.</param>
+    /// <param name="configure">Optional configuration for platform options.</param>
+    /// <returns>The service collection.</returns>
+    public static IServiceCollection AddPostgresPlatform(
+        this IServiceCollection services,
+        string connectionString,
+        Action<PostgresPlatformOptions>? configure = null)
+    {
+        if (services is null)
+        {
+            throw new ArgumentNullException(nameof(services));
+        }
+
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            throw new ArgumentException("Connection string is required.", nameof(connectionString));
+        }
+
+        var options = new PostgresPlatformOptions
+        {
+            ConnectionString = connectionString,
+        };
+
+        configure?.Invoke(options);
+        return services.AddPostgresPlatform(options);
+    }
+
+    /// <summary>
+    /// Registers all Postgres-backed platform storage components using the supplied options.
+    /// Includes Operations, Audit, Email (outbox + delivery), Webhooks/Observability dependencies, and shared platform services.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="options">Platform options.</param>
+    /// <returns>The service collection.</returns>
+    public static IServiceCollection AddPostgresPlatform(
+        this IServiceCollection services,
+        PostgresPlatformOptions options)
+    {
+        if (services is null)
+        {
+            throw new ArgumentNullException(nameof(services));
+        }
+
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentException.ThrowIfNullOrWhiteSpace(options.ConnectionString);
+
+        services.AddTimeAbstractions();
+
+        RegisterOutbox(services, options);
+        RegisterInbox(services, options);
+        RegisterScheduler(services, options);
+        RegisterFanout(services, options);
+        RegisterIdempotency(services, options);
+        RegisterSemaphore(services, options);
+        RegisterMetrics(services, options);
+        RegisterAudit(services, options);
+        RegisterOperations(services, options);
+        RegisterEmailOutbox(services, options);
+        RegisterEmailDelivery(services, options);
+
+        services.TryAddSingleton<IOutbox>(ResolveDefaultOutbox);
+        services.TryAddSingleton<IInbox>(ResolveDefaultInbox);
+
+        return services;
+    }
+
     /// <summary>
     /// Registers the platform for a multi-database environment without control plane.
     /// Features run across the provided list of databases using round-robin scheduling.
@@ -541,6 +613,184 @@ public static class PostgresPlatformServiceCollectionExtensions
             }
         });
         services.AddMetricsExporterHealthCheck();
+    }
+
+    private static void RegisterOutbox(IServiceCollection services, PostgresPlatformOptions options)
+    {
+        var outboxOptions = new PostgresOutboxOptions
+        {
+            ConnectionString = options.ConnectionString,
+            SchemaName = options.SchemaName,
+            EnableSchemaDeployment = options.EnableSchemaDeployment,
+        };
+
+        options.ConfigureOutbox?.Invoke(outboxOptions);
+        services.AddPostgresOutbox(outboxOptions);
+    }
+
+    private static void RegisterInbox(IServiceCollection services, PostgresPlatformOptions options)
+    {
+        var inboxOptions = new PostgresInboxOptions
+        {
+            ConnectionString = options.ConnectionString,
+            SchemaName = options.SchemaName,
+            EnableSchemaDeployment = options.EnableSchemaDeployment,
+        };
+
+        options.ConfigureInbox?.Invoke(inboxOptions);
+        services.AddPostgresInbox(inboxOptions);
+    }
+
+    private static void RegisterScheduler(IServiceCollection services, PostgresPlatformOptions options)
+    {
+        var schedulerOptions = new PostgresSchedulerOptions
+        {
+            ConnectionString = options.ConnectionString,
+            SchemaName = options.SchemaName,
+            EnableSchemaDeployment = options.EnableSchemaDeployment,
+            EnableBackgroundWorkers = options.EnableSchedulerWorkers,
+        };
+
+        options.ConfigureScheduler?.Invoke(schedulerOptions);
+#pragma warning disable CS0618 // Intentional: single-connection platform registration uses legacy scheduler wiring.
+        services.AddPostgresScheduler(schedulerOptions);
+#pragma warning restore CS0618
+    }
+
+    private static void RegisterFanout(IServiceCollection services, PostgresPlatformOptions options)
+    {
+        var fanoutOptions = new PostgresFanoutOptions
+        {
+            ConnectionString = options.ConnectionString,
+            SchemaName = options.SchemaName,
+            EnableSchemaDeployment = options.EnableSchemaDeployment,
+        };
+
+        options.ConfigureFanout?.Invoke(fanoutOptions);
+        services.AddPostgresFanout(fanoutOptions);
+    }
+
+    private static void RegisterIdempotency(IServiceCollection services, PostgresPlatformOptions options)
+    {
+        var idempotencyOptions = new PostgresIdempotencyOptions
+        {
+            ConnectionString = options.ConnectionString,
+            SchemaName = options.SchemaName,
+            EnableSchemaDeployment = options.EnableSchemaDeployment,
+        };
+
+        options.ConfigureIdempotency?.Invoke(idempotencyOptions);
+        services.AddPostgresIdempotency(idempotencyOptions);
+    }
+
+    private static void RegisterSemaphore(IServiceCollection services, PostgresPlatformOptions options)
+    {
+        services.AddSemaphoreServices(
+            options.ConnectionString,
+            options.SchemaName,
+            options.ConfigureSemaphore);
+    }
+
+    private static void RegisterMetrics(IServiceCollection services, PostgresPlatformOptions options)
+    {
+        services.AddMetricsExporter(metrics =>
+        {
+            metrics.SchemaName = options.SchemaName;
+            options.ConfigureMetrics?.Invoke(metrics);
+        });
+        services.AddMetricsExporterHealthCheck();
+    }
+
+    private static void RegisterAudit(IServiceCollection services, PostgresPlatformOptions options)
+    {
+        var auditOptions = new PostgresAuditOptions
+        {
+            ConnectionString = options.ConnectionString,
+            SchemaName = options.SchemaName,
+            EnableSchemaDeployment = options.EnableSchemaDeployment,
+        };
+
+        options.ConfigureAudit?.Invoke(auditOptions);
+        services.AddPostgresAudit(auditOptions);
+    }
+
+    private static void RegisterOperations(IServiceCollection services, PostgresPlatformOptions options)
+    {
+        var operationOptions = new PostgresOperationOptions
+        {
+            ConnectionString = options.ConnectionString,
+            SchemaName = options.SchemaName,
+            EnableSchemaDeployment = options.EnableSchemaDeployment,
+        };
+
+        options.ConfigureOperations?.Invoke(operationOptions);
+        services.AddPostgresOperations(operationOptions);
+    }
+
+    private static void RegisterEmailOutbox(IServiceCollection services, PostgresPlatformOptions options)
+    {
+        var emailOutboxOptions = new PostgresEmailOutboxOptions
+        {
+            ConnectionString = options.ConnectionString,
+            SchemaName = options.SchemaName,
+            EnableSchemaDeployment = options.EnableSchemaDeployment,
+        };
+
+        options.ConfigureEmailOutbox?.Invoke(emailOutboxOptions);
+        services.AddPostgresEmailOutbox(emailOutboxOptions);
+    }
+
+    private static void RegisterEmailDelivery(IServiceCollection services, PostgresPlatformOptions options)
+    {
+        var emailDeliveryOptions = new PostgresEmailDeliveryOptions
+        {
+            ConnectionString = options.ConnectionString,
+            SchemaName = options.SchemaName,
+            EnableSchemaDeployment = options.EnableSchemaDeployment,
+        };
+
+        options.ConfigureEmailDelivery?.Invoke(emailDeliveryOptions);
+        services.AddPostgresEmailDelivery(emailDeliveryOptions);
+    }
+
+    private static IOutbox ResolveDefaultOutbox(IServiceProvider provider)
+    {
+        var storeProvider = provider.GetRequiredService<IOutboxStoreProvider>();
+        var stores = storeProvider.GetAllStoresAsync().GetAwaiter().GetResult();
+
+        if (stores.Count == 0)
+        {
+            throw new InvalidOperationException("No outbox stores are configured. Configure at least one store or use IOutboxRouter.");
+        }
+
+        if (stores.Count > 1)
+        {
+            throw new InvalidOperationException("Multiple outbox stores are configured. Resolve IOutboxRouter instead of IOutbox for multi-database setups.");
+        }
+
+        var router = provider.GetRequiredService<IOutboxRouter>();
+        var key = storeProvider.GetStoreIdentifier(stores[0]);
+        return router.GetOutbox(key);
+    }
+
+    private static IInbox ResolveDefaultInbox(IServiceProvider provider)
+    {
+        var storeProvider = provider.GetRequiredService<IInboxWorkStoreProvider>();
+        var stores = storeProvider.GetAllStoresAsync().GetAwaiter().GetResult();
+
+        if (stores.Count == 0)
+        {
+            throw new InvalidOperationException("No inbox work stores are configured. Configure at least one store or use IInboxRouter.");
+        }
+
+        if (stores.Count > 1)
+        {
+            throw new InvalidOperationException("Multiple inbox stores are configured. Resolve IInboxRouter instead of IInbox for multi-database setups.");
+        }
+
+        var router = provider.GetRequiredService<IInboxRouter>();
+        var key = storeProvider.GetStoreIdentifier(stores[0]);
+        return router.GetInbox(key);
     }
 }
 

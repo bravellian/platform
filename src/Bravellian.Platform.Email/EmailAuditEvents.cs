@@ -19,6 +19,9 @@ using Bravellian.Platform.Observability;
 
 namespace Bravellian.Platform.Email;
 
+/// <summary>
+/// Emits audit events for outbound email operations.
+/// </summary>
 public static class EmailAuditEvents
 {
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web)
@@ -26,12 +29,22 @@ public static class EmailAuditEvents
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
+    /// <summary>
+    /// Emits an audit event for a queued email.
+    /// </summary>
+    /// <param name="emitter">Optional platform event emitter.</param>
+    /// <param name="message">Outbound email message.</param>
+    /// <param name="provider">Optional provider name.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A task that completes when the audit event is emitted.</returns>
     public static Task EmitQueuedAsync(
         IPlatformEventEmitter? emitter,
         OutboundEmailMessage message,
         string? provider,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(message);
+
         return EmitAsync(
             emitter,
             PlatformEventNames.EmailQueued,
@@ -45,6 +58,16 @@ public static class EmailAuditEvents
             cancellationToken);
     }
 
+    /// <summary>
+    /// Emits an audit event for an email send attempt.
+    /// </summary>
+    /// <param name="emitter">Optional platform event emitter.</param>
+    /// <param name="message">Outbound email message.</param>
+    /// <param name="provider">Optional provider name.</param>
+    /// <param name="attempt">Attempt number.</param>
+    /// <param name="status">Delivery status for the attempt.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A task that completes when the audit event is emitted.</returns>
     public static Task EmitAttemptedAsync(
         IPlatformEventEmitter? emitter,
         OutboundEmailMessage message,
@@ -53,6 +76,8 @@ public static class EmailAuditEvents
         EmailDeliveryStatus status,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(message);
+
         var display = $"Email attempt {attempt} ({status})";
         return EmitAsync(
             emitter,
@@ -68,6 +93,17 @@ public static class EmailAuditEvents
             attempt);
     }
 
+    /// <summary>
+    /// Emits an audit event for the final email delivery outcome.
+    /// </summary>
+    /// <param name="emitter">Optional platform event emitter.</param>
+    /// <param name="message">Outbound email message.</param>
+    /// <param name="provider">Optional provider name.</param>
+    /// <param name="status">Final delivery status.</param>
+    /// <param name="errorCode">Optional provider error code.</param>
+    /// <param name="errorMessage">Optional provider error message.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A task that completes when the audit event is emitted.</returns>
     public static Task EmitFinalAsync(
         IPlatformEventEmitter? emitter,
         OutboundEmailMessage message,
@@ -77,6 +113,8 @@ public static class EmailAuditEvents
         string? errorMessage,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(message);
+
         var (name, outcome, display) = status switch
         {
             EmailDeliveryStatus.Sent => (PlatformEventNames.EmailSent, EventOutcome.Success, "Email sent"),
@@ -99,6 +137,16 @@ public static class EmailAuditEvents
             cancellationToken);
     }
 
+    /// <summary>
+    /// Emits an audit event when an email provider webhook is received.
+    /// </summary>
+    /// <param name="emitter">Optional platform event emitter.</param>
+    /// <param name="provider">Provider name.</param>
+    /// <param name="eventType">Optional provider event type.</param>
+    /// <param name="messageKey">Optional message key.</param>
+    /// <param name="providerEventId">Optional provider event identifier.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A task that completes when the audit event is emitted.</returns>
     public static Task EmitWebhookReceivedAsync(
         IPlatformEventEmitter? emitter,
         string provider,
@@ -113,7 +161,7 @@ public static class EmailAuditEvents
         }
 
         var anchorId = messageKey ?? providerEventId ?? "unknown";
-        var data = new Dictionary<string, object?>
+        var data = new Dictionary<string, object?>(StringComparer.Ordinal)
         {
             [PlatformTagKeys.Provider] = NormalizeProvider(provider),
             [PlatformTagKeys.MessageKey] = messageKey,
@@ -152,7 +200,7 @@ public static class EmailAuditEvents
         }
 
         var size = EmailMetrics.GetSizeInfo(message);
-        var data = new Dictionary<string, object?>
+        var data = new Dictionary<string, object?>(StringComparer.Ordinal)
         {
             [PlatformTagKeys.MessageKey] = message.MessageKey,
             [PlatformTagKeys.Provider] = NormalizeProvider(provider),

@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace Bravellian.Platform.Webhooks;
 
 /// <summary>
@@ -26,6 +28,7 @@ namespace Bravellian.Platform.Webhooks;
 /// <param name="ContentType">Request content type.</param>
 /// <param name="BodyBytes">Raw request body bytes.</param>
 /// <param name="RemoteIpAddress">Remote IP address if captured by the ingress layer.</param>
+#pragma warning disable CA1819
 public sealed record WebhookEnvelope(
     string Provider,
     DateTimeOffset ReceivedAtUtc,
@@ -34,5 +37,6 @@ public sealed record WebhookEnvelope(
     string QueryString,
     IReadOnlyDictionary<string, string> Headers,
     string? ContentType,
-    byte[] BodyBytes,
+    [property: SuppressMessage("Design", "CA1819:Properties should not return arrays", Justification = "Raw body bytes are required for signature validation and processing.")] byte[] BodyBytes,
     string? RemoteIpAddress);
+#pragma warning restore CA1819

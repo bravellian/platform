@@ -24,6 +24,9 @@
     <ProjectReference Include="..\Bravellian.Platform.Modularity\Bravellian.Platform.Modularity.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Bravellian.Platform.Webhooks.AspNetCore\Bravellian.Platform.Webhooks.AspNetCore.csproj" />
+  </ItemGroup>
+  <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
   <ItemGroup>

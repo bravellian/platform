@@ -29,6 +29,10 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
     private readonly IOptionsMonitor<PostgresSchedulerOptions> schedulerOptions;
     private readonly IOptionsMonitor<PostgresInboxOptions> inboxOptions;
     private readonly IOptionsMonitor<PostgresIdempotencyOptions> idempotencyOptions;
+    private readonly IOptionsMonitor<PostgresOperationOptions> operationOptions;
+    private readonly IOptionsMonitor<PostgresAuditOptions> auditOptions;
+    private readonly IOptionsMonitor<PostgresEmailOutboxOptions> emailOutboxOptions;
+    private readonly IOptionsMonitor<PostgresEmailDeliveryOptions> emailDeliveryOptions;
     private readonly IOptionsMonitor<PostgresSemaphoreOptions> semaphoreOptions;
     private readonly IOptionsMonitor<PostgresSystemLeaseOptions> systemLeaseOptions;
     private readonly DatabaseSchemaCompletion schemaCompletion;
@@ -41,6 +45,10 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
         IOptionsMonitor<PostgresSchedulerOptions> schedulerOptions,
         IOptionsMonitor<PostgresInboxOptions> inboxOptions,
         IOptionsMonitor<PostgresIdempotencyOptions> idempotencyOptions,
+        IOptionsMonitor<PostgresOperationOptions> operationOptions,
+        IOptionsMonitor<PostgresAuditOptions> auditOptions,
+        IOptionsMonitor<PostgresEmailOutboxOptions> emailOutboxOptions,
+        IOptionsMonitor<PostgresEmailDeliveryOptions> emailDeliveryOptions,
         IOptionsMonitor<PostgresSemaphoreOptions> semaphoreOptions,
         IOptionsMonitor<PostgresSystemLeaseOptions> systemLeaseOptions,
         DatabaseSchemaCompletion schemaCompletion,
@@ -52,6 +60,10 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
         this.schedulerOptions = schedulerOptions;
         this.inboxOptions = inboxOptions;
         this.idempotencyOptions = idempotencyOptions;
+        this.operationOptions = operationOptions;
+        this.auditOptions = auditOptions;
+        this.emailOutboxOptions = emailOutboxOptions;
+        this.emailDeliveryOptions = emailDeliveryOptions;
         this.semaphoreOptions = semaphoreOptions;
         this.systemLeaseOptions = systemLeaseOptions;
         this.schemaCompletion = schemaCompletion;
@@ -114,6 +126,30 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
                 if (idempotencyOpts.EnableSchemaDeployment && !string.IsNullOrEmpty(idempotencyOpts.ConnectionString))
                 {
                     deploymentTasks.Add(DeployIdempotencySchemaAsync(idempotencyOpts, stoppingToken));
+                }
+
+                var operationsOpts = operationOptions.CurrentValue;
+                if (operationsOpts.EnableSchemaDeployment && !string.IsNullOrEmpty(operationsOpts.ConnectionString))
+                {
+                    deploymentTasks.Add(DeployOperationsSchemaAsync(operationsOpts, stoppingToken));
+                }
+
+                var auditOpts = auditOptions.CurrentValue;
+                if (auditOpts.EnableSchemaDeployment && !string.IsNullOrEmpty(auditOpts.ConnectionString))
+                {
+                    deploymentTasks.Add(DeployAuditSchemaAsync(auditOpts, stoppingToken));
+                }
+
+                var emailOutboxOpts = emailOutboxOptions.CurrentValue;
+                if (emailOutboxOpts.EnableSchemaDeployment && !string.IsNullOrEmpty(emailOutboxOpts.ConnectionString))
+                {
+                    deploymentTasks.Add(DeployEmailOutboxSchemaAsync(emailOutboxOpts, stoppingToken));
+                }
+
+                var emailDeliveryOpts = emailDeliveryOptions.CurrentValue;
+                if (emailDeliveryOpts.EnableSchemaDeployment && !string.IsNullOrEmpty(emailDeliveryOpts.ConnectionString))
+                {
+                    deploymentTasks.Add(DeployEmailDeliverySchemaAsync(emailDeliveryOpts, stoppingToken));
                 }
 
                 // Deploy system lease schema if enabled
@@ -309,6 +345,56 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
     {
         logger.LogDebug("Deploying idempotency schema to {Schema}.{Table}", options.SchemaName, options.TableName);
         await DatabaseSchemaManager.EnsureIdempotencySchemaAsync(
+            options.ConnectionString,
+            options.SchemaName,
+            options.TableName).ConfigureAwait(false);
+    }
+
+    private async Task DeployOperationsSchemaAsync(PostgresOperationOptions options, CancellationToken cancellationToken)
+    {
+        logger.LogDebug(
+            "Deploying operations schema to {Schema}.{OperationsTable}",
+            options.SchemaName,
+            options.OperationsTable);
+        await DatabaseSchemaManager.EnsureOperationsSchemaAsync(
+            options.ConnectionString,
+            options.SchemaName,
+            options.OperationsTable,
+            options.OperationEventsTable).ConfigureAwait(false);
+    }
+
+    private async Task DeployAuditSchemaAsync(PostgresAuditOptions options, CancellationToken cancellationToken)
+    {
+        logger.LogDebug(
+            "Deploying audit schema to {Schema}.{AuditEventsTable}",
+            options.SchemaName,
+            options.AuditEventsTable);
+        await DatabaseSchemaManager.EnsureAuditSchemaAsync(
+            options.ConnectionString,
+            options.SchemaName,
+            options.AuditEventsTable,
+            options.AuditAnchorsTable).ConfigureAwait(false);
+    }
+
+    private async Task DeployEmailOutboxSchemaAsync(PostgresEmailOutboxOptions options, CancellationToken cancellationToken)
+    {
+        logger.LogDebug(
+            "Deploying email outbox schema to {Schema}.{Table}",
+            options.SchemaName,
+            options.TableName);
+        await DatabaseSchemaManager.EnsureEmailOutboxSchemaAsync(
+            options.ConnectionString,
+            options.SchemaName,
+            options.TableName).ConfigureAwait(false);
+    }
+
+    private async Task DeployEmailDeliverySchemaAsync(PostgresEmailDeliveryOptions options, CancellationToken cancellationToken)
+    {
+        logger.LogDebug(
+            "Deploying email delivery schema to {Schema}.{Table}",
+            options.SchemaName,
+            options.TableName);
+        await DatabaseSchemaManager.EnsureEmailDeliverySchemaAsync(
             options.ConnectionString,
             options.SchemaName,
             options.TableName).ConfigureAwait(false);

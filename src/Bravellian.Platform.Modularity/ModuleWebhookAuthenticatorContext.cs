@@ -15,12 +15,10 @@
 namespace Bravellian.Platform.Modularity;
 
 /// <summary>
-/// Validates webhook signatures for adapters.
+/// Context for building a module webhook authenticator.
 /// </summary>
-public interface IWebhookSignatureValidator
-{
-    /// <summary>
-    /// Validates the signature for the provided request.
-    /// </summary>
-    bool Validate(ModuleEngineSecurity security, IReadOnlyDictionary<string, string> headers, string rawBody, string? providedSignature);
-}
+/// <param name="ProviderName">Webhook provider name.</param>
+/// <param name="Services">Service provider.</param>
+public sealed record ModuleWebhookAuthenticatorContext(
+    string ProviderName,
+    IServiceProvider Services);

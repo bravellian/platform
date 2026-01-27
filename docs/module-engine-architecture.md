@@ -36,7 +36,7 @@ Modules expose engines through strongly typed `ModuleEngineDescriptor<TContract>
 Two engine kinds are currently supported:
 
 - **UI engines** implement `IUiEngine<TInput, TViewModel>` and return `UiEngineResult<TViewModel>` containing a view model and any navigation targets/events emitted by the engine.
-- **Webhook engines** implement `IWebhookEngine<TPayload>` and return a `WebhookOutcome` that directs the adapter to acknowledge, retry, or enqueue follow-on work.
+- **Webhook engines** implement `IModuleWebhookEngine<TPayload>` and handle webhook payloads directly.
 
 Both contracts operate purely on DTOs so engines remain isolated from HTTP, MVC, Razor, or serialization concerns.
 
@@ -65,15 +65,15 @@ Adapters bridge transports to the transport-agnostic engine contracts. They are 
 
 Typical use: API or MVC controllers create the adapter once (DI singleton) and invoke `ExecuteAsync` inside endpoint handlers.
 
-### Webhook adapter
+### Webhook pipeline integration
 
-`WebhookEngineAdapter` connects webhook transports to webhook engines:
+Module webhook engines are exposed through `Bravellian.Platform.Webhooks`:
 
-- Uses provider + event type to find the matching engine via discovery and validates `RequiredServices` combined from manifest-level and event-level declarations.
-- Validates signatures using `IWebhookSignatureValidator` when `ModuleEngineSecurity` specifies an algorithm, and enforces idempotency keys when configured.
-- Dispatches to the engine with a `WebhookRequest<TPayload>` and returns a `WebhookAdapterResponse` encapsulating the outcome (`Acknowledge`, `Retry`, or enqueue instructions).
+- Uses provider + event type from `ModuleEngineWebhookMetadata` to route requests and validate `RequiredServices` combined from manifest-level and event-level declarations.
+- Validates signatures using `IModuleWebhookSignatureValidator` when `ModuleEngineSecurity` specifies an algorithm (legacy `IWebhookSignatureValidator` is supported as a fallback).
+- Dispatches to the engine with a `ModuleWebhookRequest<TPayload>` during processing.
 
-Typical use: HTTP endpoints deserialize the webhook payload and raw metadata into `WebhookAdapterRequest<TPayload>`, then forward to `DispatchAsync`.
+Typical use: HTTP endpoints forward inbound requests into the webhook pipeline (`WebhookEndpoint.HandleAsync` or `MapWebhookEngineEndpoints`).
 
 ## Common host setups
 
@@ -91,9 +91,9 @@ Typical use: HTTP endpoints deserialize the webhook payload and raw metadata int
 
 ### Webhook intake surface
 
-- Add `WebhookEngineAdapter` and a concrete `IWebhookSignatureValidator` to DI.
-- Define HTTP endpoints that capture provider, event type, headers, raw body, payload DTO, signature, idempotency key, and attempt number into a `WebhookAdapterRequest<TPayload>`, or use `MapWebhookEngineEndpoints` from `Bravellian.Platform.Modularity.AspNetCore`.
-- Let the adapter enforce signature and idempotency rules, check required services, and return an adapter response that the host maps to HTTP status codes or retry instructions.
+- Register the pipeline with `AddBravellianWebhooks()` and wire modular engines using `AddModuleWebhookProviders()`.
+- Use `MapWebhookEngineEndpoints` from `Bravellian.Platform.Modularity.AspNetCore` (or `WebhookEndpoint.HandleAsync`) to ingest raw requests and return fast acknowledgements.
+- The pipeline stores raw bodies, authenticates, classifies, and processes webhook engines asynchronously.
 
 ### Mixed module deployments
 

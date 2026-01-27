@@ -185,19 +185,19 @@ public sealed class ModuleSystemTests
     }
 
     /// <summary>
-    /// When two modules register identical webhook metadata, then AddModuleServices throws.
+    /// When two modules register identical webhook metadata, then both engines are registered for fanout.
     /// </summary>
     /// <intent>
-    /// Prevent conflicting webhook metadata registrations across modules.
+    /// Allow multiple webhook engines to handle the same provider/event pair.
     /// </intent>
     /// <scenario>
     /// Given WebhookModuleOne and WebhookModuleTwo declare the same webhook metadata.
     /// </scenario>
     /// <behavior>
-    /// Then AddModuleServices throws and the message indicates the webhook is already handled.
+    /// Then AddModuleServices succeeds and both webhook engines are discoverable.
     /// </behavior>
     [Fact]
-    public void Webhook_metadata_must_be_unique()
+    public void Webhook_metadata_allows_fanout()
     {
         ModuleRegistry.Reset();
         ModuleRegistry.RegisterModule<WebhookModuleOne>();
@@ -205,10 +205,13 @@ public sealed class ModuleSystemTests
 
         var configuration = new ConfigurationBuilder().Build();
         var services = new ServiceCollection();
-        var ex = Should.Throw<InvalidOperationException>(() =>
-            services.AddModuleServices(configuration, NullLoggerFactory.Instance));
+        services.AddModuleServices(configuration, NullLoggerFactory.Instance);
 
-        ex.Message.ShouldContain("already handled");
+        using var provider = services.BuildServiceProvider();
+        var discovery = provider.GetRequiredService<ModuleEngineDiscoveryService>();
+        var engines = discovery.List(EngineKind.Webhook);
+        engines.Count(engine => string.Equals(engine.Manifest.Id, "webhook.one", StringComparison.Ordinal)).ShouldBe(1);
+        engines.Count(engine => string.Equals(engine.Manifest.Id, "webhook.two", StringComparison.Ordinal)).ShouldBe(1);
     }
 
     /// <summary>
@@ -380,7 +383,7 @@ public sealed class ModuleSystemTests
 
         public IEnumerable<IModuleEngineDescriptor> DescribeEngines()
         {
-            yield return new ModuleEngineDescriptor<IWebhookEngine<WebhookPayload>>(
+            yield return new ModuleEngineDescriptor<IModuleWebhookEngine<WebhookPayload>>(
                 Key,
                 new ModuleEngineManifest(
                     "webhook.one",
@@ -420,7 +423,7 @@ public sealed class ModuleSystemTests
 
         public IEnumerable<IModuleEngineDescriptor> DescribeEngines()
         {
-            yield return new ModuleEngineDescriptor<IWebhookEngine<WebhookPayload>>(
+            yield return new ModuleEngineDescriptor<IModuleWebhookEngine<WebhookPayload>>(
                 Key,
                 new ModuleEngineManifest(
                     "webhook.two",
@@ -449,19 +452,19 @@ public sealed class ModuleSystemTests
 
     private sealed record WebhookPayload(string Value);
 
-    private sealed class WebhookEngineOne : IWebhookEngine<WebhookPayload>
+    private sealed class WebhookEngineOne : IModuleWebhookEngine<WebhookPayload>
     {
-        public Task<WebhookOutcome> HandleAsync(WebhookRequest<WebhookPayload> request, CancellationToken cancellationToken)
+        public Task HandleAsync(ModuleWebhookRequest<WebhookPayload> request, CancellationToken cancellationToken)
         {
-            return Task.FromResult(WebhookOutcome.Acknowledge());
+            return Task.CompletedTask;
         }
     }
 
-    private sealed class WebhookEngineTwo : IWebhookEngine<WebhookPayload>
+    private sealed class WebhookEngineTwo : IModuleWebhookEngine<WebhookPayload>
     {
-        public Task<WebhookOutcome> HandleAsync(WebhookRequest<WebhookPayload> request, CancellationToken cancellationToken)
+        public Task HandleAsync(ModuleWebhookRequest<WebhookPayload> request, CancellationToken cancellationToken)
         {
-            return Task.FromResult(WebhookOutcome.Acknowledge());
+            return Task.CompletedTask;
         }
     }
 

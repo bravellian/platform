@@ -64,6 +64,12 @@
     </PackageReference>
   </ItemGroup>
 
+  <ItemGroup Condition="'$(MSBuildProjectExtension)' == '.csproj' AND '$(MSBuildProjectName)' != 'Bravellian.Platform.Observability.Analyzers'">
+    <ProjectReference Include="$(MSBuildThisFileDirectory)tools/observability/src/Bravellian.Platform.Observability.Analyzers/Bravellian.Platform.Observability.Analyzers.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
   <!-- Keep Test Project settings -->
   <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('Tests')) OR $(MSBuildProjectName.EndsWith('Test'))">
     <IsPackable>false</IsPackable>

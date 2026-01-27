@@ -64,7 +64,7 @@ public sealed class OcrModule : IModuleDefinition
                 Outputs: new[] { new ModuleEngineSchema("viewModel", typeof(OcrViewModel)) }),
             sp => sp.GetRequiredService<OcrUiEngine>());
 
-        yield return new ModuleEngineDescriptor<IWebhookEngine<OcrWebhookPayload>>(
+        yield return new ModuleEngineDescriptor<IModuleWebhookEngine<OcrWebhookPayload>>(
             Key,
             new ModuleEngineManifest(
                 "webhook.ocr",
@@ -94,15 +94,16 @@ ModuleRegistry.RegisterModule<OcrModule>();
 
 builder.Services.AddModuleServices(builder.Configuration);
 
-// Adapters
+// Adapters / webhook pipeline
 builder.Services.AddSingleton<UiEngineAdapter>();
-builder.Services.AddSingleton<WebhookEngineAdapter>();
+builder.Services.AddBravellianWebhooks();
+builder.Services.AddModuleWebhookProviders();
 
 // Required when engines declare RequiredServices
 builder.Services.AddSingleton<IRequiredServiceValidator, MyRequiredServiceValidator>();
 
 // Required when webhook security is configured
-builder.Services.AddSingleton<IWebhookSignatureValidator, MySignatureValidator>();
+builder.Services.AddSingleton<IModuleWebhookSignatureValidator, MySignatureValidator>();
 ```
 
 `AddModuleServices` registers engine discovery and loads module configuration.
@@ -129,11 +130,10 @@ app.MapUiEngineEndpoints(options =>
 app.MapWebhookEngineEndpoints(options =>
 {
     options.RoutePattern = "/hooks/{provider}/{eventType}";
-    options.SignatureHeaderName = "X-Signature";
 });
 ```
 
-If you need typed endpoints instead of generic ones, call `UiEngineAdapter` or `WebhookEngineAdapter` directly from your own minimal API handlers.
+If you need typed endpoints instead of generic ones, call `UiEngineAdapter` directly or use `WebhookEndpoint.HandleAsync` with the webhook pipeline.
 
 ## 4) Razor Pages adapter (optional)
 

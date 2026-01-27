@@ -29,7 +29,7 @@ public static class AuditEventValidator
     {
         if (auditEvent is null)
         {
-            throw new ArgumentNullException(nameof(auditEvent));
+            ArgumentNullException.ThrowIfNull(auditEvent);
         }
 
         options ??= new AuditValidationOptions();

@@ -87,9 +87,9 @@ internal sealed class PostgresIdempotencyStore : IIdempotencyStore, IIdempotency
 
         var lockedUntil = duration == Timeout.InfiniteTimeSpan ? (DateTimeOffset?)null : now.Add(duration);
 
-        await using var connection = new NpgsqlConnection(connectionString);
+        using var connection = new NpgsqlConnection(connectionString);
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-        await using var transaction = await connection.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken).ConfigureAwait(false);
+        using var transaction = await connection.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken).ConfigureAwait(false);
 
         var record = await GetRecordForUpdateAsync(connection, transaction, key).ConfigureAwait(false);
         if (record == null)
@@ -128,7 +128,7 @@ internal sealed class PostgresIdempotencyStore : IIdempotencyStore, IIdempotency
         }
 
         var now = timeProvider.GetUtcNow();
-        await using var connection = new NpgsqlConnection(connectionString);
+        using var connection = new NpgsqlConnection(connectionString);
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
         var rows = await connection.ExecuteAsync(
@@ -163,7 +163,7 @@ internal sealed class PostgresIdempotencyStore : IIdempotencyStore, IIdempotency
         }
 
         var now = timeProvider.GetUtcNow();
-        await using var connection = new NpgsqlConnection(connectionString);
+        using var connection = new NpgsqlConnection(connectionString);
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
         var rows = await connection.ExecuteAsync(
@@ -354,7 +354,7 @@ internal sealed class PostgresIdempotencyStore : IIdempotencyStore, IIdempotency
 
         var retentionSeconds = (int)retentionPeriod.TotalSeconds;
 
-        await using var connection = new NpgsqlConnection(connectionString);
+        using var connection = new NpgsqlConnection(connectionString);
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
         var sql = $"""

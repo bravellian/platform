@@ -30,7 +30,7 @@ public sealed class WebhookProcessingHostedServiceTests
             BatchSize = 10,
             MaxAttempts = 3,
         });
-        var service = new WebhookProcessingHostedService(processor, options, NullLogger<WebhookProcessingHostedService>.Instance);
+        using var service = new WebhookProcessingHostedService(processor, options, NullLogger<WebhookProcessingHostedService>.Instance);
 
         await service.StartAsync(CancellationToken.None);
 

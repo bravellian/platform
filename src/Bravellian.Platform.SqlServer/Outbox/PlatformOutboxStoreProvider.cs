@@ -14,6 +14,7 @@
 
 
 using System.Collections.Concurrent;
+using Bravellian.Platform.Observability;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -28,6 +29,7 @@ internal sealed class PlatformOutboxStoreProvider : IOutboxStoreProvider
     private readonly TimeProvider timeProvider;
     private readonly ILoggerFactory loggerFactory;
     private readonly ILogger<PlatformOutboxStoreProvider> logger;
+    private readonly IPlatformEventEmitter? eventEmitter;
     private readonly string tableName;
     private readonly Lock lockObject = new();
     private IReadOnlyList<IOutboxStore>? cachedStores;
@@ -43,7 +45,8 @@ internal sealed class PlatformOutboxStoreProvider : IOutboxStoreProvider
         ILoggerFactory loggerFactory,
         string tableName,
         bool enableSchemaDeployment = true,
-        PlatformConfiguration? platformConfiguration = null)
+        PlatformConfiguration? platformConfiguration = null,
+        IPlatformEventEmitter? eventEmitter = null)
     {
         this.discovery = discovery;
         this.timeProvider = timeProvider;
@@ -52,6 +55,7 @@ internal sealed class PlatformOutboxStoreProvider : IOutboxStoreProvider
         this.tableName = tableName;
         this.enableSchemaDeployment = enableSchemaDeployment;
         this.platformConfiguration = platformConfiguration;
+        this.eventEmitter = eventEmitter;
     }
 
     public async Task<IReadOnlyList<IOutboxStore>> GetAllStoresAsync()
@@ -114,7 +118,9 @@ internal sealed class PlatformOutboxStoreProvider : IOutboxStoreProvider
                         var outboxLogger = loggerFactory.CreateLogger<SqlOutboxService>();
                         var outbox = new SqlOutboxService(
                             Options.Create(options),
-                            outboxLogger);
+                            outboxLogger,
+                            joinStore: null,
+                            eventEmitter);
 
                         stores.Add(store);
                         storesByKey[db.Name] = store;

@@ -66,10 +66,7 @@ public sealed class WebhookIngestor : IWebhookIngestor
             throw new ArgumentException("Provider name is required.", nameof(providerName));
         }
 
-        if (envelope is null)
-        {
-            throw new ArgumentNullException(nameof(envelope));
-        }
+        ArgumentNullException.ThrowIfNull(envelope);
 
         var provider = providerRegistry.Get(providerName) ?? throw new InvalidOperationException($"No webhook provider registered for '{providerName}'.");
 
@@ -224,7 +221,7 @@ public sealed class WebhookIngestor : IWebhookIngestor
         await targetInbox.EnqueueAsync(RejectedTopic, providerName, dedupeKey, payloadJson, null, dueTimeUtc, cancellationToken).ConfigureAwait(false);
     }
 
-    private string ResolveDedupeKey(string providerName, ClassifyResult classifyResult, byte[] bodyBytes)
+    private static string ResolveDedupeKey(string providerName, ClassifyResult classifyResult, byte[] bodyBytes)
     {
         if (!string.IsNullOrWhiteSpace(classifyResult.DedupeKey))
         {

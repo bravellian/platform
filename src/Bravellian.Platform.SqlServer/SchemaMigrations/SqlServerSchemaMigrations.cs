@@ -40,6 +40,7 @@ internal static class SqlServerSchemaMigrations
     private const string CentralMetricsJournalTable = "BravellianPlatform_CentralMetricsJournal";
     private const string ExternalSideEffectJournalTable = "BravellianPlatform_ExternalSideEffectsJournal";
     private const string IdempotencyJournalTable = "BravellianPlatform_IdempotencyJournal";
+    private const string EmailOutboxJournalTable = "BravellianPlatform_EmailOutboxJournal";
 
     public static Task ApplyOutboxAsync(
         string connectionString,
@@ -317,6 +318,29 @@ internal static class SqlServerSchemaMigrations
             cancellationToken);
     }
 
+    public static Task ApplyEmailOutboxAsync(
+        string connectionString,
+        string schemaName,
+        string tableName,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        var variables = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["SchemaName"] = schemaName,
+            ["EmailOutboxTable"] = tableName,
+        };
+
+        return ApplyModuleAsync(
+            connectionString,
+            "EmailOutbox",
+            schemaName,
+            EmailOutboxJournalTable,
+            variables,
+            logger,
+            cancellationToken);
+    }
+
     public static IReadOnlyList<string> GetOutboxScriptsForSnapshot()
     {
         var variables = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -384,6 +408,17 @@ internal static class SqlServerSchemaMigrations
         };
 
         return GetModuleScriptsText("Idempotency", variables);
+    }
+
+    public static IReadOnlyList<string> GetEmailOutboxScriptsForSnapshot()
+    {
+        var variables = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["SchemaName"] = "infra",
+            ["EmailOutboxTable"] = "EmailOutbox",
+        };
+
+        return GetModuleScriptsText("EmailOutbox", variables);
     }
 
     private static Task ApplyModuleAsync(

@@ -122,6 +122,7 @@ src/Bravellian.Platform.Database/
 - [Platform Primitives Overview](docs/platform-primitives-overview.md) - Inbox, outbox, fanout, and fan-in lifecycle
 - [Time Abstractions](docs/time-abstractions.md) - TimeProvider vs IMonotonicClock
 - [Work Queue Pattern](docs/work-queue-pattern.md) - Claim-ack-abandon semantics
+- [Observability Guide](docs/observability/README.md) - Audit, operations, and observability conventions
 
 **Multi-Tenant Scenarios:**
 - [Outbox Router](docs/OutboxRouter.md) - Multi-database outbox routing

@@ -19,7 +19,7 @@ namespace Bravellian.Platform.Webhooks;
 /// </summary>
 public sealed class WebhookProviderRegistry : IWebhookProviderRegistry
 {
-    private readonly IReadOnlyDictionary<string, IWebhookProvider> providers;
+    private readonly Dictionary<string, IWebhookProvider> providers;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WebhookProviderRegistry"/> class.
@@ -27,10 +27,7 @@ public sealed class WebhookProviderRegistry : IWebhookProviderRegistry
     /// <param name="providers">Registered webhook providers.</param>
     public WebhookProviderRegistry(IEnumerable<IWebhookProvider> providers)
     {
-        if (providers == null)
-        {
-            throw new ArgumentNullException(nameof(providers));
-        }
+        ArgumentNullException.ThrowIfNull(providers);
 
         this.providers = providers
             .Where(provider => provider != null)

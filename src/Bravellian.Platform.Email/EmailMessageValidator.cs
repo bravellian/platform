@@ -161,13 +161,13 @@ public sealed class EmailMessageValidator
             return false;
         }
 
-        var atIndex = address.IndexOf('@');
+        var atIndex = address.AsSpan().IndexOf("@", StringComparison.Ordinal);
         if (atIndex <= 0 || atIndex == address.Length - 1)
         {
             return false;
         }
 
-        var dotIndex = address.LastIndexOf('.');
+        var dotIndex = address.AsSpan().LastIndexOf(".", StringComparison.Ordinal);
         if (dotIndex < atIndex + 2 || dotIndex == address.Length - 1)
         {
             return false;

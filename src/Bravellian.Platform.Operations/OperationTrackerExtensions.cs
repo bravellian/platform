@@ -36,12 +36,12 @@ public static class OperationTrackerExtensions
     {
         if (tracker is null)
         {
-            throw new ArgumentNullException(nameof(tracker));
+            ArgumentNullException.ThrowIfNull(tracker);
         }
 
         if (exception is null)
         {
-            throw new ArgumentNullException(nameof(exception));
+            ArgumentNullException.ThrowIfNull(exception);
         }
 
         var failureMessage = string.IsNullOrWhiteSpace(message) ? exception.Message : message;

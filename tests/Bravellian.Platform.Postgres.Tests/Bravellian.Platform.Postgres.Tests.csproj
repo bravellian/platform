@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Bravellian.Platform\Bravellian.Platform.csproj" />
+    <ProjectReference Include="..\..\src\Bravellian.Platform.Email\Bravellian.Platform.Email.csproj" />
     <ProjectReference Include="..\..\src\Bravellian.Platform.Postgres\Bravellian.Platform.Postgres.csproj" />
     <ProjectReference Include="..\..\src\Bravellian.Platform.Modularity\Bravellian.Platform.Modularity.csproj" />
     <ProjectReference Include="..\..\src\Bravellian.Platform.Modularity.Razor\Bravellian.Platform.Modularity.Razor.csproj" />

@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace Bravellian.Platform.Webhooks;
 
 /// <summary>
@@ -29,6 +31,7 @@ namespace Bravellian.Platform.Webhooks;
 /// <param name="Status">Current processing status.</param>
 /// <param name="AttemptCount">Current attempt count.</param>
 /// <param name="NextAttemptUtc">Next attempt time when retrying.</param>
+#pragma warning disable CA1819
 public sealed record WebhookEventRecord(
     string Provider,
     DateTimeOffset ReceivedAtUtc,
@@ -37,8 +40,9 @@ public sealed record WebhookEventRecord(
     string DedupeKey,
     string? PartitionKey,
     string HeadersJson,
-    byte[] BodyBytes,
+    [property: SuppressMessage("Design", "CA1819:Properties should not return arrays", Justification = "Raw body bytes are required for signature validation and processing.")] byte[] BodyBytes,
     string? ContentType,
     WebhookEventStatus Status,
     int AttemptCount,
     DateTimeOffset? NextAttemptUtc);
+#pragma warning restore CA1819

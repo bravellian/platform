@@ -17,8 +17,6 @@ namespace Bravellian.Platform.Observability;
 /// <summary>
 /// Represents an anchor for linking observability records.
 /// </summary>
-/// <param name="Type">Anchor type identifier.</param>
-/// <param name="Value">Anchor value.</param>
 public sealed record ObservationAnchor
 {
     /// <summary>

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 using System.Diagnostics.Metrics;
+using System.Runtime.InteropServices;
 using Bravellian.Platform.Observability;
 
 namespace Bravellian.Platform.Email;
@@ -59,6 +60,8 @@ public static class EmailMetrics
     /// </summary>
     public static void RecordQueued(OutboundEmailMessage message, string? provider)
     {
+        ArgumentNullException.ThrowIfNull(message);
+
         var tags = BuildTags(message, provider);
         EmailQueuedTotal.Add(1, tags);
         RecordSizes(message, tags);
@@ -69,6 +72,8 @@ public static class EmailMetrics
     /// </summary>
     public static void RecordAttempted(OutboundEmailMessage message, string? provider)
     {
+        ArgumentNullException.ThrowIfNull(message);
+
         var tags = BuildTags(message, provider);
         EmailAttemptedTotal.Add(1, tags);
         RecordSizes(message, tags);
@@ -79,6 +84,8 @@ public static class EmailMetrics
     /// </summary>
     public static void RecordResult(OutboundEmailMessage message, EmailDeliveryStatus status, string? provider)
     {
+        ArgumentNullException.ThrowIfNull(message);
+
         var tags = BuildTags(message, provider, status.ToString());
         switch (status)
         {
@@ -176,5 +183,6 @@ public static class EmailMetrics
         return ((rawBytes + 2) / 3) * 4;
     }
 
+    [StructLayout(LayoutKind.Auto)]
     internal readonly record struct EmailSizeInfo(long BodyBytes, long AttachmentBytes, long TotalBytes);
 }

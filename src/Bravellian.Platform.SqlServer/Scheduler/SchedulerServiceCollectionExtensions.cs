@@ -13,6 +13,7 @@
 // limitations under the License.
 
 
+using Bravellian.Platform.Observability;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -577,7 +578,13 @@ public static class SchedulerServiceCollectionExtensions
             var timeProvider = provider.GetRequiredService<TimeProvider>();
             var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
             var logger = provider.GetRequiredService<ILogger<DynamicSchedulerStoreProvider>>();
-            return new DynamicSchedulerStoreProvider(discovery, timeProvider, loggerFactory, logger, refreshInterval);
+            return new DynamicSchedulerStoreProvider(
+                discovery,
+                timeProvider,
+                loggerFactory,
+                logger,
+                refreshInterval,
+                provider.GetService<IPlatformEventEmitter>());
         });
 
         // Register the selection strategy
@@ -623,7 +630,11 @@ public static class SchedulerServiceCollectionExtensions
         {
             var timeProvider = provider.GetRequiredService<TimeProvider>();
             var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
-            return new ConfiguredOutboxStoreProvider(outboxOptions, timeProvider, loggerFactory);
+            return new ConfiguredOutboxStoreProvider(
+                outboxOptions,
+                timeProvider,
+                loggerFactory,
+                provider.GetService<IPlatformEventEmitter>());
         });
 
         // Register the selection strategy
@@ -701,7 +712,13 @@ public static class SchedulerServiceCollectionExtensions
             var timeProvider = provider.GetRequiredService<TimeProvider>();
             var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
             var logger = provider.GetRequiredService<ILogger<DynamicOutboxStoreProvider>>();
-            return new DynamicOutboxStoreProvider(discovery, timeProvider, loggerFactory, logger, refreshInterval);
+            return new DynamicOutboxStoreProvider(
+                discovery,
+                timeProvider,
+                loggerFactory,
+                logger,
+                refreshInterval,
+                provider.GetService<IPlatformEventEmitter>());
         });
 
         // Register the selection strategy

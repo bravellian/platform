@@ -24,10 +24,7 @@ public sealed class DefaultCorrelationSerializer : ICorrelationSerializer
     /// <inheritdoc />
     public IReadOnlyDictionary<string, string> Serialize(CorrelationContext context)
     {
-        if (context is null)
-        {
-            throw new ArgumentNullException(nameof(context));
-        }
+        ArgumentNullException.ThrowIfNull(context);
 
         var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -71,10 +68,7 @@ public sealed class DefaultCorrelationSerializer : ICorrelationSerializer
     /// <inheritdoc />
     public CorrelationContext? Deserialize(IReadOnlyDictionary<string, string> values)
     {
-        if (values is null)
-        {
-            throw new ArgumentNullException(nameof(values));
-        }
+        ArgumentNullException.ThrowIfNull(values);
 
         if (!TryGetValue(values, CorrelationHeaders.CorrelationId, out var correlationValue)
             || !CorrelationId.TryParse(correlationValue, out var correlationId))

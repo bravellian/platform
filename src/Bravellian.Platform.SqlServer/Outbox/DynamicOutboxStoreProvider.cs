@@ -13,6 +13,7 @@
 // limitations under the License.
 
 
+using Bravellian.Platform.Observability;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -29,6 +30,7 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
     private readonly TimeProvider timeProvider;
     private readonly ILoggerFactory loggerFactory;
     private readonly ILogger<DynamicOutboxStoreProvider> logger;
+    private readonly IPlatformEventEmitter? eventEmitter;
     private readonly Lock lockObject = new();
     private readonly Dictionary<string, StoreEntry> storesByIdentifier = new(StringComparer.Ordinal);
     private readonly List<IOutboxStore> currentStores = new();
@@ -48,13 +50,15 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
         TimeProvider timeProvider,
         ILoggerFactory loggerFactory,
         ILogger<DynamicOutboxStoreProvider> logger,
-        TimeSpan? refreshInterval = null)
+        TimeSpan? refreshInterval = null,
+        IPlatformEventEmitter? eventEmitter = null)
     {
         this.discovery = discovery;
         this.timeProvider = timeProvider;
         this.loggerFactory = loggerFactory;
         this.logger = logger;
         this.refreshInterval = refreshInterval ?? TimeSpan.FromMinutes(5);
+        this.eventEmitter = eventEmitter;
     }
 
     /// <summary>
@@ -205,7 +209,9 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
                                 TableName = config.TableName,
                                 EnableSchemaDeployment = config.EnableSchemaDeployment,
                             }),
-                            outboxLogger);
+                            outboxLogger,
+                            joinStore: null,
+                            eventEmitter);
 
                         entry = new StoreEntry
                         {
@@ -256,7 +262,9 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
                                 TableName = config.TableName,
                                 EnableSchemaDeployment = config.EnableSchemaDeployment,
                             }),
-                            outboxLogger);
+                            outboxLogger,
+                            joinStore: null,
+                            eventEmitter);
 
                         entry.Store = store;
                         entry.Outbox = outbox;

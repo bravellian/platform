@@ -10,6 +10,25 @@ dotnet add package Bravellian.Platform.Postgres
 
 ## Usage
 
+### Single-call platform registration
+
+Register the full PostgreSQL-backed platform stack (outbox/inbox/scheduler/fanout/idempotency, audit, operations,
+email outbox + delivery, metrics exporter, leases, semaphores) with one call:
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddPostgresPlatform(
+    "Host=localhost;Database=MyApp;Username=app;Password=secret;",
+    options =>
+    {
+        options.EnableSchemaDeployment = true;
+        options.EnableSchedulerWorkers = true;
+    });
+
+var app = builder.Build();
+```
+
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
 

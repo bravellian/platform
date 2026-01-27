@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 
 namespace Bravellian.Platform.Webhooks;
@@ -30,6 +31,7 @@ public static class WebhookDedupe
     /// <param name="bodyBytes">Request body bytes.</param>
     /// <returns>A dedupe result containing the key and whether it is weak.</returns>
     /// <exception cref="ArgumentException">Thrown when <paramref name="provider"/> is null or whitespace.</exception>
+    [SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase", Justification = "Lowercase hex is a stable, human-friendly format for dedupe keys.")]
     public static WebhookDedupeResult Create(string provider, string? providerEventId, byte[]? bodyBytes)
     {
         if (string.IsNullOrWhiteSpace(provider))

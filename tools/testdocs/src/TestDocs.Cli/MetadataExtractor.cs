@@ -5,7 +5,7 @@ namespace TestDocs.Cli;
 
 internal static class MetadataExtractor
 {
-    private static readonly Regex WhitespaceRegex = new(@"\s+", RegexOptions.Compiled);
+    private static readonly Regex WhitespaceRegex = new(@"\s+", RegexOptions.Compiled, TimeSpan.FromSeconds(1));
 
     public static TestMetadata Extract(XDocument? doc, string? namespaceName, string assemblyName, string className, string methodName)
     {

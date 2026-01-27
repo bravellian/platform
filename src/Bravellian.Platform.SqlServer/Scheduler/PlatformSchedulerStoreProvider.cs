@@ -13,6 +13,7 @@
 // limitations under the License.
 
 
+using Bravellian.Platform.Observability;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -26,6 +27,7 @@ internal sealed class PlatformSchedulerStoreProvider : ISchedulerStoreProvider
     private readonly TimeProvider timeProvider;
     private readonly ILoggerFactory loggerFactory;
     private readonly ILogger<PlatformSchedulerStoreProvider> logger;
+    private readonly IPlatformEventEmitter? eventEmitter;
     private readonly Lock lockObject = new();
     private IReadOnlyList<ISchedulerStore>? cachedStores;
     private readonly Dictionary<string, StoreEntry> storesByIdentifier = new(StringComparer.Ordinal);
@@ -43,13 +45,15 @@ internal sealed class PlatformSchedulerStoreProvider : ISchedulerStoreProvider
         IPlatformDatabaseDiscovery discovery,
         TimeProvider timeProvider,
         ILoggerFactory loggerFactory,
-        PlatformConfiguration? platformConfiguration = null)
+        PlatformConfiguration? platformConfiguration = null,
+        IPlatformEventEmitter? eventEmitter = null)
     {
         this.discovery = discovery;
         this.timeProvider = timeProvider;
         this.loggerFactory = loggerFactory;
         logger = loggerFactory.CreateLogger<PlatformSchedulerStoreProvider>();
         this.platformConfiguration = platformConfiguration;
+        this.eventEmitter = eventEmitter;
     }
 
     public async Task<IReadOnlyList<ISchedulerStore>> GetAllStoresAsync()
@@ -90,7 +94,9 @@ internal sealed class PlatformSchedulerStoreProvider : ISchedulerStoreProvider
                                 SchemaName = db.SchemaName,
                                 TableName = "Outbox",
                             }),
-                            outboxLogger);
+                            outboxLogger,
+                            joinStore: null,
+                            eventEmitter);
 
                         var entry = new StoreEntry
                         {

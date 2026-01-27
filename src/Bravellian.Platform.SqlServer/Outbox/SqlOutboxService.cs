@@ -17,6 +17,9 @@ using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
 using System.Globalization;
+using System.Text.Json;
+using Bravellian.Platform.Audit;
+using Bravellian.Platform.Observability;
 using Bravellian.Platform.Outbox;
 using Dapper;
 using Microsoft.Data.SqlClient;
@@ -32,16 +35,19 @@ internal class SqlOutboxService : IOutbox
     private readonly string enqueueSql;
     private readonly ILogger<SqlOutboxService> logger;
     private readonly IOutboxJoinStore? joinStore;
+    private readonly IPlatformEventEmitter? eventEmitter;
 
     public SqlOutboxService(
         IOptions<SqlOutboxOptions> options,
         ILogger<SqlOutboxService> logger,
-        IOutboxJoinStore? joinStore = null)
+        IOutboxJoinStore? joinStore = null,
+        IPlatformEventEmitter? eventEmitter = null)
     {
         this.options = options.Value;
         connectionString = this.options.ConnectionString;
         this.logger = logger;
         this.joinStore = joinStore;
+        this.eventEmitter = eventEmitter;
 
         // Build the SQL query using configured schema and table names
         enqueueSql = $"""
@@ -244,6 +250,7 @@ internal class SqlOutboxService : IOutbox
                 idList.Count,
                 new KeyValuePair<string, object?>("queue", options.TableName),
                 new KeyValuePair<string, object?>("store", options.SchemaName));
+            await EmitOutboxProcessedAsync(idList.Count, ownerToken, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -431,6 +438,33 @@ internal class SqlOutboxService : IOutbox
                 await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             }
         }
+    }
+
+    private Task EmitOutboxProcessedAsync(int count, Bravellian.Platform.OwnerToken ownerToken, CancellationToken cancellationToken)
+    {
+        if (eventEmitter is null)
+        {
+            return Task.CompletedTask;
+        }
+
+        var data = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["count"] = count,
+            ["schema"] = options.SchemaName,
+            ["table"] = options.TableName,
+            ["ownerToken"] = ownerToken.Value,
+        };
+
+        var auditEvent = new AuditEvent(
+            AuditEventId.NewId(),
+            DateTimeOffset.UtcNow,
+            PlatformEventNames.OutboxMessageProcessed,
+            $"Outbox processed {count} item(s)",
+            EventOutcome.Success,
+            new[] { new EventAnchor("Outbox", options.TableName, "Subject") },
+            JsonSerializer.Serialize(data));
+
+        return eventEmitter.EmitAuditEventAsync(auditEvent, cancellationToken);
     }
 
     public async Task<JoinIdentifier> StartJoinAsync(

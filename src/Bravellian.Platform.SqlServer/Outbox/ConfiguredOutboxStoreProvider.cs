@@ -14,6 +14,7 @@
 
 
 using System.Diagnostics.CodeAnalysis;
+using Bravellian.Platform.Observability;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -30,17 +31,20 @@ internal sealed class ConfiguredOutboxStoreProvider : IOutboxStoreProvider
     private readonly Dictionary<string, IOutbox> outboxesByKey;
     private readonly IReadOnlyList<SqlOutboxOptions> outboxOptions;
     private readonly ILogger<ConfiguredOutboxStoreProvider> logger;
+    private readonly IPlatformEventEmitter? eventEmitter;
 
     public ConfiguredOutboxStoreProvider(
         IEnumerable<SqlOutboxOptions> outboxOptions,
         TimeProvider timeProvider,
-        ILoggerFactory loggerFactory)
+        ILoggerFactory loggerFactory,
+        IPlatformEventEmitter? eventEmitter = null)
     {
         var storesList = new List<IOutboxStore>();
         var identifiersDict = new Dictionary<IOutboxStore, string>();
         var keyDict = new Dictionary<string, IOutboxStore>(StringComparer.Ordinal);
         var outboxDict = new Dictionary<string, IOutbox>(StringComparer.Ordinal);
         var optionsList = outboxOptions.ToList();
+        this.eventEmitter = eventEmitter;
 
         foreach (var options in optionsList)
         {
@@ -53,7 +57,9 @@ internal sealed class ConfiguredOutboxStoreProvider : IOutboxStoreProvider
             var outboxLogger = loggerFactory.CreateLogger<SqlOutboxService>();
             var outbox = new SqlOutboxService(
                 Options.Create(options),
-                outboxLogger);
+                outboxLogger,
+                joinStore: null,
+                eventEmitter);
 
             storesList.Add(store);
 

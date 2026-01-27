@@ -7,16 +7,27 @@ using System.Xml.Linq;
 
 namespace Bravellian.TestDocs.Analyzers;
 
+/// <summary>
+/// Analyzer that enforces required XML documentation tags on test methods.
+/// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class TestDocsAnalyzer : DiagnosticAnalyzer
 {
     private static readonly string[] RequiredTags = { "summary", "intent", "scenario", "behavior" };
 
+    /// <summary>
+    /// Gets the diagnostics supported by this analyzer.
+    /// </summary>
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
         ImmutableArray.Create(Diagnostics.MissingMetadata, Diagnostics.PlaceholderMetadata);
 
+    /// <summary>
+    /// Initializes the analyzer.
+    /// </summary>
+    /// <param name="context">Analysis context.</param>
     public override void Initialize(AnalysisContext context)
     {
+        ArgumentNullException.ThrowIfNull(context);
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
         context.EnableConcurrentExecution();
         context.RegisterSyntaxNodeAction(AnalyzeMethod, SyntaxKind.MethodDeclaration);
@@ -75,7 +86,7 @@ public sealed class TestDocsAnalyzer : DiagnosticAnalyzer
             return null;
         }
 
-        var element = document.Root.Elements().FirstOrDefault(node => node.Name.LocalName == tag);
+        var element = document.Root.Elements().FirstOrDefault(node => string.Equals(node.Name.LocalName, tag, StringComparison.OrdinalIgnoreCase));
         if (element == null)
         {
             return null;

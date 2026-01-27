@@ -13,6 +13,7 @@
 // limitations under the License.
 
 
+using Bravellian.Platform.Observability;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -29,6 +30,7 @@ public sealed class DynamicSchedulerStoreProvider : ISchedulerStoreProvider, IDi
     private readonly TimeProvider timeProvider;
     private readonly ILoggerFactory loggerFactory;
     private readonly ILogger<DynamicSchedulerStoreProvider> logger;
+    private readonly IPlatformEventEmitter? eventEmitter;
     private readonly Lock lockObject = new();
     private readonly SemaphoreSlim refreshSemaphore = new(1, 1);
     private readonly Dictionary<string, StoreEntry> storesByIdentifier = new(StringComparer.Ordinal);
@@ -49,13 +51,15 @@ public sealed class DynamicSchedulerStoreProvider : ISchedulerStoreProvider, IDi
         TimeProvider timeProvider,
         ILoggerFactory loggerFactory,
         ILogger<DynamicSchedulerStoreProvider> logger,
-        TimeSpan? refreshInterval = null)
+        TimeSpan? refreshInterval = null,
+        IPlatformEventEmitter? eventEmitter = null)
     {
         this.discovery = discovery;
         this.timeProvider = timeProvider;
         this.loggerFactory = loggerFactory;
         this.logger = logger;
         this.refreshInterval = refreshInterval ?? TimeSpan.FromMinutes(5);
+        this.eventEmitter = eventEmitter;
     }
 
     /// <summary>
@@ -244,7 +248,9 @@ public sealed class DynamicSchedulerStoreProvider : ISchedulerStoreProvider, IDi
                                 SchemaName = config.SchemaName,
                                 TableName = "Outbox",
                             }),
-                            outboxLogger);
+                            outboxLogger,
+                            joinStore: null,
+                            eventEmitter);
 
                         entry = new StoreEntry
                         {
@@ -301,7 +307,9 @@ public sealed class DynamicSchedulerStoreProvider : ISchedulerStoreProvider, IDi
                                 SchemaName = config.SchemaName,
                                 TableName = "Outbox",
                             }),
-                            outboxLogger);
+                            outboxLogger,
+                            joinStore: null,
+                            eventEmitter);
 
                         entry.Store = store;
                         entry.Client = client;

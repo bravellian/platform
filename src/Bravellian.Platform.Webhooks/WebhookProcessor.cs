@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Bravellian.Platform;
 
@@ -92,6 +93,7 @@ public sealed class WebhookProcessor : IWebhookProcessor
         return claimedIds.Count;
     }
 
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Webhook processing should retry on unexpected failures.")]
     private async Task<ProcessOutcome> ProcessSingleAsync(
         OwnerToken ownerToken,
         string messageId,
@@ -178,6 +180,7 @@ public sealed class WebhookProcessor : IWebhookProcessor
         }
     }
 
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Failure handling should continue when individual message inspection fails.")]
     private async Task HandleFailuresAsync(
         OwnerToken ownerToken,
         IDictionary<string, string> failedMessages,
@@ -257,7 +260,7 @@ public sealed class WebhookProcessor : IWebhookProcessor
             context);
     }
 
-    private WebhookEventContext BuildContext(WebhookEventRecord record)
+    private static WebhookEventContext BuildContext(WebhookEventRecord record)
     {
         var headers = DeserializeHeaders(record.HeadersJson);
         return new WebhookEventContext(
@@ -282,7 +285,7 @@ public sealed class WebhookProcessor : IWebhookProcessor
         return JsonSerializer.Deserialize<WebhookEventRecord>(payload);
     }
 
-    private static IReadOnlyDictionary<string, string> DeserializeHeaders(string headersJson)
+    private static Dictionary<string, string> DeserializeHeaders(string headersJson)
     {
         if (string.IsNullOrWhiteSpace(headersJson))
         {

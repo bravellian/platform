@@ -13,6 +13,7 @@
 // limitations under the License.
 
 using Bravellian.Platform.Idempotency;
+using Bravellian.Platform.Observability;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -50,7 +51,8 @@ public static class PlatformFeatureServiceCollectionExtensions
                 sp.GetRequiredService<ILoggerFactory>(),
                 tableName,
                 enableSchemaDeployment,
-                sp.GetService<PlatformConfiguration>()),
+                sp.GetService<PlatformConfiguration>(),
+                sp.GetService<IPlatformEventEmitter>()),
             new RoundRobinOutboxSelectionStrategy());
 
         // Register outbox join store (uses same connection strings as outbox)
@@ -122,7 +124,8 @@ public static class PlatformFeatureServiceCollectionExtensions
                 sp.GetRequiredService<IPlatformDatabaseDiscovery>(),
                 sp.GetRequiredService<TimeProvider>(),
                 sp.GetRequiredService<ILoggerFactory>(),
-                sp.GetService<PlatformConfiguration>()),
+                sp.GetService<PlatformConfiguration>(),
+                sp.GetService<IPlatformEventEmitter>()),
             selectionStrategy ?? new RoundRobinOutboxSelectionStrategy());
     }
 

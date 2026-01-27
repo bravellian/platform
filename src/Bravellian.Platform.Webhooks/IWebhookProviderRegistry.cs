@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace Bravellian.Platform.Webhooks;
 
 /// <summary>
@@ -24,5 +26,6 @@ public interface IWebhookProviderRegistry
     /// </summary>
     /// <param name="providerName">Provider name.</param>
     /// <returns>The provider, or <c>null</c> when not found.</returns>
+    [SuppressMessage("Design", "CA1716:Identifiers should not match keywords", Justification = "Common registry pattern uses Get for lookup.")]
     IWebhookProvider? Get(string providerName);
 }

@@ -12,16 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Bravellian.Platform.Webhooks;
+
 namespace Bravellian.Platform.Modularity;
 
 /// <summary>
-/// Webhook engine contract. Engines decide the outcome without transport coupling.
+/// Request envelope provided to module webhook engines.
 /// </summary>
-/// <typeparam name="TPayload">Webhook payload type.</typeparam>
-public interface IWebhookEngine<TPayload>
-{
-    /// <summary>
-    /// Handles a webhook request.
-    /// </summary>
-    Task<WebhookOutcome> HandleAsync(WebhookRequest<TPayload> request, CancellationToken cancellationToken);
-}
+/// <param name="Context">Webhook processing context.</param>
+/// <param name="Payload">Parsed payload.</param>
+public sealed record ModuleWebhookRequest<TPayload>(
+    WebhookEventContext Context,
+    TPayload Payload);

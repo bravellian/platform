@@ -194,6 +194,26 @@ internal static class DatabaseSchemaManager
     }
 
     /// <summary>
+    /// Ensures that the required database schema exists for email outbox storage.
+    /// </summary>
+    /// <param name="connectionString">The database connection string.</param>
+    /// <param name="schemaName">The schema name (default: "infra").</param>
+    /// <param name="tableName">The table name (default: "EmailOutbox").</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public static async Task EnsureEmailOutboxSchemaAsync(
+        string connectionString,
+        string schemaName = "infra",
+        string tableName = "EmailOutbox")
+    {
+        await SqlServerSchemaMigrations.ApplyEmailOutboxAsync(
+            connectionString,
+            schemaName,
+            tableName,
+            NullLogger.Instance,
+            CancellationToken.None).ConfigureAwait(false);
+    }
+
+    /// <summary>
     /// Ensures that a schema exists in the database.
     /// </summary>
     /// <param name="connection">The database connection.</param>
@@ -312,6 +332,7 @@ internal static class DatabaseSchemaManager
             ["scheduler"] = ComputeSchemaHash(GetSchedulerSchemaScripts()),
             ["fanout"] = ComputeSchemaHash(GetFanoutSchemaScripts()),
             ["idempotency"] = ComputeSchemaHash(GetIdempotencySchemaScripts()),
+            ["email_outbox"] = ComputeSchemaHash(GetEmailOutboxSchemaScripts()),
         };
     }
 
@@ -400,6 +421,14 @@ internal static class DatabaseSchemaManager
     private static IEnumerable<string> GetIdempotencySchemaScripts()
     {
         foreach (var script in SqlServerSchemaMigrations.GetIdempotencyScriptsForSnapshot())
+        {
+            yield return script;
+        }
+    }
+
+    private static IEnumerable<string> GetEmailOutboxSchemaScripts()
+    {
+        foreach (var script in SqlServerSchemaMigrations.GetEmailOutboxScriptsForSnapshot())
         {
             yield return script;
         }

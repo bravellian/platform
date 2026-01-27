@@ -26,6 +26,9 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Bravellian.Platform.Webhooks\Bravellian.Platform.Webhooks.csproj" />
+  </ItemGroup>
+  <ItemGroup>
     <None Include="..\..\assets\nuget_logo.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>

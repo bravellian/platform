@@ -23,6 +23,9 @@ Welcome to the comprehensive documentation for the Bravellian Platform. This gui
 - [Work Queue Pattern](work-queue-pattern.md) - Claim-ack-abandon semantics
 - [Work Queue Implementation](work-queue-implementation.md) - Technical details
 
+### Observability
+- [Observability Guide](observability/README.md) - Audit, operations, and observability conventions
+
 ## 📤 Outbox Pattern
 
 ### Core Documentation

@@ -39,6 +39,10 @@ internal static class PostgresSchemaMigrations
     private const string MetricsJournalTable = "BravellianPlatform_MetricsJournal";
     private const string CentralMetricsJournalTable = "BravellianPlatform_CentralMetricsJournal";
     private const string IdempotencyJournalTable = "BravellianPlatform_IdempotencyJournal";
+    private const string OperationsJournalTable = "BravellianPlatform_OperationsJournal";
+    private const string AuditJournalTable = "BravellianPlatform_AuditJournal";
+    private const string EmailOutboxJournalTable = "BravellianPlatform_EmailOutboxJournal";
+    private const string EmailDeliveryJournalTable = "BravellianPlatform_EmailDeliveryJournal";
 
     public static Task ApplyOutboxAsync(
         string connectionString,
@@ -293,6 +297,102 @@ internal static class PostgresSchemaMigrations
             cancellationToken);
     }
 
+    public static Task ApplyOperationsAsync(
+        string connectionString,
+        string schemaName,
+        string operationsTable,
+        string operationEventsTable,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        var variables = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["SchemaName"] = schemaName,
+            ["OperationsTable"] = operationsTable,
+            ["OperationEventsTable"] = operationEventsTable,
+        };
+
+        return ApplyModuleAsync(
+            connectionString,
+            "Operations",
+            schemaName,
+            OperationsJournalTable,
+            variables,
+            logger,
+            cancellationToken);
+    }
+
+    public static Task ApplyAuditAsync(
+        string connectionString,
+        string schemaName,
+        string auditEventsTable,
+        string auditAnchorsTable,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        var variables = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["SchemaName"] = schemaName,
+            ["AuditEventsTable"] = auditEventsTable,
+            ["AuditAnchorsTable"] = auditAnchorsTable,
+        };
+
+        return ApplyModuleAsync(
+            connectionString,
+            "Audit",
+            schemaName,
+            AuditJournalTable,
+            variables,
+            logger,
+            cancellationToken);
+    }
+
+    public static Task ApplyEmailOutboxAsync(
+        string connectionString,
+        string schemaName,
+        string tableName,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        var variables = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["SchemaName"] = schemaName,
+            ["EmailOutboxTable"] = tableName,
+        };
+
+        return ApplyModuleAsync(
+            connectionString,
+            "EmailOutbox",
+            schemaName,
+            EmailOutboxJournalTable,
+            variables,
+            logger,
+            cancellationToken);
+    }
+
+    public static Task ApplyEmailDeliveryAsync(
+        string connectionString,
+        string schemaName,
+        string tableName,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        var variables = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["SchemaName"] = schemaName,
+            ["EmailDeliveryTable"] = tableName,
+        };
+
+        return ApplyModuleAsync(
+            connectionString,
+            "EmailDelivery",
+            schemaName,
+            EmailDeliveryJournalTable,
+            variables,
+            logger,
+            cancellationToken);
+    }
+
     public static IReadOnlyList<string> GetOutboxScriptsForSnapshot()
     {
         var variables = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -349,6 +449,52 @@ internal static class PostgresSchemaMigrations
         };
 
         return GetModuleScriptsText("Idempotency", variables);
+    }
+
+    public static IReadOnlyList<string> GetOperationsScriptsForSnapshot()
+    {
+        var variables = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["SchemaName"] = "infra",
+            ["OperationsTable"] = "Operations",
+            ["OperationEventsTable"] = "OperationEvents",
+        };
+
+        return GetModuleScriptsText("Operations", variables);
+    }
+
+    public static IReadOnlyList<string> GetAuditScriptsForSnapshot()
+    {
+        var variables = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["SchemaName"] = "infra",
+            ["AuditEventsTable"] = "AuditEvents",
+            ["AuditAnchorsTable"] = "AuditAnchors",
+        };
+
+        return GetModuleScriptsText("Audit", variables);
+    }
+
+    public static IReadOnlyList<string> GetEmailOutboxScriptsForSnapshot()
+    {
+        var variables = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["SchemaName"] = "infra",
+            ["EmailOutboxTable"] = "EmailOutbox",
+        };
+
+        return GetModuleScriptsText("EmailOutbox", variables);
+    }
+
+    public static IReadOnlyList<string> GetEmailDeliveryScriptsForSnapshot()
+    {
+        var variables = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["SchemaName"] = "infra",
+            ["EmailDeliveryTable"] = "EmailDeliveryEvents",
+        };
+
+        return GetModuleScriptsText("EmailDelivery", variables);
     }
 
     private static Task ApplyModuleAsync(

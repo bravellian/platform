@@ -16,10 +16,10 @@ ModuleRegistry.RegisterModule<MyModule>();
 builder.Services.AddModuleServices(builder.Configuration);
 
 builder.Services.AddSingleton<UiEngineAdapter>();
-builder.Services.AddSingleton<WebhookEngineAdapter>();
+builder.Services.AddBravellianWebhooks();
+builder.Services.AddModuleWebhookProviders();
 
 builder.Services.AddSingleton<IRequiredServiceValidator, MyRequiredServiceValidator>();
-builder.Services.AddSingleton<IWebhookSignatureValidator, MySignatureValidator>();
 ```
 
 ## Examples

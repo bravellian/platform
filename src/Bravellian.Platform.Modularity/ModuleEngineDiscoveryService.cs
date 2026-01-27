@@ -39,11 +39,6 @@ public sealed class ModuleEngineDiscoveryService
     }
 
     /// <summary>
-    /// Resolves a webhook engine by provider and event type.
-    /// </summary>
-    public IModuleEngineDescriptor? ResolveWebhookEngine(string provider, string eventType) => ModuleEngineRegistry.FindWebhookEngine(provider, eventType);
-
-    /// <summary>
     /// Resolves an engine descriptor by module and engine identifier.
     /// </summary>
     public IModuleEngineDescriptor? ResolveById(string moduleKey, string engineId) => ModuleEngineRegistry.FindById(moduleKey, engineId);

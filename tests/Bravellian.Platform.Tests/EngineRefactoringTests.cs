@@ -13,8 +13,10 @@
 // limitations under the License.
 
 using Bravellian.Platform.Modularity;
+using Bravellian.Platform.Webhooks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using System.Text;
 using Xunit;
 
 namespace Bravellian.Platform.Tests;
@@ -60,170 +62,81 @@ public sealed class EngineRefactoringTests
     }
 
     /// <summary>
-    /// When a webhook request has a valid signature, then the adapter dispatches and returns an enqueue outcome.
+    /// When a webhook request has a valid event type, then the handler is invoked.
     /// </summary>
-    /// <intent>
-    /// Ensure signature validation gates webhook dispatch and outcome mapping.
-    /// </intent>
-    /// <scenario>
-    /// Given a WebhookEngineAdapter using TestSignatureValidator and a request with a valid signature header.
-    /// </scenario>
-    /// <behavior>
-    /// Then DispatchAsync returns a response with Outcome set to EnqueueEvent.
-    /// </behavior>
     [Fact]
-    public async Task Webhook_adapter_enforces_signature_and_maps_outcome()
+    public async Task Webhook_pipeline_authenticates_and_dispatches()
     {
         var provider = BuildServiceProvider();
-        var adapter = new WebhookEngineAdapter(provider.GetRequiredService<ModuleEngineDiscoveryService>(), provider, provider.GetRequiredService<IWebhookSignatureValidator>());
+        var registry = provider.GetRequiredService<IWebhookProviderRegistry>();
+        var webhookProvider = registry.Get("postmark");
 
-        var request = new WebhookAdapterRequest<PostmarkBouncePayload>(
+        Assert.NotNull(webhookProvider);
+
+        var headers = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [ModuleWebhookOptions.DefaultEventTypeHeaderName] = "bounce",
+        };
+
+        var envelope = new WebhookEnvelope(
             "postmark",
-            "bounce",
-            new Dictionary<string, string>(StringComparer.Ordinal) { ["X-Signature"] = "postmark:raw-body" },
-            "raw-body",
-            "idemp-1",
-            1,
+            DateTimeOffset.UtcNow,
+            "POST",
+            "/webhooks/postmark/bounce",
+            string.Empty,
+            headers,
+            "application/json",
+            Encoding.UTF8.GetBytes("{\"type\":\"HardBounce\",\"description\":\"Mail rejected\"}"),
+            null);
+
+        var classify = await webhookProvider.Classifier.ClassifyAsync(envelope, CancellationToken.None);
+        Assert.Equal(WebhookIngestDecision.Accepted, classify.Decision);
+        Assert.Equal("bounce", classify.EventType);
+
+        var context = new WebhookEventContext(
+            "postmark",
+            "dedupe-1",
+            classify.ProviderEventId,
+            classify.EventType,
             null,
-            new PostmarkBouncePayload("HardBounce", "Mail rejected"));
+            DateTimeOffset.UtcNow,
+            headers,
+            envelope.BodyBytes,
+            envelope.ContentType);
 
-        var response = await adapter.DispatchAsync(request, CancellationToken.None);
+        await webhookProvider.Handlers.Single().HandleAsync(context, CancellationToken.None);
 
-        Assert.Equal(WebhookOutcomeType.EnqueueEvent, response.Outcome);
+        var engine = provider.GetRequiredService<PostmarkWebhookEngine>();
+        Assert.True(engine.Handled);
     }
 
     /// <summary>
-    /// When a webhook request has an invalid signature, then the adapter acknowledges it with a failure reason.
+    /// When the event type header is missing, then classification rejects the request.
     /// </summary>
-    /// <intent>
-    /// Verify invalid signatures are rejected without dispatching the engine.
-    /// </intent>
-    /// <scenario>
-    /// Given a WebhookEngineAdapter and a request with an invalid signature header.
-    /// </scenario>
-    /// <behavior>
-    /// Then DispatchAsync returns Outcome Acknowledge and a reason mentioning signature validation.
-    /// </behavior>
     [Fact]
-    public async Task Webhook_adapter_rejects_invalid_signature()
+    public async Task Webhook_pipeline_requires_event_type_header()
     {
         var provider = BuildServiceProvider();
-        var adapter = new WebhookEngineAdapter(provider.GetRequiredService<ModuleEngineDiscoveryService>(), provider, provider.GetRequiredService<IWebhookSignatureValidator>());
+        var registry = provider.GetRequiredService<IWebhookProviderRegistry>();
+        var webhookProvider = registry.Get("postmark");
 
-        var request = new WebhookAdapterRequest<PostmarkBouncePayload>(
+        Assert.NotNull(webhookProvider);
+
+        var headers = new Dictionary<string, string>(StringComparer.Ordinal);
+        var envelope = new WebhookEnvelope(
             "postmark",
-            "bounce",
-            new Dictionary<string, string>(StringComparer.Ordinal) { ["X-Signature"] = "invalid-signature" },
-            "raw-body",
-            "idemp-1",
-            1,
-            null,
-            new PostmarkBouncePayload("HardBounce", "Mail rejected"));
+            DateTimeOffset.UtcNow,
+            "POST",
+            "/webhooks/postmark/bounce",
+            string.Empty,
+            headers,
+            "application/json",
+            Encoding.UTF8.GetBytes("{}"),
+            null);
 
-        var response = await adapter.DispatchAsync(request, CancellationToken.None);
-
-        Assert.Equal(WebhookOutcomeType.Acknowledge, response.Outcome);
-        Assert.Contains("Signature validation failed", response.Reason, StringComparison.Ordinal);
-    }
-
-    /// <summary>
-    /// When a webhook request omits a required idempotency key, then the adapter responds with a retry.
-    /// </summary>
-    /// <intent>
-    /// Enforce idempotency requirements on webhook dispatch.
-    /// </intent>
-    /// <scenario>
-    /// Given a WebhookEngineAdapter and a request with an empty or whitespace idempotency key.
-    /// </scenario>
-    /// <behavior>
-    /// Then DispatchAsync returns Outcome Retry with a reason stating the key is required.
-    /// </behavior>
-    [Theory]
-    [InlineData("")]
-    [InlineData("   ")]
-    public async Task Webhook_adapter_requires_idempotency_key_when_configured(string idempotencyKey)
-    {
-        var provider = BuildServiceProvider();
-        var adapter = new WebhookEngineAdapter(provider.GetRequiredService<ModuleEngineDiscoveryService>(), provider, provider.GetRequiredService<IWebhookSignatureValidator>());
-
-        var request = new WebhookAdapterRequest<PostmarkBouncePayload>(
-            "postmark",
-            "bounce",
-            new Dictionary<string, string>(StringComparer.Ordinal) { ["X-Signature"] = "postmark:raw-body" },
-            "raw-body",
-            idempotencyKey,
-            1,
-            null,
-            new PostmarkBouncePayload("HardBounce", "Mail rejected"));
-
-        var response = await adapter.DispatchAsync(request, CancellationToken.None);
-
-        Assert.Equal(WebhookOutcomeType.Retry, response.Outcome);
-        Assert.Contains("Idempotency key is required", response.Reason, StringComparison.Ordinal);
-    }
-
-    /// <summary>
-    /// When a webhook engine is not registered for the provider/event, then DispatchAsync throws.
-    /// </summary>
-    /// <intent>
-    /// Ensure missing webhook engines are reported as errors.
-    /// </intent>
-    /// <scenario>
-    /// Given a WebhookEngineAdapter and a request for a missing provider/event pair.
-    /// </scenario>
-    /// <behavior>
-    /// Then DispatchAsync throws InvalidOperationException with a "No webhook engine registered" message.
-    /// </behavior>
-    [Fact]
-    public async Task Webhook_adapter_throws_when_engine_is_not_registered()
-    {
-        var provider = BuildServiceProvider();
-        var adapter = new WebhookEngineAdapter(provider.GetRequiredService<ModuleEngineDiscoveryService>(), provider, provider.GetRequiredService<IWebhookSignatureValidator>());
-
-        var request = new WebhookAdapterRequest<PostmarkBouncePayload>(
-            "missing",
-            "event",
-            new Dictionary<string, string>(StringComparer.Ordinal) { ["X-Signature"] = "missing:raw-body" },
-            "raw-body",
-            "idemp-1",
-            1,
-            null,
-            new PostmarkBouncePayload("HardBounce", "Mail rejected"));
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => adapter.DispatchAsync(request, CancellationToken.None));
-        Assert.Contains("No webhook engine registered", ex.Message, StringComparison.Ordinal);
-    }
-
-    /// <summary>
-    /// When the webhook payload type does not match the engine contract, then DispatchAsync throws.
-    /// </summary>
-    /// <intent>
-    /// Guard against mismatched webhook payload contracts.
-    /// </intent>
-    /// <scenario>
-    /// Given a WebhookEngineAdapter and a request with an incompatible payload type.
-    /// </scenario>
-    /// <behavior>
-    /// Then DispatchAsync throws InvalidOperationException indicating the contract mismatch.
-    /// </behavior>
-    [Fact]
-    public async Task Webhook_adapter_throws_when_engine_contract_is_mismatched()
-    {
-        var provider = BuildServiceProvider();
-        var adapter = new WebhookEngineAdapter(provider.GetRequiredService<ModuleEngineDiscoveryService>(), provider, provider.GetRequiredService<IWebhookSignatureValidator>());
-
-        var request = new WebhookAdapterRequest<OtherWebhookPayload>(
-            "postmark",
-            "bounce",
-            new Dictionary<string, string>(StringComparer.Ordinal) { ["X-Signature"] = "postmark:raw-body" },
-            "raw-body",
-            "idemp-1",
-            1,
-            null,
-            new OtherWebhookPayload("wrong"));
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => adapter.DispatchAsync(request, CancellationToken.None));
-        Assert.Contains("does not implement expected webhook contract", ex.Message, StringComparison.Ordinal);
+        var classify = await webhookProvider!.Classifier.ClassifyAsync(envelope, CancellationToken.None);
+        Assert.Equal(WebhookIngestDecision.Rejected, classify.Decision);
+        Assert.Contains("event type header", classify.FailureReason, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -322,7 +235,10 @@ public sealed class EngineRefactoringTests
         Assert.Contains(webhookEngines, e => string.Equals(e.Manifest.Id, "webhook.postmark", StringComparison.Ordinal)
             && string.Equals(e.ModuleKey, "fake-module", StringComparison.Ordinal));
 
-        var resolved = discovery.ResolveWebhookEngine("postmark", "bounce");
+        var resolved = discovery.List(EngineKind.Webhook)
+            .FirstOrDefault(engine => engine.Manifest.WebhookMetadata?.Any(metadata =>
+                string.Equals(metadata.Provider, "postmark", StringComparison.OrdinalIgnoreCase)
+                && string.Equals(metadata.EventType, "bounce", StringComparison.OrdinalIgnoreCase)) == true);
         Assert.NotNull(resolved);
         Assert.Equal("fake-module", resolved!.ModuleKey);
     }
@@ -330,11 +246,10 @@ public sealed class EngineRefactoringTests
     private static ServiceProvider BuildServiceProvider()
     {
         var services = new ServiceCollection();
-        services.AddSingleton<IWebhookSignatureValidator, TestSignatureValidator>();
         services.AddSingleton<IRequiredServiceValidator, TestRequiredServiceValidator>();
         services.AddModuleServices(new ConfigurationBuilder().Build());
+        services.AddModuleWebhookProviders();
         services.AddSingleton<UiEngineAdapter>();
-        services.AddSingleton<WebhookEngineAdapter>();
         return services.BuildServiceProvider();
     }
 
@@ -382,7 +297,7 @@ public sealed class EngineRefactoringTests
                     new ModuleEngineCompatibility("1.0", null)),
                 sp => sp.GetRequiredService<LoginUiEngine>());
 
-            yield return new ModuleEngineDescriptor<IWebhookEngine<PostmarkBouncePayload>>(
+            yield return new ModuleEngineDescriptor<IModuleWebhookEngine<PostmarkBouncePayload>>(
                 Key,
                 new ModuleEngineManifest(
                     "webhook.postmark",
@@ -429,29 +344,14 @@ public sealed class EngineRefactoringTests
 
     private sealed record PostmarkBouncePayload(string Type, string Description);
 
-    private sealed record OtherWebhookPayload(string Value);
-
-    private sealed class PostmarkWebhookEngine : IWebhookEngine<PostmarkBouncePayload>
+    private sealed class PostmarkWebhookEngine : IModuleWebhookEngine<PostmarkBouncePayload>
     {
-        public Task<WebhookOutcome> HandleAsync(WebhookRequest<PostmarkBouncePayload> request, CancellationToken cancellationToken)
-        {
-            if (request.Payload.Type.Equals("HardBounce", StringComparison.OrdinalIgnoreCase))
-            {
-                return Task.FromResult(WebhookOutcome.Enqueue(new { request.Payload.Description, request.EventType }));
-            }
+        public bool Handled { get; private set; }
 
-            return Task.FromResult(WebhookOutcome.Acknowledge());
-        }
-    }
-
-    private sealed class TestSignatureValidator : IWebhookSignatureValidator
-    {
-        public bool Validate(ModuleEngineSecurity security, IReadOnlyDictionary<string, string> headers, string rawBody, string? providedSignature)
+        public Task HandleAsync(ModuleWebhookRequest<PostmarkBouncePayload> request, CancellationToken cancellationToken)
         {
-            headers.TryGetValue("X-Signature", out var headerSignature);
-            var signature = providedSignature ?? headerSignature;
-            return security.SignatureAlgorithm == ModuleSignatureAlgorithm.HmacSha256
-                && string.Equals(signature, $"{security.SecretScope}:{rawBody}", StringComparison.Ordinal);
+            Handled = true;
+            return Task.CompletedTask;
         }
     }
 

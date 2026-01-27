@@ -135,6 +135,62 @@ internal static class DatabaseSchemaManager
             CancellationToken.None);
     }
 
+    public static Task EnsureOperationsSchemaAsync(
+        string connectionString,
+        string schemaName = "infra",
+        string operationsTable = "Operations",
+        string operationEventsTable = "OperationEvents")
+    {
+        return PostgresSchemaMigrations.ApplyOperationsAsync(
+            connectionString,
+            schemaName,
+            operationsTable,
+            operationEventsTable,
+            NullLogger.Instance,
+            CancellationToken.None);
+    }
+
+    public static Task EnsureAuditSchemaAsync(
+        string connectionString,
+        string schemaName = "infra",
+        string auditEventsTable = "AuditEvents",
+        string auditAnchorsTable = "AuditAnchors")
+    {
+        return PostgresSchemaMigrations.ApplyAuditAsync(
+            connectionString,
+            schemaName,
+            auditEventsTable,
+            auditAnchorsTable,
+            NullLogger.Instance,
+            CancellationToken.None);
+    }
+
+    public static Task EnsureEmailOutboxSchemaAsync(
+        string connectionString,
+        string schemaName = "infra",
+        string tableName = "EmailOutbox")
+    {
+        return PostgresSchemaMigrations.ApplyEmailOutboxAsync(
+            connectionString,
+            schemaName,
+            tableName,
+            NullLogger.Instance,
+            CancellationToken.None);
+    }
+
+    public static Task EnsureEmailDeliverySchemaAsync(
+        string connectionString,
+        string schemaName = "infra",
+        string tableName = "EmailDeliveryEvents")
+    {
+        return PostgresSchemaMigrations.ApplyEmailDeliveryAsync(
+            connectionString,
+            schemaName,
+            tableName,
+            NullLogger.Instance,
+            CancellationToken.None);
+    }
+
     public static Task EnsureSemaphoreSchemaAsync(
         string connectionString,
         string schemaName = "infra")
@@ -193,6 +249,10 @@ internal static class DatabaseSchemaManager
             ["scheduler"] = ComputeSchemaHash(PostgresSchemaMigrations.GetSchedulerScriptsForSnapshot()),
             ["fanout"] = ComputeSchemaHash(PostgresSchemaMigrations.GetFanoutScriptsForSnapshot()),
             ["idempotency"] = ComputeSchemaHash(PostgresSchemaMigrations.GetIdempotencyScriptsForSnapshot()),
+            ["operations"] = ComputeSchemaHash(PostgresSchemaMigrations.GetOperationsScriptsForSnapshot()),
+            ["audit"] = ComputeSchemaHash(PostgresSchemaMigrations.GetAuditScriptsForSnapshot()),
+            ["email_outbox"] = ComputeSchemaHash(PostgresSchemaMigrations.GetEmailOutboxScriptsForSnapshot()),
+            ["email_delivery"] = ComputeSchemaHash(PostgresSchemaMigrations.GetEmailDeliveryScriptsForSnapshot()),
         };
     }
 

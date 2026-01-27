@@ -1,4 +1,7 @@
 <Project>
   <!-- Import main Directory.Build.props -->
   <Import Project="$(MSBuildThisFileDirectory)../Directory.Build.props" />
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);CS1591;CA2007;CA1510;CA1515;CA1034</NoWarn>
+  </PropertyGroup>
 </Project>

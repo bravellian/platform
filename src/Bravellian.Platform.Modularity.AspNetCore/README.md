@@ -15,16 +15,16 @@ ModuleRegistry.RegisterModule<MyModule>();
 
 builder.Services.AddModuleServices(builder.Configuration);
 builder.Services.AddSingleton<UiEngineAdapter>();
-builder.Services.AddSingleton<WebhookEngineAdapter>();
+builder.Services.AddBravellianWebhooks();
+builder.Services.AddModuleWebhookProviders();
 
 app.MapUiEngineEndpoints();
 app.MapWebhookEngineEndpoints();
 ```
 
 `MapUiEngineEndpoints` requires UI manifests to declare `Inputs` and `Outputs`.
-`MapWebhookEngineEndpoints` requires webhook metadata with payload schemas.
-If engines declare required services or webhook security, register
-`IRequiredServiceValidator` and `IWebhookSignatureValidator` in DI.
+`MapWebhookEngineEndpoints` uses the `Bravellian.Platform.Webhooks` ingestion pipeline and requires webhook metadata.
+If engines declare required services, register `IRequiredServiceValidator` in DI.
 
 ## Examples
 
@@ -41,28 +41,10 @@ app.MapUiEngineEndpoints(options =>
 app.MapWebhookEngineEndpoints(options =>
 {
     options.RoutePattern = "/hooks/{provider}/{eventType}";
-    options.SignatureHeaderName = "X-Signature";
 });
 ```
 
-### Custom response mapping
-
-```csharp
-app.MapWebhookEngineEndpoints(options =>
-{
-    options.ResponseFactory = response =>
-    {
-        var statusCode = response.Outcome switch
-        {
-            WebhookOutcomeType.Acknowledge => StatusCodes.Status200OK,
-            WebhookOutcomeType.EnqueueEvent => StatusCodes.Status202Accepted,
-            _ => StatusCodes.Status503ServiceUnavailable,
-        };
-
-        return Results.Json(new { response.Outcome, response.Reason }, statusCode: statusCode);
-    };
-});
-```
+Webhook ingestion uses the default pipeline responses (202 for accepted and 401/403 for rejected).
 
 ## Documentation
 

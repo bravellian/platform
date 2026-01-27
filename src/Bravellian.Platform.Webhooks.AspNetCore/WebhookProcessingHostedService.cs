@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -40,12 +41,16 @@ public sealed class WebhookProcessingHostedService : BackgroundService
         IOptions<WebhookProcessingOptions> options,
         ILogger<WebhookProcessingHostedService> logger)
     {
-        this.processor = processor ?? throw new ArgumentNullException(nameof(processor));
-        this.options = options ?? throw new ArgumentNullException(nameof(options));
-        this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(processor);
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(logger);
+        this.processor = processor;
+        this.options = options;
+        this.logger = logger;
     }
 
     /// <inheritdoc />
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Background service should continue processing after transient failures.")]
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)

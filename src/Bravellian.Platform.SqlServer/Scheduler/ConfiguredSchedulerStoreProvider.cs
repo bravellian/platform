@@ -13,6 +13,7 @@
 // limitations under the License.
 
 
+using Bravellian.Platform.Observability;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -35,7 +36,8 @@ public sealed class ConfiguredSchedulerStoreProvider : ISchedulerStoreProvider
     public ConfiguredSchedulerStoreProvider(
         IEnumerable<SchedulerDatabaseConfig> configs,
         TimeProvider timeProvider,
-        ILoggerFactory loggerFactory)
+        ILoggerFactory loggerFactory,
+        IPlatformEventEmitter? eventEmitter = null)
     {
         ArgumentNullException.ThrowIfNull(configs);
         ArgumentNullException.ThrowIfNull(timeProvider);
@@ -73,7 +75,9 @@ public sealed class ConfiguredSchedulerStoreProvider : ISchedulerStoreProvider
                     SchemaName = config.SchemaName,
                     TableName = "Outbox",
                 }),
-                outboxLogger);
+                outboxLogger,
+                joinStore: null,
+                eventEmitter);
 
             var entry = new StoreEntry
             {

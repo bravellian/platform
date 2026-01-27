@@ -21,8 +21,9 @@
     <Project Path="src/Bravellian.Platform.Correlation/Bravellian.Platform.Correlation.csproj" />
     <Project Path="src/Bravellian.Platform.Idempotency/Bravellian.Platform.Idempotency.csproj" />
     <Project Path="src/Bravellian.Platform.Observability/Bravellian.Platform.Observability.csproj" />
-    <Project Path="src/Bravellian.Platform.Operations.Storage.SqlServer/Bravellian.Platform.Operations.Storage.SqlServer.csproj" />
-    <Project Path="src/Bravellian.Platform.Audit.Storage.SqlServer/Bravellian.Platform.Audit.Storage.SqlServer.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/observability/src/Bravellian.Platform.Observability.Analyzers/Bravellian.Platform.Observability.Analyzers.csproj" />
   </Folder>
   <Project Path="src/Bravellian.Platform/Bravellian.Platform.csproj" />
   <Project Path="tests/Bravellian.Platform.Tests/Bravellian.Platform.Tests.csproj" />

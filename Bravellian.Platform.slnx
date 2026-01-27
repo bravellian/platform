@@ -16,11 +16,9 @@
   </Folder>
   <Folder Name="/operations/">
     <Project Path="src/Bravellian.Platform.Operations/Bravellian.Platform.Operations.csproj" />
-    <Project Path="src/Bravellian.Platform.Operations.Storage.SqlServer/Bravellian.Platform.Operations.Storage.SqlServer.csproj" />
   </Folder>
   <Folder Name="/audit/">
     <Project Path="src/Bravellian.Platform.Audit/Bravellian.Platform.Audit.csproj" />
-    <Project Path="src/Bravellian.Platform.Audit.Storage.SqlServer/Bravellian.Platform.Audit.Storage.SqlServer.csproj" />
   </Folder>
   <Folder Name="/correlation/">
     <Project Path="src/Bravellian.Platform.Correlation/Bravellian.Platform.Correlation.csproj" />
@@ -32,6 +30,7 @@
     <Project Path="src/Bravellian.Platform.Observability/Bravellian.Platform.Observability.csproj" />
   </Folder>
   <Folder Name="/tools/">
+    <Project Path="tools/observability/src/Bravellian.Platform.Observability.Analyzers/Bravellian.Platform.Observability.Analyzers.csproj" />
     <Project Path="tools/testdocs/src/Bravellian.TestDocs.Analyzers/Bravellian.TestDocs.Analyzers.csproj" />
     <Project Path="tools/testdocs/src/TestDocs.Cli/TestDocs.Cli.csproj" />
   </Folder>

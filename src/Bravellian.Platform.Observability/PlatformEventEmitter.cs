@@ -178,7 +178,7 @@ public sealed class PlatformEventEmitter : IPlatformEventEmitter
         return JsonSerializer.Serialize(payload);
     }
 
-    private static IReadOnlyDictionary<string, string>? MergeTags(
+    private static Dictionary<string, string>? MergeTags(
         IReadOnlyDictionary<string, string>? tags,
         IReadOnlyDictionary<string, string>? overrides)
     {

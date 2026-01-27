@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System.Globalization;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
@@ -22,6 +21,8 @@ using Microsoft.AspNetCore.Http.Json;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Bravellian.Platform.Webhooks;
+using Bravellian.Platform.Webhooks.AspNetCore;
 
 namespace Bravellian.Platform.Modularity;
 
@@ -33,10 +34,6 @@ public static class ModuleEndpointRouteBuilderExtensions
     private static readonly MethodInfo UiExecuteMethod = typeof(UiEngineAdapter)
         .GetMethods(BindingFlags.Public | BindingFlags.Instance)
         .Single(method => string.Equals(method.Name, "ExecuteAsync", StringComparison.Ordinal) && method.IsGenericMethodDefinition);
-
-    private static readonly MethodInfo WebhookDispatchMethod = typeof(WebhookEngineAdapter)
-        .GetMethods(BindingFlags.Public | BindingFlags.Instance)
-        .Single(method => string.Equals(method.Name, "DispatchAsync", StringComparison.Ordinal) && method.IsGenericMethodDefinition);
 
     /// <summary>
     /// Maps a generic UI engine endpoint that uses engine manifests to deserialize inputs.
@@ -105,7 +102,7 @@ public static class ModuleEndpointRouteBuilderExtensions
     }
 
     /// <summary>
-    /// Maps a generic webhook intake endpoint that uses webhook metadata to deserialize payloads.
+    /// Maps a webhook intake endpoint that forwards requests to the webhook ingestion pipeline.
     /// </summary>
     public static IEndpointConventionBuilder MapWebhookEngineEndpoints(
         this IEndpointRouteBuilder endpoints,
@@ -116,8 +113,7 @@ public static class ModuleEndpointRouteBuilderExtensions
 
         return endpoints.MapPost(options.RoutePattern, async (
             HttpContext context,
-            WebhookEngineAdapter adapter,
-            ModuleEngineDiscoveryService discovery,
+            IWebhookIngestor ingestor,
             CancellationToken cancellationToken) =>
         {
             if (!TryGetRouteValue(context, options.ProviderRouteParameterName, out var provider)
@@ -126,72 +122,13 @@ public static class ModuleEndpointRouteBuilderExtensions
                 return Results.BadRequest("Route parameters must include provider and event type.");
             }
 
-            var descriptor = discovery.ResolveWebhookEngine(provider, eventType);
-            if (descriptor is null)
+            if (!string.IsNullOrWhiteSpace(options.EventTypeHeaderName))
             {
-                return Results.NotFound();
+                context.Request.Headers[options.EventTypeHeaderName] = eventType;
             }
 
-            var payloadType = ResolveWebhookPayloadType(descriptor, provider, eventType);
-            if (payloadType is null)
-            {
-                return Results.NotFound();
-            }
-
-            var rawBody = await ReadRawBodyAsync(context.Request, cancellationToken).ConfigureAwait(false);
-            if (string.IsNullOrWhiteSpace(rawBody))
-            {
-                return Results.BadRequest("Request body is required.");
-            }
-
-            var serializerOptions = ResolveJsonOptions(context, options.SerializerOptions);
-            var payload = JsonSerializer.Deserialize(rawBody, payloadType, serializerOptions);
-            if (payload is null)
-            {
-                return Results.BadRequest("Request body is required.");
-            }
-
-            var headers = context.Request.Headers.ToDictionary(
-                header => header.Key,
-                header => header.Value.ToString(),
-                StringComparer.OrdinalIgnoreCase);
-
-            var signature = ResolveHeaderOrQuery(
-                context.Request,
-                options.SignatureHeaderName,
-                options.SignatureQueryName);
-
-            var idempotencyKey = ResolveHeaderOrQuery(
-                context.Request,
-                options.IdempotencyHeaderName,
-                options.IdempotencyQueryName) ?? string.Empty;
-
-            var attempt = ResolveAttempt(context.Request, options.AttemptHeaderName, options.AttemptQueryName);
-
-            var request = CreateWebhookRequest(
-                payloadType,
-                provider,
-                eventType,
-                headers,
-                rawBody,
-                idempotencyKey,
-                attempt,
-                signature,
-                payload);
-
-            var response = await DispatchWebhookAsync(
-                adapter,
-                payloadType,
-                request,
-                cancellationToken).ConfigureAwait(false);
-
-            if (options.ResponseFactory is not null)
-            {
-                return options.ResponseFactory(response);
-            }
-
-            var statusCode = ResolveStatusCode(options, response.Outcome);
-            return Results.Json(response, statusCode: statusCode);
+            return await WebhookEndpoint.HandleAsync(context, provider, ingestor, cancellationToken)
+                .ConfigureAwait(false);
         });
     }
 
@@ -245,22 +182,6 @@ public static class ModuleEndpointRouteBuilderExtensions
         return schemas.First().ClrType;
     }
 
-    private static Type? ResolveWebhookPayloadType(
-        IModuleEngineDescriptor descriptor,
-        string provider,
-        string eventType)
-    {
-        if (descriptor.Manifest.WebhookMetadata is null)
-        {
-            return null;
-        }
-
-        var entry = descriptor.Manifest.WebhookMetadata.FirstOrDefault(metadata =>
-            string.Equals(metadata.Provider, provider, StringComparison.OrdinalIgnoreCase)
-            && string.Equals(metadata.EventType, eventType, StringComparison.OrdinalIgnoreCase));
-
-        return entry?.PayloadSchema.ClrType;
-    }
 
     private static async Task<object> ExecuteUiEngineAsync(
         UiEngineAdapter adapter,
@@ -277,92 +198,6 @@ public static class ModuleEndpointRouteBuilderExtensions
         return task.GetType().GetProperty("Result")!.GetValue(task)!;
     }
 
-    private static async Task<WebhookAdapterResponse> DispatchWebhookAsync(
-        WebhookEngineAdapter adapter,
-        Type payloadType,
-        object request,
-        CancellationToken cancellationToken)
-    {
-        var method = WebhookDispatchMethod.MakeGenericMethod(payloadType);
-        var task = (Task)method.Invoke(adapter, new[] { request, cancellationToken })!;
-        await task.ConfigureAwait(false);
-        return (WebhookAdapterResponse)task.GetType().GetProperty("Result")!.GetValue(task)!;
-    }
-
-    private static object CreateWebhookRequest(
-        Type payloadType,
-        string provider,
-        string eventType,
-        IReadOnlyDictionary<string, string> headers,
-        string rawBody,
-        string idempotencyKey,
-        int attempt,
-        string? signature,
-        object payload)
-    {
-        var requestType = typeof(WebhookAdapterRequest<>).MakeGenericType(payloadType);
-        return Activator.CreateInstance(
-            requestType,
-            provider,
-            eventType,
-            headers,
-            rawBody,
-            idempotencyKey,
-            attempt,
-            signature,
-            payload)!;
-    }
-
-    private static string? ResolveHeaderOrQuery(
-        HttpRequest request,
-        string? headerName,
-        string? queryName)
-    {
-        if (!string.IsNullOrWhiteSpace(headerName)
-            && request.Headers.TryGetValue(headerName, out var headerValue)
-            && !string.IsNullOrWhiteSpace(headerValue))
-        {
-            return headerValue.ToString();
-        }
-
-        if (!string.IsNullOrWhiteSpace(queryName)
-            && request.Query.TryGetValue(queryName, out var queryValue)
-            && !string.IsNullOrWhiteSpace(queryValue))
-        {
-            return queryValue.ToString();
-        }
-
-        return null;
-    }
-
-    private static int ResolveAttempt(
-        HttpRequest request,
-        string? headerName,
-        string? queryName)
-    {
-        if (!string.IsNullOrWhiteSpace(headerName)
-            && request.Headers.TryGetValue(headerName, out var headerValue)
-            && int.TryParse(headerValue.ToString(), CultureInfo.InvariantCulture, out var parsed))
-        {
-            return parsed;
-        }
-
-        if (!string.IsNullOrWhiteSpace(queryName)
-            && request.Query.TryGetValue(queryName, out var queryValue)
-            && int.TryParse(queryValue.ToString(), CultureInfo.InvariantCulture, out parsed))
-        {
-            return parsed;
-        }
-
-        return 1;
-    }
-
-    private static int ResolveStatusCode(WebhookEndpointOptions options, WebhookOutcomeType outcome)
-    {
-        return options.OutcomeStatusCodes.TryGetValue(outcome, out var statusCode)
-            ? statusCode
-            : StatusCodes.Status200OK;
-    }
 
     private static JsonSerializerOptions ResolveJsonOptions(HttpContext context, JsonSerializerOptions? overrideOptions)
     {

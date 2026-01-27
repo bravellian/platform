@@ -12,25 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Modularity;
+namespace Bravellian.Platform;
 
-/// <summary>
-/// Webhook outcome types understood by adapters.
-/// </summary>
-public enum WebhookOutcomeType
+internal enum EmailDeliveryEventType : short
 {
-    /// <summary>
-    /// Acknowledge the webhook and stop retries.
-    /// </summary>
-    Acknowledge,
-
-    /// <summary>
-    /// Ask the transport to retry the webhook.
-    /// </summary>
-    Retry,
-
-    /// <summary>
-    /// Enqueue an event internally while acknowledging the webhook.
-    /// </summary>
-    EnqueueEvent,
+    Queued = 0,
+    Attempt = 1,
+    Final = 2,
+    External = 3,
 }

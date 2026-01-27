@@ -12,9 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System.Text.Json;
-using Microsoft.AspNetCore.Http;
-
 namespace Bravellian.Platform.Modularity;
 
 /// <summary>
@@ -38,52 +35,9 @@ public sealed class WebhookEndpointOptions
     public string EventTypeRouteParameterName { get; set; } = "eventType";
 
     /// <summary>
-    /// Header name used to supply webhook signatures.
+    /// Header name used to pass the event type into the webhook ingestion pipeline.
     /// </summary>
-    public string? SignatureHeaderName { get; set; } = "X-Signature";
+    public string EventTypeHeaderName { get; set; } = ModuleWebhookOptions.DefaultEventTypeHeaderName;
 
-    /// <summary>
-    /// Query parameter name used to supply webhook signatures.
-    /// </summary>
-    public string? SignatureQueryName { get; set; }
-
-    /// <summary>
-    /// Header name used to supply idempotency keys.
-    /// </summary>
-    public string? IdempotencyHeaderName { get; set; } = "Idempotency-Key";
-
-    /// <summary>
-    /// Query parameter name used to supply idempotency keys.
-    /// </summary>
-    public string? IdempotencyQueryName { get; set; }
-
-    /// <summary>
-    /// Header name used to supply delivery attempt numbers.
-    /// </summary>
-    public string? AttemptHeaderName { get; set; } = "X-Webhook-Attempt";
-
-    /// <summary>
-    /// Query parameter name used to supply delivery attempt numbers.
-    /// </summary>
-    public string? AttemptQueryName { get; set; } = "attempt";
-
-    /// <summary>
-    /// Overrides the JSON serializer options.
-    /// </summary>
-    public JsonSerializerOptions? SerializerOptions { get; set; }
-
-    /// <summary>
-    /// Maps webhook outcomes to HTTP status codes.
-    /// </summary>
-    public IDictionary<WebhookOutcomeType, int> OutcomeStatusCodes { get; } = new Dictionary<WebhookOutcomeType, int>
-    {
-        [WebhookOutcomeType.Acknowledge] = StatusCodes.Status200OK,
-        [WebhookOutcomeType.Retry] = StatusCodes.Status503ServiceUnavailable,
-        [WebhookOutcomeType.EnqueueEvent] = StatusCodes.Status202Accepted,
-    };
-
-    /// <summary>
-    /// Custom response mapping for webhook adapter results.
-    /// </summary>
-    public Func<WebhookAdapterResponse, IResult>? ResponseFactory { get; set; }
+    // Pipeline responses are managed by Bravellian.Platform.Webhooks.AspNetCore.WebhookEndpoint.
 }

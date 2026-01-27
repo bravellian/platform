@@ -14,6 +14,7 @@
 
 
 using Bravellian.Platform.Metrics;
+using Bravellian.Platform.Observability;
 using Bravellian.Platform.Semaphore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -468,7 +469,8 @@ public static class PlatformServiceCollectionExtensions
                 sp.GetRequiredService<ILoggerFactory>(),
                 "Outbox",
                 enableSchemaDeployment,
-                config), // Pass configuration to filter out control plane
+                config,
+                sp.GetService<IPlatformEventEmitter>()), // Pass configuration to filter out control plane
             new RoundRobinOutboxSelectionStrategy());
 
         // Register outbox join store (uses same connection strings as outbox)
@@ -518,7 +520,8 @@ public static class PlatformServiceCollectionExtensions
                 sp.GetRequiredService<IPlatformDatabaseDiscovery>(),
                 sp.GetRequiredService<TimeProvider>(),
                 sp.GetRequiredService<ILoggerFactory>(),
-                config), // Pass configuration to filter out control plane
+                config,
+                sp.GetService<IPlatformEventEmitter>()), // Pass configuration to filter out control plane
             new RoundRobinOutboxSelectionStrategy());
 
         // Leases
