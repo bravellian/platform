@@ -23,7 +23,7 @@ namespace Bravellian.Platform;
 /// <summary>
 /// Service collection extensions for PostgreSQL email outbox storage.
 /// </summary>
-public static class PostgresEmailOutboxServiceCollectionExtensions
+internal static class PostgresEmailOutboxServiceCollectionExtensions
 {
     /// <summary>
     /// Adds PostgreSQL email outbox storage with the specified options.

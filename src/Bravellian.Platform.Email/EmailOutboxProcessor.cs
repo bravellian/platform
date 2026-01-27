@@ -14,6 +14,7 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Bravellian.Platform.ExactlyOnce;
 using Bravellian.Platform.Idempotency;
 using Bravellian.Platform.Observability;
 
@@ -28,6 +29,7 @@ public sealed class EmailOutboxProcessor : IEmailOutboxProcessor
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
+    private static readonly IExactlyOnceKeyResolver<OutboundEmailMessage> MessageKeyResolver = new EmailMessageKeyResolver();
 
     private readonly IOutboxStore outboxStore;
     private readonly IOutboundEmailSender sender;
@@ -102,44 +104,205 @@ public sealed class EmailOutboxProcessor : IEmailOutboxProcessor
                 continue;
             }
 
-            if (!await TryBeginIdempotencyAsync(message, cancellationToken).ConfigureAwait(false))
+            var payload = Deserialize(message, out var deserializeError);
+            if (payload == null)
             {
+                await outboxStore.FailAsync(message.Id, deserializeError ?? "Invalid payload.", cancellationToken)
+                    .ConfigureAwait(false);
                 processed++;
                 continue;
             }
 
             processed++;
-            await ProcessMessageAsync(message, cancellationToken).ConfigureAwait(false);
+            await ProcessMessageAsync(message, payload, cancellationToken).ConfigureAwait(false);
         }
 
         return processed;
     }
 
-    private async Task<bool> TryBeginIdempotencyAsync(OutboxMessage message, CancellationToken cancellationToken)
+    private async Task ProcessMessageAsync(OutboxMessage message, OutboundEmailMessage payload, CancellationToken cancellationToken)
     {
-        var payload = Deserialize(message, out var deserializeError);
-        if (payload == null)
-        {
-            await outboxStore.FailAsync(message.Id, deserializeError ?? "Invalid payload.", cancellationToken).ConfigureAwait(false);
-            return false;
-        }
+        var attemptNumber = message.RetryCount + 1;
+        var retryDelay = (TimeSpan?)null;
+        var retryReason = (string?)null;
 
-        if (!await idempotencyStore.TryBeginAsync(payload.MessageKey, cancellationToken).ConfigureAwait(false))
+        var executor = new ExactlyOnceExecutor<OutboundEmailMessage>(idempotencyStore, MessageKeyResolver);
+        var result = await executor.ExecuteAsync(
+            payload,
+            async (email, ct) =>
+            {
+                var policyDecision = await policy.EvaluateAsync(email, ct).ConfigureAwait(false);
+                if (policyDecision.Outcome == EmailPolicyOutcome.Delay)
+                {
+                    var delayUntilUtc = policyDecision.DelayUntilUtc ?? timeProvider.GetUtcNow().AddMinutes(1);
+                    var delay = delayUntilUtc - timeProvider.GetUtcNow();
+                    if (delay < TimeSpan.Zero)
+                    {
+                        delay = TimeSpan.Zero;
+                    }
+
+                    var delayAttempt = new EmailDeliveryAttempt(
+                        attemptNumber,
+                        timeProvider.GetUtcNow(),
+                        EmailDeliveryStatus.Queued,
+                        null,
+                        null,
+                        policyDecision.Reason ?? "Send delayed by policy.");
+                    await deliverySink.RecordAttemptAsync(email, delayAttempt, ct).ConfigureAwait(false);
+
+                    retryDelay = delay;
+                    retryReason = policyDecision.Reason ?? "Policy delay";
+                    return ExactlyOnceExecutionResult.TransientFailure(errorMessage: retryReason, allowProbe: false);
+                }
+
+                if (policyDecision.Outcome == EmailPolicyOutcome.Reject)
+                {
+                    var reason = policyDecision.Reason ?? "Send rejected by policy.";
+                    var rejectionAttempt = new EmailDeliveryAttempt(
+                        attemptNumber,
+                        timeProvider.GetUtcNow(),
+                        EmailDeliveryStatus.FailedPermanent,
+                        null,
+                        null,
+                        reason);
+                    await deliverySink.RecordAttemptAsync(email, rejectionAttempt, ct).ConfigureAwait(false);
+                    await deliverySink.RecordFinalAsync(
+                        email,
+                        EmailDeliveryStatus.FailedPermanent,
+                        null,
+                        null,
+                        reason,
+                        ct).ConfigureAwait(false);
+                    EmailMetrics.RecordResult(email, EmailDeliveryStatus.FailedPermanent, provider: null);
+                    await EmailAuditEvents.EmitFinalAsync(
+                        eventEmitter,
+                        email,
+                        provider: null,
+                        EmailDeliveryStatus.FailedPermanent,
+                        errorCode: null,
+                        errorMessage: reason,
+                        ct).ConfigureAwait(false);
+                    return ExactlyOnceExecutionResult.PermanentFailure(errorMessage: reason, allowProbe: false);
+                }
+
+                var sendResult = await sender.SendAsync(email, ct).ConfigureAwait(false);
+                var sendAttempt = new EmailDeliveryAttempt(
+                    attemptNumber,
+                    timeProvider.GetUtcNow(),
+                    sendResult.Status,
+                    sendResult.ProviderMessageId,
+                    sendResult.ErrorCode,
+                    sendResult.ErrorMessage);
+                await deliverySink.RecordAttemptAsync(email, sendAttempt, ct).ConfigureAwait(false);
+                EmailMetrics.RecordAttempted(email, provider: null);
+                await EmailAuditEvents.EmitAttemptedAsync(
+                    eventEmitter,
+                    email,
+                    provider: null,
+                    attemptNumber,
+                    sendResult.Status,
+                    ct).ConfigureAwait(false);
+
+                if (sendResult.Status == EmailDeliveryStatus.FailedTransient
+                    || sendResult.Status == EmailDeliveryStatus.FailedPermanent)
+                {
+                    if (probe != null && !IsValidationFailure(sendResult))
+                    {
+                        var probeResult = await probe.ProbeAsync(email, ct).ConfigureAwait(false);
+                        if (probeResult.Outcome == EmailProbeOutcome.Confirmed)
+                        {
+                            var confirmedStatus = probeResult.Status ?? EmailDeliveryStatus.Sent;
+                            await deliverySink.RecordFinalAsync(
+                                email,
+                                confirmedStatus,
+                                probeResult.ProviderMessageId,
+                                probeResult.ErrorCode,
+                                probeResult.ErrorMessage,
+                                ct).ConfigureAwait(false);
+                            EmailMetrics.RecordResult(email, confirmedStatus, provider: null);
+                            await EmailAuditEvents.EmitFinalAsync(
+                                eventEmitter,
+                                email,
+                                provider: null,
+                                confirmedStatus,
+                                probeResult.ErrorCode,
+                                probeResult.ErrorMessage,
+                                ct).ConfigureAwait(false);
+                            return ExactlyOnceExecutionResult.Success();
+                        }
+                    }
+                }
+
+                if (sendResult.Status == EmailDeliveryStatus.Sent
+                    || sendResult.Status == EmailDeliveryStatus.Bounced
+                    || sendResult.Status == EmailDeliveryStatus.Suppressed)
+                {
+                    await deliverySink.RecordFinalAsync(
+                        email,
+                        sendResult.Status,
+                        sendResult.ProviderMessageId,
+                        sendResult.ErrorCode,
+                        sendResult.ErrorMessage,
+                        ct).ConfigureAwait(false);
+                    EmailMetrics.RecordResult(email, sendResult.Status, provider: null);
+                    await EmailAuditEvents.EmitFinalAsync(
+                        eventEmitter,
+                        email,
+                        provider: null,
+                        sendResult.Status,
+                        sendResult.ErrorCode,
+                        sendResult.ErrorMessage,
+                        ct).ConfigureAwait(false);
+                    return ExactlyOnceExecutionResult.Success();
+                }
+
+                if (sendResult.Status == EmailDeliveryStatus.FailedTransient && attemptNumber < options.MaxAttempts)
+                {
+                    retryDelay = backoffPolicy(attemptNumber);
+                    retryReason = sendResult.ErrorMessage ?? "Transient failure";
+                    return ExactlyOnceExecutionResult.TransientFailure(
+                        sendResult.ErrorCode,
+                        retryReason,
+                        allowProbe: false);
+                }
+
+                var permanentReason = sendResult.ErrorMessage ?? "Permanent failure";
+                await deliverySink.RecordFinalAsync(
+                    email,
+                    EmailDeliveryStatus.FailedPermanent,
+                    sendResult.ProviderMessageId,
+                    sendResult.ErrorCode,
+                    sendResult.ErrorMessage,
+                    ct).ConfigureAwait(false);
+                EmailMetrics.RecordResult(email, EmailDeliveryStatus.FailedPermanent, provider: null);
+                await EmailAuditEvents.EmitFinalAsync(
+                    eventEmitter,
+                    email,
+                    provider: null,
+                    EmailDeliveryStatus.FailedPermanent,
+                    sendResult.ErrorCode,
+                    sendResult.ErrorMessage,
+                    ct).ConfigureAwait(false);
+                return ExactlyOnceExecutionResult.PermanentFailure(sendResult.ErrorCode, permanentReason, allowProbe: false);
+            },
+            cancellationToken).ConfigureAwait(false);
+
+        if (result.Outcome == ExactlyOnceOutcome.Suppressed)
         {
             var duplicateAttempt = new EmailDeliveryAttempt(
-                message.RetryCount + 1,
+                attemptNumber,
                 timeProvider.GetUtcNow(),
                 EmailDeliveryStatus.Suppressed,
                 null,
                 null,
-                "Duplicate message key suppressed.");
+                result.ErrorMessage ?? ExactlyOnceDefaults.SuppressedReason);
             await deliverySink.RecordAttemptAsync(payload, duplicateAttempt, cancellationToken).ConfigureAwait(false);
             await deliverySink.RecordFinalAsync(
                 payload,
                 EmailDeliveryStatus.Suppressed,
                 null,
                 null,
-                "Duplicate message key suppressed.",
+                result.ErrorMessage ?? ExactlyOnceDefaults.SuppressedReason,
                 cancellationToken).ConfigureAwait(false);
             EmailMetrics.RecordResult(payload, EmailDeliveryStatus.Suppressed, provider: null);
             await EmailAuditEvents.EmitFinalAsync(
@@ -148,183 +311,28 @@ public sealed class EmailOutboxProcessor : IEmailOutboxProcessor
                 provider: null,
                 EmailDeliveryStatus.Suppressed,
                 errorCode: null,
-                errorMessage: "Duplicate message key suppressed.",
+                errorMessage: result.ErrorMessage ?? ExactlyOnceDefaults.SuppressedReason,
                 cancellationToken).ConfigureAwait(false);
             await outboxStore.MarkDispatchedAsync(message.Id, cancellationToken).ConfigureAwait(false);
-            return false;
-        }
-
-        return true;
-    }
-
-    private async Task ProcessMessageAsync(OutboxMessage message, CancellationToken cancellationToken)
-    {
-        var payload = Deserialize(message, out var deserializeError);
-        if (payload == null)
-        {
-            await outboxStore.FailAsync(message.Id, deserializeError ?? "Invalid payload.", cancellationToken).ConfigureAwait(false);
             return;
         }
 
-        var attemptNumber = message.RetryCount + 1;
-        var policyDecision = await policy.EvaluateAsync(payload, cancellationToken).ConfigureAwait(false);
-        if (policyDecision.Outcome == EmailPolicyOutcome.Delay)
-        {
-            var delayUntilUtc = policyDecision.DelayUntilUtc ?? timeProvider.GetUtcNow().AddMinutes(1);
-            var delay = delayUntilUtc - timeProvider.GetUtcNow();
-            if (delay < TimeSpan.Zero)
-            {
-                delay = TimeSpan.Zero;
-            }
-
-            var delayAttempt = new EmailDeliveryAttempt(
-                attemptNumber,
-                timeProvider.GetUtcNow(),
-                EmailDeliveryStatus.Queued,
-                null,
-                null,
-                policyDecision.Reason ?? "Send delayed by policy.");
-            await deliverySink.RecordAttemptAsync(payload, delayAttempt, cancellationToken).ConfigureAwait(false);
-            await outboxStore.RescheduleAsync(message.Id, delay, policyDecision.Reason ?? "Policy delay", cancellationToken)
-                .ConfigureAwait(false);
-            await idempotencyStore.FailAsync(payload.MessageKey, cancellationToken).ConfigureAwait(false);
-            return;
-        }
-
-        if (policyDecision.Outcome == EmailPolicyOutcome.Reject)
-        {
-            var reason = policyDecision.Reason ?? "Send rejected by policy.";
-            var rejectionAttempt = new EmailDeliveryAttempt(
-                attemptNumber,
-                timeProvider.GetUtcNow(),
-                EmailDeliveryStatus.FailedPermanent,
-                null,
-                null,
-                reason);
-            await deliverySink.RecordAttemptAsync(payload, rejectionAttempt, cancellationToken).ConfigureAwait(false);
-            await outboxStore.FailAsync(message.Id, reason, cancellationToken).ConfigureAwait(false);
-            await idempotencyStore.CompleteAsync(payload.MessageKey, cancellationToken).ConfigureAwait(false);
-            await deliverySink.RecordFinalAsync(
-                payload,
-                EmailDeliveryStatus.FailedPermanent,
-                null,
-                null,
-                reason,
-                cancellationToken).ConfigureAwait(false);
-            EmailMetrics.RecordResult(payload, EmailDeliveryStatus.FailedPermanent, provider: null);
-            await EmailAuditEvents.EmitFinalAsync(
-                eventEmitter,
-                payload,
-                provider: null,
-                EmailDeliveryStatus.FailedPermanent,
-                errorCode: null,
-                errorMessage: reason,
-                cancellationToken).ConfigureAwait(false);
-            return;
-        }
-
-        var sendResult = await sender.SendAsync(payload, cancellationToken).ConfigureAwait(false);
-        var sendAttempt = new EmailDeliveryAttempt(
-            attemptNumber,
-            timeProvider.GetUtcNow(),
-            sendResult.Status,
-            sendResult.ProviderMessageId,
-            sendResult.ErrorCode,
-            sendResult.ErrorMessage);
-        await deliverySink.RecordAttemptAsync(payload, sendAttempt, cancellationToken).ConfigureAwait(false);
-        EmailMetrics.RecordAttempted(payload, provider: null);
-        await EmailAuditEvents.EmitAttemptedAsync(
-            eventEmitter,
-            payload,
-            provider: null,
-            attemptNumber,
-            sendResult.Status,
-            cancellationToken).ConfigureAwait(false);
-
-        if (sendResult.Status == EmailDeliveryStatus.FailedTransient
-            || sendResult.Status == EmailDeliveryStatus.FailedPermanent)
-        {
-            if (probe != null && !IsValidationFailure(sendResult))
-            {
-                var probeResult = await probe.ProbeAsync(payload, cancellationToken).ConfigureAwait(false);
-                if (probeResult.Outcome == EmailProbeOutcome.Confirmed)
-                {
-                var confirmedStatus = probeResult.Status ?? EmailDeliveryStatus.Sent;
-                await outboxStore.MarkDispatchedAsync(message.Id, cancellationToken).ConfigureAwait(false);
-                await idempotencyStore.CompleteAsync(payload.MessageKey, cancellationToken).ConfigureAwait(false);
-                await deliverySink.RecordFinalAsync(
-                    payload,
-                    confirmedStatus,
-                    probeResult.ProviderMessageId,
-                    probeResult.ErrorCode,
-                    probeResult.ErrorMessage,
-                    cancellationToken).ConfigureAwait(false);
-                EmailMetrics.RecordResult(payload, confirmedStatus, provider: null);
-                await EmailAuditEvents.EmitFinalAsync(
-                    eventEmitter,
-                    payload,
-                    provider: null,
-                    confirmedStatus,
-                    probeResult.ErrorCode,
-                    probeResult.ErrorMessage,
-                    cancellationToken).ConfigureAwait(false);
-                return;
-            }
-        }
-        }
-
-        if (sendResult.Status == EmailDeliveryStatus.Sent
-            || sendResult.Status == EmailDeliveryStatus.Bounced
-            || sendResult.Status == EmailDeliveryStatus.Suppressed)
+        if (result.Outcome == ExactlyOnceOutcome.Completed)
         {
             await outboxStore.MarkDispatchedAsync(message.Id, cancellationToken).ConfigureAwait(false);
-            await idempotencyStore.CompleteAsync(payload.MessageKey, cancellationToken).ConfigureAwait(false);
-            await deliverySink.RecordFinalAsync(
-                payload,
-                sendResult.Status,
-                sendResult.ProviderMessageId,
-                sendResult.ErrorCode,
-                sendResult.ErrorMessage,
-                cancellationToken).ConfigureAwait(false);
-            EmailMetrics.RecordResult(payload, sendResult.Status, provider: null);
-            await EmailAuditEvents.EmitFinalAsync(
-                eventEmitter,
-                payload,
-                provider: null,
-                sendResult.Status,
-                sendResult.ErrorCode,
-                sendResult.ErrorMessage,
-                cancellationToken).ConfigureAwait(false);
             return;
         }
 
-        if (sendResult.Status == EmailDeliveryStatus.FailedTransient && attemptNumber < options.MaxAttempts)
+        if (result.Outcome == ExactlyOnceOutcome.Retry)
         {
-            var delay = backoffPolicy(attemptNumber);
-            await outboxStore.RescheduleAsync(message.Id, delay, sendResult.ErrorMessage ?? "Transient failure", cancellationToken)
-                .ConfigureAwait(false);
-            await idempotencyStore.FailAsync(payload.MessageKey, cancellationToken).ConfigureAwait(false);
+            var delay = retryDelay ?? backoffPolicy(attemptNumber);
+            var reason = retryReason ?? result.ErrorMessage ?? ExactlyOnceDefaults.TransientFailureReason;
+            await outboxStore.RescheduleAsync(message.Id, delay, reason, cancellationToken).ConfigureAwait(false);
             return;
         }
 
-        await outboxStore.FailAsync(message.Id, sendResult.ErrorMessage ?? "Permanent failure", cancellationToken).ConfigureAwait(false);
-        await idempotencyStore.CompleteAsync(payload.MessageKey, cancellationToken).ConfigureAwait(false);
-        await deliverySink.RecordFinalAsync(
-            payload,
-            EmailDeliveryStatus.FailedPermanent,
-            sendResult.ProviderMessageId,
-            sendResult.ErrorCode,
-            sendResult.ErrorMessage,
-            cancellationToken).ConfigureAwait(false);
-        EmailMetrics.RecordResult(payload, EmailDeliveryStatus.FailedPermanent, provider: null);
-        await EmailAuditEvents.EmitFinalAsync(
-            eventEmitter,
-            payload,
-            provider: null,
-            EmailDeliveryStatus.FailedPermanent,
-            sendResult.ErrorCode,
-            sendResult.ErrorMessage,
-            cancellationToken).ConfigureAwait(false);
+        var finalReason = result.ErrorMessage ?? ExactlyOnceDefaults.PermanentFailureReason;
+        await outboxStore.FailAsync(message.Id, finalReason, cancellationToken).ConfigureAwait(false);
     }
 
     private static bool IsValidationFailure(EmailSendResult sendResult)
@@ -349,6 +357,14 @@ public sealed class EmailOutboxProcessor : IEmailOutboxProcessor
         {
             error = ex.Message;
             return null;
+        }
+    }
+
+    private sealed class EmailMessageKeyResolver : IExactlyOnceKeyResolver<OutboundEmailMessage>
+    {
+        public string GetKey(OutboundEmailMessage item)
+        {
+            return item.MessageKey;
         }
     }
 }

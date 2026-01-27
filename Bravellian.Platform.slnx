@@ -26,6 +26,9 @@
   <Folder Name="/idempotency/">
     <Project Path="src/Bravellian.Platform.Idempotency/Bravellian.Platform.Idempotency.csproj" />
   </Folder>
+  <Folder Name="/exactly-once/">
+    <Project Path="src/Bravellian.Platform.ExactlyOnce/Bravellian.Platform.ExactlyOnce.csproj" />
+  </Folder>
   <Folder Name="/observability/">
     <Project Path="src/Bravellian.Platform.Observability/Bravellian.Platform.Observability.csproj" />
   </Folder>

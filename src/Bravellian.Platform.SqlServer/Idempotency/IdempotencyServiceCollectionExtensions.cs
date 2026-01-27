@@ -24,7 +24,7 @@ namespace Bravellian.Platform;
 /// <summary>
 /// Service collection extensions for SQL Server idempotency stores.
 /// </summary>
-public static class IdempotencyServiceCollectionExtensions
+internal static class IdempotencyServiceCollectionExtensions
 {
     /// <summary>
     /// Adds SQL Server idempotency tracking with the specified options.

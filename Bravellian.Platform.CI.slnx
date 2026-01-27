@@ -20,6 +20,7 @@
     <Project Path="src/Bravellian.Platform.Audit/Bravellian.Platform.Audit.csproj" />
     <Project Path="src/Bravellian.Platform.Correlation/Bravellian.Platform.Correlation.csproj" />
     <Project Path="src/Bravellian.Platform.Idempotency/Bravellian.Platform.Idempotency.csproj" />
+    <Project Path="src/Bravellian.Platform.ExactlyOnce/Bravellian.Platform.ExactlyOnce.csproj" />
     <Project Path="src/Bravellian.Platform.Observability/Bravellian.Platform.Observability.csproj" />
     <Project Path="src/Bravellian.Platform.Metrics.AspNetCore/Bravellian.Platform.Metrics.AspNetCore.csproj" />
     <Project Path="src/Bravellian.Platform.Metrics.HttpServer/Bravellian.Platform.Metrics.HttpServer.csproj" />

@@ -23,7 +23,7 @@ namespace Bravellian.Platform;
 /// <summary>
 /// Service collection extensions for Postgres audit storage.
 /// </summary>
-public static class PostgresAuditServiceCollectionExtensions
+internal static class PostgresAuditServiceCollectionExtensions
 {
     /// <summary>
     /// Adds Postgres audit storage using the specified options.

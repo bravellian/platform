@@ -20,7 +20,7 @@ namespace Bravellian.Platform.Metrics;
 /// <summary>
 /// Extension methods for registering metrics exporter services.
 /// </summary>
-public static class PostgresMetricsServiceCollectionExtensions
+internal static class PostgresMetricsServiceCollectionExtensions
 {
     private static readonly string[] MetricsTags = { "metrics", "platform" };
 

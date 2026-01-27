@@ -23,7 +23,7 @@ namespace Bravellian.Platform;
 /// <summary>
 /// Service collection extensions for PostgreSQL operation tracking.
 /// </summary>
-public static class PostgresOperationServiceCollectionExtensions
+internal static class PostgresOperationServiceCollectionExtensions
 {
     /// <summary>
     /// Adds PostgreSQL operation tracking using the specified options.

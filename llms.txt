@@ -20,6 +20,7 @@ Outbox, inbox, scheduler, fanout, and leases are built on a work-queue pattern: 
 - Bravellian.Platform.Operations: Track long-running operations with progress, events, and stalled detection.
 - Bravellian.Platform.Observability: Shared conventions and helpers (event names, tag keys, emitters) for audit/ops/metrics consistency.
 - Bravellian.Platform.Idempotency: At-most-once semantics for a logical key with TryBegin/Complete/Fail.
+- Bravellian.Platform.ExactlyOnce: Best-effort exactly-once execution workflow with idempotency and optional verification probes.
 - Bravellian.Platform.Email: Outbox-driven email delivery with idempotency, send policies, and provider adapters.
 - Bravellian.Platform.Email.Postmark: Postmark outbound adapter.
 - Bravellian.Platform.Email.AspNetCore: ASP.NET Core DI helpers and hosted processing loop.

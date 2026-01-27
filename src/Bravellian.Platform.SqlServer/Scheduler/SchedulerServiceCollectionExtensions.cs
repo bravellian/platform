@@ -27,7 +27,7 @@ namespace Bravellian.Platform;
 /// <summary>
 /// Service collection extensions for SQL Server scheduler, outbox, and fanout services.
 /// </summary>
-public static class SchedulerServiceCollectionExtensions
+internal static class SchedulerServiceCollectionExtensions
 {
     private static readonly string[] SchedulerHealthCheckTags = { "database", "scheduler" };
 
@@ -183,20 +183,6 @@ public static class SchedulerServiceCollectionExtensions
             SchemaName = schemaName,
             TableName = tableName,
         });
-    }
-
-    /// <summary>
-    /// Adds time abstractions including TimeProvider and monotonic clock for the platform.
-    /// </summary>
-    /// <param name="services">The IServiceCollection to add services to.</param>
-    /// <param name="timeProvider">Optional custom TimeProvider. If null, TimeProvider.System is used.</param>
-    /// <returns>The IServiceCollection so that additional calls can be chained.</returns>
-    public static IServiceCollection AddTimeAbstractions(this IServiceCollection services, TimeProvider? timeProvider = null)
-    {
-        services.AddSingleton(timeProvider ?? TimeProvider.System);
-        services.AddSingleton<IMonotonicClock, MonotonicClock>();
-
-        return services;
     }
 
     /// <summary>

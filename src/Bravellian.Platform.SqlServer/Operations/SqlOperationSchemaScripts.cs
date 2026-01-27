@@ -19,7 +19,7 @@ namespace Bravellian.Platform;
 /// <summary>
 /// Provides SQL scripts for SQL Server operation tracking tables.
 /// </summary>
-public static class SqlOperationSchemaScripts
+internal static class SqlOperationSchemaScripts
 {
     /// <summary>
     /// Returns the embedded schema scripts with variables applied.

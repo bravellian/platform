@@ -24,7 +24,7 @@ namespace Bravellian.Platform;
 /// <summary>
 /// Service collection extensions for Postgres idempotency stores.
 /// </summary>
-public static class PostgresIdempotencyServiceCollectionExtensions
+internal static class PostgresIdempotencyServiceCollectionExtensions
 {
     /// <summary>
     /// Adds Postgres idempotency tracking with the specified options.

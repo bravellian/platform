@@ -28,23 +28,8 @@ builder.Services.AddPostgresPlatform(
 
 var app = builder.Build();
 ```
-
-```csharp
-var builder = WebApplication.CreateBuilder(args);
-
-builder.Services.AddPostgresScheduler(new PostgresSchedulerOptions
-{
-    ConnectionString = "Host=localhost;Database=MyApp;Username=app;Password=secret;",
-    EnableSchemaDeployment = true,
-    MaxPollingInterval = TimeSpan.FromSeconds(5)
-});
-
-builder.Services.AddHealthChecks()
-    .AddPostgresSchedulerHealthCheck();
-
-var app = builder.Build();
-app.MapHealthChecks("/health");
-```
+Use the `ConfigureOutbox`, `ConfigureInbox`, and `ConfigureScheduler` delegates on
+`PostgresPlatformOptions` for per-component tuning while keeping a single public entry point.
 
 ## Examples
 
@@ -57,7 +42,7 @@ var registry = new OnceExecutionRegistry();
 
 if (!registry.CheckAndMark("platform:di"))
 {
-    builder.Services.AddPlatformScheduler();
+    builder.Services.AddPostgresPlatform("Host=localhost;Database=MyApp;Username=app;Password=secret;");
 }
 
 if (registry.HasRun("platform:di"))
@@ -66,33 +51,12 @@ if (registry.HasRun("platform:di"))
 }
 ```
 
-### Outbox + Inbox
-
-```csharp
-builder.Services.AddPostgresOutbox(new PostgresOutboxOptions
-{
-    ConnectionString = "Host=localhost;Database=MyApp;Username=app;Password=secret;",
-    EnableSchemaDeployment = true
-});
-
-builder.Services.AddPostgresInbox(new PostgresInboxOptions
-{
-    ConnectionString = "Host=localhost;Database=MyApp;Username=app;Password=secret;",
-    EnableSchemaDeployment = true
-});
-```
-
 ### Discovery-based registration
 
 ```csharp
 builder.Services.AddSingleton<IPlatformDatabaseDiscovery>(new MyTenantDiscovery());
 
-builder.Services
-    .AddPlatformOutbox(enableSchemaDeployment: true)
-    .AddPlatformInbox(enableSchemaDeployment: true)
-    .AddPlatformScheduler()
-    .AddPlatformFanout()
-    .AddPlatformLeases();
+builder.Services.AddPostgresPlatformMultiDatabaseWithDiscovery(enableSchemaDeployment: true);
 ```
 
 ## Documentation

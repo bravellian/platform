@@ -23,7 +23,7 @@ namespace Bravellian.Platform;
 /// <summary>
 /// Extension methods for configuring fanout services with the DI container.
 /// </summary>
-public static class PostgresFanoutServiceCollectionExtensions
+internal static class PostgresFanoutServiceCollectionExtensions
 {
     /// <summary>
     /// Adds SQL multi-fanout functionality with support for processing across multiple databases.

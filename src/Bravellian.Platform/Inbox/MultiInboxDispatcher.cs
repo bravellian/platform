@@ -197,11 +197,12 @@ internal sealed class MultiInboxDispatcher
 
             var succeeded = new List<string>();
             var failed = new Dictionary<string, string>(StringComparer.Ordinal); // messageId -> error message
+            var permanentFailures = new Dictionary<string, string>(StringComparer.Ordinal); // messageId -> error message
 
             // Process each claimed message
             foreach (var messageId in claimedIds)
             {
-                var (wasHandled, errorMessage) = await ProcessSingleMessageAsync(
+                var (wasHandled, errorMessage, isPermanentFailure) = await ProcessSingleMessageAsync(
                     selectedStore,
                     storeIdentifier,
                     ownerToken,
@@ -211,6 +212,10 @@ internal sealed class MultiInboxDispatcher
                 if (wasHandled)
                 {
                     succeeded.Add(messageId);
+                }
+                else if (isPermanentFailure)
+                {
+                    permanentFailures[messageId] = errorMessage;
                 }
                 else
                 {
@@ -226,6 +231,12 @@ internal sealed class MultiInboxDispatcher
                     "Acknowledged {SucceededCount} successfully processed inbox messages from store '{StoreIdentifier}'",
                     succeeded.Count,
                     storeIdentifier);
+            }
+
+            // Permanently fail messages that requested immediate failure
+            foreach (var (messageId, errorMessage) in permanentFailures)
+            {
+                await selectedStore.FailAsync(ownerToken, new[] { messageId }, errorMessage, cancellationToken).ConfigureAwait(false);
             }
 
             // Handle failed messages
@@ -244,7 +255,7 @@ internal sealed class MultiInboxDispatcher
                 storeIdentifier,
                 claimedIds.Count,
                 succeeded.Count,
-                failed.Count);
+                failed.Count + permanentFailures.Count);
 
             lock (stateLock)
             {
@@ -266,7 +277,7 @@ internal sealed class MultiInboxDispatcher
     }
 
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Dispatcher captures handler failures for retry handling.")]
-    private async Task<(bool Success, string ErrorMessage)> ProcessSingleMessageAsync(
+    private async Task<(bool Success, string ErrorMessage, bool PermanentFailure)> ProcessSingleMessageAsync(
         IInboxWorkStore store,
         string storeIdentifier,
         Bravellian.Platform.OwnerToken ownerToken,
@@ -308,7 +319,7 @@ internal sealed class MultiInboxDispatcher
                     message.MessageId,
                     storeIdentifier);
                 await store.FailAsync(ownerToken, new[] { messageId }, $"No handler registered for topic '{message.Topic}'", cancellationToken).ConfigureAwait(false);
-                return (true, string.Empty); // Message was handled (failed immediately)
+                return (true, string.Empty, false); // Message was handled (failed immediately)
             }
 
             // Execute the handler
@@ -321,7 +332,17 @@ internal sealed class MultiInboxDispatcher
                 storeIdentifier,
                 stopwatch.ElapsedMilliseconds);
 
-            return (true, string.Empty); // Message was handled successfully
+            return (true, string.Empty, false); // Message was handled successfully
+        }
+        catch (InboxPermanentFailureException ex)
+        {
+            logger.LogWarning(
+                ex,
+                "Permanent failure processing inbox message {MessageId} from store '{StoreIdentifier}': {ErrorMessage}",
+                messageId,
+                storeIdentifier,
+                ex.Message);
+            return (false, ex.Message, true);
         }
         catch (Exception ex)
         {
@@ -331,7 +352,7 @@ internal sealed class MultiInboxDispatcher
                 messageId,
                 storeIdentifier,
                 ex.Message);
-            return (false, ex.Message); // Return the current error message
+            return (false, ex.Message, false); // Return the current error message
         }
         finally
         {

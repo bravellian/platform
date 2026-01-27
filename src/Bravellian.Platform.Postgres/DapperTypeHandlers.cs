@@ -340,7 +340,7 @@ internal sealed class NullableDatabaseIdentifierTypeHandler : SqlMapper.TypeHand
 /// <summary>
 /// Provides registration methods for all Dapper type handlers for strongly-typed IDs.
 /// </summary>
-public static class PostgresDapperTypeHandlerRegistration
+internal static class PostgresDapperTypeHandlerRegistration
 {
     private static bool registered;
     private static readonly Lock lockObject = new();

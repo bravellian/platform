@@ -251,7 +251,7 @@ public static class PostgresPlatformServiceCollectionExtensions
     /// <param name="enableSchemaDeployment">Whether to automatically create platform tables and procedures at startup.</param>
     /// <returns>The service collection for chaining.</returns>
     [Obsolete("Use AddPostgresPlatformMultiDatabaseWithList for Postgres platform registration.")]
-    public static IServiceCollection AddPlatformMultiDatabaseWithList(
+    internal static IServiceCollection AddPlatformMultiDatabaseWithList(
         this IServiceCollection services,
         IEnumerable<PlatformDatabase> databases,
         bool enableSchemaDeployment = false)
@@ -303,7 +303,7 @@ public static class PostgresPlatformServiceCollectionExtensions
     /// Requires an implementation of <see cref="IPlatformDatabaseDiscovery"/> to be registered in the service collection.
     /// </remarks>
     [Obsolete("Use AddPostgresPlatformMultiDatabaseWithDiscovery for Postgres platform registration.")]
-    public static IServiceCollection AddPlatformMultiDatabaseWithDiscovery(
+    internal static IServiceCollection AddPlatformMultiDatabaseWithDiscovery(
         this IServiceCollection services,
         bool enableSchemaDeployment = false)
     {
@@ -343,7 +343,7 @@ public static class PostgresPlatformServiceCollectionExtensions
     /// <param name="controlPlaneOptions">The control plane configuration options.</param>
     /// <returns>The service collection for chaining.</returns>
     [Obsolete("Use AddPostgresPlatformMultiDatabaseWithControlPlaneAndList for Postgres platform registration.")]
-    public static IServiceCollection AddPlatformMultiDatabaseWithControlPlaneAndList(
+    internal static IServiceCollection AddPlatformMultiDatabaseWithControlPlaneAndList(
         this IServiceCollection services,
         IEnumerable<PlatformDatabase> databases,
         PlatformControlPlaneOptions controlPlaneOptions)
@@ -408,7 +408,7 @@ public static class PostgresPlatformServiceCollectionExtensions
     /// <param name="enableSchemaDeployment">Whether to automatically create platform tables and procedures at startup.</param>
     /// <returns>The service collection for chaining.</returns>
     [Obsolete("Use AddPostgresPlatformMultiDatabaseWithControlPlaneAndList and the overload that accepts PlatformControlPlaneOptions for more configuration options.")]
-    public static IServiceCollection AddPlatformMultiDatabaseWithControlPlaneAndList(
+    internal static IServiceCollection AddPlatformMultiDatabaseWithControlPlaneAndList(
         this IServiceCollection services,
         IEnumerable<PlatformDatabase> databases,
         string controlPlaneConnectionString,
@@ -435,7 +435,7 @@ public static class PostgresPlatformServiceCollectionExtensions
     /// Requires an implementation of <see cref="IPlatformDatabaseDiscovery"/> to be registered in the service collection.
     /// </remarks>
     [Obsolete("Use AddPostgresPlatformMultiDatabaseWithControlPlaneAndDiscovery for Postgres platform registration.")]
-    public static IServiceCollection AddPlatformMultiDatabaseWithControlPlaneAndDiscovery(
+    internal static IServiceCollection AddPlatformMultiDatabaseWithControlPlaneAndDiscovery(
         this IServiceCollection services,
         PlatformControlPlaneOptions controlPlaneOptions)
     {
@@ -493,7 +493,7 @@ public static class PostgresPlatformServiceCollectionExtensions
     /// Requires an implementation of <see cref="IPlatformDatabaseDiscovery"/> to be registered in the service collection.
     /// </remarks>
     [Obsolete("Use AddPostgresPlatformMultiDatabaseWithControlPlaneAndDiscovery and the overload that accepts PlatformControlPlaneOptions for more configuration options.")]
-    public static IServiceCollection AddPlatformMultiDatabaseWithControlPlaneAndDiscovery(
+    internal static IServiceCollection AddPlatformMultiDatabaseWithControlPlaneAndDiscovery(
         this IServiceCollection services,
         string controlPlaneConnectionString,
         bool enableSchemaDeployment = false)
@@ -515,7 +515,7 @@ public static class PostgresPlatformServiceCollectionExtensions
     /// <param name="controlPlaneOptions">The control plane configuration options.</param>
     /// <returns>The service collection for chaining.</returns>
     [Obsolete("Use AddPostgresPlatformMultiDatabaseWithControlPlaneAndDiscovery for Postgres platform registration.")]
-    public static IServiceCollection AddPlatformMultiDatabaseWithControlPlaneAndDiscovery(
+    internal static IServiceCollection AddPlatformMultiDatabaseWithControlPlaneAndDiscovery(
         this IServiceCollection services,
         Func<IServiceProvider, IPlatformDatabaseDiscovery> discoveryFactory,
         PlatformControlPlaneOptions controlPlaneOptions)
@@ -533,7 +533,7 @@ public static class PostgresPlatformServiceCollectionExtensions
     /// <param name="controlPlaneOptions">The control plane configuration options.</param>
     /// <returns>The service collection for chaining.</returns>
     [Obsolete("Use AddPostgresPlatformMultiDatabaseWithControlPlaneAndDiscovery for Postgres platform registration.")]
-    public static IServiceCollection AddPlatformMultiDatabaseWithControlPlaneAndDiscovery<TDiscovery>(
+    internal static IServiceCollection AddPlatformMultiDatabaseWithControlPlaneAndDiscovery<TDiscovery>(
         this IServiceCollection services,
         PlatformControlPlaneOptions controlPlaneOptions)
         where TDiscovery : class, IPlatformDatabaseDiscovery

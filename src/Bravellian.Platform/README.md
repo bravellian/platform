@@ -14,18 +14,15 @@ dotnet add package Bravellian.Platform.SqlServer
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddSqlScheduler(new SqlSchedulerOptions
-{
-    ConnectionString = "Server=localhost;Database=MyApp;Trusted_Connection=true;",
-    EnableSchemaDeployment = true,
-    MaxPollingInterval = TimeSpan.FromSeconds(5)
-});
-
-builder.Services.AddHealthChecks()
-    .AddSqlSchedulerHealthCheck();
+builder.Services.AddSqlPlatform(
+    "Server=localhost;Database=MyApp;Trusted_Connection=true;",
+    options =>
+    {
+        options.EnableSchemaDeployment = true;
+        options.EnableSchedulerWorkers = true;
+    });
 
 var app = builder.Build();
-app.MapHealthChecks("/health");
 ```
 
 ## Examples
@@ -39,7 +36,7 @@ var registry = new OnceExecutionRegistry();
 
 if (!registry.CheckAndMark("platform:di"))
 {
-    builder.Services.AddPlatformScheduler();
+    builder.Services.AddSqlPlatform("Server=localhost;Database=MyApp;Trusted_Connection=true;");
 }
 
 if (registry.HasRun("platform:di"))
@@ -48,33 +45,17 @@ if (registry.HasRun("platform:di"))
 }
 ```
 
-### Outbox + Inbox
+### Outbox + Inbox configuration
 
-```csharp
-builder.Services.AddSqlOutbox(new SqlOutboxOptions
-{
-    ConnectionString = "Server=localhost;Database=MyApp;Trusted_Connection=true;",
-    EnableSchemaDeployment = true
-});
-
-builder.Services.AddSqlInbox(new SqlInboxOptions
-{
-    ConnectionString = "Server=localhost;Database=MyApp;Trusted_Connection=true;",
-    EnableSchemaDeployment = true
-});
-```
+Use `SqlPlatformOptions.ConfigureOutbox` and `SqlPlatformOptions.ConfigureInbox` to tune
+outbox/inbox behavior while keeping a single registration call.
 
 ### Discovery-based registration
 
 ```csharp
 builder.Services.AddSingleton<IPlatformDatabaseDiscovery>(new MyTenantDiscovery());
 
-builder.Services
-    .AddPlatformOutbox(enableSchemaDeployment: true)
-    .AddPlatformInbox(enableSchemaDeployment: true)
-    .AddPlatformScheduler()
-    .AddPlatformFanout()
-    .AddPlatformLeases();
+builder.Services.AddSqlPlatformMultiDatabaseWithDiscovery(enableSchemaDeployment: true);
 ```
 
 ## Documentation

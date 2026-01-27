@@ -23,7 +23,7 @@ namespace Bravellian.Platform;
 /// <summary>
 /// Extension methods for configuring fanout services with the DI container.
 /// </summary>
-public static class FanoutServiceCollectionExtensions
+internal static class FanoutServiceCollectionExtensions
 {
     /// <summary>
     /// Adds SQL multi-fanout functionality with support for processing across multiple databases.

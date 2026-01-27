@@ -6,11 +6,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Deterministic>true</Deterministic>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <PackageId>Bravellian.Platform.Email</PackageId>
+    <PackageId>Bravellian.Platform.ExactlyOnce</PackageId>
     <Version>1.0.0</Version>
     <Authors>Bravellian</Authors>
     <Owners>Bravellian</Owners>
-    <Description>Provider-agnostic email outbox primitives and dispatching.</Description>
+    <Description>Exactly-once execution workflow with idempotency coordination.</Description>
     <PackageProjectUrl>https://github.com/bravellian/platform</PackageProjectUrl>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/bravellian/platform</RepositoryUrl>
@@ -23,10 +23,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Bravellian.Platform\Bravellian.Platform.csproj" />
-    <ProjectReference Include="..\Bravellian.Platform.ExactlyOnce\Bravellian.Platform.ExactlyOnce.csproj" />
     <ProjectReference Include="..\Bravellian.Platform.Idempotency\Bravellian.Platform.Idempotency.csproj" />
-    <ProjectReference Include="..\Bravellian.Platform.Observability\Bravellian.Platform.Observability.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -38,15 +35,6 @@
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
-  </ItemGroup>
-
-  <ItemGroup>
-    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-      <_Parameter1>Bravellian.Platform.Email.Tests</_Parameter1>
-    </AssemblyAttribute>
-    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-      <_Parameter1>Bravellian.Platform.Email.Postmark.Tests</_Parameter1>
-    </AssemblyAttribute>
   </ItemGroup>
 
   <ItemGroup>

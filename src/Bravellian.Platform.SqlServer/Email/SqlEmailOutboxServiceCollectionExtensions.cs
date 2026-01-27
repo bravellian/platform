@@ -23,7 +23,7 @@ namespace Bravellian.Platform;
 /// <summary>
 /// Service collection extensions for SQL Server email outbox storage.
 /// </summary>
-public static class SqlEmailOutboxServiceCollectionExtensions
+internal static class SqlEmailOutboxServiceCollectionExtensions
 {
     /// <summary>
     /// Adds SQL Server email outbox storage with the specified options.

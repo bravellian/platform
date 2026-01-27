@@ -123,6 +123,29 @@ public sealed class EmailOutboxOrchestrationTests
     }
 
     [Fact]
+    public async Task ProbeConfirmation_FinalizesAfterFailure()
+    {
+        var timeProvider = new ManualTimeProvider(new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero));
+        var harness = new InMemoryOutboxHarness(timeProvider);
+        var sink = new TestEmailDeliverySink();
+        var sender = new StubEmailSender(EmailSendResult.TransientFailure("timeout", "timeout"));
+        var probe = new StubEmailProbe(EmailProbeResult.Confirmed(EmailDeliveryStatus.Sent, "msg-1"));
+        var idempotency = new InMemoryIdempotencyStore();
+        var processor = new EmailOutboxProcessor(harness, sender, idempotency, sink, probe: probe, timeProvider: timeProvider);
+        var message = EmailFixtures.CreateMessage(messageKey: "key-probe");
+
+        await harness.EnqueueAsync(EmailOutboxDefaults.Topic, Serialize(message), message.MessageKey, null, CancellationToken.None);
+
+        var processed = await processor.ProcessOnceAsync(CancellationToken.None);
+
+        processed.ShouldBe(1);
+        sender.SendCount.ShouldBe(1);
+        probe.CallCount.ShouldBe(1);
+        harness.DispatchedCount.ShouldBe(1);
+        sink.Final.Last().Status.ShouldBe(EmailDeliveryStatus.Sent);
+    }
+
+    [Fact]
     public async Task PermanentFailure_StopsAndMarksFinal()
     {
         var timeProvider = new ManualTimeProvider(new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero));
@@ -219,6 +242,24 @@ public sealed class EmailOutboxOrchestrationTests
         {
             SendCount++;
             return Task.FromResult(results.Dequeue());
+        }
+    }
+
+    private sealed class StubEmailProbe : IOutboundEmailProbe
+    {
+        private readonly EmailProbeResult result;
+
+        public StubEmailProbe(EmailProbeResult result)
+        {
+            this.result = result;
+        }
+
+        public int CallCount { get; private set; }
+
+        public Task<EmailProbeResult> ProbeAsync(OutboundEmailMessage message, CancellationToken cancellationToken)
+        {
+            CallCount++;
+            return Task.FromResult(result);
         }
     }
 

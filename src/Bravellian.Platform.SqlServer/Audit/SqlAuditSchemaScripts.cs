@@ -19,7 +19,7 @@ namespace Bravellian.Platform;
 /// <summary>
 /// Provides SQL scripts for SQL Server audit tables.
 /// </summary>
-public static class SqlAuditSchemaScripts
+internal static class SqlAuditSchemaScripts
 {
     /// <summary>
     /// Returns the embedded schema scripts with variables applied.

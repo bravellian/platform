@@ -23,7 +23,7 @@ namespace Bravellian.Platform;
 /// <summary>
 /// Extension methods for registering lease services with the service collection.
 /// </summary>
-public static class PostgresLeaseServiceCollectionExtensions
+internal static class PostgresLeaseServiceCollectionExtensions
 {
     /// <summary>
     /// Adds system lease functionality with SQL Server backend.

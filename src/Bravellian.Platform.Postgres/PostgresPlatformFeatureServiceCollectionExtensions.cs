@@ -27,7 +27,7 @@ namespace Bravellian.Platform;
 /// so that individual features can participate in discovery-first environments without
 /// re-implementing feature-specific discovery interfaces.
 /// </summary>
-public static class PostgresPlatformFeatureServiceCollectionExtensions
+internal static class PostgresPlatformFeatureServiceCollectionExtensions
 {
     /// <summary>
     /// Registers multi-database Outbox services backed by <see cref="IPlatformDatabaseDiscovery"/>.

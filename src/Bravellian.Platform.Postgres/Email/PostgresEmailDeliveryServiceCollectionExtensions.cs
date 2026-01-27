@@ -23,7 +23,7 @@ namespace Bravellian.Platform;
 /// <summary>
 /// Service collection extensions for PostgreSQL email delivery logging.
 /// </summary>
-public static class PostgresEmailDeliveryServiceCollectionExtensions
+internal static class PostgresEmailDeliveryServiceCollectionExtensions
 {
     /// <summary>
     /// Adds PostgreSQL email delivery logging with the specified options.

@@ -25,7 +25,7 @@ namespace Bravellian.Platform;
 /// <summary>
 /// Extension methods for unified platform registration.
 /// </summary>
-public static class PlatformServiceCollectionExtensions
+internal static class PlatformServiceCollectionExtensions
 {
     private const string PlatformConfigurationKey = "Bravellian.Platform.Configuration.Registered";
 
