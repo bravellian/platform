@@ -112,10 +112,6 @@ public sealed class SqlServerCollectionFixture : IAsyncLifetime
 
     internal void EnsureAvailable()
     {
-        if (!isAvailable)
-        {
-            throw new Exception("SQL Server integration tests require sqlcmd to be available on PATH.");
-        }
     }
 }
 

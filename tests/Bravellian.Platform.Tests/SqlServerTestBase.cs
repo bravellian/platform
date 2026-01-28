@@ -68,14 +68,7 @@ public abstract class SqlServerTestBase : IAsyncLifetime
         else
         {
             // Using standalone container
-            try
-            {
-                await msSqlContainer!.StartAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
-            }
-            catch (NotSupportedException ex) when (ex.Message.Contains("sqlcmd", StringComparison.OrdinalIgnoreCase))
-            {
-                throw new Exception("SQL Server integration tests require sqlcmd to be available on PATH.", ex);
-            }
+            await msSqlContainer!.StartAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
             connectionString = msSqlContainer.GetConnectionString();
         }
 
