@@ -19,6 +19,7 @@ namespace Bravellian.Platform.Tests;
 /// Tests in this collection will share the same SQL Server container but get individual databases.
 /// </summary>
 [CollectionDefinition(Name)]
+[Trait("RequiresDocker", "true")]
 public class SqlServerCollection : ICollectionFixture<SqlServerCollectionFixture>
 {
     public const string Name = "SQL Server Collection";

@@ -112,6 +112,10 @@ public sealed class SqlServerCollectionFixture : IAsyncLifetime
 
     internal void EnsureAvailable()
     {
+        if (!isAvailable)
+        {
+            throw new InvalidOperationException("SQL Server tests cannot run because sqlcmd is not available. Install SQL Server command-line tools to run these tests.");
+        }
     }
 }
 

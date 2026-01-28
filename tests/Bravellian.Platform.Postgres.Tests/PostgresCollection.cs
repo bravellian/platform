@@ -19,6 +19,7 @@ namespace Bravellian.Platform.Tests;
 /// Tests in this collection will share the same PostgreSQL container but get individual databases.
 /// </summary>
 [CollectionDefinition(Name)]
+[Trait("RequiresDocker", "true")]
 public class PostgresCollection : ICollectionFixture<PostgresCollectionFixture>
 {
     public const string Name = "Postgres Collection";
