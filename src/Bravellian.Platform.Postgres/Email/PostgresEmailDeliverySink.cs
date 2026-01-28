@@ -44,13 +44,13 @@ public sealed class PostgresEmailDeliverySink : IEmailDeliverySink
     /// </summary>
     /// <param name="options">Postgres email delivery options.</param>
     /// <param name="timeProvider">Time provider.</param>
-    /// <param name="correlationAccessor">Correlation context accessor.</param>
     /// <param name="logger">Logger instance.</param>
+    /// <param name="correlationAccessor">Correlation context accessor.</param>
     public PostgresEmailDeliverySink(
         IOptions<PostgresEmailDeliveryOptions> options,
         TimeProvider timeProvider,
-        ICorrelationContextAccessor? correlationAccessor = null,
-        ILogger<PostgresEmailDeliverySink> logger)
+        ILogger<PostgresEmailDeliverySink> logger,
+        ICorrelationContextAccessor? correlationAccessor = null)
     {
         this.options = options?.Value ?? throw new ArgumentNullException(nameof(options));
         this.timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));

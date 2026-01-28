@@ -53,8 +53,8 @@ public sealed class PostgresEmailDeliverySinkTests : PostgresTestBase
         sink = new PostgresEmailDeliverySink(
             Options.Create(options),
             timeProvider,
-            correlationAccessor: null,
-            NullLogger<PostgresEmailDeliverySink>.Instance);
+            NullLogger<PostgresEmailDeliverySink>.Instance,
+            correlationAccessor: null);
     }
 
     /// <summary>When a message is queued, then a delivery event is recorded.</summary>
@@ -147,8 +147,8 @@ public sealed class PostgresEmailDeliverySinkTests : PostgresTestBase
         sink = new PostgresEmailDeliverySink(
             Options.Create(options),
             timeProvider,
-            accessor,
-            NullLogger<PostgresEmailDeliverySink>.Instance);
+            NullLogger<PostgresEmailDeliverySink>.Instance,
+            accessor);
 
         var message = CreateMessage("corr-1");
         await sink.RecordQueuedAsync(message, TestContext.Current.CancellationToken);

@@ -181,8 +181,12 @@ public class ControlPlaneConfigurationTests
 #pragma warning disable CS0618 // Type or member is obsolete
         services.AddSqlPlatformMultiDatabaseWithControlPlaneAndList(
             databases,
-            "Server=localhost;Database=ControlPlane;",
-            enableSchemaDeployment: false);
+            new PlatformControlPlaneOptions
+            {
+                ConnectionString = "Server=localhost;Database=ControlPlane;",
+                EnableSchemaDeployment = false,
+            });
+
 #pragma warning restore CS0618 // Type or member is obsolete
 
         var serviceProvider = services.BuildServiceProvider();
@@ -225,8 +229,11 @@ public class ControlPlaneConfigurationTests
         // Act - Using the obsolete signature
 #pragma warning disable CS0618 // Type or member is obsolete
         services.AddSqlPlatformMultiDatabaseWithControlPlaneAndDiscovery(
-            "Server=localhost;Database=ControlPlane;",
-            enableSchemaDeployment: false);
+            new PlatformControlPlaneOptions
+            {
+                ConnectionString = "Server=localhost;Database=ControlPlane;",
+                EnableSchemaDeployment = false,
+            });
 #pragma warning restore CS0618 // Type or member is obsolete
 
         var serviceProvider = services.BuildServiceProvider();
