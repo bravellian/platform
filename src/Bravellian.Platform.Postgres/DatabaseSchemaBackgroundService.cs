@@ -36,7 +36,7 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
     private readonly IOptionsMonitor<PostgresSemaphoreOptions> semaphoreOptions;
     private readonly IOptionsMonitor<PostgresSystemLeaseOptions> systemLeaseOptions;
     private readonly DatabaseSchemaCompletion schemaCompletion;
-    private readonly PlatformConfiguration platformConfiguration;
+    private readonly PlatformConfiguration? platformConfiguration;
     private readonly IPlatformDatabaseDiscovery? databaseDiscovery;
 
     public DatabaseSchemaBackgroundService(
@@ -52,7 +52,7 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
         IOptionsMonitor<PostgresSemaphoreOptions> semaphoreOptions,
         IOptionsMonitor<PostgresSystemLeaseOptions> systemLeaseOptions,
         DatabaseSchemaCompletion schemaCompletion,
-        PlatformConfiguration platformConfiguration,
+        PlatformConfiguration? platformConfiguration = null,
         IPlatformDatabaseDiscovery? databaseDiscovery = null)
     {
         this.logger = logger;
@@ -80,17 +80,20 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
             var deploymentTasks = new List<Task>();
 
             // Check if we're in a multi-database environment
-            if (platformConfiguration.EnvironmentStyle == PlatformEnvironmentStyle.MultiDatabaseNoControl ||
-                platformConfiguration.EnvironmentStyle == PlatformEnvironmentStyle.MultiDatabaseWithControl)
+            var isMultiDatabase = platformConfiguration is not null &&
+                (platformConfiguration.EnvironmentStyle == PlatformEnvironmentStyle.MultiDatabaseNoControl ||
+                 platformConfiguration.EnvironmentStyle == PlatformEnvironmentStyle.MultiDatabaseWithControl);
+
+            if (isMultiDatabase)
             {
                 // Multi-database environment - deploy to all discovered databases
-                if (platformConfiguration.EnableSchemaDeployment)
+                if (platformConfiguration!.EnableSchemaDeployment)
                 {
                     deploymentTasks.Add(DeployMultiDatabaseSchemasAsync(stoppingToken));
                 }
 
                 // Deploy semaphore schema to control plane if configured
-                if (platformConfiguration.EnableSchemaDeployment &&
+                if (platformConfiguration!.EnableSchemaDeployment &&
                     platformConfiguration.EnvironmentStyle == PlatformEnvironmentStyle.MultiDatabaseWithControl &&
                     !string.IsNullOrEmpty(platformConfiguration.ControlPlaneConnectionString))
                 {
@@ -160,7 +163,7 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
                 }
 
                 // Deploy semaphore schema if enabled
-                if (platformConfiguration.EnableSchemaDeployment)
+                if (platformConfiguration?.EnableSchemaDeployment == true)
                 {
                     deploymentTasks.Add(DeploySemaphoreSchemaAsync(stoppingToken));
                 }
@@ -424,7 +427,7 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
 
     private async Task DeployCentralMetricsSchemaAsync(CancellationToken cancellationToken)
     {
-        if (string.IsNullOrEmpty(platformConfiguration.ControlPlaneConnectionString))
+        if (platformConfiguration is null || string.IsNullOrEmpty(platformConfiguration.ControlPlaneConnectionString))
         {
             logger.LogWarning("Central metrics schema deployment requested but no control plane connection string is configured");
             return;

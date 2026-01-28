@@ -49,7 +49,7 @@ public sealed class PostgresEmailDeliverySink : IEmailDeliverySink
     public PostgresEmailDeliverySink(
         IOptions<PostgresEmailDeliveryOptions> options,
         TimeProvider timeProvider,
-        ICorrelationContextAccessor? correlationAccessor,
+        ICorrelationContextAccessor? correlationAccessor = null,
         ILogger<PostgresEmailDeliverySink> logger)
     {
         this.options = options?.Value ?? throw new ArgumentNullException(nameof(options));
