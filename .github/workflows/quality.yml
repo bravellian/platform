@@ -39,8 +39,8 @@ jobs:
       - name: Build (deterministic)
         run: dotnet build Bravellian.Platform.CI.slnx --no-restore --configuration Release -warnaserror -p:ContinuousIntegrationBuild=true
 
-      - name: Test
-        run: dotnet test Bravellian.Platform.CI.slnx --no-build --configuration Release
+      - name: Test (exclude integration)
+        run: dotnet test Bravellian.Platform.CI.slnx --no-build --configuration Release --filter "Category!=Integration&RequiresDocker!=true"
 
       - name: Pack (repro 1)
         shell: bash

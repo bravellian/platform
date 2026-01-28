@@ -16,17 +16,11 @@ namespace Bravellian.Platform.Tests;
 
 internal static class SqlServerTestEnvironment
 {
-    private const string SqlCmdFileName = "sqlcmd.exe";
+    private static readonly string[] SqlCmdFileNames = OperatingSystem.IsWindows()
+        ? new[] { "sqlcmd.exe", "sqlcmd" }
+        : new[] { "sqlcmd", "sqlcmd.exe" };
 
-    internal static void ThrowIfSqlCmdMissing()
-    {
-        if (!IsSqlCmdAvailable())
-        {
-            throw Xunit.Sdk.SkipException.ForSkip("SQL Server integration tests require sqlcmd to be available on PATH.");
-        }
-    }
-
-    private static bool IsSqlCmdAvailable()
+    internal static bool IsSqlCmdAvailable()
     {
         var path = Environment.GetEnvironmentVariable("PATH");
         if (string.IsNullOrWhiteSpace(path))
@@ -41,10 +35,13 @@ internal static class SqlServerTestEnvironment
                 continue;
             }
 
-            var candidate = Path.Combine(segment.Trim(), SqlCmdFileName);
-            if (File.Exists(candidate))
+            foreach (var fileName in SqlCmdFileNames)
             {
-                return true;
+                var candidate = Path.Combine(segment.Trim(), fileName);
+                if (File.Exists(candidate))
+                {
+                    return true;
+                }
             }
         }
 

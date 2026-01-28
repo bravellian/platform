@@ -70,7 +70,7 @@ jobs:
       run: dotnet build Bravellian.Platform.CI.slnx --no-restore --configuration Release -p:Version=${{ steps.git_version.outputs.semVer }}
 
     - name: Run Tests
-      run: dotnet test Bravellian.Platform.CI.slnx --no-build --configuration Release
+      run: dotnet test Bravellian.Platform.CI.slnx --no-build --configuration Release --filter "Category!=Integration&RequiresDocker!=true"
 
     - name: Pack NuGet packages
       run: dotnet pack Bravellian.Platform.CI.slnx --configuration Release --output ./nupkgs -p:PackageVersion=${{ steps.git_version.outputs.semVer }}

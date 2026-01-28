@@ -27,9 +27,11 @@ public sealed class SqlServerCollectionFixture : IAsyncLifetime
     private readonly MsSqlContainer msSqlContainer;
     private string? connectionString;
     private int databaseCounter = 0;
+    private bool isAvailable;
 
     public SqlServerCollectionFixture()
     {
+        isAvailable = SqlServerTestEnvironment.IsSqlCmdAvailable();
         msSqlContainer = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2022-CU10-ubuntu-22.04")
             .WithReuse(true)  // Enable container reuse to avoid rebuilding
             .Build();
@@ -38,11 +40,21 @@ public sealed class SqlServerCollectionFixture : IAsyncLifetime
     /// <summary>
     /// Gets the master connection string for the SQL Server container.
     /// </summary>
-    public string MasterConnectionString => connectionString ?? throw new InvalidOperationException("Container has not been started yet.");
+    public string MasterConnectionString
+    {
+        get
+        {
+            EnsureAvailable();
+            return connectionString ?? throw new InvalidOperationException("Container has not been started yet.");
+        }
+    }
 
     public async ValueTask InitializeAsync()
     {
-        SqlServerTestEnvironment.ThrowIfSqlCmdMissing();
+        if (!isAvailable)
+        {
+            return;
+        }
 
         try
         {
@@ -50,8 +62,10 @@ public sealed class SqlServerCollectionFixture : IAsyncLifetime
         }
         catch (NotSupportedException ex) when (ex.Message.Contains("sqlcmd", StringComparison.OrdinalIgnoreCase))
         {
-            throw Xunit.Sdk.SkipException.ForSkip("SQL Server integration tests require sqlcmd to be available on PATH. Error: " + ex.ToString());
+            isAvailable = false;
+            return;
         }
+
         connectionString = msSqlContainer.GetConnectionString();
     }
 
@@ -67,6 +81,7 @@ public sealed class SqlServerCollectionFixture : IAsyncLifetime
     /// <returns>A connection string to the newly created database.</returns>
     public async Task<string> CreateTestDatabaseAsync(string name)
     {
+        EnsureAvailable();
         if (connectionString == null)
         {
             throw new InvalidOperationException("Container has not been initialized. Ensure InitializeAsync has been called before creating databases.");
@@ -95,5 +110,12 @@ public sealed class SqlServerCollectionFixture : IAsyncLifetime
         }
     }
 
+    internal void EnsureAvailable()
+    {
+        if (!isAvailable)
+        {
+            throw new Exception("SQL Server integration tests require sqlcmd to be available on PATH.");
+        }
+    }
 }
 

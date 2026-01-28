@@ -61,13 +61,12 @@ public abstract class SqlServerTestBase : IAsyncLifetime
     {
         if (sharedFixture != null)
         {
+            sharedFixture.EnsureAvailable();
             // Using shared container - create a new database in the shared container
             connectionString = await sharedFixture.CreateTestDatabaseAsync("shared").ConfigureAwait(false);
         }
         else
         {
-            SqlServerTestEnvironment.ThrowIfSqlCmdMissing();
-
             // Using standalone container
             try
             {
@@ -75,7 +74,7 @@ public abstract class SqlServerTestBase : IAsyncLifetime
             }
             catch (NotSupportedException ex) when (ex.Message.Contains("sqlcmd", StringComparison.OrdinalIgnoreCase))
             {
-                throw Xunit.Sdk.SkipException.ForSkip("SQL Server integration tests require sqlcmd to be available on PATH. Error: " + ex.ToString());
+                throw new Exception("SQL Server integration tests require sqlcmd to be available on PATH.", ex);
             }
             connectionString = msSqlContainer.GetConnectionString();
         }
