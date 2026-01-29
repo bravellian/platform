@@ -55,7 +55,7 @@ public static class WebhookServiceCollectionExtensions
         });
         services.AddSingleton<IWebhookProcessor>(sp =>
         {
-            var workStore = sp.GetRequiredService<Bravellian.Platform.IInboxWorkStore>();
+            var storeProvider = sp.GetRequiredService<Bravellian.Platform.IInboxWorkStoreProvider>();
             var registry = sp.GetRequiredService<IWebhookProviderRegistry>();
             var options = sp.GetService<IOptions<WebhookOptions>>()?.Value;
             var processing = sp.GetService<IOptions<WebhookProcessingOptions>>()?.Value;
@@ -66,7 +66,7 @@ public static class WebhookServiceCollectionExtensions
                     BatchSize = processing.BatchSize,
                     MaxAttempts = processing.MaxAttempts,
                 };
-            return new WebhookProcessor(workStore, registry, processorOptions, options);
+            return new MultiInboxWebhookProcessor(storeProvider, registry, processorOptions, options);
         });
 
         return services;

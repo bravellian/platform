@@ -27,6 +27,8 @@ namespace Bravellian.Platform;
 /// </summary>
 internal static class DbUpSchemaRunner
 {
+    private const string SchemaLockScope = "Bravellian.Platform.Postgres.SchemaDeployment";
+
     public static async Task ApplyAsync(
         string connectionString,
         IReadOnlyCollection<SqlScript> scripts,
@@ -41,21 +43,36 @@ internal static class DbUpSchemaRunner
         ArgumentNullException.ThrowIfNull(variables);
         ArgumentNullException.ThrowIfNull(logger);
 
-        await EnsureSchemaExistsAsync(connectionString, journalSchema, cancellationToken).ConfigureAwait(false);
-
-        var upgrader = DeployChanges
-            .To
-            .PostgresqlDatabase(connectionString)
-            .WithScripts(scripts)
-            .WithVariables(variables.ToDictionary(kvp => kvp.Key, kvp => kvp.Value, StringComparer.OrdinalIgnoreCase))
-            .JournalToPostgresqlTable(journalSchema, journalTable)
-            .LogTo(new DbUpLoggerAdapter(logger))
-            .Build();
-
-        var result = await Task.Run(upgrader.PerformUpgrade, cancellationToken).ConfigureAwait(false);
-        if (!result.Successful)
+        var lockKey = CreateSchemaLockKey(connectionString, journalSchema);
+        var lockConnection = new NpgsqlConnection(connectionString);
+        await using (lockConnection.ConfigureAwait(false))
         {
-            throw result.Error ?? new InvalidOperationException("DBUp schema upgrade failed.");
+            await lockConnection.OpenAsync(cancellationToken).ConfigureAwait(false);
+            await AcquireAdvisoryLockAsync(lockConnection, lockKey, cancellationToken).ConfigureAwait(false);
+
+            try
+            {
+                await EnsureSchemaExistsAsync(connectionString, journalSchema, cancellationToken).ConfigureAwait(false);
+
+                var upgrader = DeployChanges
+                    .To
+                    .PostgresqlDatabase(connectionString)
+                    .WithScripts(scripts)
+                    .WithVariables(variables.ToDictionary(kvp => kvp.Key, kvp => kvp.Value, StringComparer.OrdinalIgnoreCase))
+                    .JournalToPostgresqlTable(journalSchema, journalTable)
+                    .LogTo(new DbUpLoggerAdapter(logger))
+                    .Build();
+
+                var result = await Task.Run(upgrader.PerformUpgrade, cancellationToken).ConfigureAwait(false);
+                if (!result.Successful)
+                {
+                    throw result.Error ?? new InvalidOperationException("DBUp schema upgrade failed.");
+                }
+            }
+            finally
+            {
+                await ReleaseAdvisoryLockAsync(lockConnection, lockKey, cancellationToken).ConfigureAwait(false);
+            }
         }
     }
 
@@ -72,7 +89,52 @@ internal static class DbUpSchemaRunner
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
         using var command = new NpgsqlCommand(sql, connection);
-        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (PostgresException ex) when (string.Equals(ex.SqlState, PostgresErrorCodes.UniqueViolation, StringComparison.OrdinalIgnoreCase) &&
+                                          string.Equals(ex.ConstraintName, "pg_namespace_nspname_index", StringComparison.Ordinal))
+        {
+            // Concurrent CREATE SCHEMA IF NOT EXISTS can still raise a unique violation; ignore.
+        }
+    }
+
+    private static long CreateSchemaLockKey(string connectionString, string journalSchema)
+    {
+        var input = string.Create(
+            CultureInfo.InvariantCulture,
+            $"{SchemaLockScope}|{connectionString}|{journalSchema}");
+
+        using var sha = System.Security.Cryptography.SHA256.Create();
+        var hash = sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(input));
+        return System.Buffers.Binary.BinaryPrimitives.ReadInt64LittleEndian(hash.AsSpan(0, sizeof(long)));
+    }
+
+    private static async Task AcquireAdvisoryLockAsync(
+        NpgsqlConnection connection,
+        long lockKey,
+        CancellationToken cancellationToken)
+    {
+        var command = new NpgsqlCommand("SELECT pg_advisory_lock(@lockKey);", connection);
+        await using (command.ConfigureAwait(false))
+        {
+            command.Parameters.AddWithValue("lockKey", lockKey);
+            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private static async Task ReleaseAdvisoryLockAsync(
+        NpgsqlConnection connection,
+        long lockKey,
+        CancellationToken cancellationToken)
+    {
+        var command = new NpgsqlCommand("SELECT pg_advisory_unlock(@lockKey);", connection);
+        await using (command.ConfigureAwait(false))
+        {
+            command.Parameters.AddWithValue("lockKey", lockKey);
+            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
     }
 
     private sealed class DbUpLoggerAdapter : IUpgradeLog
