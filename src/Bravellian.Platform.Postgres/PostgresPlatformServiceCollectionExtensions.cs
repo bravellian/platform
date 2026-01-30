@@ -15,11 +15,13 @@
 
 using Bravellian.Platform.Email;
 using Bravellian.Platform.Metrics;
+using Bravellian.Platform.Observability;
 using Bravellian.Platform.Semaphore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Bravellian.Platform;
 /// <summary>
@@ -655,6 +657,8 @@ public static class PostgresPlatformServiceCollectionExtensions
                 config), // Pass configuration to filter out control plane
             new RoundRobinOutboxSelectionStrategy());
 
+        RegisterGlobalControlPlaneScheduler(services, config);
+
         // Leases
         services.AddMultiSystemLeases(
             sp => new PlatformLeaseFactoryProvider(
@@ -722,6 +726,95 @@ public static class PostgresPlatformServiceCollectionExtensions
 #pragma warning disable CS0618 // Intentional: single-connection platform registration uses legacy scheduler wiring.
         services.AddPostgresScheduler(schedulerOptions);
 #pragma warning restore CS0618
+    }
+
+    private static void RegisterGlobalControlPlaneScheduler(IServiceCollection services, PlatformConfiguration? config)
+    {
+        if (config?.EnvironmentStyle != PlatformEnvironmentStyle.MultiDatabaseWithControl)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(config.ControlPlaneConnectionString))
+        {
+            return;
+        }
+
+        var schemaName = string.IsNullOrWhiteSpace(config.ControlPlaneSchemaName) ? "infra" : config.ControlPlaneSchemaName;
+
+        services.TryAddSingleton<IGlobalSchedulerStore>(sp =>
+        {
+            var store = new PostgresSchedulerStore(
+                Options.Create(new PostgresSchedulerOptions
+                {
+                    ConnectionString = config.ControlPlaneConnectionString,
+                    SchemaName = schemaName,
+                    EnableSchemaDeployment = config.EnableSchemaDeployment,
+                }),
+                sp.GetRequiredService<TimeProvider>());
+            return new PostgresGlobalSchedulerStore(store);
+        });
+
+        services.TryAddSingleton<IGlobalSchedulerClient>(sp =>
+        {
+            var client = new PostgresSchedulerClient(
+                Options.Create(new PostgresSchedulerOptions
+                {
+                    ConnectionString = config.ControlPlaneConnectionString,
+                    SchemaName = schemaName,
+                    EnableSchemaDeployment = config.EnableSchemaDeployment,
+                }),
+                sp.GetRequiredService<TimeProvider>());
+            return new PostgresGlobalSchedulerClient(client);
+        });
+
+        services.TryAddSingleton<IGlobalOutboxStore>(sp =>
+        {
+            var storeLogger = sp.GetRequiredService<ILoggerFactory>().CreateLogger<PostgresOutboxStore>();
+            var store = new PostgresOutboxStore(
+                Options.Create(new PostgresOutboxOptions
+                {
+                    ConnectionString = config.ControlPlaneConnectionString,
+                    SchemaName = schemaName,
+                    EnableSchemaDeployment = config.EnableSchemaDeployment,
+                }),
+                sp.GetRequiredService<TimeProvider>(),
+                storeLogger);
+            return new PostgresGlobalOutboxStore(store);
+        });
+
+        services.TryAddSingleton<IGlobalOutbox>(sp =>
+        {
+            var outboxLogger = sp.GetRequiredService<ILoggerFactory>().CreateLogger<PostgresOutboxService>();
+            var outbox = new PostgresOutboxService(
+                Options.Create(new PostgresOutboxOptions
+                {
+                    ConnectionString = config.ControlPlaneConnectionString,
+                    SchemaName = schemaName,
+                    EnableSchemaDeployment = config.EnableSchemaDeployment,
+                }),
+                outboxLogger,
+                joinStore: null);
+            return new PostgresGlobalOutbox(outbox);
+        });
+
+        services.TryAddSingleton<IGlobalSystemLeaseFactory>(sp =>
+        {
+            var leaseLogger = sp.GetRequiredService<ILoggerFactory>().CreateLogger<PostgresLeaseFactory>();
+            var leaseFactory = new PostgresLeaseFactory(
+                new LeaseFactoryConfig
+                {
+                    ConnectionString = config.ControlPlaneConnectionString!,
+                    SchemaName = schemaName,
+                },
+                leaseLogger);
+            return new PostgresGlobalSystemLeaseFactory(leaseFactory);
+        });
+
+        services.TryAddSingleton<GlobalSchedulerDispatcher>();
+        services.TryAddSingleton<GlobalOutboxDispatcher>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, GlobalSchedulerPollingService>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, GlobalOutboxPollingService>());
     }
 
     private static void RegisterFanout(IServiceCollection services, PostgresPlatformOptions options)

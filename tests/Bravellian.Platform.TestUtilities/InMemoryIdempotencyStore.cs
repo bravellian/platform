@@ -16,7 +16,7 @@ using Bravellian.Platform.Idempotency;
 
 namespace Bravellian.Platform.Tests.TestUtilities;
 
-internal sealed class InMemoryIdempotencyStore : IIdempotencyStore
+public sealed class InMemoryIdempotencyStore : IIdempotencyStore
 {
     private readonly Lock sync = new();
     private readonly Dictionary<string, IdempotencyState> states = new(StringComparer.OrdinalIgnoreCase);
@@ -68,7 +68,7 @@ internal sealed class InMemoryIdempotencyStore : IIdempotencyStore
         }
     }
 
-    internal enum IdempotencyState
+    public enum IdempotencyState
     {
         Missing = 0,
         Failed = 1,

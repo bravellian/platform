@@ -15,6 +15,7 @@ Outbox, inbox, scheduler, fanout, and leases are built on a work-queue pattern: 
 
 - Bravellian.Platform: Core abstractions and orchestration for platform primitives; provider packages supply concrete storage and schema deployment.
 - Bravellian.Platform.SqlServer / Postgres: Database-backed implementations of outbox/inbox/scheduler/fanout/leases/metrics with optional schema deployment.
+- Bravellian.Platform.InMemory: In-memory implementations of outbox/inbox/scheduler/fanout/leases for testing and single-process development.
 - Bravellian.Platform.Audit: Immutable audit timeline; write append-only events and query by anchors.
 - Bravellian.Platform.Correlation: Correlation context and header propagation to stitch workflows end-to-end.
 - Bravellian.Platform.Operations: Track long-running operations with progress, events, and stalled detection.

@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Diagnostics.CodeAnalysis;
 using Bravellian.Platform.Idempotency;
 
 namespace Bravellian.Platform.ExactlyOnce;
@@ -49,6 +50,10 @@ public sealed class ExactlyOnceExecutor<TItem>
     /// <param name="execute">Execution callback.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Final outcome.</returns>
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "Executor maps execution failures to retry outcomes.")]
     public async Task<ExactlyOnceResult> ExecuteAsync(
         TItem item,
         Func<TItem, CancellationToken, Task<ExactlyOnceExecutionResult>> execute,
@@ -86,6 +91,10 @@ public sealed class ExactlyOnceExecutor<TItem>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <param name="exceptionClassifier">Optional exception classifier.</param>
     /// <returns>Final outcome.</returns>
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "Executor maps execution failures to retry outcomes.")]
     public async Task<ExactlyOnceResult> ExecuteAsync(
         TItem item,
         Func<TItem, CancellationToken, Task> execute,

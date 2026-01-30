@@ -10,6 +10,7 @@
     <Project Path="src/Bravellian.Platform.Modularity.Razor/Bravellian.Platform.Modularity.Razor.csproj" />
     <Project Path="src/Bravellian.Platform.Postgres/Bravellian.Platform.Postgres.csproj" />
     <Project Path="src/Bravellian.Platform.SqlServer/Bravellian.Platform.SqlServer.csproj" />
+    <Project Path="src/Bravellian.Platform.InMemory/Bravellian.Platform.InMemory.csproj" />
     <Project Path="src/Bravellian.Platform.HealthProbe/Bravellian.Platform.HealthProbe.csproj" />
     <Project Path="src/Bravellian.Platform.Email/Bravellian.Platform.Email.csproj" />
     <Project Path="src/Bravellian.Platform.Email.Postmark/Bravellian.Platform.Email.Postmark.csproj" />
@@ -29,6 +30,7 @@
     <Project Path="tools/observability/src/Bravellian.Platform.Observability.Analyzers/Bravellian.Platform.Observability.Analyzers.csproj" />
   </Folder>
   <Project Path="src/Bravellian.Platform/Bravellian.Platform.csproj" />
+  <Project Path="tests/Bravellian.Platform.TestUtilities/Bravellian.Platform.TestUtilities.csproj" />
   <Project Path="tests/Bravellian.Platform.Tests/Bravellian.Platform.Tests.csproj" />
   <Project Path="tests/Bravellian.Platform.HealthProbe.Tests/Bravellian.Platform.HealthProbe.Tests.csproj" />
   <Project Path="tests/Bravellian.Platform.Postgres.Tests/Bravellian.Platform.Postgres.Tests.csproj" />

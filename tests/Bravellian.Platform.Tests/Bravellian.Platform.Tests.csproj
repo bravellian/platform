@@ -13,6 +13,8 @@
     <ProjectReference Include="..\..\src\Bravellian.Platform.SqlServer\Bravellian.Platform.SqlServer.csproj" />
     <ProjectReference Include="..\..\src\Bravellian.Platform.Modularity\Bravellian.Platform.Modularity.csproj" />
     <ProjectReference Include="..\..\src\Bravellian.Platform.Modularity.Razor\Bravellian.Platform.Modularity.Razor.csproj" />
+    <ProjectReference Include="..\..\src\Bravellian.Platform.InMemory\Bravellian.Platform.InMemory.csproj" />
+    <ProjectReference Include="..\Bravellian.Platform.TestUtilities\Bravellian.Platform.TestUtilities.csproj" />
     <ProjectReference Include="..\..\tools\testdocs\src\Bravellian.TestDocs.Analyzers\Bravellian.TestDocs.Analyzers.csproj">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>

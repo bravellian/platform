@@ -18,6 +18,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Shouldly;
 
 namespace Bravellian.Platform.Tests;
 /// <summary>
@@ -126,6 +127,50 @@ public class ControlPlaneConfigurationTests
         var semaphoreOptions = serviceProvider.GetRequiredService<IOptions<SemaphoreOptions>>();
         semaphoreOptions.Value.SchemaName.ShouldBe("custom_control");
         semaphoreOptions.Value.ConnectionString.ShouldBe("Server=localhost;Database=ControlPlane;");
+    }
+
+    /// <summary>
+    /// When control plane registration is used, then global scheduler services are available.
+    /// </summary>
+    /// <intent>
+    /// Ensure global scheduler registrations are wired for control plane environments.</intent>
+    /// <scenario>
+    /// Given AddSqlPlatformMultiDatabaseWithControlPlaneAndList called with valid options.
+    /// </scenario>
+    /// <behavior>
+    /// Then the global scheduler, outbox store, and lease factory can be resolved.</behavior>
+    [Fact]
+    public void AddSqlPlatformMultiDatabaseWithControlPlaneAndList_RegistersGlobalSchedulerServices()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
+
+        var databases = new[]
+        {
+            new PlatformDatabase
+            {
+                Name = "db1",
+                ConnectionString = "Server=localhost;Database=Db1;",
+                SchemaName = "app",
+            },
+        };
+
+        var controlPlaneOptions = new PlatformControlPlaneOptions
+        {
+            ConnectionString = "Server=localhost;Database=ControlPlane;",
+            SchemaName = "control",
+            EnableSchemaDeployment = false,
+        };
+
+        // Act
+        services.AddSqlPlatformMultiDatabaseWithControlPlaneAndList(databases, controlPlaneOptions);
+        using var provider = services.BuildServiceProvider();
+
+        // Assert
+        provider.GetRequiredService<IGlobalSchedulerClient>().ShouldNotBeNull();
+        provider.GetRequiredService<IGlobalOutboxStore>().ShouldNotBeNull();
+        provider.GetRequiredService<IGlobalSystemLeaseFactory>().ShouldNotBeNull();
     }
 
     /// <summary>

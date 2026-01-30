@@ -12,33 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-using Microsoft.Extensions.Logging;
+using Xunit;
 
 namespace Bravellian.Platform.Tests.TestUtilities;
-/// <summary>
-/// Test logger factory for creating test loggers with xUnit output helper.
-/// </summary>
-public class TestLoggerFactory : ILoggerFactory
+
+public interface IOutboxStoreBehaviorHarness : IAsyncLifetime
 {
-    private readonly ITestOutputHelper testOutputHelper;
+    IOutbox Outbox { get; }
 
-    public TestLoggerFactory(ITestOutputHelper testOutputHelper)
-    {
-        this.testOutputHelper = testOutputHelper;
-    }
+    IOutboxStore Store { get; }
 
-    public void AddProvider(ILoggerProvider provider)
-    {
-    }
-
-    public ILogger CreateLogger(string categoryName)
-    {
-        return new TestLogger<object>(testOutputHelper);
-    }
-
-    public void Dispose()
-    {
-    }
+    Task ResetAsync();
 }
-

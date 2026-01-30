@@ -104,6 +104,9 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
                 {
                     deploymentTasks.Add(DeploySemaphoreSchemaAsync(stoppingToken));
                     deploymentTasks.Add(DeployCentralMetricsSchemaAsync(stoppingToken));
+                    deploymentTasks.Add(DeployControlPlaneOutboxSchemaAsync(stoppingToken));
+                    deploymentTasks.Add(DeployControlPlaneSchedulerSchemaAsync(stoppingToken));
+                    deploymentTasks.Add(DeployControlPlaneSystemLeaseSchemaAsync(stoppingToken));
                 }
             }
             else
@@ -442,6 +445,65 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
         await DatabaseSchemaManager.EnsureCentralMetricsSchemaAsync(
             platformConfiguration.ControlPlaneConnectionString,
             "infra").ConfigureAwait(false);
+    }
+
+    private async Task DeployControlPlaneOutboxSchemaAsync(CancellationToken cancellationToken)
+    {
+        if (platformConfiguration is null || string.IsNullOrEmpty(platformConfiguration.ControlPlaneConnectionString))
+        {
+            return;
+        }
+
+        var schemaName = string.IsNullOrWhiteSpace(platformConfiguration.ControlPlaneSchemaName)
+            ? "infra"
+            : platformConfiguration.ControlPlaneSchemaName;
+
+        logger.LogDebug("Deploying control plane outbox schema to {Schema}", schemaName);
+        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(
+            platformConfiguration.ControlPlaneConnectionString,
+            schemaName,
+            "Outbox").ConfigureAwait(false);
+
+        await DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(
+            platformConfiguration.ControlPlaneConnectionString,
+            schemaName).ConfigureAwait(false);
+    }
+
+    private async Task DeployControlPlaneSchedulerSchemaAsync(CancellationToken cancellationToken)
+    {
+        if (platformConfiguration is null || string.IsNullOrEmpty(platformConfiguration.ControlPlaneConnectionString))
+        {
+            return;
+        }
+
+        var schemaName = string.IsNullOrWhiteSpace(platformConfiguration.ControlPlaneSchemaName)
+            ? "infra"
+            : platformConfiguration.ControlPlaneSchemaName;
+
+        logger.LogDebug("Deploying control plane scheduler schema to {Schema}", schemaName);
+        await DatabaseSchemaManager.EnsureSchedulerSchemaAsync(
+            platformConfiguration.ControlPlaneConnectionString,
+            schemaName,
+            "Jobs",
+            "JobRuns",
+            "Timers").ConfigureAwait(false);
+    }
+
+    private async Task DeployControlPlaneSystemLeaseSchemaAsync(CancellationToken cancellationToken)
+    {
+        if (platformConfiguration is null || string.IsNullOrEmpty(platformConfiguration.ControlPlaneConnectionString))
+        {
+            return;
+        }
+
+        var schemaName = string.IsNullOrWhiteSpace(platformConfiguration.ControlPlaneSchemaName)
+            ? "infra"
+            : platformConfiguration.ControlPlaneSchemaName;
+
+        logger.LogDebug("Deploying control plane system lease schema to {Schema}", schemaName);
+        await DatabaseSchemaManager.EnsureDistributedLockSchemaAsync(
+            platformConfiguration.ControlPlaneConnectionString,
+            schemaName).ConfigureAwait(false);
     }
 }
 

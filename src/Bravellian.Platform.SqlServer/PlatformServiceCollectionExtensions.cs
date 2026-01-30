@@ -20,6 +20,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Bravellian.Platform;
 /// <summary>
@@ -474,6 +475,8 @@ internal static class PlatformServiceCollectionExtensions
                 sp.GetService<IPlatformEventEmitter>()), // Pass configuration to filter out control plane
             new RoundRobinOutboxSelectionStrategy());
 
+        RegisterGlobalControlPlaneScheduler(services, config);
+
         // Leases
         services.AddMultiSystemLeases(
             sp => new PlatformLeaseFactoryProvider(
@@ -517,5 +520,97 @@ internal static class PlatformServiceCollectionExtensions
         }
 
         return stores[0];
+    }
+
+    private static void RegisterGlobalControlPlaneScheduler(IServiceCollection services, PlatformConfiguration? config)
+    {
+        if (config?.EnvironmentStyle != PlatformEnvironmentStyle.MultiDatabaseWithControl)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(config.ControlPlaneConnectionString))
+        {
+            return;
+        }
+
+        var schemaName = string.IsNullOrWhiteSpace(config.ControlPlaneSchemaName) ? "infra" : config.ControlPlaneSchemaName;
+
+        services.TryAddSingleton<IGlobalSchedulerStore>(sp =>
+        {
+            var store = new SqlSchedulerStore(
+                Options.Create(new SqlSchedulerOptions
+                {
+                    ConnectionString = config.ControlPlaneConnectionString,
+                    SchemaName = schemaName,
+                    EnableSchemaDeployment = config.EnableSchemaDeployment,
+                }),
+                sp.GetRequiredService<TimeProvider>());
+            return new SqlGlobalSchedulerStore(store);
+        });
+
+        services.TryAddSingleton<IGlobalSchedulerClient>(sp =>
+        {
+            var client = new SqlSchedulerClient(
+                Options.Create(new SqlSchedulerOptions
+                {
+                    ConnectionString = config.ControlPlaneConnectionString,
+                    SchemaName = schemaName,
+                    EnableSchemaDeployment = config.EnableSchemaDeployment,
+                }),
+                sp.GetRequiredService<TimeProvider>());
+            return new SqlGlobalSchedulerClient(client);
+        });
+
+        services.TryAddSingleton<IGlobalOutboxStore>(sp =>
+        {
+            var storeLogger = sp.GetRequiredService<ILoggerFactory>().CreateLogger<SqlOutboxStore>();
+            var store = new SqlOutboxStore(
+                Options.Create(new SqlOutboxOptions
+                {
+                    ConnectionString = config.ControlPlaneConnectionString,
+                    SchemaName = schemaName,
+                    TableName = "Outbox",
+                    EnableSchemaDeployment = config.EnableSchemaDeployment,
+                }),
+                sp.GetRequiredService<TimeProvider>(),
+                storeLogger);
+            return new SqlGlobalOutboxStore(store);
+        });
+
+        services.TryAddSingleton<IGlobalOutbox>(sp =>
+        {
+            var outboxLogger = sp.GetRequiredService<ILoggerFactory>().CreateLogger<SqlOutboxService>();
+            var outbox = new SqlOutboxService(
+                Options.Create(new SqlOutboxOptions
+                {
+                    ConnectionString = config.ControlPlaneConnectionString,
+                    SchemaName = schemaName,
+                    TableName = "Outbox",
+                    EnableSchemaDeployment = config.EnableSchemaDeployment,
+                }),
+                outboxLogger,
+                joinStore: null,
+                sp.GetService<IPlatformEventEmitter>());
+            return new SqlGlobalOutbox(outbox);
+        });
+
+        services.TryAddSingleton<IGlobalSystemLeaseFactory>(sp =>
+        {
+            var leaseLogger = sp.GetRequiredService<ILoggerFactory>().CreateLogger<SqlLeaseFactory>();
+            var leaseFactory = new SqlLeaseFactory(
+                new LeaseFactoryConfig
+                {
+                    ConnectionString = config.ControlPlaneConnectionString!,
+                    SchemaName = schemaName,
+                },
+                leaseLogger);
+            return new SqlGlobalSystemLeaseFactory(leaseFactory);
+        });
+
+        services.TryAddSingleton<GlobalSchedulerDispatcher>();
+        services.TryAddSingleton<GlobalOutboxDispatcher>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, GlobalSchedulerPollingService>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, GlobalOutboxPollingService>());
     }
 }

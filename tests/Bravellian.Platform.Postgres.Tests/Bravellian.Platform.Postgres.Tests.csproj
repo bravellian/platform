@@ -12,6 +12,7 @@
     <ProjectReference Include="..\..\src\Bravellian.Platform.Postgres\Bravellian.Platform.Postgres.csproj" />
     <ProjectReference Include="..\..\src\Bravellian.Platform.Modularity\Bravellian.Platform.Modularity.csproj" />
     <ProjectReference Include="..\..\src\Bravellian.Platform.Modularity.Razor\Bravellian.Platform.Modularity.Razor.csproj" />
+    <ProjectReference Include="..\Bravellian.Platform.TestUtilities\Bravellian.Platform.TestUtilities.csproj" />
     <ProjectReference Include="..\..\tools\testdocs\src\Bravellian.TestDocs.Analyzers\Bravellian.TestDocs.Analyzers.csproj">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
@@ -43,10 +44,6 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Update="xunit.v3" Version="3.2.2" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Include="..\Bravellian.Platform.Tests\TestUtilities\*.cs" Link="TestUtilities\%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>

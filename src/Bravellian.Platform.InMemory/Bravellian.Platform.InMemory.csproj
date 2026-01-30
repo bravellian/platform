@@ -1,0 +1,69 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <Deterministic>true</Deterministic>
+
+    <!-- Package metadata -->
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <PackageId>Bravellian.Platform.InMemory</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Bravellian</Authors>
+    <Owners>Bravellian</Owners>
+    <Description>In-memory provider for Bravellian.Platform.</Description>
+    <PackageProjectUrl>https://github.com/bravellian/platform</PackageProjectUrl>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/bravellian/platform</RepositoryUrl>
+    <PackageIcon>nuget_logo.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>For support, contact oss@bravellian.com</PackageReleaseNotes>
+    <NuspecProperties>id=$(PackageId);version=$(Version);authors=$(Authors)</NuspecProperties>
+    <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
+    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);MA0051;MA0015</WarningsNotAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>Bravellian.Platform.InMemory.Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\assets\nuget_logo.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Bravellian.Platform\Bravellian.Platform.csproj" />
+    <ProjectReference Include="..\Bravellian.Platform.Email\Bravellian.Platform.Email.csproj" />
+    <ProjectReference Include="..\Bravellian.Platform.Audit\Bravellian.Platform.Audit.csproj" />
+    <ProjectReference Include="..\Bravellian.Platform.Correlation\Bravellian.Platform.Correlation.csproj" />
+    <ProjectReference Include="..\Bravellian.Platform.Idempotency\Bravellian.Platform.Idempotency.csproj" />
+    <ProjectReference Include="..\Bravellian.Platform.Operations\Bravellian.Platform.Operations.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Cronos" Version="0.11.1" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="DotNet.ReproducibleBuilds.Isolated" Version="1.2.39" />
+    <PackageReference Update="Meziantou.Analyzer" Version="2.0.284" />
+    <PackageReference Update="Microsoft.SourceLink.GitHub" Version="10.0.102" />
+    <PackageReference Update="Roslynator.Analyzers" Version="4.15.0" />
+    <PackageReference Update="Roslynator.CodeAnalysis.Analyzers" Version="4.15.0" />
+    <PackageReference Update="Roslynator.Formatting.Analyzers" Version="4.15.0" />
+  </ItemGroup>
+
+</Project>
