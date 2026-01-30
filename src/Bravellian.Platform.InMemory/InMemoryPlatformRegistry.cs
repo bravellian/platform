@@ -65,13 +65,17 @@ internal sealed class InMemoryPlatformRegistry
 
         Stores = storesByKey.Values.ToList();
 
-        GlobalOutboxOptions = globalOutboxOptions ?? new InMemoryOutboxOptions { StoreKey = "global" };
-        GlobalSchedulerOptions = globalSchedulerOptions ?? new InMemorySchedulerOptions { StoreKey = "global" };
+        GlobalOutboxOptions = globalOutboxOptions ?? new InMemoryOutboxOptions { StoreKey = PlatformControlPlaneKeys.ControlPlane };
+        GlobalSchedulerOptions = globalSchedulerOptions ?? new InMemorySchedulerOptions { StoreKey = PlatformControlPlaneKeys.ControlPlane };
 
         GlobalOutboxState = new InMemoryOutboxState(timeProvider);
         GlobalOutboxJoinStore = new InMemoryOutboxJoinStore(timeProvider);
         GlobalOutboxService = new InMemoryOutboxService(GlobalOutboxState, GlobalOutboxJoinStore);
         GlobalOutboxStore = new InMemoryOutboxStore(GlobalOutboxState, GlobalOutboxJoinStore, GlobalOutboxOptions, timeProvider);
+
+        GlobalInboxState = new InMemoryInboxState(timeProvider);
+        GlobalInboxService = new InMemoryInboxService(GlobalInboxState);
+        GlobalInboxWorkStore = new InMemoryInboxWorkStore(GlobalInboxState);
 
         GlobalSchedulerState = new InMemorySchedulerState(timeProvider);
         GlobalSchedulerClient = new InMemorySchedulerClient(GlobalSchedulerState);
@@ -93,6 +97,12 @@ internal sealed class InMemoryPlatformRegistry
     public InMemoryOutboxService GlobalOutboxService { get; }
 
     public InMemoryOutboxStore GlobalOutboxStore { get; }
+
+    public InMemoryInboxState GlobalInboxState { get; }
+
+    public InMemoryInboxService GlobalInboxService { get; }
+
+    public InMemoryInboxWorkStore GlobalInboxWorkStore { get; }
 
     public InMemorySchedulerState GlobalSchedulerState { get; }
 

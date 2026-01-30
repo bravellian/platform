@@ -73,12 +73,12 @@ public static class InMemoryPlatformServiceCollectionExtensions
             fanoutOptions.Add(fanout);
         }
 
-        var globalOutboxOptions = new InMemoryOutboxOptions { StoreKey = "global" };
-        var globalSchedulerOptions = new InMemorySchedulerOptions { StoreKey = "global" };
+        var globalOutboxOptions = new InMemoryOutboxOptions { StoreKey = PlatformControlPlaneKeys.ControlPlane };
+        var globalSchedulerOptions = new InMemorySchedulerOptions { StoreKey = PlatformControlPlaneKeys.ControlPlane };
         platformOptions.ConfigureOutbox?.Invoke(globalOutboxOptions);
         platformOptions.ConfigureScheduler?.Invoke(globalSchedulerOptions);
-        globalOutboxOptions.StoreKey = "global";
-        globalSchedulerOptions.StoreKey = "global";
+        globalOutboxOptions.StoreKey = PlatformControlPlaneKeys.ControlPlane;
+        globalSchedulerOptions.StoreKey = PlatformControlPlaneKeys.ControlPlane;
 
         services.TryAddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
         services.TryAddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
@@ -99,6 +99,7 @@ public static class InMemoryPlatformServiceCollectionExtensions
         RegisterScheduler(services, platformOptions.EnableSchedulerWorkers);
         RegisterGlobalScheduler(services, platformOptions.EnableSchedulerWorkers);
         RegisterGlobalOutbox(services);
+        RegisterGlobalInbox(services);
         RegisterFanout(services);
         RegisterLeases(services);
         RegisterGlobalLeases(services);
@@ -183,10 +184,19 @@ public static class InMemoryPlatformServiceCollectionExtensions
 
     private static void RegisterGlobalScheduler(IServiceCollection services, bool enableSchedulerWorkers)
     {
-        services.AddSingleton<IGlobalSchedulerClient>(sp => new InMemoryGlobalSchedulerClient(
-            sp.GetRequiredService<InMemoryPlatformRegistry>().GlobalSchedulerClient));
-        services.AddSingleton<IGlobalSchedulerStore>(sp => new InMemoryGlobalSchedulerStore(
-            sp.GetRequiredService<InMemoryPlatformRegistry>().GlobalSchedulerStore));
+        services.AddSingleton<IGlobalSchedulerClient>(sp =>
+        {
+            var router = sp.GetRequiredService<ISchedulerRouter>();
+            var client = router.GetSchedulerClient(PlatformControlPlaneKeys.ControlPlane);
+            return new InMemoryGlobalSchedulerClient(client);
+        });
+        services.AddSingleton<IGlobalSchedulerStore>(sp =>
+        {
+            var storeProvider = sp.GetRequiredService<ISchedulerStoreProvider>();
+            var store = storeProvider.GetStoreByKey(PlatformControlPlaneKeys.ControlPlane)
+                ?? throw new InvalidOperationException("Control-plane scheduler store is not configured.");
+            return new InMemoryGlobalSchedulerStore(store);
+        });
         services.AddSingleton<GlobalSchedulerDispatcher>();
         if (enableSchedulerWorkers)
         {
@@ -196,12 +206,39 @@ public static class InMemoryPlatformServiceCollectionExtensions
 
     private static void RegisterGlobalOutbox(IServiceCollection services)
     {
-        services.AddSingleton<IGlobalOutbox>(sp => new InMemoryGlobalOutbox(
-            sp.GetRequiredService<InMemoryPlatformRegistry>().GlobalOutboxService));
-        services.AddSingleton<IGlobalOutboxStore>(sp => new InMemoryGlobalOutboxStore(
-            sp.GetRequiredService<InMemoryPlatformRegistry>().GlobalOutboxStore));
+        services.AddSingleton<IGlobalOutbox>(sp =>
+        {
+            var router = sp.GetRequiredService<IOutboxRouter>();
+            var outbox = router.GetOutbox(PlatformControlPlaneKeys.ControlPlane);
+            return new InMemoryGlobalOutbox(outbox);
+        });
+        services.AddSingleton<IGlobalOutboxStore>(sp =>
+        {
+            var storeProvider = sp.GetRequiredService<IOutboxStoreProvider>();
+            var store = storeProvider.GetStoreByKey(PlatformControlPlaneKeys.ControlPlane)
+                ?? throw new InvalidOperationException("Control-plane outbox store is not configured.");
+            return new InMemoryGlobalOutboxStore(store);
+        });
         services.AddSingleton<GlobalOutboxDispatcher>();
         services.AddHostedService<GlobalOutboxPollingService>();
+    }
+
+    private static void RegisterGlobalInbox(IServiceCollection services)
+    {
+        services.AddSingleton<IGlobalInbox>(sp =>
+        {
+            var router = sp.GetRequiredService<IInboxRouter>();
+            var inbox = router.GetInbox(PlatformControlPlaneKeys.ControlPlane);
+            return new GlobalInbox(inbox);
+        });
+
+        services.AddSingleton<IGlobalInboxWorkStore>(sp =>
+        {
+            var storeProvider = sp.GetRequiredService<IInboxWorkStoreProvider>();
+            var store = storeProvider.GetStoreByKey(PlatformControlPlaneKeys.ControlPlane)
+                ?? throw new InvalidOperationException("Control-plane inbox work store is not configured.");
+            return new GlobalInboxWorkStore(store);
+        });
     }
 
     private static void RegisterFanout(IServiceCollection services)
@@ -236,8 +273,21 @@ public static class InMemoryPlatformServiceCollectionExtensions
 
     private static void RegisterGlobalLeases(IServiceCollection services)
     {
-        services.AddSingleton<IGlobalSystemLeaseFactory>(sp => new InMemoryGlobalSystemLeaseFactory(
-            sp.GetRequiredService<InMemoryPlatformRegistry>().GlobalLeaseFactory));
+        services.AddSingleton<IGlobalSystemLeaseFactory>(sp =>
+        {
+            var leaseProvider = sp.GetRequiredService<ILeaseFactoryProvider>();
+            var factory = leaseProvider.GetFactoryByKeyAsync(PlatformControlPlaneKeys.ControlPlane)
+                .ConfigureAwait(false)
+                .GetAwaiter()
+                .GetResult();
+
+            if (factory == null)
+            {
+                throw new InvalidOperationException("Control-plane lease factory is not configured.");
+            }
+
+            return new InMemoryGlobalSystemLeaseFactory(factory);
+        });
     }
 
     private static void RegisterCleanupServices(

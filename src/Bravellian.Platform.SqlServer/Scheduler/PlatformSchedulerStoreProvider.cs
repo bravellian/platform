@@ -113,6 +113,8 @@ internal sealed class PlatformSchedulerStoreProvider : ISchedulerStoreProvider
                     cachedStores = stores;
                 }
             }
+
+            RegisterControlPlaneStore();
         }
 
         return cachedStores;
@@ -172,5 +174,65 @@ internal sealed class PlatformSchedulerStoreProvider : ISchedulerStoreProvider
         return storesByIdentifier.TryGetValue(key, out var entry)
             ? entry.Outbox
             : throw new KeyNotFoundException($"No outbox found for key: {key}");
+    }
+
+    private void RegisterControlPlaneStore()
+    {
+        if (platformConfiguration?.EnvironmentStyle != PlatformEnvironmentStyle.MultiDatabaseWithControl ||
+            string.IsNullOrWhiteSpace(platformConfiguration.ControlPlaneConnectionString))
+        {
+            return;
+        }
+
+        var key = PlatformControlPlaneKeys.ControlPlane;
+        if (storesByIdentifier.ContainsKey(key))
+        {
+            return;
+        }
+
+        var schemaName = string.IsNullOrWhiteSpace(platformConfiguration.ControlPlaneSchemaName)
+            ? "infra"
+            : platformConfiguration.ControlPlaneSchemaName;
+
+        var store = new SqlSchedulerStore(
+            Options.Create(new SqlSchedulerOptions
+            {
+                ConnectionString = platformConfiguration.ControlPlaneConnectionString,
+                SchemaName = schemaName,
+                EnableSchemaDeployment = platformConfiguration.EnableSchemaDeployment,
+            }),
+            timeProvider);
+
+        var client = new SqlSchedulerClient(
+            Options.Create(new SqlSchedulerOptions
+            {
+                ConnectionString = platformConfiguration.ControlPlaneConnectionString,
+                SchemaName = schemaName,
+                EnableSchemaDeployment = platformConfiguration.EnableSchemaDeployment,
+            }),
+            timeProvider);
+
+        var outboxLogger = loggerFactory.CreateLogger<SqlOutboxService>();
+        var outbox = new SqlOutboxService(
+            Options.Create(new SqlOutboxOptions
+            {
+                ConnectionString = platformConfiguration.ControlPlaneConnectionString,
+                SchemaName = schemaName,
+                TableName = "Outbox",
+                EnableSchemaDeployment = platformConfiguration.EnableSchemaDeployment,
+            }),
+            outboxLogger,
+            joinStore: null,
+            eventEmitter);
+
+        var entry = new StoreEntry
+        {
+            Identifier = key,
+            Store = store,
+            Client = client,
+            Outbox = outbox,
+        };
+
+        storesByIdentifier[key] = entry;
     }
 }

@@ -8,10 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Bravellian.Platform\Bravellian.Platform.csproj" />
-    <ProjectReference Include="..\..\src\Bravellian.Platform.ExactlyOnce\Bravellian.Platform.ExactlyOnce.csproj" />
-    <ProjectReference Include="..\..\src\Bravellian.Platform.Email\Bravellian.Platform.Email.csproj" />
-    <ProjectReference Include="..\..\src\Bravellian.Platform.Modularity\Bravellian.Platform.Modularity.csproj" />
-    <ProjectReference Include="..\..\src\Bravellian.Platform.Modularity.Razor\Bravellian.Platform.Modularity.Razor.csproj" />
+    <ProjectReference Include="..\..\src\Bravellian.Platform.InMemory\Bravellian.Platform.InMemory.csproj" />
     <ProjectReference Include="..\Bravellian.Platform.TestUtilities\Bravellian.Platform.TestUtilities.csproj" />
     <ProjectReference Include="..\..\tools\testdocs\src\Bravellian.TestDocs.Analyzers\Bravellian.TestDocs.Analyzers.csproj">
       <PrivateAssets>all</PrivateAssets>
@@ -24,7 +21,6 @@
     <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.2" />
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.2.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.2" />
-    <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="10.0.2" />
   </ItemGroup>
 
   <ItemGroup>
@@ -53,6 +49,3 @@
   </ItemGroup>
 
 </Project>
-
-
-

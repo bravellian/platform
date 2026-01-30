@@ -1928,6 +1928,24 @@ internal static class DatabaseSchemaManager
             CancellationToken.None).ConfigureAwait(false);
     }
 
+    public static async Task ApplyTenantBundleAsync(string connectionString, string schemaName = "infra")
+    {
+        await SqlServerSchemaMigrations.ApplyTenantBundleAsync(
+            connectionString,
+            schemaName,
+            NullLogger.Instance,
+            CancellationToken.None).ConfigureAwait(false);
+    }
+
+    public static async Task ApplyControlPlaneBundleAsync(string connectionString, string schemaName = "infra")
+    {
+        await SqlServerSchemaMigrations.ApplyControlPlaneBundleAsync(
+            connectionString,
+            schemaName,
+            NullLogger.Instance,
+            CancellationToken.None).ConfigureAwait(false);
+    }
+
     private static async Task EnsureMetricsStoredProceduresAsync(SqlConnection connection, string schemaName)
     {
         var spUpsertSeries = GetSpUpsertSeriesScript(schemaName);

@@ -139,6 +139,8 @@ internal sealed class PlatformInboxWorkStoreProvider : IInboxWorkStoreProvider
                     }
                 }
             }
+
+            RegisterControlPlaneStore();
         }
 
         return cachedStores;
@@ -180,5 +182,41 @@ internal sealed class PlatformInboxWorkStoreProvider : IInboxWorkStoreProvider
         return inboxesByKey.TryGetValue(key, out var inbox)
             ? inbox
             : throw new KeyNotFoundException($"No inbox found for key: {key}");
+    }
+
+    private void RegisterControlPlaneStore()
+    {
+        if (platformConfiguration?.EnvironmentStyle != PlatformEnvironmentStyle.MultiDatabaseWithControl ||
+            string.IsNullOrWhiteSpace(platformConfiguration.ControlPlaneConnectionString))
+        {
+            return;
+        }
+
+        var key = PlatformControlPlaneKeys.ControlPlane;
+        if (storesByKey.ContainsKey(key))
+        {
+            return;
+        }
+
+        var schemaName = string.IsNullOrWhiteSpace(platformConfiguration.ControlPlaneSchemaName)
+            ? "infra"
+            : platformConfiguration.ControlPlaneSchemaName;
+
+        var options = new SqlInboxOptions
+        {
+            ConnectionString = platformConfiguration.ControlPlaneConnectionString,
+            SchemaName = schemaName,
+            TableName = tableName,
+            EnableSchemaDeployment = platformConfiguration.EnableSchemaDeployment,
+        };
+
+        var storeLogger = loggerFactory.CreateLogger<SqlInboxWorkStore>();
+        var store = new SqlInboxWorkStore(Options.Create(options), timeProvider, storeLogger);
+
+        var inboxLogger = loggerFactory.CreateLogger<SqlInboxService>();
+        var inbox = new SqlInboxService(Options.Create(options), inboxLogger);
+
+        storesByKey[key] = store;
+        inboxesByKey[key] = inbox;
     }
 }

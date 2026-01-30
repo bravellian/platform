@@ -109,6 +109,8 @@ internal sealed class PlatformSchedulerStoreProvider : ISchedulerStoreProvider
                     cachedStores = stores;
                 }
             }
+
+            RegisterControlPlaneStore();
         }
 
         return cachedStores;
@@ -168,6 +170,64 @@ internal sealed class PlatformSchedulerStoreProvider : ISchedulerStoreProvider
         return storesByIdentifier.TryGetValue(key, out var entry)
             ? entry.Outbox
             : throw new KeyNotFoundException($"No outbox found for key: {key}");
+    }
+
+    private void RegisterControlPlaneStore()
+    {
+        if (platformConfiguration?.EnvironmentStyle != PlatformEnvironmentStyle.MultiDatabaseWithControl ||
+            string.IsNullOrWhiteSpace(platformConfiguration.ControlPlaneConnectionString))
+        {
+            return;
+        }
+
+        var key = PlatformControlPlaneKeys.ControlPlane;
+        if (storesByIdentifier.ContainsKey(key))
+        {
+            return;
+        }
+
+        var schemaName = string.IsNullOrWhiteSpace(platformConfiguration.ControlPlaneSchemaName)
+            ? "infra"
+            : platformConfiguration.ControlPlaneSchemaName;
+
+        var store = new PostgresSchedulerStore(
+            Options.Create(new PostgresSchedulerOptions
+            {
+                ConnectionString = platformConfiguration.ControlPlaneConnectionString,
+                SchemaName = schemaName,
+                EnableSchemaDeployment = platformConfiguration.EnableSchemaDeployment,
+            }),
+            timeProvider);
+
+        var client = new PostgresSchedulerClient(
+            Options.Create(new PostgresSchedulerOptions
+            {
+                ConnectionString = platformConfiguration.ControlPlaneConnectionString,
+                SchemaName = schemaName,
+                EnableSchemaDeployment = platformConfiguration.EnableSchemaDeployment,
+            }),
+            timeProvider);
+
+        var outboxLogger = loggerFactory.CreateLogger<PostgresOutboxService>();
+        var outbox = new PostgresOutboxService(
+            Options.Create(new PostgresOutboxOptions
+            {
+                ConnectionString = platformConfiguration.ControlPlaneConnectionString,
+                SchemaName = schemaName,
+                EnableSchemaDeployment = platformConfiguration.EnableSchemaDeployment,
+            }),
+            outboxLogger,
+            joinStore: null);
+
+        var entry = new StoreEntry
+        {
+            Identifier = key,
+            Store = store,
+            Client = client,
+            Outbox = outbox,
+        };
+
+        storesByIdentifier[key] = entry;
     }
 }
 

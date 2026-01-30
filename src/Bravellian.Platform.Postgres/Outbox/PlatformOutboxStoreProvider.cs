@@ -167,6 +167,8 @@ internal sealed class PlatformOutboxStoreProvider : IOutboxStoreProvider
                     }
                 }
             }
+
+            RegisterControlPlaneStore();
         }
 
         return cachedStores;
@@ -245,6 +247,41 @@ internal sealed class PlatformOutboxStoreProvider : IOutboxStoreProvider
             // If parsing fails, fall back to simple string comparison
             return string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
         }
+    }
+
+    private void RegisterControlPlaneStore()
+    {
+        if (platformConfiguration?.EnvironmentStyle != PlatformEnvironmentStyle.MultiDatabaseWithControl ||
+            string.IsNullOrWhiteSpace(platformConfiguration.ControlPlaneConnectionString))
+        {
+            return;
+        }
+
+        var key = PlatformControlPlaneKeys.ControlPlane;
+        if (storesByKey.ContainsKey(key))
+        {
+            return;
+        }
+
+        var schemaName = string.IsNullOrWhiteSpace(platformConfiguration.ControlPlaneSchemaName)
+            ? "infra"
+            : platformConfiguration.ControlPlaneSchemaName;
+
+        var options = new PostgresOutboxOptions
+        {
+            ConnectionString = platformConfiguration.ControlPlaneConnectionString,
+            SchemaName = schemaName,
+            EnableSchemaDeployment = platformConfiguration.EnableSchemaDeployment,
+        };
+
+        var storeLogger = loggerFactory.CreateLogger<PostgresOutboxStore>();
+        var store = new PostgresOutboxStore(Options.Create(options), timeProvider, storeLogger);
+
+        var outboxLogger = loggerFactory.CreateLogger<PostgresOutboxService>();
+        var outbox = new PostgresOutboxService(Options.Create(options), outboxLogger, joinStore: null);
+
+        storesByKey[key] = store;
+        outboxesByKey[key] = outbox;
     }
 }
 

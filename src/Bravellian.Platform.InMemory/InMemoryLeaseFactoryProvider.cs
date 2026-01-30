@@ -27,6 +27,9 @@ internal sealed class InMemoryLeaseFactoryProvider : ILeaseFactoryProvider
         factories = registry.Stores.Select(store => (ISystemLeaseFactory)store.LeaseFactory).ToList();
         identifiers = registry.Stores.ToDictionary(store => (ISystemLeaseFactory)store.LeaseFactory, store => store.Key);
         factoriesByKey = registry.Stores.ToDictionary(store => store.Key, store => (ISystemLeaseFactory)store.LeaseFactory, StringComparer.Ordinal);
+
+        identifiers[registry.GlobalLeaseFactory] = PlatformControlPlaneKeys.ControlPlane;
+        factoriesByKey[PlatformControlPlaneKeys.ControlPlane] = registry.GlobalLeaseFactory;
     }
 
     public Task<IReadOnlyList<ISystemLeaseFactory>> GetAllFactoriesAsync(CancellationToken cancellationToken = default)

@@ -29,6 +29,10 @@ internal sealed class InMemoryOutboxStoreProvider : IOutboxStoreProvider
         identifiers = registry.Stores.ToDictionary(store => (IOutboxStore)store.OutboxStore, store => store.Key);
         storesByKey = registry.Stores.ToDictionary(store => store.Key, store => (IOutboxStore)store.OutboxStore, StringComparer.Ordinal);
         outboxesByKey = registry.Stores.ToDictionary(store => store.Key, store => (IOutbox)store.OutboxService, StringComparer.Ordinal);
+
+        identifiers[registry.GlobalOutboxStore] = PlatformControlPlaneKeys.ControlPlane;
+        storesByKey[PlatformControlPlaneKeys.ControlPlane] = registry.GlobalOutboxStore;
+        outboxesByKey[PlatformControlPlaneKeys.ControlPlane] = registry.GlobalOutboxService;
     }
 
     public Task<IReadOnlyList<IOutboxStore>> GetAllStoresAsync()

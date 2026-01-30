@@ -53,6 +53,8 @@
   <Folder Name="/tests/">
     <Project Path="tests/Bravellian.Platform.TestUtilities/Bravellian.Platform.TestUtilities.csproj" />
     <Project Path="tests/Bravellian.Platform.Tests/Bravellian.Platform.Tests.csproj" />
+    <Project Path="tests/Bravellian.Platform.SqlServer.Tests/Bravellian.Platform.SqlServer.Tests.csproj" />
+    <Project Path="tests/Bravellian.Platform.InMemory.Tests/Bravellian.Platform.InMemory.Tests.csproj" />
     <Project Path="tests/Bravellian.Platform.HealthProbe.Tests/Bravellian.Platform.HealthProbe.Tests.csproj" />
     <Project Path="tests/Bravellian.Platform.Postgres.Tests/Bravellian.Platform.Postgres.Tests.csproj" />
     <Project Path="tests/Bravellian.Platform.Email.Tests/Bravellian.Platform.Email.Tests.csproj" />

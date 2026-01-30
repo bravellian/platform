@@ -44,6 +44,7 @@ public abstract class ExactlyOnceOutboxHandler : IOutboxHandler, IExactlyOnceKey
     /// <returns>Stable idempotency key.</returns>
     public virtual string GetKey(OutboxMessage message)
     {
+        ArgumentNullException.ThrowIfNull(message);
         return message.MessageId.ToString();
     }
 
@@ -77,7 +78,7 @@ public abstract class ExactlyOnceOutboxHandler : IOutboxHandler, IExactlyOnceKey
 
         if (result.Outcome == ExactlyOnceOutcome.Retry)
         {
-            throw new Exception(result.ErrorMessage ?? ExactlyOnceDefaults.TransientFailureReason);
+            throw new InvalidOperationException(result.ErrorMessage ?? ExactlyOnceDefaults.TransientFailureReason);
         }
 
         if (result.Outcome == ExactlyOnceOutcome.FailedPermanent)

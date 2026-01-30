@@ -224,6 +224,28 @@ internal static class DatabaseSchemaManager
             CancellationToken.None);
     }
 
+    public static Task ApplyTenantBundleAsync(
+        string connectionString,
+        string schemaName = "infra")
+    {
+        return PostgresSchemaMigrations.ApplyTenantBundleAsync(
+            connectionString,
+            schemaName,
+            NullLogger.Instance,
+            CancellationToken.None);
+    }
+
+    public static Task ApplyControlPlaneBundleAsync(
+        string connectionString,
+        string schemaName = "infra")
+    {
+        return PostgresSchemaMigrations.ApplyControlPlaneBundleAsync(
+            connectionString,
+            schemaName,
+            NullLogger.Instance,
+            CancellationToken.None);
+    }
+
     /// <summary>
     /// Ensures the work queue schema exists. This is now a wrapper around outbox schema deployment.
     /// </summary>

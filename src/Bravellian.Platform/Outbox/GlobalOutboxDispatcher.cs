@@ -122,14 +122,6 @@ internal sealed class GlobalOutboxDispatcher
                     messages.Count);
                 break;
             }
-            catch (Exception ex)
-            {
-                logger.LogError(
-                    ex,
-                    "Unexpected error processing global outbox message {MessageId} with topic '{Topic}'",
-                    message.Id,
-                    message.Topic);
-            }
         }
 
         logger.LogInformation(

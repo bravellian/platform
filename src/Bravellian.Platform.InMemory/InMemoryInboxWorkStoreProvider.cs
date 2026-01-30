@@ -29,6 +29,10 @@ internal sealed class InMemoryInboxWorkStoreProvider : IInboxWorkStoreProvider
         identifiers = registry.Stores.ToDictionary(store => (IInboxWorkStore)store.InboxWorkStore, store => store.Key);
         storesByKey = registry.Stores.ToDictionary(store => store.Key, store => (IInboxWorkStore)store.InboxWorkStore, StringComparer.Ordinal);
         inboxesByKey = registry.Stores.ToDictionary(store => store.Key, store => (IInbox)store.InboxService, StringComparer.Ordinal);
+
+        identifiers[registry.GlobalInboxWorkStore] = PlatformControlPlaneKeys.ControlPlane;
+        storesByKey[PlatformControlPlaneKeys.ControlPlane] = registry.GlobalInboxWorkStore;
+        inboxesByKey[PlatformControlPlaneKeys.ControlPlane] = registry.GlobalInboxService;
     }
 
     public Task<IReadOnlyList<IInboxWorkStore>> GetAllStoresAsync()

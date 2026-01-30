@@ -34,6 +34,7 @@ public sealed class StartupCheckRunnerHostedService : IHostedService
     /// <param name="checks">The startup checks to run.</param>
     /// <param name="latch">The startup latch for tracking in-progress checks.</param>
     /// <param name="logger">The logger.</param>
+    /// <param name="hostApplicationLifetime">Optional host application lifetime for stopping on critical failures.</param>
     public StartupCheckRunnerHostedService(
         IEnumerable<IStartupCheck> checks,
         IStartupLatch latch,

@@ -102,11 +102,7 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
                     platformConfiguration.EnvironmentStyle == PlatformEnvironmentStyle.MultiDatabaseWithControl &&
                     !string.IsNullOrEmpty(platformConfiguration.ControlPlaneConnectionString))
                 {
-                    deploymentTasks.Add(DeploySemaphoreSchemaAsync(stoppingToken));
-                    deploymentTasks.Add(DeployCentralMetricsSchemaAsync(stoppingToken));
-                    deploymentTasks.Add(DeployControlPlaneOutboxSchemaAsync(stoppingToken));
-                    deploymentTasks.Add(DeployControlPlaneSchedulerSchemaAsync(stoppingToken));
-                    deploymentTasks.Add(DeployControlPlaneSystemLeaseSchemaAsync(stoppingToken));
+                    deploymentTasks.Add(DeployControlPlaneBundlesAsync(stoppingToken));
                 }
             }
             else
@@ -238,70 +234,10 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
             database.Name,
             database.SchemaName);
 
-        var deploymentTasks = new List<Task>();
-
-        // Deploy Outbox schema
-        logger.LogDebug("Deploying outbox schema to database {DatabaseName}", database.Name);
-        deploymentTasks.Add(DatabaseSchemaManager.EnsureOutboxSchemaAsync(
+        logger.LogDebug("Deploying tenant bundle to database {DatabaseName}", database.Name);
+        await DatabaseSchemaManager.ApplyTenantBundleAsync(
             database.ConnectionString,
-            database.SchemaName,
-            "Outbox"));
-
-        // Deploy Outbox work queue schema
-        deploymentTasks.Add(DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(
-            database.ConnectionString,
-            database.SchemaName));
-
-        // Deploy Inbox schema
-        logger.LogDebug("Deploying inbox schema to database {DatabaseName}", database.Name);
-        deploymentTasks.Add(DatabaseSchemaManager.EnsureInboxSchemaAsync(
-            database.ConnectionString,
-            database.SchemaName,
-            "Inbox"));
-
-        // Deploy Inbox work queue schema
-        deploymentTasks.Add(DatabaseSchemaManager.EnsureInboxWorkQueueSchemaAsync(
-            database.ConnectionString,
-            database.SchemaName));
-
-        // Deploy Scheduler schema (Jobs, JobRuns, Timers)
-        logger.LogDebug("Deploying scheduler schema to database {DatabaseName}", database.Name);
-        deploymentTasks.Add(DatabaseSchemaManager.EnsureSchedulerSchemaAsync(
-            database.ConnectionString,
-            database.SchemaName,
-            "Jobs",
-            "JobRuns",
-            "Timers"));
-
-        // Deploy Lease schema
-        logger.LogDebug("Deploying lease schema to database {DatabaseName}", database.Name);
-        deploymentTasks.Add(DatabaseSchemaManager.EnsureLeaseSchemaAsync(
-            database.ConnectionString,
-            database.SchemaName,
-            "Lease"));
-
-        // Deploy Fanout schema
-        logger.LogDebug("Deploying fanout schema to database {DatabaseName}", database.Name);
-        deploymentTasks.Add(DatabaseSchemaManager.EnsureFanoutSchemaAsync(
-            database.ConnectionString,
-            database.SchemaName,
-            "FanoutPolicy",
-            "FanoutCursor"));
-
-        // Deploy Idempotency schema
-        logger.LogDebug("Deploying idempotency schema to database {DatabaseName}", database.Name);
-        deploymentTasks.Add(DatabaseSchemaManager.EnsureIdempotencySchemaAsync(
-            database.ConnectionString,
-            database.SchemaName,
-            "Idempotency"));
-
-        // Deploy Metrics schema
-        logger.LogDebug("Deploying metrics schema to database {DatabaseName}", database.Name);
-        deploymentTasks.Add(DatabaseSchemaManager.EnsureMetricsSchemaAsync(
-            database.ConnectionString,
-            "infra"));
-
-        await Task.WhenAll(deploymentTasks).ConfigureAwait(false);
+            database.SchemaName).ConfigureAwait(false);
 
         logger.LogInformation(
             "Successfully deployed all platform schemas to database {DatabaseName}",
@@ -433,21 +369,7 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
             options.SchemaName).ConfigureAwait(false);
     }
 
-    private async Task DeployCentralMetricsSchemaAsync(CancellationToken cancellationToken)
-    {
-        if (platformConfiguration is null || string.IsNullOrEmpty(platformConfiguration.ControlPlaneConnectionString))
-        {
-            logger.LogWarning("Central metrics schema deployment requested but no control plane connection string is configured");
-            return;
-        }
-
-        logger.LogDebug("Deploying central metrics schema to control plane");
-        await DatabaseSchemaManager.EnsureCentralMetricsSchemaAsync(
-            platformConfiguration.ControlPlaneConnectionString,
-            "infra").ConfigureAwait(false);
-    }
-
-    private async Task DeployControlPlaneOutboxSchemaAsync(CancellationToken cancellationToken)
+    private async Task DeployControlPlaneBundlesAsync(CancellationToken cancellationToken)
     {
         if (platformConfiguration is null || string.IsNullOrEmpty(platformConfiguration.ControlPlaneConnectionString))
         {
@@ -458,50 +380,13 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
             ? "infra"
             : platformConfiguration.ControlPlaneSchemaName;
 
-        logger.LogDebug("Deploying control plane outbox schema to {Schema}", schemaName);
-        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(
-            platformConfiguration.ControlPlaneConnectionString,
-            schemaName,
-            "Outbox").ConfigureAwait(false);
-
-        await DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(
+        logger.LogDebug("Deploying tenant bundle to control plane");
+        await DatabaseSchemaManager.ApplyTenantBundleAsync(
             platformConfiguration.ControlPlaneConnectionString,
             schemaName).ConfigureAwait(false);
-    }
 
-    private async Task DeployControlPlaneSchedulerSchemaAsync(CancellationToken cancellationToken)
-    {
-        if (platformConfiguration is null || string.IsNullOrEmpty(platformConfiguration.ControlPlaneConnectionString))
-        {
-            return;
-        }
-
-        var schemaName = string.IsNullOrWhiteSpace(platformConfiguration.ControlPlaneSchemaName)
-            ? "infra"
-            : platformConfiguration.ControlPlaneSchemaName;
-
-        logger.LogDebug("Deploying control plane scheduler schema to {Schema}", schemaName);
-        await DatabaseSchemaManager.EnsureSchedulerSchemaAsync(
-            platformConfiguration.ControlPlaneConnectionString,
-            schemaName,
-            "Jobs",
-            "JobRuns",
-            "Timers").ConfigureAwait(false);
-    }
-
-    private async Task DeployControlPlaneSystemLeaseSchemaAsync(CancellationToken cancellationToken)
-    {
-        if (platformConfiguration is null || string.IsNullOrEmpty(platformConfiguration.ControlPlaneConnectionString))
-        {
-            return;
-        }
-
-        var schemaName = string.IsNullOrWhiteSpace(platformConfiguration.ControlPlaneSchemaName)
-            ? "infra"
-            : platformConfiguration.ControlPlaneSchemaName;
-
-        logger.LogDebug("Deploying control plane system lease schema to {Schema}", schemaName);
-        await DatabaseSchemaManager.EnsureDistributedLockSchemaAsync(
+        logger.LogDebug("Deploying control-plane bundle");
+        await DatabaseSchemaManager.ApplyControlPlaneBundleAsync(
             platformConfiguration.ControlPlaneConnectionString,
             schemaName).ConfigureAwait(false);
     }

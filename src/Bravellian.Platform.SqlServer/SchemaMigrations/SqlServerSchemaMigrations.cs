@@ -262,6 +262,130 @@ internal static class SqlServerSchemaMigrations
             cancellationToken);
     }
 
+    public static Task ApplyTenantBundleAsync(
+        string connectionString,
+        string schemaName,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        var outboxTable = "Outbox";
+        var inboxTable = "Inbox";
+        var jobsTable = "Jobs";
+        var jobRunsTable = "JobRuns";
+        var timersTable = "Timers";
+        var leaseTable = "Lease";
+        var lockTable = "DistributedLock";
+        var fanoutPolicyTable = "FanoutPolicy";
+        var fanoutCursorTable = "FanoutCursor";
+        var externalSideEffectTable = "ExternalSideEffect";
+        var idempotencyTable = "Idempotency";
+
+        var scripts = new List<SqlScript>();
+        scripts.AddRange(GetModuleScriptsWithVariables("Outbox", new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["SchemaName"] = schemaName,
+            ["OutboxTable"] = outboxTable,
+        }));
+        scripts.AddRange(GetModuleScriptsWithVariables("OutboxJoin", new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["SchemaName"] = schemaName,
+            ["OutboxTable"] = outboxTable,
+        }));
+        scripts.AddRange(GetModuleScriptsWithVariables("Inbox", new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["SchemaName"] = schemaName,
+            ["InboxTable"] = inboxTable,
+        }));
+        scripts.AddRange(GetModuleScriptsWithVariables("Scheduler", new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["SchemaName"] = schemaName,
+            ["JobsTable"] = jobsTable,
+            ["JobRunsTable"] = jobRunsTable,
+            ["TimersTable"] = timersTable,
+        }));
+        scripts.AddRange(GetModuleScriptsWithVariables("Lease", new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["SchemaName"] = schemaName,
+            ["LeaseTable"] = leaseTable,
+        }));
+        scripts.AddRange(GetModuleScriptsWithVariables("DistributedLock", new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["SchemaName"] = schemaName,
+            ["LockTable"] = lockTable,
+        }));
+        scripts.AddRange(GetModuleScriptsWithVariables("Fanout", new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["SchemaName"] = schemaName,
+            ["FanoutPolicyTable"] = fanoutPolicyTable,
+            ["FanoutCursorTable"] = fanoutCursorTable,
+        }));
+        scripts.AddRange(GetModuleScriptsWithVariables("ExternalSideEffects", new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["SchemaName"] = schemaName,
+            ["ExternalSideEffectTable"] = externalSideEffectTable,
+        }));
+        scripts.AddRange(GetModuleScriptsWithVariables("Idempotency", new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["SchemaName"] = schemaName,
+            ["IdempotencyTable"] = idempotencyTable,
+        }));
+        scripts.AddRange(GetModuleScriptsWithVariables("Metrics", new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["SchemaName"] = "infra",
+        }));
+
+        var journalTable = BuildJournalTableName(
+            "TenantBundle",
+            outboxTable,
+            inboxTable,
+            jobsTable,
+            jobRunsTable,
+            timersTable,
+            leaseTable,
+            lockTable,
+            fanoutPolicyTable,
+            fanoutCursorTable,
+            externalSideEffectTable,
+            idempotencyTable);
+
+        return DbUpSchemaRunner.ApplyAsync(
+            connectionString,
+            scripts,
+            schemaName,
+            journalTable,
+            new Dictionary<string, string>(StringComparer.Ordinal),
+            logger ?? NullLogger.Instance,
+            cancellationToken);
+    }
+
+    public static Task ApplyControlPlaneBundleAsync(
+        string connectionString,
+        string schemaName,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        var scripts = new List<SqlScript>();
+        scripts.AddRange(GetModuleScriptsWithVariables("Semaphore", new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["SchemaName"] = schemaName,
+        }));
+        scripts.AddRange(GetModuleScriptsWithVariables("MetricsCentral", new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["SchemaName"] = schemaName,
+        }));
+
+        var journalTable = BuildJournalTableName("ControlPlaneBundle", "Semaphore", "MetricsCentral");
+
+        return DbUpSchemaRunner.ApplyAsync(
+            connectionString,
+            scripts,
+            schemaName,
+            journalTable,
+            new Dictionary<string, string>(StringComparer.Ordinal),
+            logger ?? NullLogger.Instance,
+            cancellationToken);
+    }
+
     public static Task ApplyExternalSideEffectsAsync(
         string connectionString,
         string schemaName,
@@ -441,6 +565,21 @@ internal static class SqlServerSchemaMigrations
             .Where(name => name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
             .OrderBy(name => name, StringComparer.Ordinal)
             .Select(name => new SqlScript(name, ReadResourceText(assembly, name)))
+            .ToList();
+    }
+
+    private static IReadOnlyList<SqlScript> GetModuleScriptsWithVariables(
+        string moduleName,
+        IReadOnlyDictionary<string, string> variables)
+    {
+        var assembly = Assembly.GetExecutingAssembly();
+        var prefix = $"{assembly.GetName().Name}.SchemaMigrations.{moduleName}.";
+
+        return assembly
+            .GetManifestResourceNames()
+            .Where(name => name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .Select(name => new SqlScript(name, ReplaceVariables(ReadResourceText(assembly, name), variables)))
             .ToList();
     }
 

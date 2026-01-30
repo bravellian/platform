@@ -534,78 +534,74 @@ internal static class PlatformServiceCollectionExtensions
             return;
         }
 
-        var schemaName = string.IsNullOrWhiteSpace(config.ControlPlaneSchemaName) ? "infra" : config.ControlPlaneSchemaName;
-
         services.TryAddSingleton<IGlobalSchedulerStore>(sp =>
         {
-            var store = new SqlSchedulerStore(
-                Options.Create(new SqlSchedulerOptions
-                {
-                    ConnectionString = config.ControlPlaneConnectionString,
-                    SchemaName = schemaName,
-                    EnableSchemaDeployment = config.EnableSchemaDeployment,
-                }),
-                sp.GetRequiredService<TimeProvider>());
+            var storeProvider = sp.GetRequiredService<ISchedulerStoreProvider>();
+            var store = storeProvider.GetStoreByKey(PlatformControlPlaneKeys.ControlPlane);
+            if (store == null)
+            {
+                throw new InvalidOperationException("Control-plane scheduler store is not configured.");
+            }
             return new SqlGlobalSchedulerStore(store);
         });
 
         services.TryAddSingleton<IGlobalSchedulerClient>(sp =>
         {
-            var client = new SqlSchedulerClient(
-                Options.Create(new SqlSchedulerOptions
-                {
-                    ConnectionString = config.ControlPlaneConnectionString,
-                    SchemaName = schemaName,
-                    EnableSchemaDeployment = config.EnableSchemaDeployment,
-                }),
-                sp.GetRequiredService<TimeProvider>());
+            var router = sp.GetRequiredService<ISchedulerRouter>();
+            var client = router.GetSchedulerClient(PlatformControlPlaneKeys.ControlPlane);
             return new SqlGlobalSchedulerClient(client);
         });
 
         services.TryAddSingleton<IGlobalOutboxStore>(sp =>
         {
-            var storeLogger = sp.GetRequiredService<ILoggerFactory>().CreateLogger<SqlOutboxStore>();
-            var store = new SqlOutboxStore(
-                Options.Create(new SqlOutboxOptions
-                {
-                    ConnectionString = config.ControlPlaneConnectionString,
-                    SchemaName = schemaName,
-                    TableName = "Outbox",
-                    EnableSchemaDeployment = config.EnableSchemaDeployment,
-                }),
-                sp.GetRequiredService<TimeProvider>(),
-                storeLogger);
+            var storeProvider = sp.GetRequiredService<IOutboxStoreProvider>();
+            var store = storeProvider.GetStoreByKey(PlatformControlPlaneKeys.ControlPlane);
+            if (store == null)
+            {
+                throw new InvalidOperationException("Control-plane outbox store is not configured.");
+            }
             return new SqlGlobalOutboxStore(store);
         });
 
         services.TryAddSingleton<IGlobalOutbox>(sp =>
         {
-            var outboxLogger = sp.GetRequiredService<ILoggerFactory>().CreateLogger<SqlOutboxService>();
-            var outbox = new SqlOutboxService(
-                Options.Create(new SqlOutboxOptions
-                {
-                    ConnectionString = config.ControlPlaneConnectionString,
-                    SchemaName = schemaName,
-                    TableName = "Outbox",
-                    EnableSchemaDeployment = config.EnableSchemaDeployment,
-                }),
-                outboxLogger,
-                joinStore: null,
-                sp.GetService<IPlatformEventEmitter>());
+            var router = sp.GetRequiredService<IOutboxRouter>();
+            var outbox = router.GetOutbox(PlatformControlPlaneKeys.ControlPlane);
             return new SqlGlobalOutbox(outbox);
         });
 
         services.TryAddSingleton<IGlobalSystemLeaseFactory>(sp =>
         {
-            var leaseLogger = sp.GetRequiredService<ILoggerFactory>().CreateLogger<SqlLeaseFactory>();
-            var leaseFactory = new SqlLeaseFactory(
-                new LeaseFactoryConfig
-                {
-                    ConnectionString = config.ControlPlaneConnectionString!,
-                    SchemaName = schemaName,
-                },
-                leaseLogger);
+            var leaseProvider = sp.GetRequiredService<ILeaseFactoryProvider>();
+            var leaseFactory = leaseProvider.GetFactoryByKeyAsync(PlatformControlPlaneKeys.ControlPlane)
+                .ConfigureAwait(false)
+                .GetAwaiter()
+                .GetResult();
+
+            if (leaseFactory == null)
+            {
+                throw new InvalidOperationException("Control-plane lease factory is not configured.");
+            }
             return new SqlGlobalSystemLeaseFactory(leaseFactory);
+        });
+
+        services.TryAddSingleton<IGlobalInbox>(sp =>
+        {
+            var router = sp.GetRequiredService<IInboxRouter>();
+            var inbox = router.GetInbox(PlatformControlPlaneKeys.ControlPlane);
+            return new GlobalInbox(inbox);
+        });
+
+        services.TryAddSingleton<IGlobalInboxWorkStore>(sp =>
+        {
+            var storeProvider = sp.GetRequiredService<IInboxWorkStoreProvider>();
+            var store = storeProvider.GetStoreByKey(PlatformControlPlaneKeys.ControlPlane);
+            if (store == null)
+            {
+                throw new InvalidOperationException("Control-plane inbox work store is not configured.");
+            }
+
+            return new GlobalInboxWorkStore(store);
         });
 
         services.TryAddSingleton<GlobalSchedulerDispatcher>();

@@ -44,6 +44,7 @@ public abstract class ExactlyOnceInboxHandler : IInboxHandler, IExactlyOnceKeyRe
     /// <returns>Stable idempotency key.</returns>
     public virtual string GetKey(InboxMessage message)
     {
+        ArgumentNullException.ThrowIfNull(message);
         if (string.IsNullOrWhiteSpace(message.Source))
         {
             return message.MessageId;
@@ -82,7 +83,7 @@ public abstract class ExactlyOnceInboxHandler : IInboxHandler, IExactlyOnceKeyRe
 
         if (result.Outcome == ExactlyOnceOutcome.Retry)
         {
-            throw new Exception(result.ErrorMessage ?? ExactlyOnceDefaults.TransientFailureReason);
+            throw new InvalidOperationException(result.ErrorMessage ?? ExactlyOnceDefaults.TransientFailureReason);
         }
 
         if (result.Outcome == ExactlyOnceOutcome.FailedPermanent)

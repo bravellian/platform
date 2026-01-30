@@ -139,6 +139,8 @@ internal sealed class PlatformLeaseFactoryProvider : ILeaseFactoryProvider
                     }
                 }
             }
+
+            RegisterControlPlaneFactory();
         }
 
         return cachedFactories;
@@ -186,5 +188,39 @@ internal sealed class PlatformLeaseFactoryProvider : ILeaseFactoryProvider
         {
             return string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
         }
+    }
+
+    private void RegisterControlPlaneFactory()
+    {
+        if (platformConfiguration?.EnvironmentStyle != PlatformEnvironmentStyle.MultiDatabaseWithControl ||
+            string.IsNullOrWhiteSpace(platformConfiguration.ControlPlaneConnectionString))
+        {
+            return;
+        }
+
+        var key = PlatformControlPlaneKeys.ControlPlane;
+        if (factoriesByKey.ContainsKey(key))
+        {
+            return;
+        }
+
+        var schemaName = string.IsNullOrWhiteSpace(platformConfiguration.ControlPlaneSchemaName)
+            ? "infra"
+            : platformConfiguration.ControlPlaneSchemaName;
+
+        var factoryLogger = loggerFactory.CreateLogger<SqlLeaseFactory>();
+        var factory = new SqlLeaseFactory(
+            new LeaseFactoryConfig
+            {
+                ConnectionString = platformConfiguration.ControlPlaneConnectionString,
+                SchemaName = schemaName,
+                RenewPercent = 0.6,
+                GateTimeoutMs = 200,
+                UseGate = false,
+            },
+            factoryLogger);
+
+        factoriesByKey[key] = factory;
+        identifiersByFactory[factory] = key;
     }
 }

@@ -31,6 +31,11 @@ internal sealed class InMemorySchedulerStoreProvider : ISchedulerStoreProvider
         storesByKey = registry.Stores.ToDictionary(store => store.Key, store => (ISchedulerStore)store.SchedulerStore, StringComparer.Ordinal);
         clientsByKey = registry.Stores.ToDictionary(store => store.Key, store => (ISchedulerClient)store.SchedulerClient, StringComparer.Ordinal);
         outboxesByKey = registry.Stores.ToDictionary(store => store.Key, store => (IOutbox)store.OutboxService, StringComparer.Ordinal);
+
+        identifiers[registry.GlobalSchedulerStore] = PlatformControlPlaneKeys.ControlPlane;
+        storesByKey[PlatformControlPlaneKeys.ControlPlane] = registry.GlobalSchedulerStore;
+        clientsByKey[PlatformControlPlaneKeys.ControlPlane] = registry.GlobalSchedulerClient;
+        outboxesByKey[PlatformControlPlaneKeys.ControlPlane] = registry.GlobalOutboxService;
     }
 
     public Task<IReadOnlyList<ISchedulerStore>> GetAllStoresAsync()
