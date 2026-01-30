@@ -43,6 +43,41 @@ BEGIN
 END
 GO
 
+IF OBJECT_ID(N'[$SchemaName$].[$OutboxTable$]', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('[$SchemaName$].[$OutboxTable$]', 'Id') IS NULL
+        ALTER TABLE [$SchemaName$].[$OutboxTable$] ADD Id UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID();
+    IF COL_LENGTH('[$SchemaName$].[$OutboxTable$]', 'Payload') IS NULL
+        ALTER TABLE [$SchemaName$].[$OutboxTable$] ADD Payload NVARCHAR(MAX) NOT NULL DEFAULT N'';
+    IF COL_LENGTH('[$SchemaName$].[$OutboxTable$]', 'Topic') IS NULL
+        ALTER TABLE [$SchemaName$].[$OutboxTable$] ADD Topic NVARCHAR(255) NOT NULL DEFAULT N'';
+    IF COL_LENGTH('[$SchemaName$].[$OutboxTable$]', 'CreatedAt') IS NULL
+        ALTER TABLE [$SchemaName$].[$OutboxTable$] ADD CreatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET();
+    IF COL_LENGTH('[$SchemaName$].[$OutboxTable$]', 'IsProcessed') IS NULL
+        ALTER TABLE [$SchemaName$].[$OutboxTable$] ADD IsProcessed BIT NOT NULL DEFAULT 0;
+    IF COL_LENGTH('[$SchemaName$].[$OutboxTable$]', 'ProcessedAt') IS NULL
+        ALTER TABLE [$SchemaName$].[$OutboxTable$] ADD ProcessedAt DATETIMEOFFSET NULL;
+    IF COL_LENGTH('[$SchemaName$].[$OutboxTable$]', 'ProcessedBy') IS NULL
+        ALTER TABLE [$SchemaName$].[$OutboxTable$] ADD ProcessedBy NVARCHAR(100) NULL;
+    IF COL_LENGTH('[$SchemaName$].[$OutboxTable$]', 'RetryCount') IS NULL
+        ALTER TABLE [$SchemaName$].[$OutboxTable$] ADD RetryCount INT NOT NULL DEFAULT 0;
+    IF COL_LENGTH('[$SchemaName$].[$OutboxTable$]', 'LastError') IS NULL
+        ALTER TABLE [$SchemaName$].[$OutboxTable$] ADD LastError NVARCHAR(MAX) NULL;
+    IF COL_LENGTH('[$SchemaName$].[$OutboxTable$]', 'MessageId') IS NULL
+        ALTER TABLE [$SchemaName$].[$OutboxTable$] ADD MessageId UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID();
+    IF COL_LENGTH('[$SchemaName$].[$OutboxTable$]', 'CorrelationId') IS NULL
+        ALTER TABLE [$SchemaName$].[$OutboxTable$] ADD CorrelationId NVARCHAR(255) NULL;
+    IF COL_LENGTH('[$SchemaName$].[$OutboxTable$]', 'DueTimeUtc') IS NULL
+        ALTER TABLE [$SchemaName$].[$OutboxTable$] ADD DueTimeUtc DATETIMEOFFSET(3) NULL;
+    IF COL_LENGTH('[$SchemaName$].[$OutboxTable$]', 'Status') IS NULL
+        ALTER TABLE [$SchemaName$].[$OutboxTable$] ADD Status TINYINT NOT NULL DEFAULT 0;
+    IF COL_LENGTH('[$SchemaName$].[$OutboxTable$]', 'LockedUntil') IS NULL
+        ALTER TABLE [$SchemaName$].[$OutboxTable$] ADD LockedUntil DATETIMEOFFSET(3) NULL;
+    IF COL_LENGTH('[$SchemaName$].[$OutboxTable$]', 'OwnerToken') IS NULL
+        ALTER TABLE [$SchemaName$].[$OutboxTable$] ADD OwnerToken UNIQUEIDENTIFIER NULL;
+END
+GO
+
 IF NOT EXISTS (
     SELECT 1
     FROM sys.indexes
@@ -65,5 +100,16 @@ BEGIN
 
     INSERT [$SchemaName$].OutboxState (Id, CurrentFencingToken, LastDispatchAt)
     VALUES (1, 0, NULL);
+END
+GO
+
+IF OBJECT_ID(N'[$SchemaName$].OutboxState', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('[$SchemaName$].OutboxState', 'Id') IS NULL
+        ALTER TABLE [$SchemaName$].OutboxState ADD Id INT NOT NULL DEFAULT 1;
+    IF COL_LENGTH('[$SchemaName$].OutboxState', 'CurrentFencingToken') IS NULL
+        ALTER TABLE [$SchemaName$].OutboxState ADD CurrentFencingToken BIGINT NOT NULL DEFAULT(0);
+    IF COL_LENGTH('[$SchemaName$].OutboxState', 'LastDispatchAt') IS NULL
+        ALTER TABLE [$SchemaName$].OutboxState ADD LastDispatchAt DATETIMEOFFSET(3) NULL;
 END
 GO

@@ -19,6 +19,22 @@ CREATE TABLE IF NOT EXISTS "$SchemaName$"."$InboxTable$" (
     CONSTRAINT "CK_$InboxTable$_Status" CHECK ("Status" IN ('Seen', 'Processing', 'Done', 'Dead'))
 );
 
+ALTER TABLE "$SchemaName$"."$InboxTable$"
+    ADD COLUMN IF NOT EXISTS "MessageId" varchar(64) NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS "Source" varchar(64) NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS "Hash" bytea NULL,
+    ADD COLUMN IF NOT EXISTS "FirstSeenUtc" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ADD COLUMN IF NOT EXISTS "LastSeenUtc" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ADD COLUMN IF NOT EXISTS "ProcessedUtc" timestamptz NULL,
+    ADD COLUMN IF NOT EXISTS "DueTimeUtc" timestamptz NULL,
+    ADD COLUMN IF NOT EXISTS "Attempts" integer NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS "Status" varchar(16) NOT NULL DEFAULT 'Seen',
+    ADD COLUMN IF NOT EXISTS "LastError" text NULL,
+    ADD COLUMN IF NOT EXISTS "LockedUntil" timestamptz NULL,
+    ADD COLUMN IF NOT EXISTS "OwnerToken" uuid NULL,
+    ADD COLUMN IF NOT EXISTS "Topic" varchar(128) NULL,
+    ADD COLUMN IF NOT EXISTS "Payload" text NULL;
+
 CREATE INDEX IF NOT EXISTS "IX_$InboxTable$_ProcessedUtc"
     ON "$SchemaName$"."$InboxTable$" ("ProcessedUtc")
     WHERE "ProcessedUtc" IS NOT NULL;

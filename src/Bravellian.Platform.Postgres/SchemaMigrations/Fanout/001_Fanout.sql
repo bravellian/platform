@@ -10,6 +10,14 @@ CREATE TABLE IF NOT EXISTS "$SchemaName$"."$PolicyTable$" (
     CONSTRAINT "PK_$PolicyTable$" PRIMARY KEY ("FanoutTopic", "WorkKey")
 );
 
+ALTER TABLE "$SchemaName$"."$PolicyTable$"
+    ADD COLUMN IF NOT EXISTS "FanoutTopic" varchar(100) NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS "WorkKey" varchar(100) NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS "DefaultEverySeconds" integer NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS "JitterSeconds" integer NOT NULL DEFAULT 60,
+    ADD COLUMN IF NOT EXISTS "CreatedAt" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ADD COLUMN IF NOT EXISTS "UpdatedAt" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
 CREATE INDEX IF NOT EXISTS "IX_$PolicyTable$_FanoutTopic"
     ON "$SchemaName$"."$PolicyTable$" ("FanoutTopic");
 
@@ -25,6 +33,17 @@ CREATE TABLE IF NOT EXISTS "$SchemaName$"."$CursorTable$" (
     "UpdatedAt" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "PK_$CursorTable$" PRIMARY KEY ("FanoutTopic", "WorkKey", "ShardKey")
 );
+
+ALTER TABLE "$SchemaName$"."$CursorTable$"
+    ADD COLUMN IF NOT EXISTS "FanoutTopic" varchar(100) NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS "WorkKey" varchar(100) NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS "ShardKey" varchar(100) NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS "LastCompletedAt" timestamptz NULL,
+    ADD COLUMN IF NOT EXISTS "LastAttemptAt" timestamptz NULL,
+    ADD COLUMN IF NOT EXISTS "LastAttemptStatus" varchar(20) NULL,
+    ADD COLUMN IF NOT EXISTS "NextAttemptAt" timestamptz NULL,
+    ADD COLUMN IF NOT EXISTS "CreatedAt" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ADD COLUMN IF NOT EXISTS "UpdatedAt" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP;
 
 CREATE INDEX IF NOT EXISTS "IX_$CursorTable$_TopicWork"
     ON "$SchemaName$"."$CursorTable$" ("FanoutTopic", "WorkKey");

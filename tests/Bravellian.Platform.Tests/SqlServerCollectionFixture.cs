@@ -13,8 +13,10 @@
 // limitations under the License.
 
 
+using System.Linq;
+using DotNet.Testcontainers.Builders;
+using DotNet.Testcontainers.Containers;
 using Microsoft.Data.SqlClient;
-using Testcontainers.MsSql;
 
 namespace Bravellian.Platform.Tests;
 /// <summary>
@@ -24,16 +26,22 @@ namespace Bravellian.Platform.Tests;
 /// </summary>
 public sealed class SqlServerCollectionFixture : IAsyncLifetime
 {
-    private readonly MsSqlContainer msSqlContainer;
+    private const string SaPassword = "Str0ng!Passw0rd!";
+    private readonly IContainer msSqlContainer;
     private string? connectionString;
     private int databaseCounter = 0;
     private bool isAvailable;
 
     public SqlServerCollectionFixture()
     {
-        isAvailable = SqlServerTestEnvironment.IsSqlCmdAvailable();
-        msSqlContainer = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2022-CU10-ubuntu-22.04")
+        isAvailable = true;
+        msSqlContainer = new ContainerBuilder("mcr.microsoft.com/mssql/server:2022-CU10-ubuntu-22.04")
+            .WithEnvironment("ACCEPT_EULA", "Y")
+            .WithEnvironment("MSSQL_SA_PASSWORD", SaPassword)
+            .WithEnvironment("MSSQL_PID", "Developer")
+            .WithPortBinding(1433, true)
             .WithReuse(true)  // Enable container reuse to avoid rebuilding
+            .WithWaitStrategy(Wait.ForUnixContainer().UntilInternalTcpPortIsAvailable(1433))
             .Build();
     }
 
@@ -66,7 +74,18 @@ public sealed class SqlServerCollectionFixture : IAsyncLifetime
             return;
         }
 
-        connectionString = msSqlContainer.GetConnectionString();
+        var builder = new SqlConnectionStringBuilder
+        {
+            DataSource = $"{msSqlContainer.Hostname},{msSqlContainer.GetMappedPublicPort(1433)}",
+            UserID = "sa",
+            Password = SaPassword,
+            InitialCatalog = "master",
+            Encrypt = false,
+            TrustServerCertificate = true,
+        };
+
+        connectionString = builder.ConnectionString;
+        await WaitForServerReadyAsync(connectionString, TestContext.Current.CancellationToken).ConfigureAwait(false);
     }
 
     public async ValueTask DisposeAsync()
@@ -114,8 +133,36 @@ public sealed class SqlServerCollectionFixture : IAsyncLifetime
     {
         if (!isAvailable)
         {
-            throw new InvalidOperationException("SQL Server tests cannot run because sqlcmd is not available. Install SQL Server command-line tools to run these tests.");
+            throw new InvalidOperationException("SQL Server tests cannot run because the SQL Server container could not be started.");
         }
+    }
+
+    private static async Task WaitForServerReadyAsync(string connectionString, CancellationToken cancellationToken)
+    {
+        var timeoutAt = DateTimeOffset.UtcNow.AddSeconds(60);
+
+        while (DateTimeOffset.UtcNow < timeoutAt)
+        {
+            try
+            {
+                var connection = new SqlConnection(connectionString);
+                await using (connection.ConfigureAwait(false))
+                {
+                    await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+                    return;
+                }
+            }
+            catch (SqlException)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken).ConfigureAwait(false);
+            }
+            catch (InvalidOperationException)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        throw new TimeoutException("SQL Server did not become available before the timeout.");
     }
 }
 

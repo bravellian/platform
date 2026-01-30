@@ -21,6 +21,25 @@ CREATE TABLE IF NOT EXISTS "$SchemaName$"."$OperationsTable$" (
     CONSTRAINT "PK_$OperationsTable$" PRIMARY KEY ("OperationId")
 );
 
+ALTER TABLE "$SchemaName$"."$OperationsTable$"
+    ADD COLUMN IF NOT EXISTS "OperationId" text NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS "Name" text NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS "Status" smallint NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS "StartedAtUtc" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ADD COLUMN IF NOT EXISTS "UpdatedAtUtc" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ADD COLUMN IF NOT EXISTS "CompletedAtUtc" timestamptz NULL,
+    ADD COLUMN IF NOT EXISTS "PercentComplete" numeric(5,2) NULL,
+    ADD COLUMN IF NOT EXISTS "Message" text NULL,
+    ADD COLUMN IF NOT EXISTS "CorrelationId" text NULL,
+    ADD COLUMN IF NOT EXISTS "CausationId" text NULL,
+    ADD COLUMN IF NOT EXISTS "TraceId" text NULL,
+    ADD COLUMN IF NOT EXISTS "SpanId" text NULL,
+    ADD COLUMN IF NOT EXISTS "CorrelationCreatedAtUtc" timestamptz NULL,
+    ADD COLUMN IF NOT EXISTS "CorrelationTagsJson" text NULL,
+    ADD COLUMN IF NOT EXISTS "ParentOperationId" text NULL,
+    ADD COLUMN IF NOT EXISTS "TagsJson" text NULL,
+    ADD COLUMN IF NOT EXISTS "RowVersion" bigint NOT NULL DEFAULT 0;
+
 CREATE INDEX IF NOT EXISTS "IX_$OperationsTable$_Status_UpdatedAtUtc"
     ON "$SchemaName$"."$OperationsTable$" ("Status", "UpdatedAtUtc")
     INCLUDE ("OperationId", "CompletedAtUtc");

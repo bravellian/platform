@@ -22,6 +22,29 @@ BEGIN
 END
 GO
 
+IF OBJECT_ID(N'[$SchemaName$].OutboxJoin', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('[$SchemaName$].OutboxJoin', 'JoinId') IS NULL
+        ALTER TABLE [$SchemaName$].OutboxJoin ADD JoinId UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID();
+    IF COL_LENGTH('[$SchemaName$].OutboxJoin', 'PayeWaiveTenantId') IS NULL
+        ALTER TABLE [$SchemaName$].OutboxJoin ADD PayeWaiveTenantId BIGINT NOT NULL DEFAULT 0;
+    IF COL_LENGTH('[$SchemaName$].OutboxJoin', 'ExpectedSteps') IS NULL
+        ALTER TABLE [$SchemaName$].OutboxJoin ADD ExpectedSteps INT NOT NULL DEFAULT 0;
+    IF COL_LENGTH('[$SchemaName$].OutboxJoin', 'CompletedSteps') IS NULL
+        ALTER TABLE [$SchemaName$].OutboxJoin ADD CompletedSteps INT NOT NULL DEFAULT 0;
+    IF COL_LENGTH('[$SchemaName$].OutboxJoin', 'FailedSteps') IS NULL
+        ALTER TABLE [$SchemaName$].OutboxJoin ADD FailedSteps INT NOT NULL DEFAULT 0;
+    IF COL_LENGTH('[$SchemaName$].OutboxJoin', 'Status') IS NULL
+        ALTER TABLE [$SchemaName$].OutboxJoin ADD Status TINYINT NOT NULL DEFAULT 0;
+    IF COL_LENGTH('[$SchemaName$].OutboxJoin', 'CreatedUtc') IS NULL
+        ALTER TABLE [$SchemaName$].OutboxJoin ADD CreatedUtc DATETIMEOFFSET(3) NOT NULL DEFAULT SYSDATETIMEOFFSET();
+    IF COL_LENGTH('[$SchemaName$].OutboxJoin', 'LastUpdatedUtc') IS NULL
+        ALTER TABLE [$SchemaName$].OutboxJoin ADD LastUpdatedUtc DATETIMEOFFSET(3) NOT NULL DEFAULT SYSDATETIMEOFFSET();
+    IF COL_LENGTH('[$SchemaName$].OutboxJoin', 'Metadata') IS NULL
+        ALTER TABLE [$SchemaName$].OutboxJoin ADD Metadata NVARCHAR(MAX) NULL;
+END
+GO
+
 IF OBJECT_ID(N'[$SchemaName$].OutboxJoinMember', N'U') IS NULL
 BEGIN
     CREATE TABLE [$SchemaName$].OutboxJoinMember (
@@ -38,5 +61,20 @@ BEGIN
     );
 
     CREATE INDEX IX_OutboxJoinMember_MessageId ON [$SchemaName$].OutboxJoinMember(OutboxMessageId);
+END
+GO
+
+IF OBJECT_ID(N'[$SchemaName$].OutboxJoinMember', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('[$SchemaName$].OutboxJoinMember', 'JoinId') IS NULL
+        ALTER TABLE [$SchemaName$].OutboxJoinMember ADD JoinId UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID();
+    IF COL_LENGTH('[$SchemaName$].OutboxJoinMember', 'OutboxMessageId') IS NULL
+        ALTER TABLE [$SchemaName$].OutboxJoinMember ADD OutboxMessageId UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID();
+    IF COL_LENGTH('[$SchemaName$].OutboxJoinMember', 'CreatedUtc') IS NULL
+        ALTER TABLE [$SchemaName$].OutboxJoinMember ADD CreatedUtc DATETIMEOFFSET(3) NOT NULL DEFAULT SYSDATETIMEOFFSET();
+    IF COL_LENGTH('[$SchemaName$].OutboxJoinMember', 'CompletedAt') IS NULL
+        ALTER TABLE [$SchemaName$].OutboxJoinMember ADD CompletedAt DATETIMEOFFSET(3) NULL;
+    IF COL_LENGTH('[$SchemaName$].OutboxJoinMember', 'FailedAt') IS NULL
+        ALTER TABLE [$SchemaName$].OutboxJoinMember ADD FailedAt DATETIMEOFFSET(3) NULL;
 END
 GO

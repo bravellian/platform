@@ -7,3 +7,9 @@ CREATE TABLE IF NOT EXISTS "$SchemaName$"."$LeaseTable$" (
     "LastGrantedUtc" timestamptz NULL,
     CONSTRAINT "PK_$LeaseTable$" PRIMARY KEY ("Name")
 );
+
+ALTER TABLE "$SchemaName$"."$LeaseTable$"
+    ADD COLUMN IF NOT EXISTS "Name" text NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS "Owner" text NULL,
+    ADD COLUMN IF NOT EXISTS "LeaseUntilUtc" timestamptz NULL,
+    ADD COLUMN IF NOT EXISTS "LastGrantedUtc" timestamptz NULL;

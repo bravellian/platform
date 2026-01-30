@@ -10,6 +10,12 @@ CREATE TABLE IF NOT EXISTS "$SchemaName$"."$AuditAnchorsTable$" (
         ON DELETE CASCADE
 );
 
+ALTER TABLE "$SchemaName$"."$AuditAnchorsTable$"
+    ADD COLUMN IF NOT EXISTS "AuditEventId" text NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS "AnchorType" text NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS "AnchorId" text NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS "Role" text NOT NULL DEFAULT '';
+
 CREATE INDEX IF NOT EXISTS "IX_$AuditAnchorsTable$_Type_Id"
     ON "$SchemaName$"."$AuditAnchorsTable$" ("AnchorType", "AnchorId")
     INCLUDE ("AuditEventId", "Role");

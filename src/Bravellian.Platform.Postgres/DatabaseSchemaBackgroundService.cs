@@ -38,6 +38,7 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
     private readonly DatabaseSchemaCompletion schemaCompletion;
     private readonly PlatformConfiguration? platformConfiguration;
     private readonly IPlatformDatabaseDiscovery? databaseDiscovery;
+    private readonly IStartupLatch? startupLatch;
 
     public DatabaseSchemaBackgroundService(
         ILogger<DatabaseSchemaBackgroundService> logger,
@@ -53,7 +54,8 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
         IOptionsMonitor<PostgresSystemLeaseOptions> systemLeaseOptions,
         DatabaseSchemaCompletion schemaCompletion,
         PlatformConfiguration? platformConfiguration = null,
-        IPlatformDatabaseDiscovery? databaseDiscovery = null)
+        IPlatformDatabaseDiscovery? databaseDiscovery = null,
+        IStartupLatch? startupLatch = null)
     {
         this.logger = logger;
         this.outboxOptions = outboxOptions;
@@ -69,10 +71,13 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
         this.schemaCompletion = schemaCompletion;
         this.platformConfiguration = platformConfiguration;
         this.databaseDiscovery = databaseDiscovery;
+        this.startupLatch = startupLatch;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        using var step = startupLatch?.Register("platform-migrations");
+
         try
         {
             logger.LogInformation("Starting database schema deployment");

@@ -17,6 +17,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -28,21 +29,8 @@ namespace Bravellian.Platform;
 
 internal static class PostgresSchemaMigrations
 {
-    private const string OutboxJournalTable = "BravellianPlatform_OutboxJournal";
-    private const string OutboxJoinJournalTable = "BravellianPlatform_OutboxJoinJournal";
-    private const string InboxJournalTable = "BravellianPlatform_InboxJournal";
-    private const string SchedulerJournalTable = "BravellianPlatform_SchedulerJournal";
-    private const string FanoutJournalTable = "BravellianPlatform_FanoutJournal";
-    private const string LeaseJournalTable = "BravellianPlatform_LeaseJournal";
-    private const string DistributedLockJournalTable = "BravellianPlatform_DistributedLockJournal";
-    private const string SemaphoreJournalTable = "BravellianPlatform_SemaphoreJournal";
-    private const string MetricsJournalTable = "BravellianPlatform_MetricsJournal";
-    private const string CentralMetricsJournalTable = "BravellianPlatform_CentralMetricsJournal";
-    private const string IdempotencyJournalTable = "BravellianPlatform_IdempotencyJournal";
-    private const string OperationsJournalTable = "BravellianPlatform_OperationsJournal";
-    private const string AuditJournalTable = "BravellianPlatform_AuditJournal";
-    private const string EmailOutboxJournalTable = "BravellianPlatform_EmailOutboxJournal";
-    private const string EmailDeliveryJournalTable = "BravellianPlatform_EmailDeliveryJournal";
+    private const int MaxIdentifierLength = 63;
+    private const int HashSuffixBytes = 4;
 
     public static Task ApplyOutboxAsync(
         string connectionString,
@@ -61,7 +49,7 @@ internal static class PostgresSchemaMigrations
             connectionString,
             "Outbox",
             schemaName,
-            OutboxJournalTable,
+            BuildJournalTableName("Outbox", tableName),
             variables,
             logger,
             cancellationToken);
@@ -84,7 +72,7 @@ internal static class PostgresSchemaMigrations
             connectionString,
             "OutboxJoin",
             schemaName,
-            OutboxJoinJournalTable,
+            BuildJournalTableName("OutboxJoin", outboxTableName),
             variables,
             logger,
             cancellationToken);
@@ -107,7 +95,7 @@ internal static class PostgresSchemaMigrations
             connectionString,
             "Inbox",
             schemaName,
-            InboxJournalTable,
+            BuildJournalTableName("Inbox", tableName),
             variables,
             logger,
             cancellationToken);
@@ -134,7 +122,7 @@ internal static class PostgresSchemaMigrations
             connectionString,
             "Scheduler",
             schemaName,
-            SchedulerJournalTable,
+            BuildJournalTableName("Scheduler", jobsTableName, jobRunsTableName, timersTableName),
             variables,
             logger,
             cancellationToken);
@@ -159,7 +147,7 @@ internal static class PostgresSchemaMigrations
             connectionString,
             "Fanout",
             schemaName,
-            FanoutJournalTable,
+            BuildJournalTableName("Fanout", policyTableName, cursorTableName),
             variables,
             logger,
             cancellationToken);
@@ -182,7 +170,7 @@ internal static class PostgresSchemaMigrations
             connectionString,
             "Lease",
             schemaName,
-            LeaseJournalTable,
+            BuildJournalTableName("Lease", tableName),
             variables,
             logger,
             cancellationToken);
@@ -205,7 +193,7 @@ internal static class PostgresSchemaMigrations
             connectionString,
             "DistributedLock",
             schemaName,
-            DistributedLockJournalTable,
+            BuildJournalTableName("DistributedLock", tableName),
             variables,
             logger,
             cancellationToken);
@@ -226,7 +214,7 @@ internal static class PostgresSchemaMigrations
             connectionString,
             "Semaphore",
             schemaName,
-            SemaphoreJournalTable,
+            BuildJournalTableName("Semaphore"),
             variables,
             logger,
             cancellationToken);
@@ -247,7 +235,7 @@ internal static class PostgresSchemaMigrations
             connectionString,
             "Metrics",
             schemaName,
-            MetricsJournalTable,
+            BuildJournalTableName("Metrics"),
             variables,
             logger,
             cancellationToken);
@@ -268,7 +256,7 @@ internal static class PostgresSchemaMigrations
             connectionString,
             "MetricsCentral",
             schemaName,
-            CentralMetricsJournalTable,
+            BuildJournalTableName("MetricsCentral"),
             variables,
             logger,
             cancellationToken);
@@ -291,7 +279,7 @@ internal static class PostgresSchemaMigrations
             connectionString,
             "Idempotency",
             schemaName,
-            IdempotencyJournalTable,
+            BuildJournalTableName("Idempotency", tableName),
             variables,
             logger,
             cancellationToken);
@@ -316,7 +304,7 @@ internal static class PostgresSchemaMigrations
             connectionString,
             "Operations",
             schemaName,
-            OperationsJournalTable,
+            BuildJournalTableName("Operations", operationsTable, operationEventsTable),
             variables,
             logger,
             cancellationToken);
@@ -341,7 +329,7 @@ internal static class PostgresSchemaMigrations
             connectionString,
             "Audit",
             schemaName,
-            AuditJournalTable,
+            BuildJournalTableName("Audit", auditEventsTable, auditAnchorsTable),
             variables,
             logger,
             cancellationToken);
@@ -364,7 +352,7 @@ internal static class PostgresSchemaMigrations
             connectionString,
             "EmailOutbox",
             schemaName,
-            EmailOutboxJournalTable,
+            BuildJournalTableName("EmailOutbox", tableName),
             variables,
             logger,
             cancellationToken);
@@ -387,7 +375,7 @@ internal static class PostgresSchemaMigrations
             connectionString,
             "EmailDelivery",
             schemaName,
-            EmailDeliveryJournalTable,
+            BuildJournalTableName("EmailDelivery", tableName),
             variables,
             logger,
             cancellationToken);
@@ -567,6 +555,50 @@ internal static class PostgresSchemaMigrations
         }
 
         return result;
+    }
+
+    private static string BuildJournalTableName(string moduleName, params string[] tableNames)
+    {
+        var suffixParts = tableNames
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Select(NormalizeIdentifier)
+            .Where(name => name.Length > 0)
+            .ToArray();
+
+        var suffix = suffixParts.Length > 0
+            ? "_" + string.Join("_", suffixParts)
+            : string.Empty;
+
+        var candidate = $"BravellianPlatform_{moduleName}Journal{suffix}";
+        if (candidate.Length <= MaxIdentifierLength)
+        {
+            return candidate;
+        }
+
+        var hashSuffix = ComputeHashSuffix(candidate);
+        var maxBaseLength = MaxIdentifierLength - (hashSuffix.Length + 1);
+        var truncated = candidate.Length > maxBaseLength
+            ? candidate[..maxBaseLength]
+            : candidate;
+
+        return $"{truncated}_{hashSuffix}";
+    }
+
+    private static string NormalizeIdentifier(string name)
+    {
+        var builder = new StringBuilder(name.Length);
+        foreach (var ch in name)
+        {
+            builder.Append(char.IsLetterOrDigit(ch) || ch == '_' ? ch : '_');
+        }
+
+        return builder.ToString().Trim('_');
+    }
+
+    private static string ComputeHashSuffix(string input)
+    {
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(input));
+        return Convert.ToHexString(hash.AsSpan(0, HashSuffixBytes));
     }
 }
 

@@ -65,3 +65,90 @@
 
 src/db/entrypoint.sh eol=lf
 .githooks/pre-commit eol=lf
+
+##### Default behavior
+# Normalize text and store as LF
+* text=auto eol=lf
+
+
+##### MUST be binary (never normalize)
+# Fonts
+*.ttf   binary
+*.otf   binary
+*.woff  binary
+*.woff2 binary
+*.eot   binary
+
+# Icons / images
+*.ico   binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary
+*.svg   text eol=lf   # SVG is text; keep as LF
+
+# Documents / office files
+*.docx  binary
+*.xlsx  binary
+*.pptx  binary
+*.pdf   binary
+
+# Archives
+*.zip   binary
+*.7z    binary
+*.rar   binary
+*.gz    binary
+*.tar   binary
+
+# Binaries / native libs
+*.dll   binary
+*.exe   binary
+*.so    binary
+*.dylib binary
+*.a     binary
+*.lib   binary
+*.pdb   binary
+*.bin   binary
+*.dat   binary
+
+# Certificates/keys often should be treated as binary to avoid accidental munging
+*.pfx   binary
+*.p12   binary
+*.cer   binary
+
+
+##### Text files (force LF)
+# C# / .NET / web
+*.cs       text eol=lf
+*.csproj   text eol=lf
+*.props    text eol=lf
+*.targets  text eol=lf
+*.sln      text eol=crlf  # optional; remove if you want LF everywhere
+*.razor    text eol=lf
+*.cshtml   text eol=lf
+*.js       text eol=lf
+*.ts       text eol=lf
+*.css      text eol=lf
+*.html     text eol=lf
+*.json     text eol=lf
+*.yml      text eol=lf
+*.yaml     text eol=lf
+*.md       text eol=lf
+*.txt      text eol=lf
+*.env      text eol=lf
+
+# Templates
+*.hbs      text eol=lf     # Handlebars is text, LF is fine
+*.handlebars text eol=lf
+
+# SQL scripts
+*.sql      text eol=lf     # SQL is text, LF is fine
+
+# Shell scripts (important to be LF)
+*.sh       text eol=lf
+
+# Windows scripts that typically want CRLF
+*.bat      text eol=crlf
+*.cmd      text eol=crlf
+*.ps1      text eol=lf     # PS is fine with LF; set crlf if your team prefers

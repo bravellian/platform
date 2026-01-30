@@ -21,6 +21,25 @@ CREATE TABLE IF NOT EXISTS "$SchemaName$"."$EmailDeliveryTable$" (
     CONSTRAINT "PK_$EmailDeliveryTable$" PRIMARY KEY ("EmailDeliveryEventId")
 );
 
+ALTER TABLE "$SchemaName$"."$EmailDeliveryTable$"
+    ADD COLUMN IF NOT EXISTS "EmailDeliveryEventId" uuid NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
+    ADD COLUMN IF NOT EXISTS "EventType" smallint NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS "Status" smallint NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS "OccurredAtUtc" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ADD COLUMN IF NOT EXISTS "MessageKey" text NULL,
+    ADD COLUMN IF NOT EXISTS "ProviderMessageId" text NULL,
+    ADD COLUMN IF NOT EXISTS "ProviderEventId" text NULL,
+    ADD COLUMN IF NOT EXISTS "AttemptNumber" integer NULL,
+    ADD COLUMN IF NOT EXISTS "ErrorCode" text NULL,
+    ADD COLUMN IF NOT EXISTS "ErrorMessage" text NULL,
+    ADD COLUMN IF NOT EXISTS "MessagePayload" text NULL,
+    ADD COLUMN IF NOT EXISTS "CorrelationId" text NULL,
+    ADD COLUMN IF NOT EXISTS "CausationId" text NULL,
+    ADD COLUMN IF NOT EXISTS "TraceId" text NULL,
+    ADD COLUMN IF NOT EXISTS "SpanId" text NULL,
+    ADD COLUMN IF NOT EXISTS "CorrelationCreatedAtUtc" timestamptz NULL,
+    ADD COLUMN IF NOT EXISTS "CorrelationTagsJson" text NULL;
+
 CREATE INDEX IF NOT EXISTS "IX_$EmailDeliveryTable$_OccurredAtUtc"
     ON "$SchemaName$"."$EmailDeliveryTable$" ("OccurredAtUtc");
 

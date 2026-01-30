@@ -19,6 +19,23 @@ CREATE TABLE IF NOT EXISTS "$SchemaName$"."$OutboxTable$" (
     CONSTRAINT "PK_$OutboxTable$" PRIMARY KEY ("Id")
 );
 
+ALTER TABLE "$SchemaName$"."$OutboxTable$"
+    ADD COLUMN IF NOT EXISTS "Id" uuid NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
+    ADD COLUMN IF NOT EXISTS "Payload" text NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS "Topic" text NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS "CreatedAt" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ADD COLUMN IF NOT EXISTS "IsProcessed" boolean NOT NULL DEFAULT FALSE,
+    ADD COLUMN IF NOT EXISTS "ProcessedAt" timestamptz NULL,
+    ADD COLUMN IF NOT EXISTS "ProcessedBy" text NULL,
+    ADD COLUMN IF NOT EXISTS "RetryCount" integer NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS "LastError" text NULL,
+    ADD COLUMN IF NOT EXISTS "MessageId" uuid NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
+    ADD COLUMN IF NOT EXISTS "CorrelationId" text NULL,
+    ADD COLUMN IF NOT EXISTS "DueTimeUtc" timestamptz NULL,
+    ADD COLUMN IF NOT EXISTS "Status" smallint NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS "LockedUntil" timestamptz NULL,
+    ADD COLUMN IF NOT EXISTS "OwnerToken" uuid NULL;
+
 CREATE INDEX IF NOT EXISTS "IX_$OutboxTable$_WorkQueue"
     ON "$SchemaName$"."$OutboxTable$" ("Status", "CreatedAt")
     INCLUDE ("LockedUntil", "DueTimeUtc")
@@ -30,6 +47,11 @@ CREATE TABLE IF NOT EXISTS "$SchemaName$"."OutboxState" (
     "LastDispatchAt" timestamptz NULL,
     CONSTRAINT "PK_OutboxState" PRIMARY KEY ("Id")
 );
+
+ALTER TABLE "$SchemaName$"."OutboxState"
+    ADD COLUMN IF NOT EXISTS "Id" integer NOT NULL DEFAULT 1,
+    ADD COLUMN IF NOT EXISTS "CurrentFencingToken" bigint NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS "LastDispatchAt" timestamptz NULL;
 
 INSERT INTO "$SchemaName$"."OutboxState" ("Id", "CurrentFencingToken", "LastDispatchAt")
 VALUES (1, 0, NULL)

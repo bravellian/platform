@@ -28,6 +28,29 @@ BEGIN
 END
 GO
 
+IF OBJECT_ID(N'[$SchemaName$].[$JobsTable$]', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('[$SchemaName$].[$JobsTable$]', 'Id') IS NULL
+        ALTER TABLE [$SchemaName$].[$JobsTable$] ADD Id UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID();
+    IF COL_LENGTH('[$SchemaName$].[$JobsTable$]', 'JobName') IS NULL
+        ALTER TABLE [$SchemaName$].[$JobsTable$] ADD JobName NVARCHAR(100) NOT NULL DEFAULT N'';
+    IF COL_LENGTH('[$SchemaName$].[$JobsTable$]', 'CronSchedule') IS NULL
+        ALTER TABLE [$SchemaName$].[$JobsTable$] ADD CronSchedule NVARCHAR(100) NOT NULL DEFAULT N'';
+    IF COL_LENGTH('[$SchemaName$].[$JobsTable$]', 'Topic') IS NULL
+        ALTER TABLE [$SchemaName$].[$JobsTable$] ADD Topic NVARCHAR(255) NOT NULL DEFAULT N'';
+    IF COL_LENGTH('[$SchemaName$].[$JobsTable$]', 'Payload') IS NULL
+        ALTER TABLE [$SchemaName$].[$JobsTable$] ADD Payload NVARCHAR(MAX) NULL;
+    IF COL_LENGTH('[$SchemaName$].[$JobsTable$]', 'IsEnabled') IS NULL
+        ALTER TABLE [$SchemaName$].[$JobsTable$] ADD IsEnabled BIT NOT NULL DEFAULT 1;
+    IF COL_LENGTH('[$SchemaName$].[$JobsTable$]', 'NextDueTime') IS NULL
+        ALTER TABLE [$SchemaName$].[$JobsTable$] ADD NextDueTime DATETIMEOFFSET NULL;
+    IF COL_LENGTH('[$SchemaName$].[$JobsTable$]', 'LastRunTime') IS NULL
+        ALTER TABLE [$SchemaName$].[$JobsTable$] ADD LastRunTime DATETIMEOFFSET NULL;
+    IF COL_LENGTH('[$SchemaName$].[$JobsTable$]', 'LastRunStatus') IS NULL
+        ALTER TABLE [$SchemaName$].[$JobsTable$] ADD LastRunStatus NVARCHAR(20) NULL;
+END
+GO
+
 IF NOT EXISTS (
     SELECT 1 FROM sys.indexes WHERE name = 'UQ_$JobsTable$_JobName' AND object_id = OBJECT_ID(N'[$SchemaName$].[$JobsTable$]', N'U'))
 BEGIN
@@ -59,6 +82,39 @@ BEGIN
         Output NVARCHAR(MAX) NULL,
         LastError NVARCHAR(MAX) NULL
     );
+END
+GO
+
+IF OBJECT_ID(N'[$SchemaName$].[$JobRunsTable$]', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('[$SchemaName$].[$JobRunsTable$]', 'Id') IS NULL
+        ALTER TABLE [$SchemaName$].[$JobRunsTable$] ADD Id UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID();
+    IF COL_LENGTH('[$SchemaName$].[$JobRunsTable$]', 'JobId') IS NULL
+        ALTER TABLE [$SchemaName$].[$JobRunsTable$] ADD JobId UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID();
+    IF COL_LENGTH('[$SchemaName$].[$JobRunsTable$]', 'ScheduledTime') IS NULL
+        ALTER TABLE [$SchemaName$].[$JobRunsTable$] ADD ScheduledTime DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET();
+    IF COL_LENGTH('[$SchemaName$].[$JobRunsTable$]', 'StatusCode') IS NULL
+        ALTER TABLE [$SchemaName$].[$JobRunsTable$] ADD StatusCode TINYINT NOT NULL DEFAULT(0);
+    IF COL_LENGTH('[$SchemaName$].[$JobRunsTable$]', 'LockedUntil') IS NULL
+        ALTER TABLE [$SchemaName$].[$JobRunsTable$] ADD LockedUntil DATETIME2(3) NULL;
+    IF COL_LENGTH('[$SchemaName$].[$JobRunsTable$]', 'OwnerToken') IS NULL
+        ALTER TABLE [$SchemaName$].[$JobRunsTable$] ADD OwnerToken UNIQUEIDENTIFIER NULL;
+    IF COL_LENGTH('[$SchemaName$].[$JobRunsTable$]', 'Status') IS NULL
+        ALTER TABLE [$SchemaName$].[$JobRunsTable$] ADD Status NVARCHAR(20) NOT NULL DEFAULT 'Pending';
+    IF COL_LENGTH('[$SchemaName$].[$JobRunsTable$]', 'ClaimedBy') IS NULL
+        ALTER TABLE [$SchemaName$].[$JobRunsTable$] ADD ClaimedBy NVARCHAR(100) NULL;
+    IF COL_LENGTH('[$SchemaName$].[$JobRunsTable$]', 'ClaimedAt') IS NULL
+        ALTER TABLE [$SchemaName$].[$JobRunsTable$] ADD ClaimedAt DATETIMEOFFSET NULL;
+    IF COL_LENGTH('[$SchemaName$].[$JobRunsTable$]', 'RetryCount') IS NULL
+        ALTER TABLE [$SchemaName$].[$JobRunsTable$] ADD RetryCount INT NOT NULL DEFAULT 0;
+    IF COL_LENGTH('[$SchemaName$].[$JobRunsTable$]', 'StartTime') IS NULL
+        ALTER TABLE [$SchemaName$].[$JobRunsTable$] ADD StartTime DATETIMEOFFSET NULL;
+    IF COL_LENGTH('[$SchemaName$].[$JobRunsTable$]', 'EndTime') IS NULL
+        ALTER TABLE [$SchemaName$].[$JobRunsTable$] ADD EndTime DATETIMEOFFSET NULL;
+    IF COL_LENGTH('[$SchemaName$].[$JobRunsTable$]', 'Output') IS NULL
+        ALTER TABLE [$SchemaName$].[$JobRunsTable$] ADD Output NVARCHAR(MAX) NULL;
+    IF COL_LENGTH('[$SchemaName$].[$JobRunsTable$]', 'LastError') IS NULL
+        ALTER TABLE [$SchemaName$].[$JobRunsTable$] ADD LastError NVARCHAR(MAX) NULL;
 END
 GO
 
@@ -103,6 +159,41 @@ BEGIN
 END
 GO
 
+IF OBJECT_ID(N'[$SchemaName$].[$TimersTable$]', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('[$SchemaName$].[$TimersTable$]', 'Id') IS NULL
+        ALTER TABLE [$SchemaName$].[$TimersTable$] ADD Id UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID();
+    IF COL_LENGTH('[$SchemaName$].[$TimersTable$]', 'DueTime') IS NULL
+        ALTER TABLE [$SchemaName$].[$TimersTable$] ADD DueTime DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET();
+    IF COL_LENGTH('[$SchemaName$].[$TimersTable$]', 'Payload') IS NULL
+        ALTER TABLE [$SchemaName$].[$TimersTable$] ADD Payload NVARCHAR(MAX) NOT NULL DEFAULT N'';
+    IF COL_LENGTH('[$SchemaName$].[$TimersTable$]', 'Topic') IS NULL
+        ALTER TABLE [$SchemaName$].[$TimersTable$] ADD Topic NVARCHAR(255) NOT NULL DEFAULT N'';
+    IF COL_LENGTH('[$SchemaName$].[$TimersTable$]', 'CorrelationId') IS NULL
+        ALTER TABLE [$SchemaName$].[$TimersTable$] ADD CorrelationId NVARCHAR(255) NULL;
+    IF COL_LENGTH('[$SchemaName$].[$TimersTable$]', 'StatusCode') IS NULL
+        ALTER TABLE [$SchemaName$].[$TimersTable$] ADD StatusCode TINYINT NOT NULL DEFAULT(0);
+    IF COL_LENGTH('[$SchemaName$].[$TimersTable$]', 'LockedUntil') IS NULL
+        ALTER TABLE [$SchemaName$].[$TimersTable$] ADD LockedUntil DATETIME2(3) NULL;
+    IF COL_LENGTH('[$SchemaName$].[$TimersTable$]', 'OwnerToken') IS NULL
+        ALTER TABLE [$SchemaName$].[$TimersTable$] ADD OwnerToken UNIQUEIDENTIFIER NULL;
+    IF COL_LENGTH('[$SchemaName$].[$TimersTable$]', 'Status') IS NULL
+        ALTER TABLE [$SchemaName$].[$TimersTable$] ADD Status NVARCHAR(20) NOT NULL DEFAULT 'Pending';
+    IF COL_LENGTH('[$SchemaName$].[$TimersTable$]', 'ClaimedBy') IS NULL
+        ALTER TABLE [$SchemaName$].[$TimersTable$] ADD ClaimedBy NVARCHAR(100) NULL;
+    IF COL_LENGTH('[$SchemaName$].[$TimersTable$]', 'ClaimedAt') IS NULL
+        ALTER TABLE [$SchemaName$].[$TimersTable$] ADD ClaimedAt DATETIMEOFFSET NULL;
+    IF COL_LENGTH('[$SchemaName$].[$TimersTable$]', 'RetryCount') IS NULL
+        ALTER TABLE [$SchemaName$].[$TimersTable$] ADD RetryCount INT NOT NULL DEFAULT 0;
+    IF COL_LENGTH('[$SchemaName$].[$TimersTable$]', 'CreatedAt') IS NULL
+        ALTER TABLE [$SchemaName$].[$TimersTable$] ADD CreatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET();
+    IF COL_LENGTH('[$SchemaName$].[$TimersTable$]', 'ProcessedAt') IS NULL
+        ALTER TABLE [$SchemaName$].[$TimersTable$] ADD ProcessedAt DATETIMEOFFSET NULL;
+    IF COL_LENGTH('[$SchemaName$].[$TimersTable$]', 'LastError') IS NULL
+        ALTER TABLE [$SchemaName$].[$TimersTable$] ADD LastError NVARCHAR(MAX) NULL;
+END
+GO
+
 IF NOT EXISTS (
     SELECT 1
     FROM sys.indexes
@@ -125,5 +216,16 @@ BEGIN
 
     INSERT [$SchemaName$].SchedulerState (Id, CurrentFencingToken, LastRunAt)
     VALUES (1, 0, NULL);
+END
+GO
+
+IF OBJECT_ID(N'[$SchemaName$].SchedulerState', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('[$SchemaName$].SchedulerState', 'Id') IS NULL
+        ALTER TABLE [$SchemaName$].SchedulerState ADD Id INT NOT NULL DEFAULT 1;
+    IF COL_LENGTH('[$SchemaName$].SchedulerState', 'CurrentFencingToken') IS NULL
+        ALTER TABLE [$SchemaName$].SchedulerState ADD CurrentFencingToken BIGINT NOT NULL DEFAULT(0);
+    IF COL_LENGTH('[$SchemaName$].SchedulerState', 'LastRunAt') IS NULL
+        ALTER TABLE [$SchemaName$].SchedulerState ADD LastRunAt DATETIMEOFFSET(3) NULL;
 END
 GO

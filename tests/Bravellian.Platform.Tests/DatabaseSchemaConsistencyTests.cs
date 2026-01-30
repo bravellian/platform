@@ -45,9 +45,18 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
 
         // Ensure schemas for all modules use the production deployment paths
         await DatabaseSchemaManager.EnsureOutboxSchemaAsync(ConnectionString).ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureOutboxJoinSchemaAsync(ConnectionString).ConfigureAwait(false);
         await DatabaseSchemaManager.EnsureInboxSchemaAsync(ConnectionString).ConfigureAwait(false);
         await DatabaseSchemaManager.EnsureSchedulerSchemaAsync(ConnectionString).ConfigureAwait(false);
         await DatabaseSchemaManager.EnsureFanoutSchemaAsync(ConnectionString).ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureLeaseSchemaAsync(ConnectionString).ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureDistributedLockSchemaAsync(ConnectionString).ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureSemaphoreSchemaAsync(ConnectionString).ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureMetricsSchemaAsync(ConnectionString).ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureCentralMetricsSchemaAsync(ConnectionString, "control").ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureExternalSideEffectsSchemaAsync(ConnectionString).ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureIdempotencySchemaAsync(ConnectionString).ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureEmailOutboxSchemaAsync(ConnectionString).ConfigureAwait(false);
     }
 
     /// <summary>When the schema is deployed, then all required core tables exist in the infra schema.</summary>
@@ -62,11 +71,33 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
         {
             "Outbox",
             "OutboxState",
+            "OutboxJoin",
+            "OutboxJoinMember",
             "Inbox",
             "Jobs",
             "JobRuns",
             "Timers",
             "SchedulerState",
+            "FanoutPolicy",
+            "FanoutCursor",
+            "Lease",
+            "DistributedLock",
+            "Semaphore",
+            "SemaphoreLease",
+            "MetricDef",
+            "MetricSeries",
+            "MetricPointMinute",
+            "ExternalSideEffect",
+            "Idempotency",
+            "EmailOutbox",
+        };
+
+        var expectedControlTables = new[]
+        {
+            "MetricDef",
+            "MetricSeries",
+            "MetricPointHourly",
+            "ExporterHeartbeat",
         };
 
         // Act & Assert
@@ -77,6 +108,12 @@ public class DatabaseSchemaConsistencyTests : SqlServerTestBase
         {
             var exists = await TableExistsAsync(connection, "infra", tableName);
             exists.ShouldBeTrue($"Table infra.{tableName} should exist");
+        }
+
+        foreach (var tableName in expectedControlTables)
+        {
+            var exists = await TableExistsAsync(connection, "control", tableName);
+            exists.ShouldBeTrue($"Table control.{tableName} should exist");
         }
     }
 

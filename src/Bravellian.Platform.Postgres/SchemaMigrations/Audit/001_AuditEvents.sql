@@ -19,6 +19,23 @@ CREATE TABLE IF NOT EXISTS "$SchemaName$"."$AuditEventsTable$" (
     CONSTRAINT "PK_$AuditEventsTable$" PRIMARY KEY ("AuditEventId")
 );
 
+ALTER TABLE "$SchemaName$"."$AuditEventsTable$"
+    ADD COLUMN IF NOT EXISTS "AuditEventId" text NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS "OccurredAtUtc" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ADD COLUMN IF NOT EXISTS "Name" text NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS "DisplayMessage" text NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS "Outcome" smallint NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS "DataJson" text NULL,
+    ADD COLUMN IF NOT EXISTS "ActorType" text NULL,
+    ADD COLUMN IF NOT EXISTS "ActorId" text NULL,
+    ADD COLUMN IF NOT EXISTS "ActorDisplay" text NULL,
+    ADD COLUMN IF NOT EXISTS "CorrelationId" text NULL,
+    ADD COLUMN IF NOT EXISTS "CausationId" text NULL,
+    ADD COLUMN IF NOT EXISTS "TraceId" text NULL,
+    ADD COLUMN IF NOT EXISTS "SpanId" text NULL,
+    ADD COLUMN IF NOT EXISTS "CorrelationCreatedAtUtc" timestamptz NULL,
+    ADD COLUMN IF NOT EXISTS "CorrelationTagsJson" text NULL;
+
 CREATE INDEX IF NOT EXISTS "IX_$AuditEventsTable$_OccurredAtUtc"
     ON "$SchemaName$"."$AuditEventsTable$" ("OccurredAtUtc" DESC);
 

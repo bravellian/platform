@@ -36,9 +36,20 @@ public class DatabaseSchemaConsistencyTests : PostgresTestBase
         await base.InitializeAsync().ConfigureAwait(false);
 
         await DatabaseSchemaManager.EnsureOutboxSchemaAsync(ConnectionString).ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureOutboxJoinSchemaAsync(ConnectionString).ConfigureAwait(false);
         await DatabaseSchemaManager.EnsureInboxSchemaAsync(ConnectionString).ConfigureAwait(false);
         await DatabaseSchemaManager.EnsureSchedulerSchemaAsync(ConnectionString).ConfigureAwait(false);
         await DatabaseSchemaManager.EnsureFanoutSchemaAsync(ConnectionString).ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureLeaseSchemaAsync(ConnectionString).ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureDistributedLockSchemaAsync(ConnectionString).ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureSemaphoreSchemaAsync(ConnectionString).ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureMetricsSchemaAsync(ConnectionString).ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureCentralMetricsSchemaAsync(ConnectionString, "control").ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureIdempotencySchemaAsync(ConnectionString).ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureOperationsSchemaAsync(ConnectionString).ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureAuditSchemaAsync(ConnectionString).ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureEmailOutboxSchemaAsync(ConnectionString).ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureEmailDeliverySchemaAsync(ConnectionString).ConfigureAwait(false);
     }
 
     /// <summary>Given core schemas are deployed, then all required tables exist.</summary>
@@ -52,11 +63,37 @@ public class DatabaseSchemaConsistencyTests : PostgresTestBase
         {
             "Outbox",
             "OutboxState",
+            "OutboxJoin",
+            "OutboxJoinMember",
             "Inbox",
             "Jobs",
             "JobRuns",
             "Timers",
             "SchedulerState",
+            "FanoutPolicy",
+            "FanoutCursor",
+            "Lease",
+            "DistributedLock",
+            "Semaphore",
+            "SemaphoreLease",
+            "MetricDef",
+            "MetricSeries",
+            "MetricPointMinute",
+            "Idempotency",
+            "Operations",
+            "OperationEvents",
+            "AuditEvents",
+            "AuditAnchors",
+            "EmailOutbox",
+            "EmailDeliveryEvents",
+        };
+
+        var expectedControlTables = new[]
+        {
+            "MetricDef",
+            "MetricSeries",
+            "MetricPointHourly",
+            "ExporterHeartbeat",
         };
 
         await using var connection = new NpgsqlConnection(ConnectionString);
@@ -66,6 +103,12 @@ public class DatabaseSchemaConsistencyTests : PostgresTestBase
         {
             var exists = await TableExistsAsync(connection, "infra", tableName);
             exists.ShouldBeTrue($"Table infra.{tableName} should exist");
+        }
+
+        foreach (var tableName in expectedControlTables)
+        {
+            var exists = await TableExistsAsync(connection, "control", tableName);
+            exists.ShouldBeTrue($"Table control.{tableName} should exist");
         }
     }
 

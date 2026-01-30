@@ -39,10 +39,36 @@ BEGIN
 END
 GO
 
-IF COL_LENGTH(N'[$SchemaName$].[$InboxTable$]', 'LastError') IS NULL
+IF OBJECT_ID(N'[$SchemaName$].[$InboxTable$]', N'U') IS NOT NULL
 BEGIN
-    ALTER TABLE [$SchemaName$].[$InboxTable$]
-        ADD LastError NVARCHAR(MAX) NULL;
+    IF COL_LENGTH('[$SchemaName$].[$InboxTable$]', 'MessageId') IS NULL
+        ALTER TABLE [$SchemaName$].[$InboxTable$] ADD MessageId VARCHAR(64) NOT NULL DEFAULT '';
+    IF COL_LENGTH('[$SchemaName$].[$InboxTable$]', 'Source') IS NULL
+        ALTER TABLE [$SchemaName$].[$InboxTable$] ADD Source VARCHAR(64) NOT NULL DEFAULT '';
+    IF COL_LENGTH('[$SchemaName$].[$InboxTable$]', 'Hash') IS NULL
+        ALTER TABLE [$SchemaName$].[$InboxTable$] ADD Hash BINARY(32) NULL;
+    IF COL_LENGTH('[$SchemaName$].[$InboxTable$]', 'FirstSeenUtc') IS NULL
+        ALTER TABLE [$SchemaName$].[$InboxTable$] ADD FirstSeenUtc DATETIMEOFFSET(3) NOT NULL DEFAULT SYSDATETIMEOFFSET();
+    IF COL_LENGTH('[$SchemaName$].[$InboxTable$]', 'LastSeenUtc') IS NULL
+        ALTER TABLE [$SchemaName$].[$InboxTable$] ADD LastSeenUtc DATETIMEOFFSET(3) NOT NULL DEFAULT SYSDATETIMEOFFSET();
+    IF COL_LENGTH('[$SchemaName$].[$InboxTable$]', 'ProcessedUtc') IS NULL
+        ALTER TABLE [$SchemaName$].[$InboxTable$] ADD ProcessedUtc DATETIMEOFFSET(3) NULL;
+    IF COL_LENGTH('[$SchemaName$].[$InboxTable$]', 'DueTimeUtc') IS NULL
+        ALTER TABLE [$SchemaName$].[$InboxTable$] ADD DueTimeUtc DATETIMEOFFSET(3) NULL;
+    IF COL_LENGTH('[$SchemaName$].[$InboxTable$]', 'Attempts') IS NULL
+        ALTER TABLE [$SchemaName$].[$InboxTable$] ADD Attempts INT NOT NULL DEFAULT 0;
+    IF COL_LENGTH('[$SchemaName$].[$InboxTable$]', 'Status') IS NULL
+        ALTER TABLE [$SchemaName$].[$InboxTable$] ADD Status VARCHAR(16) NOT NULL DEFAULT 'Seen';
+    IF COL_LENGTH('[$SchemaName$].[$InboxTable$]', 'LastError') IS NULL
+        ALTER TABLE [$SchemaName$].[$InboxTable$] ADD LastError NVARCHAR(MAX) NULL;
+    IF COL_LENGTH('[$SchemaName$].[$InboxTable$]', 'LockedUntil') IS NULL
+        ALTER TABLE [$SchemaName$].[$InboxTable$] ADD LockedUntil DATETIMEOFFSET(3) NULL;
+    IF COL_LENGTH('[$SchemaName$].[$InboxTable$]', 'OwnerToken') IS NULL
+        ALTER TABLE [$SchemaName$].[$InboxTable$] ADD OwnerToken UNIQUEIDENTIFIER NULL;
+    IF COL_LENGTH('[$SchemaName$].[$InboxTable$]', 'Topic') IS NULL
+        ALTER TABLE [$SchemaName$].[$InboxTable$] ADD Topic VARCHAR(128) NULL;
+    IF COL_LENGTH('[$SchemaName$].[$InboxTable$]', 'Payload') IS NULL
+        ALTER TABLE [$SchemaName$].[$InboxTable$] ADD Payload NVARCHAR(MAX) NULL;
 END
 GO
 

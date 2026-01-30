@@ -26,19 +26,24 @@ internal sealed class PlatformLifecycleService : IHostedService
     private readonly PlatformConfiguration configuration;
     private readonly IPlatformDatabaseDiscovery? discovery;
     private readonly ILogger<PlatformLifecycleService> logger;
+    private readonly IStartupLatch? startupLatch;
 
     public PlatformLifecycleService(
         PlatformConfiguration configuration,
         ILogger<PlatformLifecycleService> logger,
-        IPlatformDatabaseDiscovery? discovery = null)
+        IPlatformDatabaseDiscovery? discovery = null,
+        IStartupLatch? startupLatch = null)
     {
         this.configuration = configuration;
         this.discovery = discovery;
         this.logger = logger;
+        this.startupLatch = startupLatch;
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
+        using var step = startupLatch?.Register("startup-init");
+
         logger.LogInformation(
             "Platform starting with environment style: {EnvironmentStyle}, Discovery: {UsesDiscovery}",
             configuration.EnvironmentStyle,

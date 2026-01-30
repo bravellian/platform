@@ -13,6 +13,8 @@
 // limitations under the License.
 
 
+using Bravellian.Platform;
+using Bravellian.Platform.HealthChecks;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Bravellian.Platform.Observability;
@@ -22,6 +24,7 @@ namespace Bravellian.Platform.Observability;
 public sealed class ObservabilityBuilder
 {
     private static readonly string[] WatchdogTags = { "watchdog", "platform" };
+    private static readonly string[] StartupLatchTags = { "live", "critical-fast" };
     /// <summary>
     /// Initializes a new instance of the <see cref="ObservabilityBuilder"/> class.
     /// </summary>
@@ -114,7 +117,9 @@ public sealed class ObservabilityBuilder
     /// <returns>The builder for chaining.</returns>
     public ObservabilityBuilder AddPlatformHealthChecks()
     {
+        Services.AddStartupLatch();
         Services.AddHealthChecks()
+            .AddCheck<StartupLatchHealthCheck>("startup_latch", tags: StartupLatchTags)
             .AddCheck<WatchdogHealthCheck>("watchdog", tags: WatchdogTags);
         return this;
     }

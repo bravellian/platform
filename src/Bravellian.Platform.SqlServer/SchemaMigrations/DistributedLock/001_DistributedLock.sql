@@ -19,3 +19,20 @@ BEGIN
         WHERE [OwnerToken] IS NOT NULL;
 END
 GO
+
+IF OBJECT_ID(N'[$SchemaName$].[$LockTable$]', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('[$SchemaName$].[$LockTable$]', 'ResourceName') IS NULL
+        ALTER TABLE [$SchemaName$].[$LockTable$] ADD [ResourceName] SYSNAME NOT NULL DEFAULT N'';
+    IF COL_LENGTH('[$SchemaName$].[$LockTable$]', 'OwnerToken') IS NULL
+        ALTER TABLE [$SchemaName$].[$LockTable$] ADD [OwnerToken] UNIQUEIDENTIFIER NULL;
+    IF COL_LENGTH('[$SchemaName$].[$LockTable$]', 'LeaseUntil') IS NULL
+        ALTER TABLE [$SchemaName$].[$LockTable$] ADD [LeaseUntil] DATETIMEOFFSET(3) NULL;
+    IF COL_LENGTH('[$SchemaName$].[$LockTable$]', 'FencingToken') IS NULL
+        ALTER TABLE [$SchemaName$].[$LockTable$] ADD [FencingToken] BIGINT NOT NULL DEFAULT(0);
+    IF COL_LENGTH('[$SchemaName$].[$LockTable$]', 'ContextJson') IS NULL
+        ALTER TABLE [$SchemaName$].[$LockTable$] ADD [ContextJson] NVARCHAR(MAX) NULL;
+    IF COL_LENGTH('[$SchemaName$].[$LockTable$]', 'Version') IS NULL
+        ALTER TABLE [$SchemaName$].[$LockTable$] ADD [Version] ROWVERSION;
+END
+GO
