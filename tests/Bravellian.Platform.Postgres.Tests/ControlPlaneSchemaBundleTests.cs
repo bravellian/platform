@@ -44,6 +44,17 @@ public sealed class ControlPlaneSchemaBundleTests
     }
 
     [Fact]
+    public async Task TenantBundle_CreatesFanoutTables()
+    {
+        var tenantConnection = await fixture.CreateTestDatabaseAsync("tenant-fanout-bundle");
+
+        await DatabaseSchemaManager.ApplyTenantBundleAsync(tenantConnection, "app");
+
+        (await TableExistsAsync(tenantConnection, "app", "FanoutPolicy")).ShouldBeTrue();
+        (await TableExistsAsync(tenantConnection, "app", "FanoutCursor")).ShouldBeTrue();
+    }
+
+    [Fact]
     public async Task ControlPlaneBundle_AddsControlPlaneSchema_OnTopOfTenantBundle()
     {
         var controlPlaneConnection = await fixture.CreateTestDatabaseAsync("control-bundle");

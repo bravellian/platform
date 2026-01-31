@@ -609,7 +609,11 @@ internal static class SqlServerSchemaMigrations
             ? "_" + string.Join("_", suffixParts)
             : string.Empty;
 
-        var candidate = $"BravellianPlatform_{moduleName}Journal{suffix}";
+        var baseName = suffixParts.Length > 0
+            ? "Journal"
+            : $"Journal_{NormalizeIdentifier(moduleName)}";
+
+        var candidate = $"{baseName}{suffix}";
         if (candidate.Length <= MaxSqlIdentifierLength)
         {
             return candidate;
