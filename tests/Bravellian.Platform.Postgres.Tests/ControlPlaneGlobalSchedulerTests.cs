@@ -32,6 +32,7 @@ public class ControlPlaneGlobalSchedulerTests
     {
         // Arrange
         var services = new ServiceCollection();
+        services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
 
         var databases = new[]
