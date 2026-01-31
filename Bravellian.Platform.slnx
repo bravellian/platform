@@ -65,6 +65,8 @@
     <Project Path="tests/Bravellian.Platform.Audit.Tests/Bravellian.Platform.Audit.Tests.csproj" />
     <Project Path="tests/Bravellian.Platform.Correlation.Tests/Bravellian.Platform.Correlation.Tests.csproj" />
     <Project Path="tests/Bravellian.Platform.Observability.Tests/Bravellian.Platform.Observability.Tests.csproj" />
+    <Project Path="tests/Bravellian.Platform.SmokeWeb/Bravellian.Platform.SmokeWeb.csproj" />
+    <Project Path="tests/Bravellian.Platform.SmokeWeb.AppHost/Bravellian.Platform.SmokeWeb.AppHost.csproj" />
   </Folder>
   <Folder Name="/_src/">
     <File Path=".editorconfig" />

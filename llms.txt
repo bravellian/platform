@@ -54,6 +54,10 @@ Outbox, inbox, and join coordination specifications define behavior requirements
 
 Tests use xUnit v3, Shouldly, and NSubstitute. Integration tests rely on Docker SQL Server via Testcontainers.
 
+## Smoke Web App
+
+`tests/Bravellian.Platform.SmokeWeb/` hosts a minimal ASP.NET Core web UI to exercise outbox, inbox, scheduler, fanout, and leases. `tests/Bravellian.Platform.SmokeWeb.AppHost/` is an Aspire app host that starts SQL Server + Postgres containers and the smoke site. Configure provider via `Smoke:Provider` (SqlServer, Postgres, InMemory) and supply connection strings as needed.
+
 ## Optional
 
 Advanced patterns: multi-database routing, fanout/join coordination, and internal work-queue mechanics.

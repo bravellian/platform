@@ -295,8 +295,8 @@ internal static class SqlServerSchemaMigrations
         scripts.AddRange(GetModuleScriptsWithVariables("Fanout", new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["SchemaName"] = schemaName,
-            ["FanoutPolicyTable"] = fanoutPolicyTable,
-            ["FanoutCursorTable"] = fanoutCursorTable,
+            ["PolicyTable"] = fanoutPolicyTable,
+            ["CursorTable"] = fanoutCursorTable,
         }));
         scripts.AddRange(GetModuleScriptsWithVariables("ExternalSideEffects", new Dictionary<string, string>(StringComparer.Ordinal)
         {

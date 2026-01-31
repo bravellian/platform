@@ -294,8 +294,8 @@ internal static class PostgresSchemaMigrations
         scripts.AddRange(GetModuleScriptsWithVariables("Fanout", new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["SchemaName"] = schemaName,
-            ["FanoutPolicyTable"] = fanoutPolicyTable,
-            ["FanoutCursorTable"] = fanoutCursorTable,
+            ["PolicyTable"] = fanoutPolicyTable,
+            ["CursorTable"] = fanoutCursorTable,
         }));
         scripts.AddRange(GetModuleScriptsWithVariables("Idempotency", new Dictionary<string, string>(StringComparer.Ordinal)
         {
