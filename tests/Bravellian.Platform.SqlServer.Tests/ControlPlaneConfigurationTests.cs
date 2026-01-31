@@ -134,6 +134,7 @@ public class ControlPlaneConfigurationTests
     {
         // Arrange
         var services = new ServiceCollection();
+        services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
 
         var databases = new[]

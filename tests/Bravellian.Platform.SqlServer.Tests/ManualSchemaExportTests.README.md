@@ -4,7 +4,7 @@ This test (`ManualSchemaExportTests.cs`) provides a utility to deploy all platfo
 
 ## Purpose
 
-The test is designed to help maintain the SQL Server Database project (`Bravellian.Platform.Database.sqlproj`) by:
+The test is designed to help maintain the SQL Server database project stored under `src/Bravellian.Platform.SqlServer/Database` by:
 1. Deploying platform schemas to two separate SQL Server databases (Control Plane and Multi-Database)
 2. Extracting the deployed schemas using SqlPackage
 3. Generating two separate DACPAC files that can be applied independently
@@ -59,8 +59,8 @@ If you want to prevent the test from running automatically, you can add a `Skip`
 ## Output
 
 After running the test, you'll find:
-- **Control Plane DACPAC**: `src/Bravellian.Platform.Database/Bravellian.Platform.ControlPlane.dacpac`
-- **Multi-Database DACPAC**: `src/Bravellian.Platform.Database/Bravellian.Platform.MultiDatabase.dacpac`
+- **Control Plane DACPAC**: `src/Bravellian.Platform.SqlServer/Database/Bravellian.Platform.ControlPlane.dacpac`
+- **Multi-Database DACPAC**: `src/Bravellian.Platform.SqlServer/Database/Bravellian.Platform.MultiDatabase.dacpac`
 
 These two DACPAC files can be applied separately:
 - The Control Plane DACPAC is applied to the central control plane database

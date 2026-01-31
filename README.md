@@ -91,7 +91,7 @@ The platform automatically creates the required database schema when `EnableSche
 
 ```bash
 # Core tables and stored procedures
-src/Bravellian.Platform.Database/
+src/Bravellian.Platform.SqlServer/Database/
 ├── Outbox.sql                    # Message outbox table
 ├── OutboxWorkQueueProcs.sql      # Outbox work queue procedures
 ├── Timers.sql                    # One-time scheduled tasks

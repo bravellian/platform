@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RunSettings>
   <RunConfiguration>
+    <!-- Exclude integration tests to avoid Docker contention and speed up runs -->
+    <TestCaseFilter>Category!=Integration</TestCaseFilter>
     <!-- Limit parallelization to prevent machine from being overwhelmed -->
     <MaxCpuCount>2</MaxCpuCount>
     <!-- Batch size for test execution -->

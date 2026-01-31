@@ -7,7 +7,7 @@ Split the platform into a provider-agnostic core (`Bravellian.Platform`) plus a 
 
 ## Current SQL Server Surface Area (high-level)
 - SqlClient usage across outbox/inbox/scheduler/fanout/leases/semaphores/metrics.
-- Schema deployment and stored procedure generation in `DatabaseSchemaManager` and SQL scripts in `src/Bravellian.Platform.Database/*.sql`.
+- Schema deployment and stored procedure generation in `DatabaseSchemaManager` and SQL scripts in `src/Bravellian.Platform.SqlServer/Database/*.sql`.
 - DI entrypoints register SQL Server implementations directly (e.g., `AddSqlOutbox`, `AddPlatformMultiDatabaseWithList`).
 - Platform lifecycle validation uses `SqlConnection`.
 - Dapper type handlers are registered from core, but only used by SQL Server implementations.
@@ -50,14 +50,14 @@ When provider split is stable, evaluate Postgres implementation details:
 
 ## Open Questions / Follow-ups
 - Should `PlatformServiceCollectionExtensions` (AddPlatform* helpers) stay in core or move to the SQL Server provider?
-- Should SQL artifacts in `src/Bravellian.Platform.Database` move under the SQL Server provider package?
+- Should SQL artifacts in `src/Bravellian.Platform.SqlServer/Database` move under the SQL Server provider package?
 - Do we want core to expose any provider-agnostic schema deployment interface?
 
 ## DBUp Migration Analysis (schema management in-library)
 ### Current state (baseline)
 - Schema deployment is done via `DatabaseSchemaManager` and ad-hoc SQL execution with batch splitting.
 - Schema integrity is checked in tests via `schema-versions.json` snapshot hashes (see `tests/Bravellian.Platform.Tests/SchemaVersionSnapshot.cs`).
-- SQL artifacts live under `src/Bravellian.Platform.Database/*.sql` and are executed in order in tests.
+- SQL artifacts live under `src/Bravellian.Platform.SqlServer/Database/*.sql` and are executed in order in tests.
 
 ### DBUp feasibility
 - DBUp supports SQL Server and Postgres via provider packages (`DbUp.SqlServer`, `DbUp.Postgresql`).

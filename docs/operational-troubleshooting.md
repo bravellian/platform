@@ -113,7 +113,7 @@ For a full manifest comparison, run the repository helper locally:
 ```bash
 ./scripts/schema-diff.sh
 ```
-This regenerates the schema hashes and shows differences from `schema-versions.json`.
+This regenerates the schema hashes and shows differences from `src/Bravellian.Platform.SqlServer/Database/schema-versions.json`.
 
 ### Recover
 

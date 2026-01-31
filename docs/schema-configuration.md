@@ -130,7 +130,7 @@ await DatabaseSchemaManager.EnsureSchedulerSchemaAsync(
 
 ## Schema Drift & Upgrade Guidance
 
-The repository tracks a lightweight manifest of the expected schema hashes for the core modules (outbox, inbox, scheduler, fanout) in `src/Bravellian.Platform.Database/schema-versions.json`. When schema-defining code changes, regenerate and review this manifest to ensure upgrades are intentional:
+The repository tracks a lightweight manifest of the expected schema hashes for the core modules (outbox, inbox, scheduler, fanout) in `src/Bravellian.Platform.SqlServer/Database/schema-versions.json`. When schema-defining code changes, regenerate and review this manifest to ensure upgrades are intentional:
 
 1. Refresh the manifest and show the diff:
    ```bash

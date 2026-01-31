@@ -2,7 +2,7 @@
 
 > .NET 10 platform for SQL-backed distributed work-queue primitives (outbox/inbox, schedulers, leases) with claim-ack-abandon semantics and database-authoritative timing.
 
-Primary solutions: `Bravellian.Platform.slnx` and `Bravellian.Platform.CI.slnx`. Packages live under `src/`, tests under `tests/`, docs under `docs/`, and SQL schema artifacts under `src/Bravellian.Platform.Database/`.
+Primary solutions: `Bravellian.Platform.slnx` and `Bravellian.Platform.CI.slnx`. Packages live under `src/`, tests under `tests/`, docs under `docs/`, and SQL Server schema artifacts under `src/Bravellian.Platform.SqlServer/Database/`.
 
 ## Getting Started
 Install the core package and a provider (SqlServer or Postgres), register the scheduler/outbox/inbox services, and enable schema deployment if you want automatic table creation. Use discovery-based registration for multi-tenant scenarios.
@@ -44,7 +44,7 @@ Observability focuses on consistent audit/operation/metric conventions. Operatio
 
 ## Database and Schema
 
-SQL schema scripts live under `src/Bravellian.Platform.Database/`. Providers can auto-deploy schema or use manual scripts. Multi-database patterns use discovery and routers to span tenant databases.
+SQL Server schema scripts live under `src/Bravellian.Platform.SqlServer/Database/`. Providers can auto-deploy schema or use manual scripts. Multi-database patterns use discovery and routers to span tenant databases.
 
 ## Specifications
 

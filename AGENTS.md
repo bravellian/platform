@@ -24,7 +24,7 @@ Expected artifacts:
 - `artifacts/codex/format-report.txt` (if applicable)
 
 ## Project Structure & Module Organization
-The core libraries live under `src/`, with `Bravellian.Platform` as the main package and `Bravellian.Platform.Modularity.*` for modularity layers. SQL artifacts and schemas are under `src/Bravellian.Platform.Database/`. Tests live in `tests/Bravellian.Platform.Tests/`. Supporting docs are in `docs/` and `specs/`, scripts in `scripts/`, and assets in `assets/`. The primary solution files are `Bravellian.Platform.slnx` and `Bravellian.Platform.CI.slnx` (used by CI).
+The core libraries live under `src/`, with `Bravellian.Platform` as the main package and `Bravellian.Platform.Modularity.*` for modularity layers. SQL Server artifacts and schemas are under `src/Bravellian.Platform.SqlServer/Database/`. Tests live in `tests/Bravellian.Platform.Tests/`. Supporting docs are in `docs/` and `specs/`, scripts in `scripts/`, and assets in `assets/`. The primary solution files are `Bravellian.Platform.slnx` and `Bravellian.Platform.CI.slnx` (used by CI).
 
 ## Build, Test, and Development Commands
 - Before running build or test commands, complete the "Early Repo Orientation (run first)" section.

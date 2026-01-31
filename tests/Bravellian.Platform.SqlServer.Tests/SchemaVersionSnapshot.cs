@@ -41,7 +41,8 @@ internal static class SchemaVersionSnapshot
             var candidate = Path.Combine(
                 currentDirectory.FullName,
                 "src",
-                "Bravellian.Platform.Database",
+                "Bravellian.Platform.SqlServer",
+                "Database",
                 "schema-versions.json");
 
             if (File.Exists(candidate))
@@ -62,7 +63,8 @@ internal static class SchemaVersionSnapshot
             "..",
             "..",
             "src",
-            "Bravellian.Platform.Database",
+            "Bravellian.Platform.SqlServer",
+            "Database",
             "schema-versions.json"));
     }
 

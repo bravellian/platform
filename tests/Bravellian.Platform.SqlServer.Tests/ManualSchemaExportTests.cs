@@ -97,7 +97,7 @@ public class ManualSchemaExportTests : IAsyncLifetime
         }
 
         var projectRoot = GetProjectRoot();
-        var sqlProjectPath = Path.Combine(projectRoot, "src", "Bravellian.Platform.Database");
+        var sqlProjectPath = Path.Combine(projectRoot, "src", "Bravellian.Platform.SqlServer", "Database");
 
         // Ensure the SQL project directory exists
         Directory.CreateDirectory(sqlProjectPath);
