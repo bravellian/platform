@@ -4,9 +4,9 @@
     "defaultBranch": "main"
   },
   "summary": {
-    "total": 674,
-    "compliant": 670,
-    "missingRequired": 4,
+    "total": 606,
+    "compliant": 602,
+    "missingRequired": 0,
     "invalidFormat": 0
   },
   "byCategory": [
@@ -17,8 +17,8 @@
     },
     {
       "category": "Bravellian.Platform.Tests",
-      "total": 644,
-      "compliant": 641
+      "total": 576,
+      "compliant": 573
     },
     {
       "category": "Modularity",
@@ -35,13 +35,13 @@
     },
     {
       "project": "Bravellian.Platform.Postgres.Tests",
-      "total": 218,
-      "compliant": 218
+      "total": 186,
+      "compliant": 186
     },
     {
       "project": "Bravellian.Platform.Tests",
-      "total": 439,
-      "compliant": 435
+      "total": 403,
+      "compliant": 399
     }
   ],
   "tests": [
@@ -51,7 +51,7 @@
       "tags": [],
       "summary": "Given only the base command, then parsing leaves EndpointName null and JsonOutput false.",
       "intent": "Describe default parsing with no endpoint or flags.",
-      "scenario": "Given arguments containing only \u0022healthcheck\u0022.",
+      "scenario": "Given arguments containing only \"healthcheck\".",
       "behavior": "EndpointName remains null and JsonOutput stays false.",
       "source": {
         "file": "tests/Bravellian.Platform.HealthProbe.Tests/HealthProbeCommandLineTests.cs",
@@ -67,7 +67,7 @@
       "tags": [],
       "summary": "When an unknown flag is provided, then parsing throws a HealthProbeArgumentException.",
       "intent": "Describe parsing failure for unsupported command line options.",
-      "scenario": "Given arguments including an unrecognized \u0022--nope\u0022 option.",
+      "scenario": "Given arguments including an unrecognized \"--nope\" option.",
       "behavior": "Parsing throws and the message mentions an unknown option.",
       "source": {
         "file": "tests/Bravellian.Platform.HealthProbe.Tests/HealthProbeCommandLineTests.cs",
@@ -83,8 +83,8 @@
       "tags": [],
       "summary": "Given an explicit endpoint argument, then parsing uses it as EndpointName.",
       "intent": "Describe parsing of a positional endpoint argument.",
-      "scenario": "Given arguments \u0022healthcheck\u0022 and \u0022deploy\u0022.",
-      "behavior": "EndpointName is \u0022deploy\u0022.",
+      "scenario": "Given arguments \"healthcheck\" and \"deploy\".",
+      "behavior": "EndpointName is \"deploy\".",
       "source": {
         "file": "tests/Bravellian.Platform.HealthProbe.Tests/HealthProbeCommandLineTests.cs",
         "line": 46,
@@ -115,7 +115,7 @@
       "tags": [],
       "summary": "Given no URL override, then running the health check returns InvalidArguments.",
       "intent": "Describe validation when required URL input is missing.",
-      "scenario": "Given a service provider and a command line containing only \u0022healthcheck\u0022.",
+      "scenario": "Given a service provider and a command line containing only \"healthcheck\".",
       "behavior": "The returned exit code is InvalidArguments.",
       "source": {
         "file": "tests/Bravellian.Platform.HealthProbe.Tests/HealthProbeCommandLineTests.cs",
@@ -196,7 +196,7 @@
       "summary": "When an override URL is provided, then resolution returns the override and preserves the endpoint name.",
       "intent": "Describe precedence of override URLs.",
       "scenario": "Given a configured endpoint and an explicit override URL.",
-      "behavior": "The resolved URL matches the override and EndpointName remains \u0022deploy\u0022.",
+      "behavior": "The resolved URL matches the override and EndpointName remains \"deploy\".",
       "source": {
         "file": "tests/Bravellian.Platform.HealthProbe.Tests/HealthProbeUrlResolverTests.cs",
         "line": 88,
@@ -227,7 +227,7 @@
       "tags": [],
       "summary": "When the HTTP status is non-success, then the result is unhealthy even if JSON says Healthy.",
       "intent": "Describe precedence of HTTP status over JSON health status.",
-      "scenario": "Given a ServiceUnavailable response whose JSON body reports \u0022Healthy\u0022.",
+      "scenario": "Given a ServiceUnavailable response whose JSON body reports \"Healthy\".",
       "behavior": "The result is unhealthy and the exit code is Unhealthy.",
       "source": {
         "file": "tests/Bravellian.Platform.HealthProbe.Tests/HttpHealthProbeRunnerTests.cs",
@@ -275,7 +275,7 @@
       "tags": [],
       "summary": "When a 200 OK response body reports Healthy, then the result is healthy.",
       "intent": "Describe how a JSON health status maps to the probe outcome.",
-      "scenario": "Given a stubbed 200 OK response with JSON status \u0022Healthy\u0022.",
+      "scenario": "Given a stubbed 200 OK response with JSON status \"Healthy\".",
       "behavior": "The result is healthy and the exit code is Healthy.",
       "source": {
         "file": "tests/Bravellian.Platform.HealthProbe.Tests/HttpHealthProbeRunnerTests.cs",
@@ -307,7 +307,7 @@
       "tags": [],
       "summary": "When a 200 OK response body reports Unhealthy, then the result is unhealthy.",
       "intent": "Describe how a JSON health status maps to the probe outcome.",
-      "scenario": "Given a stubbed 200 OK response with JSON status \u0022Unhealthy\u0022.",
+      "scenario": "Given a stubbed 200 OK response with JSON status \"Unhealthy\".",
       "behavior": "The result is unhealthy and the exit code is Unhealthy.",
       "source": {
         "file": "tests/Bravellian.Platform.HealthProbe.Tests/HttpHealthProbeRunnerTests.cs",
@@ -323,7 +323,7 @@
       "tags": [],
       "summary": "When the distributed lock schema is ensured with a custom schema, then the table is created there.",
       "intent": "Verify distributed lock deployment honors the configured schema name.",
-      "scenario": "Given EnsureDistributedLockSchemaAsync is called with the \u0022platform\u0022 schema and table name \u0022DistributedLock\u0022.",
+      "scenario": "Given EnsureDistributedLockSchemaAsync is called with the \"platform\" schema and table name \"DistributedLock\".",
       "behavior": "The DistributedLock table is present in the custom schema.",
       "source": {
         "file": "tests/Bravellian.Platform.Postgres.Tests/CustomSchemaIntegrationTests.cs",
@@ -339,7 +339,7 @@
       "tags": [],
       "summary": "When the fanout schema is ensured with a custom schema, then policy and cursor tables are created there.",
       "intent": "Verify fanout deployment honors the configured schema name.",
-      "scenario": "Given EnsureFanoutSchemaAsync is called with the \u0022platform\u0022 schema and custom table names.",
+      "scenario": "Given EnsureFanoutSchemaAsync is called with the \"platform\" schema and custom table names.",
       "behavior": "FanoutPolicy and FanoutCursor tables are present in the custom schema.",
       "source": {
         "file": "tests/Bravellian.Platform.Postgres.Tests/CustomSchemaIntegrationTests.cs",
@@ -355,7 +355,7 @@
       "tags": [],
       "summary": "When the inbox schema is ensured with a custom schema, then the Inbox table is created there.",
       "intent": "Verify inbox deployment honors the configured schema name.",
-      "scenario": "Given EnsureInboxSchemaAsync is called with the \u0022platform\u0022 schema and table name \u0022Inbox\u0022.",
+      "scenario": "Given EnsureInboxSchemaAsync is called with the \"platform\" schema and table name \"Inbox\".",
       "behavior": "The Inbox table is present in the custom schema.",
       "source": {
         "file": "tests/Bravellian.Platform.Postgres.Tests/CustomSchemaIntegrationTests.cs",
@@ -371,7 +371,7 @@
       "tags": [],
       "summary": "When the inbox work-queue schema is ensured with a custom schema, then inbox objects are created there.",
       "intent": "Verify inbox work-queue deployment honors the configured schema name.",
-      "scenario": "Given EnsureInboxSchemaAsync and EnsureInboxWorkQueueSchemaAsync are called with the \u0022platform\u0022 schema.",
+      "scenario": "Given EnsureInboxSchemaAsync and EnsureInboxWorkQueueSchemaAsync are called with the \"platform\" schema.",
       "behavior": "The Inbox table is present in the custom schema.",
       "source": {
         "file": "tests/Bravellian.Platform.Postgres.Tests/CustomSchemaIntegrationTests.cs",
@@ -387,7 +387,7 @@
       "tags": [],
       "summary": "When the lease schema is ensured with a custom schema, then the lease table is created there.",
       "intent": "Verify lease deployment honors the configured schema name.",
-      "scenario": "Given EnsureLeaseSchemaAsync is called with the \u0022platform\u0022 schema and table name \u0022Lease\u0022.",
+      "scenario": "Given EnsureLeaseSchemaAsync is called with the \"platform\" schema and table name \"Lease\".",
       "behavior": "The Lease table is present in the custom schema.",
       "source": {
         "file": "tests/Bravellian.Platform.Postgres.Tests/CustomSchemaIntegrationTests.cs",
@@ -403,7 +403,7 @@
       "tags": [],
       "summary": "When the outbox schema is ensured with a custom schema, then outbox tables are created there.",
       "intent": "Verify outbox deployment honors the configured schema name.",
-      "scenario": "Given EnsureOutboxSchemaAsync is called with the \u0022platform\u0022 schema and table name \u0022Outbox\u0022.",
+      "scenario": "Given EnsureOutboxSchemaAsync is called with the \"platform\" schema and table name \"Outbox\".",
       "behavior": "The Outbox and OutboxState tables are present in the custom schema.",
       "source": {
         "file": "tests/Bravellian.Platform.Postgres.Tests/CustomSchemaIntegrationTests.cs",
@@ -419,7 +419,7 @@
       "tags": [],
       "summary": "When the scheduler schema is ensured with a custom schema, then scheduler tables are created there.",
       "intent": "Verify scheduler deployment honors the configured schema name.",
-      "scenario": "Given EnsureSchedulerSchemaAsync is called with the \u0022platform\u0022 schema and custom table names.",
+      "scenario": "Given EnsureSchedulerSchemaAsync is called with the \"platform\" schema and custom table names.",
       "behavior": "Jobs, Timers, JobRuns, and SchedulerState tables are present in the custom schema.",
       "source": {
         "file": "tests/Bravellian.Platform.Postgres.Tests/CustomSchemaIntegrationTests.cs",
@@ -435,7 +435,7 @@
       "tags": [],
       "summary": "When the work-queue schema is ensured with a custom schema, then work-queue objects use that schema.",
       "intent": "Verify work-queue deployment honors the configured schema name.",
-      "scenario": "Given EnsureOutboxSchemaAsync and EnsureWorkQueueSchemaAsync are called with the \u0022platform\u0022 schema.",
+      "scenario": "Given EnsureOutboxSchemaAsync and EnsureWorkQueueSchemaAsync are called with the \"platform\" schema.",
       "behavior": "The Outbox table is present in the custom schema.",
       "source": {
         "file": "tests/Bravellian.Platform.Postgres.Tests/CustomSchemaIntegrationTests.cs",
@@ -1091,7 +1091,7 @@
       "tags": [],
       "summary": "When requesting a missing message id, then GetAsync throws InvalidOperationException.",
       "intent": "Verify missing messages raise an exception.",
-      "scenario": "Given an inbox store with no message matching \u0022non-existent\u0022.",
+      "scenario": "Given an inbox store with no message matching \"non-existent\".",
       "behavior": "An InvalidOperationException is thrown.",
       "source": {
         "file": "tests/Bravellian.Platform.Postgres.Tests/InboxWorkStoreTests.cs",
@@ -1107,7 +1107,7 @@
       "tags": [],
       "summary": "Given a valid message id, then GetAsync returns the stored inbox message.",
       "intent": "Verify message retrieval by id returns stored fields.",
-      "scenario": "Given one enqueued message with id \u0022msg-1\u0022.",
+      "scenario": "Given one enqueued message with id \"msg-1\".",
       "behavior": "The returned message matches the stored fields and has Attempt 1.",
       "source": {
         "file": "tests/Bravellian.Platform.Postgres.Tests/InboxWorkStoreTests.cs",
@@ -3166,518 +3166,6 @@
       "project": "Bravellian.Platform.Postgres.Tests"
     },
     {
-      "testId": "Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreConcurrencyTests.ConcurrentReapAndAcquire_MaintainsCorrectness",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When reaping and acquiring occur concurrently, then deletions and acquires stay within limits.",
-      "intent": "Verify concurrent reaping and acquisition maintains correctness.",
-      "scenario": "Given three expired leases, a reap task, and concurrent acquire attempts up to the limit.",
-      "behavior": "Deleted count is at most 3 and acquired count does not exceed the limit.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Postgres.Tests/SemaphoreConcurrencyTests.cs",
-        "line": 261,
-        "member": "Bravellian.Platform.Tests.SemaphoreConcurrencyTests.ConcurrentReapAndAcquire_MaintainsCorrectness"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Postgres.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreConcurrencyTests.ConcurrentUpdateLimit_DoesNotCorruptState",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When limits are updated concurrently, then state remains usable for acquiring.",
-      "intent": "Verify concurrent limit updates do not corrupt semaphore state.",
-      "scenario": "Given multiple concurrent UpdateLimitAsync calls with different values.",
-      "behavior": "A subsequent TryAcquireAsync returns Acquired.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Postgres.Tests/SemaphoreConcurrencyTests.cs",
-        "line": 222,
-        "member": "Bravellian.Platform.Tests.SemaphoreConcurrencyTests.ConcurrentUpdateLimit_DoesNotCorruptState"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Postgres.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreConcurrencyTests.FencingCounters_StrictlyIncreasingUnderConcurrency",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When acquiring concurrently, then fencing counters are unique and strictly increasing.",
-      "intent": "Verify fencing counters remain monotonic under concurrency.",
-      "scenario": "Given 20 concurrent acquire attempts on a semaphore with limit 20.",
-      "behavior": "The fencing counters are unique and strictly increasing when ordered.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Postgres.Tests/SemaphoreConcurrencyTests.cs",
-        "line": 318,
-        "member": "Bravellian.Platform.Tests.SemaphoreConcurrencyTests.FencingCounters_StrictlyIncreasingUnderConcurrency"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Postgres.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreConcurrencyTests.HighContentionAcquire_EventuallySucceeds",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When acquisitions retry under high contention, then most workers eventually succeed.",
-      "intent": "Verify retry loops allow progress under contention.",
-      "scenario": "Given limit 2, 10 workers, and up to 15 retries with short TTLs.",
-      "behavior": "More than half of the workers eventually acquire the semaphore.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Postgres.Tests/SemaphoreConcurrencyTests.cs",
-        "line": 172,
-        "member": "Bravellian.Platform.Tests.SemaphoreConcurrencyTests.HighContentionAcquire_EventuallySucceeds"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Postgres.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreConcurrencyTests.ParallelAcquireAndRelease_MaintainsInvariant",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When workers acquire and release in parallel, then every successful acquire is released.",
-      "intent": "Verify acquire/release concurrency preserves invariants.",
-      "scenario": "Given limit 5 and 20 workers that acquire, hold briefly, and release.",
-      "behavior": "The count of successful releases equals the count of successful acquires.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Postgres.Tests/SemaphoreConcurrencyTests.cs",
-        "line": 114,
-        "member": "Bravellian.Platform.Tests.SemaphoreConcurrencyTests.ParallelAcquireAndRelease_MaintainsInvariant"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Postgres.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreConcurrencyTests.ParallelAcquires_NeverExceedsLimit",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When many workers acquire in parallel, then successes never exceed the limit.",
-      "intent": "Verify concurrent acquisitions respect the configured capacity.",
-      "scenario": "Given limit 10 and 50 parallel acquire attempts.",
-      "behavior": "The acquired count is greater than zero and no more than the limit.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Postgres.Tests/SemaphoreConcurrencyTests.cs",
-        "line": 67,
-        "member": "Bravellian.Platform.Tests.SemaphoreConcurrencyTests.ParallelAcquires_NeverExceedsLimit"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Postgres.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreConcurrencyTests.Renewals_WithIntermittentGcPausesMaintainLeases",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When renewals run with jitter and pauses, then leases remain renewed.",
-      "intent": "Verify renewals succeed despite intermittent delays.",
-      "scenario": "Given three acquired leases renewed multiple times with jitter and a simulated pause.",
-      "behavior": "All renewal results return Renewed.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Postgres.Tests/SemaphoreConcurrencyTests.cs",
-        "line": 363,
-        "member": "Bravellian.Platform.Tests.SemaphoreConcurrencyTests.Renewals_WithIntermittentGcPausesMaintainLeases"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Postgres.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreConcurrencyTests.StarvedAcquisition_AppliesBackpressureUntilCapacityReturns",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When capacity is saturated, then contenders see NotAcquired until capacity returns.",
-      "intent": "Verify backpressure occurs while a semaphore slot is held.",
-      "scenario": "Given limit 1, a holder lease, and contenders polling for acquisition.",
-      "behavior": "NotAcquired counts increase and acquisition succeeds after release.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Postgres.Tests/SemaphoreConcurrencyTests.cs",
-        "line": 431,
-        "member": "Bravellian.Platform.Tests.SemaphoreConcurrencyTests.StarvedAcquisition_AppliesBackpressureUntilCapacityReturns"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Postgres.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.EnsureExists_LimitAboveMaximum_ThrowsArgumentException",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When EnsureExists is called with a limit above maximum, then it throws ArgumentException.",
-      "intent": "Verify semaphore limit upper bound validation.",
-      "scenario": "Given a limit value of 10001.",
-      "behavior": "EnsureExistsAsync throws ArgumentException.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs",
-        "line": 750,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.EnsureExists_LimitAboveMaximum_ThrowsArgumentException"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Postgres.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.EnsureExists_LimitBelowMinimum_ThrowsArgumentException",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When EnsureExists is called with a limit below minimum, then it throws ArgumentException.",
-      "intent": "Verify semaphore limit lower bound validation.",
-      "scenario": "Given a limit value of 0.",
-      "behavior": "EnsureExistsAsync throws ArgumentException.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs",
-        "line": 732,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.EnsureExists_LimitBelowMinimum_ThrowsArgumentException"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Postgres.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.Fencing_StrictlyIncreases",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When acquiring sequentially, then fencing counters strictly increase.",
-      "intent": "Verify fencing tokens are monotonically increasing for each acquisition.",
-      "scenario": "Given five successive acquire calls for the same semaphore.",
-      "behavior": "Each fencing counter is greater than the previous one.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs",
-        "line": 287,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.Fencing_StrictlyIncreases"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Postgres.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.MultipleNames_AreIsolated",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When acquiring different semaphore names, then each name is isolated.",
-      "intent": "Verify independent capacity for different semaphore names.",
-      "scenario": "Given two distinct semaphore names, each ensured with limit 1.",
-      "behavior": "Both acquires succeed with different tokens.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs",
-        "line": 772,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.MultipleNames_AreIsolated"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Postgres.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.ReapExpired_RemovesExpiredLeases",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When ReapExpired runs after expiry, then expired leases are deleted.",
-      "intent": "Verify reaping removes expired lease rows.",
-      "scenario": "Given three short-lived leases that have expired.",
-      "behavior": "ReapExpired deletes three rows.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs",
-        "line": 386,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.ReapExpired_RemovesExpiredLeases"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Postgres.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.ReapExpired_WithMaxRows_LimitsDeletions",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When ReapExpired uses maxRows, then deletions are capped.",
-      "intent": "Verify maxRows limits the number of deleted rows per reaper run.",
-      "scenario": "Given five expired leases and a reap call with maxRows set to 2.",
-      "behavior": "The first reap deletes 2 rows and the subsequent reap deletes the remaining 3.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs",
-        "line": 420,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.ReapExpired_WithMaxRows_LimitsDeletions"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Postgres.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.Release_FreesCapacity",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When a lease is released, then capacity becomes available for another acquire.",
-      "intent": "Verify release frees a slot for a new owner.",
-      "scenario": "Given a semaphore with limit 1 and one acquired token that is released.",
-      "behavior": "Release returns Released and the next acquire succeeds.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs",
-        "line": 152,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.Release_FreesCapacity"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Postgres.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.Release_IdempotentWhenCalledTwice",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When the same token is released twice, then the second release reports NotFound.",
-      "intent": "Verify releases are idempotent for the same token.",
-      "scenario": "Given a semaphore token released twice.",
-      "behavior": "The first release is Released and the second is NotFound.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs",
-        "line": 188,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.Release_IdempotentWhenCalledTwice"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Postgres.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.Renew_AfterRelease_ReturnsLost",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When renewing after a release, then the renewal returns Lost.",
-      "intent": "Verify renew fails once the lease has been released.",
-      "scenario": "Given an acquired token that has been released before renew.",
-      "behavior": "The renew result status is Lost.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs",
-        "line": 254,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.Renew_AfterRelease_ReturnsLost"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Postgres.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.Renew_ExtendsLeaseExpiry",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When renewing a valid token, then the expiry is extended.",
-      "intent": "Verify renew updates ExpiresAtUtc for active leases.",
-      "scenario": "Given an acquired token that is renewed after a short delay.",
-      "behavior": "Renew returns Renewed and ExpiresAtUtc is later than the original value.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs",
-        "line": 221,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.Renew_ExtendsLeaseExpiry"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Postgres.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.Renew_MonotonicExtension_NeverShortensExpiry",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When renewing with a shorter TTL, then expiry is not shortened.",
-      "intent": "Verify renewal does not reduce the existing expiration time.",
-      "scenario": "Given a lease acquired with a 60-second TTL and renewed with 10 seconds.",
-      "behavior": "The renew result is Renewed and ExpiresAtUtc is not earlier than the original expiry.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs",
-        "line": 317,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.Renew_MonotonicExtension_NeverShortensExpiry"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Postgres.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_AfterExpiry_Succeeds",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When a lease expires, then a new acquire succeeds.",
-      "intent": "Verify expired leases free capacity for new owners.",
-      "scenario": "Given a semaphore acquired with a short TTL that is allowed to expire.",
-      "behavior": "The subsequent acquire returns Acquired.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs",
-        "line": 352,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_AfterExpiry_Succeeds"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Postgres.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_BeyondLimit_ReturnsNotAcquired",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When acquiring beyond the limit, then the extra acquire returns NotAcquired.",
-      "intent": "Verify acquisitions beyond capacity are rejected.",
-      "scenario": "Given a semaphore with limit 2 already fully acquired.",
-      "behavior": "The extra acquire result status is NotAcquired.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs",
-        "line": 119,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_BeyondLimit_ReturnsNotAcquired"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Postgres.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_InvalidNameCharacters_ThrowsArgumentException",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When the semaphore name has invalid characters, then TryAcquire throws ArgumentException.",
-      "intent": "Verify disallowed characters are rejected.",
-      "scenario": "Given semaphore names containing spaces or forbidden symbols.",
-      "behavior": "TryAcquireAsync throws ArgumentException.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs",
-        "line": 675,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_InvalidNameCharacters_ThrowsArgumentException"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Postgres.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_InvalidName_ThrowsArgumentException",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When TryAcquire is called with a blank name, then it throws ArgumentException.",
-      "intent": "Verify semaphore name validation rejects empty or whitespace names.",
-      "scenario": "Given empty or whitespace semaphore names.",
-      "behavior": "TryAcquireAsync throws ArgumentException.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs",
-        "line": 609,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_InvalidName_ThrowsArgumentException"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Postgres.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_NameTooLong_ThrowsArgumentException",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When the semaphore name exceeds the maximum length, then TryAcquire throws ArgumentException.",
-      "intent": "Verify name length validation for semaphore operations.",
-      "scenario": "Given a semaphore name longer than 200 characters.",
-      "behavior": "TryAcquireAsync throws ArgumentException.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs",
-        "line": 626,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_NameTooLong_ThrowsArgumentException"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Postgres.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_TtlAboveMaximum_ThrowsArgumentException",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When ttlSeconds exceeds the maximum, then TryAcquire throws ArgumentException.",
-      "intent": "Verify TTL upper bound enforcement.",
-      "scenario": "Given ttlSeconds set to 3601.",
-      "behavior": "TryAcquireAsync throws ArgumentException.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs",
-        "line": 712,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_TtlAboveMaximum_ThrowsArgumentException"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Postgres.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_TtlBelowMinimum_ThrowsArgumentException",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When ttlSeconds is below the minimum, then TryAcquire throws ArgumentException.",
-      "intent": "Verify TTL lower bound enforcement.",
-      "scenario": "Given ttlSeconds set to 0.",
-      "behavior": "TryAcquireAsync throws ArgumentException.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs",
-        "line": 692,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_TtlBelowMinimum_ThrowsArgumentException"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Postgres.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_UpToLimit_AllAcquiresSucceed",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When acquiring up to the semaphore limit, then all acquires succeed.",
-      "intent": "Verify capacity enforcement allows up to the configured limit.",
-      "scenario": "Given a semaphore with limit 3 and three acquire attempts.",
-      "behavior": "All results are Acquired with unique tokens and fencing counters.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs",
-        "line": 89,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_UpToLimit_AllAcquiresSucceed"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Postgres.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_ValidNameCharacters_Succeeds",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When the semaphore name uses allowed characters, then TryAcquire succeeds.",
-      "intent": "Verify allowed name characters are accepted.",
-      "scenario": "Given valid semaphore names that are ensured and acquired.",
-      "behavior": "The acquire result status is Acquired.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs",
-        "line": 651,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_ValidNameCharacters_Succeeds"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Postgres.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_WithNonExistentSemaphore_ReturnsNotAcquired",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When TryAcquire is called for a non-existent semaphore, then it returns NotAcquired.",
-      "intent": "Verify acquisition fails if the semaphore has not been created.",
-      "scenario": "Given a random semaphore name with no prior EnsureExistsAsync call.",
-      "behavior": "The acquire result status is NotAcquired.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs",
-        "line": 68,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_WithNonExistentSemaphore_ReturnsNotAcquired"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Postgres.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_WithSameClientRequestId_ReturnsExistingLease",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When the same clientRequestId is reused, then TryAcquire returns the existing lease.",
-      "intent": "Verify idempotent acquisition by client request id.",
-      "scenario": "Given two TryAcquire calls with the same clientRequestId.",
-      "behavior": "The second result matches the first token and fencing counter.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs",
-        "line": 568,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_WithSameClientRequestId_ReturnsExistingLease"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Postgres.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.UpdateLimit_Decrease_BlocksNewAcquires",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When the limit is decreased below the active count, then new acquires are blocked.",
-      "intent": "Verify limit decreases enforce the new capacity immediately.",
-      "scenario": "Given two active leases and a limit reduced to one.",
-      "behavior": "Acquires remain NotAcquired until the active count drops below the new limit.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs",
-        "line": 501,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.UpdateLimit_Decrease_BlocksNewAcquires"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Postgres.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.UpdateLimit_Increase_EnablesMoreAcquires",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When the limit is increased, then additional acquires succeed.",
-      "intent": "Verify limit increases open capacity for new leases.",
-      "scenario": "Given a semaphore at limit 1 with one active lease, then limit raised to 2.",
-      "behavior": "The next acquire returns Acquired.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Postgres.Tests/SemaphoreServiceTests.cs",
-        "line": 465,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.UpdateLimit_Increase_EnablesMoreAcquires"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Postgres.Tests"
-    },
-    {
       "testId": "Bravellian.Platform.Postgres.Tests:Bravellian.Platform.Tests.SystemLeaseTests.AcquireAsync_AfterLeaseReleased_CanAcquireAgain",
       "category": "Bravellian.Platform.Tests",
       "tags": [],
@@ -3985,30 +3473,14 @@
       "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.ConfiguredLeaseFactoryProviderTests.ConfiguredProvider_GetFactoryIdentifier_ReturnsUnknownForInvalidFactory",
       "category": "Bravellian.Platform.Tests",
       "tags": [],
-      "summary": "When a factory not created by the provider is inspected, then its identifier is reported as \u0022Unknown\u0022.",
+      "summary": "When a factory not created by the provider is inspected, then its identifier is reported as \"Unknown\".",
       "intent": "Confirm identifier lookup only recognizes provider-managed factories.",
       "scenario": "Given an external SqlLeaseFactory not created by ConfiguredLeaseFactoryProvider.",
-      "behavior": "Then GetFactoryIdentifier returns \u0022Unknown\u0022.",
+      "behavior": "Then GetFactoryIdentifier returns \"Unknown\".",
       "source": {
         "file": "tests/Bravellian.Platform.Tests/ConfiguredLeaseFactoryProviderTests.cs",
         "line": 127,
         "member": "Bravellian.Platform.Tests.ConfiguredLeaseFactoryProviderTests.ConfiguredProvider_GetFactoryIdentifier_ReturnsUnknownForInvalidFactory"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.ControlPlaneConfigurationTests.AddPlatformMultiDatabaseWithControlPlaneAndDiscovery_OldSignature_StillWorks",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When the obsolete discovery-based control plane overload is used, then it still wires defaults correctly.",
-      "intent": "Ensure legacy discovery registration continues to configure the control plane schema.",
-      "scenario": "Given AddPlatformMultiDatabaseWithControlPlaneAndDiscovery called via the obsolete signature and a list-based discovery.",
-      "behavior": "Then PlatformConfiguration and SemaphoreOptions default the schema to \u0022infra\u0022.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Tests/ControlPlaneConfigurationTests.cs",
-        "line": 209,
-        "member": "Bravellian.Platform.Tests.ControlPlaneConfigurationTests.AddPlatformMultiDatabaseWithControlPlaneAndDiscovery_OldSignature_StillWorks"
       },
       "status": "compliant",
       "project": "Bravellian.Platform.Tests"
@@ -4030,45 +3502,13 @@
       "project": "Bravellian.Platform.Tests"
     },
     {
-      "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.ControlPlaneConfigurationTests.AddPlatformMultiDatabaseWithControlPlaneAndList_OldSignature_StillWorks",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When the obsolete list-based control plane overload is used, then it still wires defaults correctly.",
-      "intent": "Ensure legacy registration paths continue to configure the control plane schema.",
-      "scenario": "Given AddPlatformMultiDatabaseWithControlPlaneAndList called via the obsolete signature.",
-      "behavior": "Then PlatformConfiguration and SemaphoreOptions default the schema to \u0022infra\u0022.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Tests/ControlPlaneConfigurationTests.cs",
-        "line": 165,
-        "member": "Bravellian.Platform.Tests.ControlPlaneConfigurationTests.AddPlatformMultiDatabaseWithControlPlaneAndList_OldSignature_StillWorks"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.ControlPlaneConfigurationTests.AddPlatformMultiDatabaseWithControlPlaneAndList_WithOptions_ConfiguresSchemaName",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When list-based control plane registration specifies a schema name, then configuration and semaphore options use it.",
-      "intent": "Verify control-plane schema settings are propagated to configuration and semaphore options.",
-      "scenario": "Given AddPlatformMultiDatabaseWithControlPlaneAndList called with control plane options specifying SchemaName = \u0022control\u0022.",
-      "behavior": "Then PlatformConfiguration and SemaphoreOptions use the control plane schema and connection string.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Tests/ControlPlaneConfigurationTests.cs",
-        "line": 39,
-        "member": "Bravellian.Platform.Tests.ControlPlaneConfigurationTests.AddPlatformMultiDatabaseWithControlPlaneAndList_WithOptions_ConfiguresSchemaName"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Tests"
-    },
-    {
       "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.ControlPlaneConfigurationTests.PlatformControlPlaneOptions_DefaultSchemaName_IsDbo",
       "category": "Bravellian.Platform.Tests",
       "tags": [],
-      "summary": "When PlatformControlPlaneOptions is created without a schema name, then it defaults to \u0022infra\u0022.",
+      "summary": "When PlatformControlPlaneOptions is created without a schema name, then it defaults to \"infra\".",
       "intent": "Confirm control-plane options default schema aligns with platform conventions.",
       "scenario": "Given a PlatformControlPlaneOptions instance with only ConnectionString set.",
-      "behavior": "Then SchemaName is \u0022infra\u0022.",
+      "behavior": "Then SchemaName is \"infra\".",
       "source": {
         "file": "tests/Bravellian.Platform.Tests/ControlPlaneConfigurationTests.cs",
         "line": 142,
@@ -5036,7 +4476,7 @@
       "summary": "When a known scheduler key is requested, then GetSchedulerClientByKey returns a client instance.",
       "intent": "Verify keyed scheduler client lookup works after discovery.",
       "scenario": "Given discovery provides Customer1 and initial discovery has completed.",
-      "behavior": "Then GetSchedulerClientByKey(\u0022Customer1\u0022) returns a non-null client.",
+      "behavior": "Then GetSchedulerClientByKey(\"Customer1\") returns a non-null client.",
       "source": {
         "file": "tests/Bravellian.Platform.Tests/DynamicSchedulerStoreProviderTests.cs",
         "line": 241,
@@ -5052,7 +4492,7 @@
       "summary": "When an unknown scheduler key is requested, then GetSchedulerClientByKey returns null.",
       "intent": "Ensure missing scheduler keys are reported as null lookups.",
       "scenario": "Given discovery provides Customer1 and initial discovery has completed.",
-      "behavior": "Then GetSchedulerClientByKey(\u0022UnknownCustomer\u0022) returns null.",
+      "behavior": "Then GetSchedulerClientByKey(\"UnknownCustomer\") returns null.",
       "source": {
         "file": "tests/Bravellian.Platform.Tests/DynamicSchedulerStoreProviderTests.cs",
         "line": 285,
@@ -5100,7 +4540,7 @@
       "summary": "When a UI engine is not registered for the requested engine ID, then ExecuteAsync throws.",
       "intent": "Ensure missing UI engines surface a clear error.",
       "scenario": "Given a UiEngineAdapter and a request targeting an unknown UI engine ID.",
-      "behavior": "Then ExecuteAsync throws InvalidOperationException with a \u0022No UI engine registered\u0022 message.",
+      "behavior": "Then ExecuteAsync throws InvalidOperationException with a \"No UI engine registered\" message.",
       "source": {
         "file": "tests/Bravellian.Platform.Tests/EngineRefactoringTests.cs",
         "line": 259,
@@ -5212,7 +4652,7 @@
       "summary": "When a webhook engine is not registered for the provider/event, then DispatchAsync throws.",
       "intent": "Ensure missing webhook engines are reported as errors.",
       "scenario": "Given a WebhookEngineAdapter and a request for a missing provider/event pair.",
-      "behavior": "Then DispatchAsync throws InvalidOperationException with a \u0022No webhook engine registered\u0022 message.",
+      "behavior": "Then DispatchAsync throws InvalidOperationException with a \"No webhook engine registered\" message.",
       "source": {
         "file": "tests/Bravellian.Platform.Tests/EngineRefactoringTests.cs",
         "line": 173,
@@ -5340,7 +4780,7 @@
       "summary": "When IsCatchable is called with a null exception, then it throws ArgumentNullException.",
       "intent": "Guard against null exception inputs.",
       "scenario": "Given a null exception argument.",
-      "behavior": "Then an ArgumentNullException is thrown with parameter name \u0022exception\u0022.",
+      "behavior": "Then an ArgumentNullException is thrown with parameter name \"exception\".",
       "source": {
         "file": "tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs",
         "line": 107,
@@ -5420,7 +4860,7 @@
       "summary": "When IsCritical is called with a null exception, then it throws ArgumentNullException.",
       "intent": "Guard against null exception inputs for critical checks.",
       "scenario": "Given a null exception argument.",
-      "behavior": "Then an ArgumentNullException is thrown with parameter name \u0022exception\u0022.",
+      "behavior": "Then an ArgumentNullException is thrown with parameter name \"exception\".",
       "source": {
         "file": "tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs",
         "line": 202,
@@ -5564,7 +5004,7 @@
       "summary": "When IsExpected is called with a null exception, then it throws ArgumentNullException.",
       "intent": "Guard against null exception inputs for expected checks.",
       "scenario": "Given a null exception argument.",
-      "behavior": "Then an ArgumentNullException is thrown with parameter name \u0022exception\u0022.",
+      "behavior": "Then an ArgumentNullException is thrown with parameter name \"exception\".",
       "source": {
         "file": "tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs",
         "line": 326,
@@ -5580,7 +5020,7 @@
       "summary": "When IsExpected is called with null expected types, then it throws ArgumentNullException.",
       "intent": "Guard against null expected type arrays.",
       "scenario": "Given a non-null exception and a null expectedTypes array.",
-      "behavior": "Then an ArgumentNullException is thrown with parameter name \u0022expectedTypes\u0022.",
+      "behavior": "Then an ArgumentNullException is thrown with parameter name \"expectedTypes\".",
       "source": {
         "file": "tests/Bravellian.Platform.Tests/ExceptionFilterTests.cs",
         "line": 346,
@@ -5755,7 +5195,7 @@
       "tags": [],
       "summary": "When a tenant key is missing, then FanoutRouter throws an InvalidOperationException containing the key.",
       "intent": "Ensure invalid fanout keys are rejected with actionable errors.",
-      "scenario": "Given a FanoutRouter configured for Tenant1 only and a lookup for \u0022NonExistentKey\u0022.",
+      "scenario": "Given a FanoutRouter configured for Tenant1 only and a lookup for \"NonExistentKey\".",
       "behavior": "Then both policy and cursor repository lookups throw and mention the missing key.",
       "source": {
         "file": "tests/Bravellian.Platform.Tests/FanoutRouterIntegrationTests.cs",
@@ -5769,10 +5209,10 @@
       "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.FanoutSystemTests.FanoutDispatcher_ShouldCreateCorrectTopicName",
       "category": "Bravellian.Platform.Tests",
       "tags": [],
-      "summary": "When a fanout topic name is constructed, then it follows the \u0022fanout:{fanoutTopic}:{workKey}\u0022 convention.",
+      "summary": "When a fanout topic name is constructed, then it follows the \"fanout:{fanoutTopic}:{workKey}\" convention.",
       "intent": "Document the fanout topic naming pattern used by the dispatcher.",
-      "scenario": "Given a fanout topic of \u0022etl\u0022 and a work key of \u0022payments\u0022.",
-      "behavior": "Then the expected topic is \u0022fanout:etl:payments\u0022.",
+      "scenario": "Given a fanout topic of \"etl\" and a work key of \"payments\".",
+      "behavior": "Then the expected topic is \"fanout:etl:payments\".",
       "source": {
         "file": "tests/Bravellian.Platform.Tests/FanoutSystemTests.cs",
         "line": 71,
@@ -6793,7 +6233,7 @@
       "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.ManualSchemaExportTests.DeploySchemaAndExportToSqlProject",
       "category": "Bravellian.Platform.Tests",
       "tags": [],
-      "summary": "This manual test deploys all platform schemas to a fresh SQL Server container and then uses SqlPackage to extract the schema and update the SQL Server project. This test creates two separate databases and two separate dacpac files: 1. Control Plane database - contains Semaphore and Central Metrics schemas 2. Multi-Database schema - contains Outbox, Inbox, Scheduler, Lease, Fanout, Metrics, and DistributedLock schemas Note: This test is skipped by default to prevent it from running in CI. To run it, remove the Skip parameter or run it explicitly using the test filter.",
+      "summary": "This manual test deploys all platform schemas to a fresh SQL Server container and then uses SqlPackage to extract the schema and update the SQL Server project. This test creates two separate databases and two separate dacpac files: 1. Control Plane database - contains Central Metrics schema 2. Multi-Database schema - contains Outbox, Inbox, Scheduler, Lease, Fanout, Metrics, and DistributedLock schemas Note: This test is skipped by default to prevent it from running in CI. To run it, remove the Skip parameter or run it explicitly using the test filter.",
       "intent": "Provide a manual workflow for updating the SQL Server project from deployed schema.",
       "scenario": "Given an initialized SQL Server container and a valid connection string for schema deployment.",
       "behavior": "Then control plane and multi-database schemas are deployed and the extraction steps complete without error.",
@@ -6907,7 +6347,7 @@
       "tags": [],
       "summary": "When a registered metric allows a tag, then IsTagAllowed returns true.",
       "intent": "Confirm allowed tags are honored for registered metrics.",
-      "scenario": "Given a registered metric that includes the \u0022allowed_tag\u0022 value.",
+      "scenario": "Given a registered metric that includes the \"allowed_tag\" value.",
       "behavior": "Then IsTagAllowed returns true for that tag.",
       "source": {
         "file": "tests/Bravellian.Platform.Tests/MetricRegistrarTests.cs",
@@ -6923,7 +6363,7 @@
       "tags": [],
       "summary": "When a registered metric does not allow a tag, then IsTagAllowed returns false.",
       "intent": "Ensure disallowed tags are rejected even for registered metrics.",
-      "scenario": "Given a registered metric that only allows \u0022allowed_tag\u0022.",
+      "scenario": "Given a registered metric that only allows \"allowed_tag\".",
       "behavior": "Then IsTagAllowed returns false for a different tag value.",
       "source": {
         "file": "tests/Bravellian.Platform.Tests/MetricRegistrarTests.cs",
@@ -6939,7 +6379,7 @@
       "tags": [],
       "summary": "When a metric is not registered, then IsTagAllowed returns false for any tag.",
       "intent": "Verify tag checks fail for unknown metrics.",
-      "scenario": "Given a MetricRegistrar with no registration for \u0022unknown.metric\u0022.",
+      "scenario": "Given a MetricRegistrar with no registration for \"unknown.metric\".",
       "behavior": "Then IsTagAllowed returns false for the requested tag.",
       "source": {
         "file": "tests/Bravellian.Platform.Tests/MetricRegistrarTests.cs",
@@ -6987,7 +6427,7 @@
       "tags": [],
       "summary": "When a valid metric is registered, then it appears in the registry.",
       "intent": "Verify MetricRegistrar stores new metric registrations.",
-      "scenario": "Given a MetricRegistrar and a MetricRegistration for \u0022test.metric\u0022.",
+      "scenario": "Given a MetricRegistrar and a MetricRegistration for \"test.metric\".",
       "behavior": "Then GetAll returns a single entry that matches the registered metric.",
       "source": {
         "file": "tests/Bravellian.Platform.Tests/MetricRegistrarTests.cs",
@@ -7627,7 +7067,7 @@
       "tags": [],
       "summary": "When a handler throws, then the dispatcher reschedules the message with a backoff delay.",
       "intent": "Verify failing handlers trigger reschedule with an error message.",
-      "scenario": "Given a TestHandler configured to throw and a message with RetryCount \u003E 0.",
+      "scenario": "Given a TestHandler configured to throw and a message with RetryCount > 0.",
       "behavior": "Then the store records a reschedule with a positive delay and the handler error.",
       "source": {
         "file": "tests/Bravellian.Platform.Tests/OutboxHandlerTests.cs",
@@ -7739,7 +7179,7 @@
       "tags": [],
       "summary": "When handler topics are looked up with different casing, then the resolver still matches them.",
       "intent": "Ensure topic matching is case-insensitive.",
-      "scenario": "Given a resolver with a handler for \u0022Email.Send\u0022 and lookups using different casing.",
+      "scenario": "Given a resolver with a handler for \"Email.Send\" and lookups using different casing.",
       "behavior": "Then TryGet succeeds for lower-case and upper-case topic strings.",
       "source": {
         "file": "tests/Bravellian.Platform.Tests/OutboxHandlerTests.cs",
@@ -8199,7 +7639,7 @@
       "tags": [],
       "summary": "When a Guid key does not match any configured identifier, then GetOutbox throws with the key in the message.",
       "intent": "Verify Guid-based lookup reports missing identifiers clearly.",
-      "scenario": "Given a router configured for \u0022Customer1\u0022 and a different Guid key.",
+      "scenario": "Given a router configured for \"Customer1\" and a different Guid key.",
       "behavior": "Then GetOutbox(Guid) throws InvalidOperationException containing the Guid string.",
       "source": {
         "file": "tests/Bravellian.Platform.Tests/OutboxRouterTests.cs",
@@ -8744,7 +8184,7 @@
       "summary": "When list-based discovery requires databases but none are found, then StartAsync throws with a missing database message.",
       "intent": "Enforce startup database requirements for list-based discovery.",
       "scenario": "Given UsesDiscovery false, RequiresDatabaseAtStartup true, and an EmptyDatabaseDiscovery.",
-      "behavior": "Then StartAsync throws an InvalidOperationException containing \u0022At least one database is required\u0022.",
+      "behavior": "Then StartAsync throws an InvalidOperationException containing \"At least one database is required\".",
       "source": {
         "file": "tests/Bravellian.Platform.Tests/PlatformLifecycleServiceTests.cs",
         "line": 69,
@@ -9181,534 +8621,6 @@
         "file": "tests/Bravellian.Platform.Tests/SchemaVersionSnapshotTests.cs",
         "line": 27,
         "member": "Bravellian.Platform.Tests.SchemaVersionSnapshotTests.SchemaVersions_MatchSnapshot"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreConcurrencyTests.ConcurrentReapAndAcquire_MaintainsCorrectness",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When reaping and acquiring concurrently, then deletions stay within expired count and acquires stay under limit.",
-      "intent": "Verify reaping and acquiring interleave safely.",
-      "scenario": "Create expired leases, then run ReapExpiredAsync alongside new acquire attempts.",
-      "behavior": "The deleted count is at most the expired leases and acquired count does not exceed the limit.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Tests/SemaphoreConcurrencyTests.cs",
-        "line": 261,
-        "member": "Bravellian.Platform.Tests.SemaphoreConcurrencyTests.ConcurrentReapAndAcquire_MaintainsCorrectness"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreConcurrencyTests.ConcurrentUpdateLimit_DoesNotCorruptState",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When limits are updated concurrently, then the semaphore remains usable.",
-      "intent": "Ensure concurrent limit updates do not corrupt semaphore state.",
-      "scenario": "Apply multiple UpdateLimitAsync calls in parallel, then attempt an acquire.",
-      "behavior": "The acquire returns Acquired.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Tests/SemaphoreConcurrencyTests.cs",
-        "line": 222,
-        "member": "Bravellian.Platform.Tests.SemaphoreConcurrencyTests.ConcurrentUpdateLimit_DoesNotCorruptState"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreConcurrencyTests.FencingCounters_StrictlyIncreasingUnderConcurrency",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When acquiring concurrently, then fencing counters are unique and strictly increasing.",
-      "intent": "Ensure fencing counters remain ordered under concurrency.",
-      "scenario": "Run 20 parallel acquires and collect fencing counters.",
-      "behavior": "All counters are unique and strictly increasing when ordered.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Tests/SemaphoreConcurrencyTests.cs",
-        "line": 318,
-        "member": "Bravellian.Platform.Tests.SemaphoreConcurrencyTests.FencingCounters_StrictlyIncreasingUnderConcurrency"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreConcurrencyTests.HighContentionAcquire_EventuallySucceeds",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When workers retry under contention, then most eventually acquire a lease.",
-      "intent": "Verify retries succeed with short TTLs under high contention.",
-      "scenario": "Run 10 workers with retries against a limit-2 semaphore.",
-      "behavior": "More than half of workers report successful acquisition.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Tests/SemaphoreConcurrencyTests.cs",
-        "line": 172,
-        "member": "Bravellian.Platform.Tests.SemaphoreConcurrencyTests.HighContentionAcquire_EventuallySucceeds"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreConcurrencyTests.ParallelAcquireAndRelease_MaintainsInvariant",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When workers acquire and release concurrently, then releases match successful acquires.",
-      "intent": "Ensure no leases are leaked under parallel acquire/release.",
-      "scenario": "Run 20 workers that acquire, hold briefly, and release on a limit-5 semaphore.",
-      "behavior": "The successful release count equals the successful acquire count.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Tests/SemaphoreConcurrencyTests.cs",
-        "line": 114,
-        "member": "Bravellian.Platform.Tests.SemaphoreConcurrencyTests.ParallelAcquireAndRelease_MaintainsInvariant"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreConcurrencyTests.ParallelAcquires_NeverExceedsLimit",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When many workers acquire in parallel, then total acquisitions do not exceed the limit.",
-      "intent": "Verify concurrent acquisition respects semaphore capacity.",
-      "scenario": "Ensure a semaphore with limit 10 and run 50 parallel acquire attempts.",
-      "behavior": "The number of acquired tokens is at most 10 and greater than zero.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Tests/SemaphoreConcurrencyTests.cs",
-        "line": 67,
-        "member": "Bravellian.Platform.Tests.SemaphoreConcurrencyTests.ParallelAcquires_NeverExceedsLimit"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreConcurrencyTests.Renewals_WithIntermittentGcPausesMaintainLeases",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When leases are renewed with jitter and pauses, then all renewals succeed.",
-      "intent": "Validate renewals tolerate intermittent delays.",
-      "scenario": "Acquire three leases and renew each with jitter and a simulated GC pause.",
-      "behavior": "Every renewal result reports Renewed.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Tests/SemaphoreConcurrencyTests.cs",
-        "line": 363,
-        "member": "Bravellian.Platform.Tests.SemaphoreConcurrencyTests.Renewals_WithIntermittentGcPausesMaintainLeases"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreConcurrencyTests.StarvedAcquisition_AppliesBackpressureUntilCapacityReturns",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When the semaphore is saturated, then contenders are backpressured until capacity returns.",
-      "intent": "Ensure contention produces backpressure and recovery once released.",
-      "scenario": "Hold a lease while contenders retry, then release and attempt a recovery acquire.",
-      "behavior": "NotAcquired attempts occur and the recovery acquire succeeds.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Tests/SemaphoreConcurrencyTests.cs",
-        "line": 431,
-        "member": "Bravellian.Platform.Tests.SemaphoreConcurrencyTests.StarvedAcquisition_AppliesBackpressureUntilCapacityReturns"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreRegistrationTests.SemaphoreService_NotRegistered_InMultiDatabaseWithoutControlPlane",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When multi-database registration omits a control plane, then ISemaphoreService is not registered.",
-      "intent": "Ensure semaphore services remain global and require a control plane.",
-      "scenario": "Given AddPlatformMultiDatabaseWithList called without control-plane options.",
-      "behavior": "Then ISemaphoreService is not present in the service provider.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Tests/SemaphoreRegistrationTests.cs",
-        "line": 55,
-        "member": "Bravellian.Platform.Tests.SemaphoreRegistrationTests.SemaphoreService_NotRegistered_InMultiDatabaseWithoutControlPlane"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.EnsureExists_LimitAboveMaximum_ThrowsArgumentException",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When EnsureExistsAsync receives a limit above maximum, then it throws ArgumentException.",
-      "intent": "Enforce maximum semaphore limit.",
-      "scenario": "Call EnsureExistsAsync with limit 10001.",
-      "behavior": "An ArgumentException is thrown.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs",
-        "line": 750,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.EnsureExists_LimitAboveMaximum_ThrowsArgumentException"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.EnsureExists_LimitBelowMinimum_ThrowsArgumentException",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When EnsureExistsAsync receives a limit below minimum, then it throws ArgumentException.",
-      "intent": "Enforce minimum semaphore limit.",
-      "scenario": "Call EnsureExistsAsync with limit 0.",
-      "behavior": "An ArgumentException is thrown.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs",
-        "line": 732,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.EnsureExists_LimitBelowMinimum_ThrowsArgumentException"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.Fencing_StrictlyIncreases",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When multiple leases are acquired, then fencing counters strictly increase.",
-      "intent": "Verify fencing counters are monotonic across acquires.",
-      "scenario": "Acquire five leases sequentially and record fencing counters.",
-      "behavior": "Each fencing counter is greater than the previous one.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs",
-        "line": 287,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.Fencing_StrictlyIncreases"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.MultipleNames_AreIsolated",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When acquiring leases for different semaphore names, then each name is isolated.",
-      "intent": "Verify semaphore names do not share capacity.",
-      "scenario": "Create two named semaphores and acquire one lease from each.",
-      "behavior": "Both acquisitions succeed and tokens differ.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs",
-        "line": 772,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.MultipleNames_AreIsolated"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.ReapExpired_RemovesExpiredLeases",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When reaping expired leases, then expired rows are deleted.",
-      "intent": "Validate ReapExpiredAsync removes expired leases.",
-      "scenario": "Acquire multiple leases with short TTLs, wait for expiry, then reap.",
-      "behavior": "The deleted count equals the number of expired leases.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs",
-        "line": 386,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.ReapExpired_RemovesExpiredLeases"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.ReapExpired_WithMaxRows_LimitsDeletions",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When reaping with a max row limit, then deletions are capped to that limit.",
-      "intent": "Ensure ReapExpiredAsync respects the maxRows parameter.",
-      "scenario": "Acquire several short-lived leases, wait for expiry, then reap with maxRows 2.",
-      "behavior": "The first reap deletes 2 leases and the next reap deletes the remainder.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs",
-        "line": 420,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.ReapExpired_WithMaxRows_LimitsDeletions"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.Release_FreesCapacity",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When a lease is released, then a new acquire can succeed.",
-      "intent": "Verify ReleaseAsync frees capacity for new leases.",
-      "scenario": "Acquire a lease on a limit-1 semaphore, release it, then attempt another acquire.",
-      "behavior": "The release succeeds and the second acquire is Acquired.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs",
-        "line": 152,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.Release_FreesCapacity"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.Release_IdempotentWhenCalledTwice",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When the same token is released twice, then the second release reports NotFound.",
-      "intent": "Ensure ReleaseAsync is idempotent.",
-      "scenario": "Acquire a lease and call ReleaseAsync twice with the same token.",
-      "behavior": "The first release is Released and the second is NotFound.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs",
-        "line": 188,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.Release_IdempotentWhenCalledTwice"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.Renew_AfterRelease_ReturnsLost",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When renewing after a release, then the lease is reported as lost.",
-      "intent": "Ensure released tokens cannot be renewed.",
-      "scenario": "Acquire a lease, release it, then attempt to renew the same token.",
-      "behavior": "The renew result status is Lost.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs",
-        "line": 254,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.Renew_AfterRelease_ReturnsLost"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.Renew_ExtendsLeaseExpiry",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When renewing an active lease, then the expiry moves forward.",
-      "intent": "Verify RenewAsync extends the lease expiration.",
-      "scenario": "Acquire a lease, wait briefly, then renew with the same TTL.",
-      "behavior": "The renew result is Renewed and ExpiresAtUtc is later than the original.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs",
-        "line": 221,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.Renew_ExtendsLeaseExpiry"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.Renew_MonotonicExtension_NeverShortensExpiry",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When renewing with a shorter TTL, then the expiry does not move backward.",
-      "intent": "Ensure RenewAsync enforces a monotonic expiry.",
-      "scenario": "Acquire a lease with TTL 60 and renew it with TTL 10.",
-      "behavior": "The renewed ExpiresAtUtc is greater than or equal to the original.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs",
-        "line": 317,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.Renew_MonotonicExtension_NeverShortensExpiry"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_AfterExpiry_Succeeds",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When a lease expires, then a subsequent acquire succeeds.",
-      "intent": "Verify expired leases free capacity for new acquisitions.",
-      "scenario": "Acquire with a short TTL, wait for expiry, then attempt another acquire.",
-      "behavior": "The second acquire returns Acquired.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs",
-        "line": 352,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_AfterExpiry_Succeeds"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_BeyondLimit_ReturnsNotAcquired",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When acquisitions exceed the limit, then additional acquire attempts return NotAcquired.",
-      "intent": "Ensure the semaphore blocks acquisitions beyond capacity.",
-      "scenario": "Ensure a semaphore with limit 2, acquire twice, then attempt a third acquire.",
-      "behavior": "The third attempt returns NotAcquired.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs",
-        "line": 119,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_BeyondLimit_ReturnsNotAcquired"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_InvalidNameCharacters_ThrowsArgumentException",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When the semaphore name contains invalid characters, then TryAcquireAsync throws ArgumentException.",
-      "intent": "Reject invalid semaphore name characters.",
-      "scenario": "Call TryAcquireAsync with names containing spaces or punctuation like @ or #.",
-      "behavior": "An ArgumentException is thrown.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs",
-        "line": 675,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_InvalidNameCharacters_ThrowsArgumentException"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_InvalidName_ThrowsArgumentException",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When the semaphore name is empty or whitespace, then TryAcquireAsync throws ArgumentException.",
-      "intent": "Validate semaphore name input is required.",
-      "scenario": "Call TryAcquireAsync with invalid name inputs from InlineData.",
-      "behavior": "An ArgumentException is thrown.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs",
-        "line": 609,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_InvalidName_ThrowsArgumentException"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_NameTooLong_ThrowsArgumentException",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When the semaphore name exceeds the maximum length, then TryAcquireAsync throws ArgumentException.",
-      "intent": "Enforce maximum semaphore name length.",
-      "scenario": "Call TryAcquireAsync with a 201-character name.",
-      "behavior": "An ArgumentException is thrown.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs",
-        "line": 626,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_NameTooLong_ThrowsArgumentException"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_TtlAboveMaximum_ThrowsArgumentException",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When the TTL exceeds the maximum, then TryAcquireAsync throws ArgumentException.",
-      "intent": "Validate maximum TTL constraints.",
-      "scenario": "Ensure a semaphore exists and call TryAcquireAsync with TTL 3601.",
-      "behavior": "An ArgumentException is thrown.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs",
-        "line": 712,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_TtlAboveMaximum_ThrowsArgumentException"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_TtlBelowMinimum_ThrowsArgumentException",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When the TTL is below the minimum, then TryAcquireAsync throws ArgumentException.",
-      "intent": "Validate minimum TTL constraints.",
-      "scenario": "Ensure a semaphore exists and call TryAcquireAsync with TTL 0.",
-      "behavior": "An ArgumentException is thrown.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs",
-        "line": 692,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_TtlBelowMinimum_ThrowsArgumentException"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_UpToLimit_AllAcquiresSucceed",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When acquiring up to the configured limit, then each acquisition succeeds with unique tokens.",
-      "intent": "Verify limit enforcement allows acquisitions up to capacity.",
-      "scenario": "Ensure a semaphore with limit 3 and acquire three times with different owners.",
-      "behavior": "All results are Acquired with unique tokens and fencing values.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs",
-        "line": 89,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_UpToLimit_AllAcquiresSucceed"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_ValidNameCharacters_Succeeds",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When the semaphore name uses allowed characters, then TryAcquireAsync succeeds.",
-      "intent": "Verify valid name patterns are accepted.",
-      "scenario": "Ensure semaphores exist for valid names and call TryAcquireAsync.",
-      "behavior": "Each attempt returns Acquired.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs",
-        "line": 651,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_ValidNameCharacters_Succeeds"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_WithNonExistentSemaphore_ReturnsNotAcquired",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When acquiring a semaphore that has not been created, then status is NotAcquired.",
-      "intent": "Confirm missing semaphores are not implicitly created.",
-      "scenario": "Use a new semaphore name without calling EnsureExistsAsync.",
-      "behavior": "TryAcquireAsync returns NotAcquired.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs",
-        "line": 68,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_WithNonExistentSemaphore_ReturnsNotAcquired"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_WithSameClientRequestId_ReturnsExistingLease",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When acquiring twice with the same client request id, then the same lease is returned.",
-      "intent": "Verify TryAcquireAsync is idempotent by client request id.",
-      "scenario": "Call TryAcquireAsync twice with the same clientRequestId.",
-      "behavior": "The second result matches the first token and fencing values.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs",
-        "line": 568,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.TryAcquire_WithSameClientRequestId_ReturnsExistingLease"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.UpdateLimit_Decrease_BlocksNewAcquires",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When the limit is decreased below active count, then new acquires are blocked until capacity frees.",
-      "intent": "Ensure UpdateLimitAsync enforces the lowered limit.",
-      "scenario": "Acquire two leases, lower limit to one, attempt acquires after each release.",
-      "behavior": "Acquires are NotAcquired while at the limit and succeed after both releases.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs",
-        "line": 501,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.UpdateLimit_Decrease_BlocksNewAcquires"
-      },
-      "status": "compliant",
-      "project": "Bravellian.Platform.Tests"
-    },
-    {
-      "testId": "Bravellian.Platform.Tests:Bravellian.Platform.Tests.SemaphoreServiceTests.UpdateLimit_Increase_EnablesMoreAcquires",
-      "category": "Bravellian.Platform.Tests",
-      "tags": [],
-      "summary": "When the limit is increased, then additional acquires can succeed.",
-      "intent": "Verify UpdateLimitAsync expands capacity.",
-      "scenario": "Acquire at limit 1, update limit to 2, then acquire again.",
-      "behavior": "The second acquire returns Acquired.",
-      "source": {
-        "file": "tests/Bravellian.Platform.Tests/SemaphoreServiceTests.cs",
-        "line": 465,
-        "member": "Bravellian.Platform.Tests.SemaphoreServiceTests.UpdateLimit_Increase_EnablesMoreAcquires"
       },
       "status": "compliant",
       "project": "Bravellian.Platform.Tests"
@@ -10664,7 +9576,7 @@
       "summary": "When module services are added, then the module definition is registered in DI.",
       "intent": "Ensure module definitions are accessible through the service provider.",
       "scenario": "Given SampleModule is registered and configuration includes its required key.",
-      "behavior": "Then resolving IModuleDefinition returns a module with key \u0022sample-module\u0022.",
+      "behavior": "Then resolving IModuleDefinition returns a module with key \"sample-module\".",
       "source": {
         "file": "tests/Bravellian.Platform.Tests/Modularity/ModuleSystemTests.cs",
         "line": 77,
@@ -10680,7 +9592,7 @@
       "summary": "When a module is registered with its required configuration, then its services and health checks are added to DI.",
       "intent": "Verify that module registration wires up services and health checks.",
       "scenario": "Given SampleModule is registered and configuration provides its required key.",
-      "behavior": "Then MarkerService is resolvable and the health check registration includes \u0022sample_module\u0022.",
+      "behavior": "Then MarkerService is resolvable and the health check registration includes \"sample_module\".",
       "source": {
         "file": "tests/Bravellian.Platform.Tests/Modularity/ModuleSystemTests.cs",
         "line": 42,
@@ -10756,7 +9668,7 @@
       "summary": "When an engine descriptor factory returns null, then ResolveEngine throws and identifies the module/engine key.",
       "intent": "Guard against null engine factories during discovery resolution.",
       "scenario": "Given a ModuleEngineDescriptor whose factory returns null and an empty service provider.",
-      "behavior": "Then ResolveEngine throws an InvalidOperationException mentioning \u0022returned null\u0022 and the descriptor key.",
+      "behavior": "Then ResolveEngine throws an InvalidOperationException mentioning \"returned null\" and the descriptor key.",
       "source": {
         "file": "tests/Bravellian.Platform.Tests/Modularity/RequiredServiceValidationTests.cs",
         "line": 144,
@@ -10772,7 +9684,7 @@
       "summary": "When required services are satisfied, then ExecuteAsync returns the engine result.",
       "intent": "Confirm successful execution when required services are available.",
       "scenario": "Given RequiredServiceModule is registered and a TestRequiredServiceValidator lists cache and telemetry as available.",
-      "behavior": "Then the returned view model contains the expected \u0022ok\u0022 value.",
+      "behavior": "Then the returned view model contains the expected \"ok\" value.",
       "source": {
         "file": "tests/Bravellian.Platform.Tests/Modularity/RequiredServiceValidationTests.cs",
         "line": 110,

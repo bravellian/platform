@@ -12,23 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Bravellian.Platform.Semaphore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 namespace Bravellian.Platform.Tests;
 
 /// <summary>
-/// Tests to ensure that all customer database features use dynamic discovery
-/// and only global features (Semaphores, Metrics) use hardcoded configuration.
+/// Tests to ensure that all customer database features use dynamic discovery.
 /// </summary>
 public sealed class DynamicDiscoveryEnforcementTests
 {
     /// <summary>
     /// Verifies that when using platform registration with discovery,
-    /// customer database features (Inbox, Outbox, Lease, Scheduler, Fanout) 
-    /// do NOT have services.Configure<TOptions>() called (they should use discovery instead).
-    /// Only global features (Semaphores) should have Configure<TOptions>() called.
+    /// customer database features (Inbox, Outbox, Lease, Scheduler, Fanout)
+    /// do NOT have services.Configure&lt;TOptions&gt;() called (they should use discovery instead).
+    /// Global features may have Configure&lt;TOptions&gt;() called.
     /// </summary>
     /// <summary>
     /// When the platform is registered with discovery and a control plane, then customer database options are not configured while global options are.
@@ -40,7 +38,7 @@ public sealed class DynamicDiscoveryEnforcementTests
     /// Given AddSqlPlatformMultiDatabaseWithControlPlaneAndDiscovery with a discovery implementation and control plane options.
     /// </scenario>
     /// <behavior>
-    /// Then Outbox/Inbox/Scheduler/Fanout options remain default while Semaphore options are configured.
+    /// Then Outbox/Inbox/Scheduler/Fanout options remain default.
     /// </behavior>
     [Fact]
     public void PlatformWithDiscovery_ShouldNotConfigureCustomerDatabaseOptions()
@@ -78,13 +76,11 @@ public sealed class DynamicDiscoveryEnforcementTests
         AssertNoOptionsConfigured<SqlSchedulerOptions>(serviceProvider, "Scheduler");
         AssertNoOptionsConfigured<SqlFanoutOptions>(serviceProvider, "Fanout");
 
-        // Global features SHOULD have IOptions configured
-        AssertOptionsConfigured<SemaphoreOptions>(serviceProvider, "Semaphore");
     }
 
     /// <summary>
     /// Verifies that when using platform registration with a list,
-    /// customer database features do NOT have services.Configure<TOptions>() called.
+    /// customer database features do NOT have services.Configure&lt;TOptions&gt;() called.
     /// </summary>
     /// <summary>
     /// When the platform is registered with a database list, then customer database options are not configured.
@@ -274,18 +270,6 @@ public sealed class DynamicDiscoveryEnforcementTests
         }
     }
 
-    private static void AssertOptionsConfigured<TOptions>(IServiceProvider serviceProvider, string featureName)
-        where TOptions : class
-    {
-        var options = serviceProvider.GetService<IOptions<TOptions>>();
-        Assert.NotNull(options);
-
-        var value = options.Value;
-        Assert.NotNull(value);
-        Assert.False(IsDefaultOptions(value),
-            $"{featureName} (global feature) should have IOptions<{typeof(TOptions).Name}> configured.");
-    }
-
     private static bool IsDefaultOptions(object options)
     {
         // Check if this looks like a default-constructed options object
@@ -298,7 +282,6 @@ public sealed class DynamicDiscoveryEnforcementTests
             SqlFanoutOptions fanout => string.IsNullOrEmpty(fanout.ConnectionString),
             SystemLeaseOptions => false, // SystemLeaseOptions has no connection string, so we can't determine if it's configured
                                          // This is OK because leases should not have IOptions configured when using platform discovery
-            SemaphoreOptions semaphore => string.IsNullOrEmpty(semaphore.ConnectionString),
             _ => true,
         };
     }

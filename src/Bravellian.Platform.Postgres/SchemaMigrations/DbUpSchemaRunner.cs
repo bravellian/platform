@@ -106,8 +106,7 @@ internal static class DbUpSchemaRunner
             CultureInfo.InvariantCulture,
             $"{SchemaLockScope}|{connectionString}|{journalSchema}");
 
-        using var sha = System.Security.Cryptography.SHA256.Create();
-        var hash = sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(input));
+        var hash = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(input));
         return System.Buffers.Binary.BinaryPrimitives.ReadInt64LittleEndian(hash.AsSpan(0, sizeof(long)));
     }
 

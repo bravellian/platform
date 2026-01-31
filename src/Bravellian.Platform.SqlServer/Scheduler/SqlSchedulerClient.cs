@@ -21,6 +21,8 @@ using Microsoft.Extensions.Options;
 
 namespace Bravellian.Platform;
 
+#pragma warning disable CA2100 // SQL command text uses validated schema/table names with parameters.
+
 internal class SqlSchedulerClient : ISchedulerClient
 {
     private readonly string connectionString;
@@ -122,7 +124,8 @@ internal class SqlSchedulerClient : ISchedulerClient
         using (var connection = new SqlConnection(connectionString))
         {
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-            using (var transaction = connection.BeginTransaction())
+            var transaction = await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+            try
             {
                 // Must delete runs before the job definition due to foreign key
                 var deleteRunsCommand = new CommandDefinition(deleteJobRunsSql, new { JobName = jobName }, transaction, cancellationToken: cancellationToken);
@@ -132,6 +135,10 @@ internal class SqlSchedulerClient : ISchedulerClient
                 await connection.ExecuteAsync(deleteJobCommand).ConfigureAwait(false);
 
                 await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                await transaction.DisposeAsync().ConfigureAwait(false);
             }
         }
     }

@@ -422,7 +422,7 @@ public class OutboxHandlerTests : SqlServerTestBase
 
     /// <summary>When AddOutboxHandler is called with a handler type, then it registers a singleton IOutboxHandler.</summary>
     /// <intent>Confirm DI registration for handler types.</intent>
-    /// <scenario>Given a ServiceCollection and AddOutboxHandler<TestHandler> invocation.</scenario>
+    /// <scenario>Given a ServiceCollection and AddOutboxHandler&lt;TestHandler&gt; invocation.</scenario>
     /// <behavior>Then the service descriptor registers TestHandler as a singleton IOutboxHandler.</behavior>
     [Fact]
     public void ServiceCollection_AddOutboxHandler_RegistersHandler()

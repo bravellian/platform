@@ -55,9 +55,13 @@ public sealed class PostmarkEmailSender : IOutboundEmailSender
     /// <param name="validator">Postmark validator.</param>
     public PostmarkEmailSender(HttpClient httpClient, PostmarkOptions options, IPostmarkEmailValidator validator)
     {
-        this.httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-        this.options = options ?? throw new ArgumentNullException(nameof(options));
-        this.validator = validator ?? throw new ArgumentNullException(nameof(validator));
+        ArgumentNullException.ThrowIfNull(httpClient);
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(validator);
+
+        this.httpClient = httpClient;
+        this.options = options;
+        this.validator = validator;
         this.options.Validate();
 
         if (this.httpClient.BaseAddress == null)
@@ -69,10 +73,7 @@ public sealed class PostmarkEmailSender : IOutboundEmailSender
     /// <inheritdoc />
     public async Task<EmailSendResult> SendAsync(OutboundEmailMessage message, CancellationToken cancellationToken)
     {
-        if (message is null)
-        {
-            throw new ArgumentNullException(nameof(message));
-        }
+        ArgumentNullException.ThrowIfNull(message);
 
         var validation = validator.Validate(message);
         if (!validation.Succeeded)
@@ -175,7 +176,7 @@ public sealed class PostmarkEmailSender : IOutboundEmailSender
         return string.Join(", ", addresses.Select(address => address.ToString()));
     }
 
-    private static IReadOnlyList<PostmarkAttachment>? MapAttachments(IReadOnlyList<EmailAttachment> attachments)
+    private static PostmarkAttachment[]? MapAttachments(IReadOnlyList<EmailAttachment> attachments)
     {
         if (attachments.Count == 0)
         {

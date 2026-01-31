@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace Bravellian.Platform.Tests;
 
 /// <summary>
@@ -20,6 +22,7 @@ namespace Bravellian.Platform.Tests;
 /// </summary>
 [CollectionDefinition(Name)]
 [Trait("RequiresDocker", "true")]
+[SuppressMessage("Naming", "CA1711:Identifiers should not have incorrect suffix", Justification = "xUnit collection definitions use the Collection suffix.")]
 public class PostgresCollection : ICollectionFixture<PostgresCollectionFixture>
 {
     public const string Name = "Postgres Collection";

@@ -45,6 +45,7 @@ internal sealed class DynamicOutboxStoreProvider : IOutboxStoreProvider, IDispos
     /// <param name="loggerFactory">Logger factory for creating loggers.</param>
     /// <param name="logger">Logger for this provider.</param>
     /// <param name="refreshInterval">Optional interval for refreshing the database list. Defaults to 5 minutes.</param>
+    /// <param name="eventEmitter">Optional platform event emitter.</param>
     public DynamicOutboxStoreProvider(
         IOutboxDatabaseDiscovery discovery,
         TimeProvider timeProvider,

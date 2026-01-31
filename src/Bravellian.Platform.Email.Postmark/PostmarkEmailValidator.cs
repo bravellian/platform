@@ -23,6 +23,7 @@ namespace Bravellian.Platform.Email.Postmark;
 /// </summary>
 public sealed class PostmarkEmailValidator : IPostmarkEmailValidator
 {
+    private static readonly string[] MessageRequired = ["Message is required."];
     private readonly PostmarkValidationOptions options;
     private readonly HashSet<string> forbiddenExtensions;
 
@@ -41,7 +42,7 @@ public sealed class PostmarkEmailValidator : IPostmarkEmailValidator
     {
         if (message is null)
         {
-            return ValidationResult.Failure(new[] { "Message is required." });
+            return ValidationResult.Failure(MessageRequired);
         }
 
         var errors = new List<string>();

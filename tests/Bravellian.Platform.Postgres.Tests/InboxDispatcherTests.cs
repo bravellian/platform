@@ -18,6 +18,7 @@ using Dapper;
 using Microsoft.Extensions.Options;
 using Shouldly;
 
+#pragma warning disable CA1822
 namespace Bravellian.Platform.Tests;
 
 [Collection(PostgresCollection.Name)]
@@ -506,5 +507,6 @@ public class InboxDispatcherTests : PostgresTestBase
         public IInbox? GetInboxByKey(string key) => null;
     }
 }
+#pragma warning restore CA1822
 
 

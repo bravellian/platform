@@ -15,7 +15,6 @@
 
 using Bravellian.Platform.Metrics;
 using Bravellian.Platform.Observability;
-using Bravellian.Platform.Semaphore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -28,8 +27,6 @@ namespace Bravellian.Platform;
 /// </summary>
 internal static class PlatformServiceCollectionExtensions
 {
-    private const string PlatformConfigurationKey = "Bravellian.Platform.Configuration.Registered";
-
     /// <summary>
     /// Registers the platform for a multi-database environment without control plane.
     /// Features run across the provided list of databases using round-robin scheduling.
@@ -179,7 +176,6 @@ internal static class PlatformServiceCollectionExtensions
         RegisterCoreServices(services, controlPlaneOptions.EnableSchemaDeployment);
 
         // Register semaphore services for control plane
-        services.AddSemaphoreServices(controlPlaneOptions.ConnectionString, controlPlaneOptions.SchemaName);
 
         return services;
     }
@@ -235,7 +231,6 @@ internal static class PlatformServiceCollectionExtensions
         RegisterCoreServices(services, controlPlaneOptions.EnableSchemaDeployment);
 
         // Register semaphore services for control plane
-        services.AddSemaphoreServices(controlPlaneOptions.ConnectionString, controlPlaneOptions.SchemaName);
 
         return services;
     }

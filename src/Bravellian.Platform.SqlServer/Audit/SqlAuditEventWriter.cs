@@ -37,17 +37,17 @@ public sealed class SqlAuditEventWriter : IAuditEventWriter
     /// <param name="logger">Logger instance.</param>
     public SqlAuditEventWriter(IOptions<SqlAuditOptions> options, ILogger<SqlAuditEventWriter> logger)
     {
-        this.options = options?.Value ?? throw new ArgumentNullException(nameof(options));
-        this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(logger);
+
+        this.options = options.Value;
+        this.logger = logger;
     }
 
     /// <inheritdoc />
     public async Task WriteAsync(AuditEvent auditEvent, CancellationToken cancellationToken)
     {
-        if (auditEvent is null)
-        {
-            throw new ArgumentNullException(nameof(auditEvent));
-        }
+        ArgumentNullException.ThrowIfNull(auditEvent);
 
         var validation = AuditEventValidator.Validate(auditEvent, options.ValidationOptions);
         if (!validation.IsValid)
@@ -151,13 +151,13 @@ public sealed class SqlAuditEventWriter : IAuditEventWriter
                     });
 
                     await connection.ExecuteAsync(anchorSql, anchors, transaction).ConfigureAwait(false);
-                    transaction.Commit();
+                    await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
                     SqlAuditMetrics.RecordWritten(auditEvent.Outcome.ToString());
                 }
                 catch (Exception ex)
                 {
                     logger.LogError(ex, "Failed to write audit event {EventId}.", auditEvent.EventId);
-                    transaction.Rollback();
+                    await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
                     throw;
                 }
             }

@@ -36,15 +36,15 @@ public sealed class GlobalControlPlaneRoutingTests
         var tenant = new PlatformDatabase
         {
             Name = "tenant-1",
-            ConnectionString = await fixture.CreateTestDatabaseAsync("tenant-routing").ConfigureAwait(false),
+            ConnectionString = await fixture.CreateTestDatabaseAsync("tenant-routing"),
             SchemaName = "app",
         };
-        var controlPlaneConnection = await fixture.CreateTestDatabaseAsync("control-routing").ConfigureAwait(false);
+        var controlPlaneConnection = await fixture.CreateTestDatabaseAsync("control-routing");
 
-        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(controlPlaneConnection, "control", "Outbox").ConfigureAwait(false);
-        await DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(controlPlaneConnection, "control").ConfigureAwait(false);
-        await DatabaseSchemaManager.EnsureInboxSchemaAsync(controlPlaneConnection, "control", "Inbox").ConfigureAwait(false);
-        await DatabaseSchemaManager.EnsureInboxWorkQueueSchemaAsync(controlPlaneConnection, "control").ConfigureAwait(false);
+        await DatabaseSchemaManager.EnsureOutboxSchemaAsync(controlPlaneConnection, "control", "Outbox");
+        await DatabaseSchemaManager.EnsureWorkQueueSchemaAsync(controlPlaneConnection, "control");
+        await DatabaseSchemaManager.EnsureInboxSchemaAsync(controlPlaneConnection, "control", "Inbox");
+        await DatabaseSchemaManager.EnsureInboxWorkQueueSchemaAsync(controlPlaneConnection, "control");
 
         var services = new ServiceCollection();
         services.AddLogging();
@@ -67,7 +67,7 @@ public sealed class GlobalControlPlaneRoutingTests
 
         await globalOutbox.EnqueueAsync("global.topic", "payload", TestContext.Current.CancellationToken);
 
-        var outboxCount = await CountOutboxAsync(controlPlaneConnection, "control", "global.topic").ConfigureAwait(false);
+        var outboxCount = await CountOutboxAsync(controlPlaneConnection, "control", "global.topic");
         outboxCount.ShouldBe(1);
 
         await globalInbox.EnqueueAsync(

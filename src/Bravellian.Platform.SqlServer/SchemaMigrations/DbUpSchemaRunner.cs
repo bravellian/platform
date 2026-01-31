@@ -16,6 +16,7 @@ using DbUp;
 using DbUp.Engine;
 using DbUp.Engine.Output;
 using Microsoft.Data.SqlClient;
+using System.Globalization;
 using Microsoft.Extensions.Logging;
 
 namespace Bravellian.Platform;
@@ -88,32 +89,32 @@ internal static class DbUpSchemaRunner
 
         public void LogTrace(string format, params object[] args)
         {
-            logger.LogTrace(format, args);
+            logger.LogTrace("{DbUpMessage}", string.Format(CultureInfo.InvariantCulture, format, args));
         }
 
         public void LogDebug(string format, params object[] args)
         {
-            logger.LogDebug(format, args);
+            logger.LogDebug("{DbUpMessage}", string.Format(CultureInfo.InvariantCulture, format, args));
         }
 
         public void LogInformation(string format, params object[] args)
         {
-            logger.LogInformation(format, args);
+            logger.LogInformation("{DbUpMessage}", string.Format(CultureInfo.InvariantCulture, format, args));
         }
 
         public void LogWarning(string format, params object[] args)
         {
-            logger.LogWarning(format, args);
+            logger.LogWarning("{DbUpMessage}", string.Format(CultureInfo.InvariantCulture, format, args));
         }
 
         public void LogError(string format, params object[] args)
         {
-            logger.LogError(format, args);
+            logger.LogError("{DbUpMessage}", string.Format(CultureInfo.InvariantCulture, format, args));
         }
 
         public void LogError(Exception ex, string format, params object[] args)
         {
-            logger.LogError(ex, format, args);
+            logger.LogError(ex, "{DbUpMessage}", string.Format(CultureInfo.InvariantCulture, format, args));
         }
     }
 }

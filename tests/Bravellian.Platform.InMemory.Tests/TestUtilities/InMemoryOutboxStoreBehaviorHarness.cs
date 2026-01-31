@@ -29,15 +29,20 @@ internal sealed class InMemoryOutboxStoreBehaviorHarness : IOutboxStoreBehaviorH
 
     public ValueTask InitializeAsync() => new(ResetAsync());
 
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
-        provider?.Dispose();
-        return ValueTask.CompletedTask;
+        if (provider is not null)
+        {
+            await provider.DisposeAsync().ConfigureAwait(false);
+        }
     }
 
     public async Task ResetAsync()
     {
-        provider?.Dispose();
+        if (provider is not null)
+        {
+            await provider.DisposeAsync().ConfigureAwait(false);
+        }
 
         var services = new ServiceCollection();
         services.AddInMemoryPlatformMultiDatabaseWithList(new[]

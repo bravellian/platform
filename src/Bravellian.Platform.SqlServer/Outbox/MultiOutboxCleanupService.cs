@@ -19,6 +19,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Bravellian.Platform;
+
+#pragma warning disable CA2100 // SQL command text uses validated schema/table names with parameters.
 /// <summary>
 /// Background service that periodically cleans up old processed outbox messages
 /// from multiple databases based on the configured retention period.

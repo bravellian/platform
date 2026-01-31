@@ -435,13 +435,19 @@ public class OutboxHandlerTests : PostgresTestBase
         capturingLogger.LogEntries.Count.ShouldBeGreaterThan(0);
 
         // Verify we have Information level logs for batch processing
-        capturingLogger.LogEntries.Any(log => log.Level == LogLevel.Information && log.Message.Contains("Processing")).ShouldBeTrue();
+        capturingLogger.LogEntries.Any(log => log.Level == LogLevel.Information
+                && log.Message.Contains("Processing", StringComparison.Ordinal))
+            .ShouldBeTrue();
 
         // Verify we have Debug level logs for individual message processing
-        capturingLogger.LogEntries.Any(log => log.Level == LogLevel.Debug && log.Message.Contains("Processing outbox message")).ShouldBeTrue();
+        capturingLogger.LogEntries.Any(log => log.Level == LogLevel.Debug
+                && log.Message.Contains("Processing outbox message", StringComparison.Ordinal))
+            .ShouldBeTrue();
 
         // Verify we have Warning level logs for no handler
-        capturingLogger.LogEntries.Any(log => log.Level == LogLevel.Warning && log.Message.Contains("No handler registered")).ShouldBeTrue();
+        capturingLogger.LogEntries.Any(log => log.Level == LogLevel.Warning
+                && log.Message.Contains("No handler registered", StringComparison.Ordinal))
+            .ShouldBeTrue();
     }
 
     // Simple logger that captures log entries for testing

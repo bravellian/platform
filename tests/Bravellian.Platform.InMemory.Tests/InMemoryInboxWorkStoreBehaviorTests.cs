@@ -12,11 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Diagnostics.CodeAnalysis;
 using Bravellian.Platform.Tests.TestUtilities;
 
 namespace Bravellian.Platform.Tests;
 
 [Trait("Category", "Unit")]
+[SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Base class owns harness lifetime.")]
 public sealed class InMemoryInboxWorkStoreBehaviorTests : InboxWorkStoreBehaviorTestsBase
 {
     public InMemoryInboxWorkStoreBehaviorTests()

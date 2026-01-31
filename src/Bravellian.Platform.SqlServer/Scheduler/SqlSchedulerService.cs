@@ -186,7 +186,7 @@ internal class SqlSchedulerService : BackgroundService
                 }).ConfigureAwait(false);
 
                 // 1. Process any work that is currently due.
-                await DispatchDueWorkAsync(lease).ConfigureAwait(false);
+                await DispatchDueWorkAsync(lease, cancellationToken).ConfigureAwait(false);
 
                 // 2. Find the time of the next scheduled event.
                 var nextEventTime = await GetNextEventTimeAsync().ConfigureAwait(false);
@@ -226,13 +226,15 @@ internal class SqlSchedulerService : BackgroundService
         }
     }
 
-    private async Task DispatchDueWorkAsync(ISystemLease lease)
+    private async Task DispatchDueWorkAsync(ISystemLease lease, CancellationToken cancellationToken)
     {
         using var connection = new Microsoft.Data.SqlClient.SqlConnection(connectionString);
-        await connection.OpenAsync().ConfigureAwait(false);
+        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
         // 1. Start a single transaction for the entire dispatch operation.
-        using var transaction = connection.BeginTransaction();
+        var transaction = (Microsoft.Data.SqlClient.SqlTransaction)await connection
+            .BeginTransactionAsync(cancellationToken)
+            .ConfigureAwait(false);
         try
         {
             // Check that we still hold the lease before proceeding
@@ -248,18 +250,22 @@ internal class SqlSchedulerService : BackgroundService
             await DispatchJobRunsAsync(transaction, lease).ConfigureAwait(false);
 
             // 4. If all operations succeed, commit the transaction.
-            transaction.Commit();
+            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (LostLeaseException)
         {
-            transaction.Rollback();
+            await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
             throw; // Re-throw lease lost exceptions
         }
         catch
         {
             // If anything fails, the entire operation is rolled back.
-            transaction.Rollback();
+            await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
             throw; // Re-throw the exception to be logged by the host.
+        }
+        finally
+        {
+            await transaction.DisposeAsync().ConfigureAwait(false);
         }
     }
 
@@ -274,7 +280,7 @@ internal class SqlSchedulerService : BackgroundService
         var dueJobs = (await transaction.Connection.QueryAsync<(Guid Id, string CronSchedule)>(
             findDueJobsSql, new { Now = timeProvider.GetUtcNow() }, transaction).ConfigureAwait(false)).AsList();
 
-        if (!dueJobs.Any())
+        if (dueJobs.Count == 0)
         {
             return;
         }

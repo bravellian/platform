@@ -205,7 +205,7 @@ public sealed class PostgresOperationWatcher : IOperationWatcher
             DeserializeTags(row.CorrelationTagsJson));
     }
 
-    private static IReadOnlyDictionary<string, string>? DeserializeTags(string? json)
+    private static Dictionary<string, string>? DeserializeTags(string? json)
     {
         if (string.IsNullOrWhiteSpace(json))
         {

@@ -28,6 +28,8 @@ using Microsoft.Extensions.Options;
 
 namespace Bravellian.Platform;
 
+#pragma warning disable CA2100 // SQL command text uses validated schema/table names with parameters.
+
 internal class SqlOutboxService : IOutbox
 {
     private readonly SqlOutboxOptions options;
@@ -99,7 +101,7 @@ internal class SqlOutboxService : IOutbox
         {
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-            var transaction = connection.BeginTransaction();
+            var transaction = await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
             await using (transaction.ConfigureAwait(false))
             {
                 try

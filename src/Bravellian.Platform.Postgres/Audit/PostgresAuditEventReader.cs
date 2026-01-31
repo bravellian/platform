@@ -40,8 +40,11 @@ public sealed class PostgresAuditEventReader : IAuditEventReader
     /// <param name="logger">Logger instance.</param>
     public PostgresAuditEventReader(IOptions<PostgresAuditOptions> options, ILogger<PostgresAuditEventReader> logger)
     {
-        this.options = options?.Value ?? throw new ArgumentNullException(nameof(options));
-        this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(logger);
+
+        this.options = options.Value;
+        this.logger = logger;
         qualifiedAuditEventsTable = PostgresSqlHelper.Qualify(this.options.SchemaName, this.options.AuditEventsTable);
         qualifiedAuditAnchorsTable = PostgresSqlHelper.Qualify(this.options.SchemaName, this.options.AuditAnchorsTable);
     }
@@ -49,10 +52,7 @@ public sealed class PostgresAuditEventReader : IAuditEventReader
     /// <inheritdoc />
     public async Task<IReadOnlyList<AuditEvent>> QueryAsync(AuditQuery query, CancellationToken cancellationToken)
     {
-        if (query is null)
-        {
-            throw new ArgumentNullException(nameof(query));
-        }
+        ArgumentNullException.ThrowIfNull(query);
 
         var parameters = new DynamicParameters();
         var sql = new StringBuilder();
@@ -163,7 +163,7 @@ public sealed class PostgresAuditEventReader : IAuditEventReader
         return mapped;
     }
 
-    private static AuditEvent MapAuditEvent(AuditEventRow row, IReadOnlyDictionary<string, IReadOnlyList<EventAnchor>> anchorLookup)
+    private static AuditEvent MapAuditEvent(AuditEventRow row, Dictionary<string, IReadOnlyList<EventAnchor>> anchorLookup)
     {
         var anchors = anchorLookup.TryGetValue(row.AuditEventId, out var list)
             ? list
@@ -197,7 +197,7 @@ public sealed class PostgresAuditEventReader : IAuditEventReader
             correlation);
     }
 
-    private static IReadOnlyDictionary<string, string>? DeserializeTags(string? json)
+    private static Dictionary<string, string>? DeserializeTags(string? json)
     {
         if (string.IsNullOrWhiteSpace(json))
         {

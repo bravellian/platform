@@ -92,35 +92,44 @@ internal sealed class SqlIdempotencyStore : IIdempotencyStore, IIdempotencyClean
 
         using var connection = new SqlConnection(connectionString);
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        var transaction = (SqlTransaction)await connection
+            .BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken)
+            .ConfigureAwait(false);
 
-        var record = await GetRecordForUpdateAsync(connection, transaction, key).ConfigureAwait(false);
-        if (record == null)
+        try
         {
-            await InsertRecordAsync(connection, transaction, key, now, lockedUntil).ConfigureAwait(false);
-            transaction.Commit();
+            var record = await GetRecordForUpdateAsync(connection, transaction, key).ConfigureAwait(false);
+            if (record == null)
+            {
+                await InsertRecordAsync(connection, transaction, key, now, lockedUntil).ConfigureAwait(false);
+                await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+                return true;
+            }
+
+            if (record.Status == IdempotencyStatus.Completed)
+            {
+                await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+                return false;
+            }
+
+            var existingLock = record.LockedUntil;
+            if (record.Status == IdempotencyStatus.InProgress
+                && record.LockedBy != ownerToken.Value
+                && IsLocked(existingLock, now))
+            {
+                logger.LogDebug("Idempotency key '{Key}' is locked until {LockedUntil}.", key, existingLock);
+                await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+                return false;
+            }
+
+            await MarkInProgressAsync(connection, transaction, key, now, lockedUntil).ConfigureAwait(false);
+            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
             return true;
         }
-
-        if (record.Status == IdempotencyStatus.Completed)
+        finally
         {
-            transaction.Commit();
-            return false;
+            await transaction.DisposeAsync().ConfigureAwait(false);
         }
-
-        var existingLock = record.LockedUntil;
-        if (record.Status == IdempotencyStatus.InProgress
-            && record.LockedBy != ownerToken.Value
-            && IsLocked(existingLock, now))
-        {
-            logger.LogDebug("Idempotency key '{Key}' is locked until {LockedUntil}.", key, existingLock);
-            transaction.Commit();
-            return false;
-        }
-
-        await MarkInProgressAsync(connection, transaction, key, now, lockedUntil).ConfigureAwait(false);
-        transaction.Commit();
-        return true;
     }
 
     public async Task CompleteAsync(string key, CancellationToken cancellationToken)
@@ -209,7 +218,7 @@ internal sealed class SqlIdempotencyStore : IIdempotencyStore, IIdempotencyClean
             transaction).ConfigureAwait(false);
     }
 
-    private Task InsertRecordAsync(
+    private Task<int> InsertRecordAsync(
         SqlConnection connection,
         SqlTransaction transaction,
         string key,
@@ -249,7 +258,7 @@ internal sealed class SqlIdempotencyStore : IIdempotencyStore, IIdempotencyClean
             transaction);
     }
 
-    private Task MarkInProgressAsync(
+    private Task<int> MarkInProgressAsync(
         SqlConnection connection,
         SqlTransaction transaction,
         string key,
@@ -278,7 +287,7 @@ internal sealed class SqlIdempotencyStore : IIdempotencyStore, IIdempotencyClean
             transaction);
     }
 
-    private Task InsertCompletionAsync(SqlConnection connection, string key, DateTimeOffset now)
+    private Task<int> InsertCompletionAsync(SqlConnection connection, string key, DateTimeOffset now)
     {
         var sql = $"""
             INSERT INTO [{schemaName}].[{tableName}] (
@@ -309,7 +318,7 @@ internal sealed class SqlIdempotencyStore : IIdempotencyStore, IIdempotencyClean
             });
     }
 
-    private Task InsertFailureAsync(SqlConnection connection, string key, DateTimeOffset now)
+    private Task<int> InsertFailureAsync(SqlConnection connection, string key, DateTimeOffset now)
     {
         var sql = $"""
             INSERT INTO [{schemaName}].[{tableName}] (

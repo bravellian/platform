@@ -2,6 +2,6 @@
   <!-- Import main Directory.Build.props -->
   <Import Project="$(MSBuildThisFileDirectory)../Directory.Build.props" />
   <PropertyGroup>
-    <NoWarn>$(NoWarn);CS1591;CA2007;CA1510;CA1515;CA1034</NoWarn>
+    <NoWarn>$(NoWarn);CS1591;CA2007;CA1510;CA1515;CA1034;CA1707;CA1805;CA1822;CA1826;CA1849;CA1859;CA1861;CA2000;CA2016;CA2100;CA2201;CA1303;CA1307;CA1031;CA1512</NoWarn>
   </PropertyGroup>
 </Project>

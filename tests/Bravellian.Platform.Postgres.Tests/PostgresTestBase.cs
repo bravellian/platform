@@ -81,6 +81,8 @@ public abstract class PostgresTestBase : IAsyncLifetime
         {
             await postgresContainer.DisposeAsync().ConfigureAwait(false);
         }
+
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>

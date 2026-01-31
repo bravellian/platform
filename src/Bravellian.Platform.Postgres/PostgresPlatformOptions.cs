@@ -16,7 +16,6 @@ using Bravellian.Platform.Audit;
 using Bravellian.Platform.Email;
 using Bravellian.Platform.Metrics;
 using Bravellian.Platform.Operations;
-using Bravellian.Platform.Semaphore;
 
 namespace Bravellian.Platform;
 
@@ -59,9 +58,6 @@ public sealed class PostgresPlatformOptions
 
     /// <summary>Optional idempotency options customization.</summary>
     public Action<PostgresIdempotencyOptions>? ConfigureIdempotency { get; set; }
-
-    /// <summary>Optional semaphore options customization.</summary>
-    public Action<PostgresSemaphoreOptions>? ConfigureSemaphore { get; set; }
 
     /// <summary>Optional metrics exporter options customization.</summary>
     public Action<PostgresMetricsExporterOptions>? ConfigureMetrics { get; set; }

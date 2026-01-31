@@ -27,7 +27,7 @@ public class ConfiguredLeaseFactoryProviderTests
         this.testOutputHelper = testOutputHelper;
     }
 
-    private ILoggerFactory CreateLoggerFactory()
+    private TestLoggerFactory CreateLoggerFactory()
     {
         return new TestLoggerFactory(testOutputHelper);
     }
@@ -63,7 +63,7 @@ public class ConfiguredLeaseFactoryProviderTests
             },
         };
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
 
         // Act
         var provider = new ConfiguredLeaseFactoryProvider(configs, loggerFactory);
@@ -102,7 +102,7 @@ public class ConfiguredLeaseFactoryProviderTests
             },
         };
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
         var provider = new ConfiguredLeaseFactoryProvider(configs, loggerFactory);
 
         // Act
@@ -138,7 +138,7 @@ public class ConfiguredLeaseFactoryProviderTests
             },
         };
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
         var provider = new ConfiguredLeaseFactoryProvider(configs, loggerFactory);
 
         // Create a factory that's not managed by this provider
@@ -160,4 +160,6 @@ public class ConfiguredLeaseFactoryProviderTests
         identifier.ShouldBe("Unknown");
     }
 }
+
+
 

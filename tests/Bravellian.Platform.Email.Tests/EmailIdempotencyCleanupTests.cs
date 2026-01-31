@@ -59,15 +59,19 @@ public sealed class EmailIdempotencyCleanupTests
         });
         var mono = new FixedMonotonicClock();
         var logger = NullLogger<EmailIdempotencyCleanupService>.Instance;
-        var service = new EmailIdempotencyCleanupService(options, provider, mono, logger);
+        using var service = new EmailIdempotencyCleanupService(options, provider, mono, logger);
 
         using var cts = new CancellationTokenSource();
-        await service.StartAsync(cts.Token);
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
+            TestContext.Current.CancellationToken,
+            cts.Token);
 
-        await Task.Delay(TimeSpan.FromMilliseconds(140));
-        cts.Cancel();
+        await service.StartAsync(linkedCts.Token);
 
-        await service.StopAsync(CancellationToken.None);
+        await Task.Delay(TimeSpan.FromMilliseconds(140), linkedCts.Token);
+        await cts.CancelAsync();
+
+        await service.StopAsync(TestContext.Current.CancellationToken);
 
         store.CleanupCalls.ShouldBeGreaterThan(0);
     }

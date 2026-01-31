@@ -42,7 +42,6 @@ public class DatabaseSchemaConsistencyTests : PostgresTestBase
         await DatabaseSchemaManager.EnsureFanoutSchemaAsync(ConnectionString).ConfigureAwait(false);
         await DatabaseSchemaManager.EnsureLeaseSchemaAsync(ConnectionString).ConfigureAwait(false);
         await DatabaseSchemaManager.EnsureDistributedLockSchemaAsync(ConnectionString).ConfigureAwait(false);
-        await DatabaseSchemaManager.EnsureSemaphoreSchemaAsync(ConnectionString).ConfigureAwait(false);
         await DatabaseSchemaManager.EnsureMetricsSchemaAsync(ConnectionString).ConfigureAwait(false);
         await DatabaseSchemaManager.EnsureCentralMetricsSchemaAsync(ConnectionString, "control").ConfigureAwait(false);
         await DatabaseSchemaManager.EnsureIdempotencySchemaAsync(ConnectionString).ConfigureAwait(false);
@@ -74,8 +73,6 @@ public class DatabaseSchemaConsistencyTests : PostgresTestBase
             "FanoutCursor",
             "Lease",
             "DistributedLock",
-            "Semaphore",
-            "SemaphoreLease",
             "MetricDef",
             "MetricSeries",
             "MetricPointMinute",

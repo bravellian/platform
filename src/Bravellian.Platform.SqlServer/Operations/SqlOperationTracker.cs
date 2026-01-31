@@ -423,7 +423,7 @@ public sealed class SqlOperationTracker : IOperationTracker
         return tags is null ? null : JsonSerializer.Serialize(tags);
     }
 
-    private static IReadOnlyDictionary<string, string>? DeserializeTags(string? json)
+    private static Dictionary<string, string>? DeserializeTags(string? json)
     {
         if (string.IsNullOrWhiteSpace(json))
         {

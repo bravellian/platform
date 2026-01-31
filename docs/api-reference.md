@@ -655,14 +655,6 @@ Provides access to multiple scheduler stores, enabling cross-database scheduler 
 Members:
 - (No public members found.)
 
-### ISemaphoreService (interface)
-Namespace: `Bravellian.Platform.Semaphore`
-
-Internal service for distributed semaphore operations backed by the control plane.
-
-Members:
-- (No public members found.)
-
 ### ISystemLease (interface)
 Namespace: `Bravellian.Platform`
 
@@ -986,61 +978,6 @@ Default implementation of ISchedulerRouter that uses an ISchedulerStoreProvider 
 
 Members:
 - `public SchedulerRouter(ISchedulerStoreProvider storeProvider)` — Initializes a new instance of the <see cref="SchedulerRouter"/> class.
-
-### SemaphoreAcquireResult (struct)
-Namespace: `Bravellian.Platform.Semaphore`
-
-Members:
-- `public required SemaphoreAcquireStatus Status` — Gets the status of the acquire operation.
-- `public Guid? Token` — Gets the unique token identifying this lease. Only set when Status is Acquired.
-- `public long? Fencing` — Gets the fencing counter for this lease. Only set when Status is Acquired. Strictly monotonically increasing per semaphore name.
-- `public DateTime? ExpiresAtUtc` — Gets the UTC time when this lease expires. Only set when Status is Acquired.
-- `public static SemaphoreAcquireResult Acquired(Guid token, long fencing, DateTime expiresAtUtc)` — Creates an Acquired result.
-
-### SemaphoreAcquireStatus (enum)
-Namespace: `Bravellian.Platform.Semaphore`
-
-Result of a semaphore acquire operation.
-
-Members:
-- `Acquired` — The semaphore lease was successfully acquired.
-- `NotAcquired` — The semaphore is at capacity; no lease was acquired.
-- `Unavailable` — The control plane is unavailable; operation could not be completed.
-
-### SemaphoreReleaseResult (struct)
-Namespace: `Bravellian.Platform.Semaphore`
-
-Members:
-- `public required SemaphoreReleaseStatus Status` — Gets the status of the release operation.
-- `public static SemaphoreReleaseResult Released()` — Creates a Released result.
-
-### SemaphoreReleaseStatus (enum)
-Namespace: `Bravellian.Platform.Semaphore`
-
-Result of a semaphore release operation.
-
-Members:
-- `Released` — The lease was successfully released.
-- `NotFound` — The lease was not found (idempotent - already released or never existed).
-- `Unavailable` — The control plane is unavailable; operation could not be completed.
-
-### SemaphoreRenewResult (struct)
-Namespace: `Bravellian.Platform.Semaphore`
-
-Members:
-- `public required SemaphoreRenewStatus Status` — Gets the status of the renew operation.
-- `public DateTime? ExpiresAtUtc` — Gets the new expiry time if renewed successfully.
-- `public static SemaphoreRenewResult Renewed(DateTime expiresAtUtc)` — Creates a Renewed result.
-
-### SemaphoreRenewStatus (enum)
-Namespace: `Bravellian.Platform.Semaphore`
-
-Result of a semaphore renew operation.
-
-Members:
-- `Renewed` — The lease was successfully renewed.
-- `Lost` — The lease has expired or does not exist.
-- `Unavailable` — The control plane is unavailable; operation could not be completed.
 
 ### WatchdogAlertContext (record)
 Namespace: `Bravellian.Platform.Observability`
@@ -2765,7 +2702,6 @@ Members:
 - `public Action<PostgresSchedulerOptions>? ConfigureScheduler` — Optional scheduler options customization.
 - `public Action<PostgresFanoutOptions>? ConfigureFanout` — Optional fanout options customization.
 - `public Action<PostgresIdempotencyOptions>? ConfigureIdempotency` — Optional idempotency options customization.
-- `public Action<PostgresSemaphoreOptions>? ConfigureSemaphore` — Optional semaphore options customization.
 - `public Action<PostgresMetricsExporterOptions>? ConfigureMetrics` — Optional metrics exporter options customization.
 - `public Action<PostgresAuditOptions>? ConfigureAudit` — Optional audit options customization.
 - `public Action<PostgresOperationOptions>? ConfigureOperations` — Optional operations options customization.
@@ -2803,21 +2739,6 @@ Service collection extensions for Postgres scheduler, outbox, and fanout service
 
 Members:
 - `public static IServiceCollection AddPostgresOutbox(this IServiceCollection services, PostgresOutboxOptions options)` — Adds SQL outbox functionality to the service collection using the specified options. Configures outbox options, registers multi-outbox infrastructure, cleanup and schema deployment services as needed.
-
-### PostgresSemaphoreOptions (class)
-Namespace: `Bravellian.Platform.Semaphore`
-
-Configuration options for semaphore behavior.
-
-Members:
-- `public int MinTtlSeconds` — Gets or sets the minimum allowed TTL in seconds (default: 1).
-- `public int MaxTtlSeconds` — Gets or sets the maximum allowed TTL in seconds (default: 3600 = 1 hour).
-- `public int DefaultTtlSeconds` — Gets or sets the default TTL in seconds used by renewal helpers (default: 30).
-- `public int MaxLimit` — Gets or sets the maximum allowed limit per semaphore (default: 10000).
-- `public int ReaperCadenceSeconds` — Gets or sets the reaper cadence in seconds (default: 30).
-- `public int ReaperBatchSize` — Gets or sets the maximum number of rows to delete per reaper iteration (default: 1000).
-- `public required string ConnectionString` — Gets or sets the connection string for the semaphore database. For control-plane modes, this is the control plane connection string.
-- `public string SchemaName` — Gets or sets the schema name for semaphore tables (default: "infra").
 
 ### PostgresSystemLeaseOptions (class)
 Namespace: `Bravellian.Platform`
@@ -2968,21 +2889,6 @@ Service collection extensions for SQL Server scheduler, outbox, and fanout servi
 
 Members:
 - `public static IServiceCollection AddSqlOutbox(this IServiceCollection services, SqlOutboxOptions options)` — Adds SQL outbox functionality to the service collection using the specified options. Configures outbox options, registers multi-outbox infrastructure, cleanup and schema deployment services as needed.
-
-### SemaphoreOptions (class)
-Namespace: `Bravellian.Platform.Semaphore`
-
-Configuration options for semaphore behavior.
-
-Members:
-- `public int MinTtlSeconds` — Gets or sets the minimum allowed TTL in seconds (default: 1).
-- `public int MaxTtlSeconds` — Gets or sets the maximum allowed TTL in seconds (default: 3600 = 1 hour).
-- `public int DefaultTtlSeconds` — Gets or sets the default TTL in seconds used by renewal helpers (default: 30).
-- `public int MaxLimit` — Gets or sets the maximum allowed limit per semaphore (default: 10000).
-- `public int ReaperCadenceSeconds` — Gets or sets the reaper cadence in seconds (default: 30).
-- `public int ReaperBatchSize` — Gets or sets the maximum number of rows to delete per reaper iteration (default: 1000).
-- `public required string ConnectionString` — Gets or sets the connection string for the semaphore database. For control-plane modes, this is the control plane connection string.
-- `public string SchemaName` — Gets or sets the schema name for semaphore tables (default: "infra").
 
 ### SqlAuditEventReader (class)
 Namespace: `Bravellian.Platform`
@@ -3163,7 +3069,6 @@ Members:
 - `public Action<SqlSchedulerOptions>? ConfigureScheduler` — Optional scheduler options customization.
 - `public Action<SqlFanoutOptions>? ConfigureFanout` — Optional fanout options customization.
 - `public Action<SqlIdempotencyOptions>? ConfigureIdempotency` — Optional idempotency options customization.
-- `public Action<SemaphoreOptions>? ConfigureSemaphore` — Optional semaphore options customization.
 - `public Action<SqlExternalSideEffectOptions>? ConfigureExternalSideEffects` — Optional external side-effect options customization.
 - `public Action<MetricsExporterOptions>? ConfigureMetrics` — Optional metrics exporter options customization.
 - `public Action<SqlAuditOptions>? ConfigureAudit` — Optional audit options customization.
@@ -3491,4 +3396,8 @@ Service registration extensions for webhook ingestion and processing.
 
 Members:
 - `public static IServiceCollection AddBravellianWebhooks( this IServiceCollection services, Action<WebhookOptions>? configureOptions = null)` — Registers Bravellian webhook services.
+
+
+
+
 

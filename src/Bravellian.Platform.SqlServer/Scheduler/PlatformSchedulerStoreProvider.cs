@@ -58,66 +58,71 @@ internal sealed class PlatformSchedulerStoreProvider : ISchedulerStoreProvider
 
     public async Task<IReadOnlyList<ISchedulerStore>> GetAllStoresAsync()
     {
-        if (cachedStores == null)
+        var cached = cachedStores;
+        if (cached != null)
         {
-            var databases = (await discovery.DiscoverDatabasesAsync().ConfigureAwait(false)).ToList();
-
-            lock (lockObject)
-            {
-                if (cachedStores == null)
-                {
-                    var stores = new List<ISchedulerStore>();
-
-                    foreach (var db in databases)
-                    {
-                        var store = new SqlSchedulerStore(
-                            Options.Create(new SqlSchedulerOptions
-                            {
-                                ConnectionString = db.ConnectionString,
-                                SchemaName = db.SchemaName,
-                            }),
-                            timeProvider);
-
-                        var client = new SqlSchedulerClient(
-                            Options.Create(new SqlSchedulerOptions
-                            {
-                                ConnectionString = db.ConnectionString,
-                                SchemaName = db.SchemaName,
-                            }),
-                            timeProvider);
-
-                        var outboxLogger = loggerFactory.CreateLogger<SqlOutboxService>();
-                        var outbox = new SqlOutboxService(
-                            Options.Create(new SqlOutboxOptions
-                            {
-                                ConnectionString = db.ConnectionString,
-                                SchemaName = db.SchemaName,
-                                TableName = "Outbox",
-                            }),
-                            outboxLogger,
-                            joinStore: null,
-                            eventEmitter);
-
-                        var entry = new StoreEntry
-                        {
-                            Identifier = db.Name,
-                            Store = store,
-                            Client = client,
-                            Outbox = outbox,
-                        };
-
-                        storesByIdentifier[db.Name] = entry;
-                        stores.Add(store);
-                    }
-
-                    cachedStores = stores;
-                }
-            }
-
-            RegisterControlPlaneStore();
+            return cached;
         }
 
-        return cachedStores;
+        var databases = (await discovery.DiscoverDatabasesAsync().ConfigureAwait(false)).ToList();
+
+        lock (lockObject)
+        {
+            cached = cachedStores;
+            if (cached == null)
+            {
+                var stores = new List<ISchedulerStore>();
+
+                foreach (var db in databases)
+                {
+                    var store = new SqlSchedulerStore(
+                        Options.Create(new SqlSchedulerOptions
+                        {
+                            ConnectionString = db.ConnectionString,
+                            SchemaName = db.SchemaName,
+                        }),
+                        timeProvider);
+
+                    var client = new SqlSchedulerClient(
+                        Options.Create(new SqlSchedulerOptions
+                        {
+                            ConnectionString = db.ConnectionString,
+                            SchemaName = db.SchemaName,
+                        }),
+                        timeProvider);
+
+                    var outboxLogger = loggerFactory.CreateLogger<SqlOutboxService>();
+                    var outbox = new SqlOutboxService(
+                        Options.Create(new SqlOutboxOptions
+                        {
+                            ConnectionString = db.ConnectionString,
+                            SchemaName = db.SchemaName,
+                            TableName = "Outbox",
+                        }),
+                        outboxLogger,
+                        joinStore: null,
+                        eventEmitter);
+
+                    var entry = new StoreEntry
+                    {
+                        Identifier = db.Name,
+                        Store = store,
+                        Client = client,
+                        Outbox = outbox,
+                    };
+
+                    storesByIdentifier[db.Name] = entry;
+                    stores.Add(store);
+                }
+
+                cached = stores;
+                cachedStores = stores;
+            }
+        }
+
+        RegisterControlPlaneStore();
+
+        return cached!;
     }
 
     public string GetStoreIdentifier(ISchedulerStore store)

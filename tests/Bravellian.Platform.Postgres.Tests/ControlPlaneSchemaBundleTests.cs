@@ -32,32 +32,30 @@ public sealed class ControlPlaneSchemaBundleTests
     [Fact]
     public async Task TenantBundle_DoesNotInclude_ControlPlaneSchema()
     {
-        var tenantConnection = await fixture.CreateTestDatabaseAsync("tenant-bundle").ConfigureAwait(false);
+        var tenantConnection = await fixture.CreateTestDatabaseAsync("tenant-bundle");
 
-        await DatabaseSchemaManager.ApplyTenantBundleAsync(tenantConnection, "app").ConfigureAwait(false);
+        await DatabaseSchemaManager.ApplyTenantBundleAsync(tenantConnection, "app");
 
-        (await TableExistsAsync(tenantConnection, "app", "Outbox").ConfigureAwait(false)).ShouldBeTrue();
-        (await TableExistsAsync(tenantConnection, "app", "Inbox").ConfigureAwait(false)).ShouldBeTrue();
-        (await TableExistsAsync(tenantConnection, "app", "Jobs").ConfigureAwait(false)).ShouldBeTrue();
+        (await TableExistsAsync(tenantConnection, "app", "Outbox")).ShouldBeTrue();
+        (await TableExistsAsync(tenantConnection, "app", "Inbox")).ShouldBeTrue();
+        (await TableExistsAsync(tenantConnection, "app", "Jobs")).ShouldBeTrue();
 
-        (await TableExistsAsync(tenantConnection, "app", "Semaphore").ConfigureAwait(false)).ShouldBeFalse();
-        (await TableExistsAsync(tenantConnection, "app", "MetricDef").ConfigureAwait(false)).ShouldBeFalse();
+        (await TableExistsAsync(tenantConnection, "app", "MetricDef")).ShouldBeFalse();
     }
 
     [Fact]
     public async Task ControlPlaneBundle_AddsControlPlaneSchema_OnTopOfTenantBundle()
     {
-        var controlPlaneConnection = await fixture.CreateTestDatabaseAsync("control-bundle").ConfigureAwait(false);
+        var controlPlaneConnection = await fixture.CreateTestDatabaseAsync("control-bundle");
 
-        await DatabaseSchemaManager.ApplyTenantBundleAsync(controlPlaneConnection, "control").ConfigureAwait(false);
-        await DatabaseSchemaManager.ApplyControlPlaneBundleAsync(controlPlaneConnection, "control").ConfigureAwait(false);
+        await DatabaseSchemaManager.ApplyTenantBundleAsync(controlPlaneConnection, "control");
+        await DatabaseSchemaManager.ApplyControlPlaneBundleAsync(controlPlaneConnection, "control");
 
-        (await TableExistsAsync(controlPlaneConnection, "control", "Outbox").ConfigureAwait(false)).ShouldBeTrue();
-        (await TableExistsAsync(controlPlaneConnection, "control", "Inbox").ConfigureAwait(false)).ShouldBeTrue();
-        (await TableExistsAsync(controlPlaneConnection, "control", "Jobs").ConfigureAwait(false)).ShouldBeTrue();
+        (await TableExistsAsync(controlPlaneConnection, "control", "Outbox")).ShouldBeTrue();
+        (await TableExistsAsync(controlPlaneConnection, "control", "Inbox")).ShouldBeTrue();
+        (await TableExistsAsync(controlPlaneConnection, "control", "Jobs")).ShouldBeTrue();
 
-        (await TableExistsAsync(controlPlaneConnection, "control", "Semaphore").ConfigureAwait(false)).ShouldBeTrue();
-        (await TableExistsAsync(controlPlaneConnection, "control", "MetricDef").ConfigureAwait(false)).ShouldBeTrue();
+        (await TableExistsAsync(controlPlaneConnection, "control", "MetricDef")).ShouldBeTrue();
     }
 
     private static async Task<bool> TableExistsAsync(string connectionString, string schemaName, string tableName)

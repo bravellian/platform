@@ -27,7 +27,7 @@ public class SchedulerRouterTests
         this.testOutputHelper = testOutputHelper;
     }
 
-    private ILoggerFactory CreateLoggerFactory()
+    private TestLoggerFactory CreateLoggerFactory()
     {
         return new TestLoggerFactory(testOutputHelper);
     }
@@ -181,4 +181,5 @@ public class SchedulerRouterTests
         }
     }
 }
+
 

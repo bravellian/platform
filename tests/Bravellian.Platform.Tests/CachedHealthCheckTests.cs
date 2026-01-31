@@ -48,7 +48,7 @@ public class CachedHealthCheckTests
             DegradedCacheDuration = TimeSpan.Zero,
             UnhealthyCacheDuration = TimeSpan.Zero,
         };
-        var cached = new CachedHealthCheck(inner, options, fakeTime);
+        using var cached = new CachedHealthCheck(inner, options, fakeTime);
 
         // Act
         await cached.CheckHealthAsync(new HealthCheckContext(), TestContext.Current.CancellationToken);
@@ -88,7 +88,7 @@ public class CachedHealthCheckTests
             DegradedCacheDuration = TimeSpan.FromMinutes(1),
             UnhealthyCacheDuration = TimeSpan.Zero,
         };
-        var cached = new CachedHealthCheck(inner, options, fakeTime);
+        using var cached = new CachedHealthCheck(inner, options, fakeTime);
 
         // Act
         var first = await cached.CheckHealthAsync(new HealthCheckContext(), TestContext.Current.CancellationToken);
@@ -124,7 +124,7 @@ public class CachedHealthCheckTests
             DegradedCacheDuration = TimeSpan.FromSeconds(30),
             UnhealthyCacheDuration = TimeSpan.Zero,
         };
-        var cached = new CachedHealthCheck(inner, options, fakeTime);
+        using var cached = new CachedHealthCheck(inner, options, fakeTime);
 
         // Act
         await cached.CheckHealthAsync(new HealthCheckContext(), TestContext.Current.CancellationToken);
@@ -168,7 +168,7 @@ public class CachedHealthCheckTests
                     options.DegradedCacheDuration = TimeSpan.FromSeconds(5);
                 });
 
-        var provider = services.BuildServiceProvider();
+        using var provider = services.BuildServiceProvider();
         var healthService = provider.GetRequiredService<HealthCheckService>();
         var inner = provider.GetRequiredService<CountingHealthCheck>();
 
@@ -216,7 +216,7 @@ public class CachedHealthCheckTests
                     options.HealthyCacheDuration = TimeSpan.FromMinutes(1);
                 });
 
-        var provider = services.BuildServiceProvider();
+        using var provider = services.BuildServiceProvider();
         var healthService = provider.GetRequiredService<HealthCheckService>();
 
         // Act

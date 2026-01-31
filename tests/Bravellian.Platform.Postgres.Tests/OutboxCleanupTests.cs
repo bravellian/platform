@@ -243,7 +243,7 @@ public class OutboxCleanupTests : PostgresTestBase
             CleanupInterval = TimeSpan.FromMilliseconds(100),
         };
 
-        var service = new OutboxCleanupService(
+        using var service = new OutboxCleanupService(
             Options.Create(options),
             mono,
             logger);

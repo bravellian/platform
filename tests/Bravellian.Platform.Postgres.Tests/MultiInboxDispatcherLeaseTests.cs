@@ -280,7 +280,7 @@ public class MultiInboxDispatcherLeaseTests : PostgresTestBase
 
         public string GetStoreIdentifier(IInboxWorkStore store) => "test-tenant";
 
-        public IInboxWorkStore? GetStoreByKey(string key) => stores.FirstOrDefault();
+        public IInboxWorkStore? GetStoreByKey(string key) => stores.Count > 0 ? stores[0] : null;
 
         public IInbox? GetInboxByKey(string key) => null;
     }

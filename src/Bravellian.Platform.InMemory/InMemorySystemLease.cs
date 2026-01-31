@@ -83,6 +83,7 @@ internal sealed class InMemorySystemLease : ISystemLease
         factory.Release(record);
         Cancel();
         timer.Dispose();
+        cts.Dispose();
         return ValueTask.CompletedTask;
     }
 

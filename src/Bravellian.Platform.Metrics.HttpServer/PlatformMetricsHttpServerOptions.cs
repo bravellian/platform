@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Collections.Generic;
 using Bravellian.Platform.Metrics;
 
 namespace Bravellian.Platform.Metrics.HttpServer;
@@ -39,7 +40,7 @@ public sealed class PlatformMetricsHttpServerOptions
     /// <summary>
     /// Gets the URI prefixes to listen on.
     /// </summary>
-    public string[] UriPrefixes { get; init; } = ["http://localhost:9464/"];
+    public IReadOnlyList<string> UriPrefixes { get; init; } = ["http://localhost:9464/"];
 
     /// <summary>
     /// Gets the path where the metrics endpoint is exposed.

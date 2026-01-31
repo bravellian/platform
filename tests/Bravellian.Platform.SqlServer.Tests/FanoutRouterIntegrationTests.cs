@@ -29,7 +29,7 @@ public class FanoutRouterIntegrationTests
         this.testOutputHelper = testOutputHelper;
     }
 
-    private ILoggerFactory CreateLoggerFactory()
+    private TestLoggerFactory CreateLoggerFactory()
     {
         return new TestLoggerFactory(testOutputHelper);
     }
@@ -70,7 +70,7 @@ public class FanoutRouterIntegrationTests
             },
         };
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
 
         // Act - Create the provider using the same logic as the extension method
         var repositoryProvider = new ConfiguredFanoutRepositoryProvider(fanoutOptions, loggerFactory);
@@ -135,7 +135,7 @@ public class FanoutRouterIntegrationTests
             },
         };
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
 
         // Act
         var repositoryProvider = new ConfiguredFanoutRepositoryProvider(fanoutOptions, loggerFactory);
@@ -182,7 +182,7 @@ public class FanoutRouterIntegrationTests
             },
         };
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
         var repositoryProvider = new ConfiguredFanoutRepositoryProvider(fanoutOptions, loggerFactory);
 
         // Act
@@ -221,7 +221,7 @@ public class FanoutRouterIntegrationTests
             },
         };
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
         var repositoryProvider = new ConfiguredFanoutRepositoryProvider(fanoutOptions, loggerFactory);
 
         // Act
@@ -253,7 +253,7 @@ public class FanoutRouterIntegrationTests
         // Arrange
         var mockDiscovery = new MockFanoutDatabaseDiscovery();
         var timeProvider = TimeProvider.System;
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
 
         // Act - Create the provider using the same logic as the extension method
         var repositoryProvider = new DynamicFanoutRepositoryProvider(
@@ -299,4 +299,6 @@ public class FanoutRouterIntegrationTests
         }
     }
 }
+
+
 

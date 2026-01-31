@@ -12,25 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Semaphore;
+using System.Text.Json.Serialization;
+
+namespace Bravellian.Platform.Email.Postmark;
 
 /// <summary>
-/// Result of a semaphore renew operation.
+/// Postmark outbound search message.
 /// </summary>
-public enum SemaphoreRenewStatus
+public sealed record PostmarkOutboundSearchMessage
 {
     /// <summary>
-    /// The lease was successfully renewed.
+    /// Gets the Postmark message identifier.
     /// </summary>
-    Renewed,
+    [JsonPropertyName("MessageID")]
+    public string? MessageId { get; init; }
 
     /// <summary>
-    /// The lease has expired or does not exist.
+    /// Gets the outbound message status.
     /// </summary>
-    Lost,
-
-    /// <summary>
-    /// The control plane is unavailable; operation could not be completed.
-    /// </summary>
-    Unavailable,
+    [JsonPropertyName("Status")]
+    public string? Status { get; init; }
 }

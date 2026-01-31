@@ -12,25 +12,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Semaphore;
+using System.Collections.Generic;
+using System.Text.Json.Serialization;
+
+namespace Bravellian.Platform.Email.Postmark;
 
 /// <summary>
-/// Result of a semaphore acquire operation.
+/// Postmark outbound message details.
 /// </summary>
-public enum SemaphoreAcquireStatus
+public sealed record PostmarkOutboundMessageDetails
 {
     /// <summary>
-    /// The semaphore lease was successfully acquired.
+    /// Gets the Postmark message identifier.
     /// </summary>
-    Acquired,
+    [JsonPropertyName("MessageID")]
+    public string? MessageId { get; init; }
 
     /// <summary>
-    /// The semaphore is at capacity; no lease was acquired.
+    /// Gets the outbound message status.
     /// </summary>
-    NotAcquired,
+    [JsonPropertyName("Status")]
+    public string? Status { get; init; }
 
     /// <summary>
-    /// The control plane is unavailable; operation could not be completed.
+    /// Gets the metadata attached to the outbound message.
     /// </summary>
-    Unavailable,
+    [JsonPropertyName("Metadata")]
+    public IReadOnlyDictionary<string, string>? Metadata { get; init; }
 }

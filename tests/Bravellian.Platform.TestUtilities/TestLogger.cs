@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
+using System;
 using Microsoft.Extensions.Logging;
 using Xunit;
 
@@ -47,6 +47,7 @@ public class TestLogger<T> : ILogger<T>
     /// <inheritdoc />
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
     {
+        ArgumentNullException.ThrowIfNull(formatter);
         testOutputHelper.WriteLine($"[{logLevel}] {formatter(state, exception)}");
         if (exception != null)
         {

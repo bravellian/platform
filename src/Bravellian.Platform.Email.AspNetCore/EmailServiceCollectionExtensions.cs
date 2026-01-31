@@ -42,10 +42,7 @@ public static class EmailServiceCollectionExtensions
         Action<EmailOutboxProcessorOptions>? configureProcessorOptions = null,
         Action<EmailValidationOptions>? configureValidationOptions = null)
     {
-        if (services is null)
-        {
-            throw new ArgumentNullException(nameof(services));
-        }
+        ArgumentNullException.ThrowIfNull(services);
 
         if (configureOutboxOptions != null)
         {
@@ -97,10 +94,7 @@ public static class EmailServiceCollectionExtensions
         this IServiceCollection services,
         Action<PostmarkOptions>? configureOptions = null)
     {
-        if (services is null)
-        {
-            throw new ArgumentNullException(nameof(services));
-        }
+        ArgumentNullException.ThrowIfNull(services);
 
         if (configureOptions != null)
         {
@@ -136,10 +130,7 @@ public static class EmailServiceCollectionExtensions
         this IServiceCollection services,
         Action<EmailProcessingOptions>? configureOptions = null)
     {
-        if (services is null)
-        {
-            throw new ArgumentNullException(nameof(services));
-        }
+        ArgumentNullException.ThrowIfNull(services);
 
         if (configureOptions != null)
         {
@@ -161,10 +152,7 @@ public static class EmailServiceCollectionExtensions
         this IServiceCollection services,
         Action<EmailIdempotencyCleanupOptions>? configureOptions = null)
     {
-        if (services is null)
-        {
-            throw new ArgumentNullException(nameof(services));
-        }
+        ArgumentNullException.ThrowIfNull(services);
 
         var options = new EmailIdempotencyCleanupOptions();
         configureOptions?.Invoke(options);

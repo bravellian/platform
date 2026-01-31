@@ -272,7 +272,7 @@ internal sealed class MetricsExporterService : BackgroundService
                         snapshot,
                         bucketStart,
                         metricDef.Unit,
-                        metricDef.AggKind.ToString().ToLowerInvariant(),
+                        metricDef.AggKind.ToString().ToUpperInvariant(),
                         metricDef.Description,
                         cancellationToken).ConfigureAwait(false);
                 }
@@ -351,7 +351,7 @@ internal sealed class MetricsExporterService : BackgroundService
                         snapshot,
                         bucketStart,
                         metricDef.Unit,
-                        metricDef.AggKind.ToString().ToLowerInvariant(),
+                        metricDef.AggKind.ToString().ToUpperInvariant(),
                         metricDef.Description,
                         cancellationToken).ConfigureAwait(false);
                 }
@@ -361,5 +361,11 @@ internal sealed class MetricsExporterService : BackgroundService
                 _logger.LogWarning(ex, "Error writing hourly metric for series {MetricName}", seriesKey.MetricName);
             }
         }
+    }
+
+    public override void Dispose()
+    {
+        _listener.Dispose();
+        base.Dispose();
     }
 }

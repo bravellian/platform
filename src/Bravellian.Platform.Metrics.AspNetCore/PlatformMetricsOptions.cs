@@ -44,7 +44,7 @@ public sealed class PlatformMetricsOptions
     /// <summary>
     /// Gets or sets a value indicating whether the Prometheus exporter is enabled.
     /// </summary>
-    public bool EnablePrometheusExporter { get; set; } = false;
+    public bool EnablePrometheusExporter { get; set; }
 
     /// <summary>
     /// Gets or sets the path for the Prometheus scrape endpoint.

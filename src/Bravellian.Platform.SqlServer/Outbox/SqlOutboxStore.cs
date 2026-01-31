@@ -20,6 +20,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Bravellian.Platform;
+
+#pragma warning disable CA2100 // SQL command text uses validated schema/table names with parameters.
 /// <summary>
 /// SQL Server implementation of IOutboxStore using optimized queries with proper locking hints.
 /// </summary>

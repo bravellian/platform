@@ -33,7 +33,7 @@ public class InboxRouterIntegrationTests
         timeProvider = new FakeTimeProvider();
     }
 
-    private ILoggerFactory CreateLoggerFactory()
+    private TestLoggerFactory CreateLoggerFactory()
     {
         return new TestLoggerFactory(testOutputHelper);
     }
@@ -64,7 +64,7 @@ public class InboxRouterIntegrationTests
             },
         };
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
 
         // Act - Create the provider using the same logic as the extension method
         var storeProvider = new ConfiguredInboxWorkStoreProvider(inboxOptions, TimeProvider.System, loggerFactory);
@@ -106,7 +106,7 @@ public class InboxRouterIntegrationTests
         var customStrategy = new DrainFirstInboxSelectionStrategy();
 
         // Act - Verify the pattern supports custom strategies
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
         var storeProvider = new ConfiguredInboxWorkStoreProvider(inboxOptions, TimeProvider.System, loggerFactory);
 
         // Dispatcher uses the selection strategy
@@ -140,7 +140,7 @@ public class InboxRouterIntegrationTests
             },
         };
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
 
         // Act - Create store provider using factory pattern
         var storeProvider = new ConfiguredInboxWorkStoreProvider(inboxOptions, TimeProvider.System, loggerFactory);
@@ -165,7 +165,7 @@ public class InboxRouterIntegrationTests
     {
         // Arrange
         var discovery = new SampleInboxDatabaseDiscovery(Array.Empty<InboxDatabaseConfig>());
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
         var logger = loggerFactory.CreateLogger<DynamicInboxWorkStoreProvider>();
 
         // Act - Create dynamic provider
@@ -195,7 +195,7 @@ public class InboxRouterIntegrationTests
         // Arrange
         var discovery = new SampleInboxDatabaseDiscovery(Array.Empty<InboxDatabaseConfig>());
         var customRefreshInterval = TimeSpan.FromMinutes(10);
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
         var logger = loggerFactory.CreateLogger<DynamicInboxWorkStoreProvider>();
 
         // Act - Create provider with custom interval
@@ -239,7 +239,7 @@ public class InboxRouterIntegrationTests
             },
         };
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
         var provider = new ConfiguredInboxWorkStoreProvider(tenantOptions, TimeProvider.System, loggerFactory);
         var router = new InboxRouter(provider);
 
@@ -278,7 +278,7 @@ public class InboxRouterIntegrationTests
             },
         });
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
         var logger = loggerFactory.CreateLogger<DynamicInboxWorkStoreProvider>();
         var provider = new DynamicInboxWorkStoreProvider(
             discovery,
@@ -304,4 +304,6 @@ public class InboxRouterIntegrationTests
         testOutputHelper.WriteLine("Successfully demonstrated dynamic discovery routing");
     }
 }
+
+
 

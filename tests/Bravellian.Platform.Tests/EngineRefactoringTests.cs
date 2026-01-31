@@ -19,6 +19,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Text;
 using Xunit;
 
+#pragma warning disable CA1861
 namespace Bravellian.Platform.Tests;
 
 [Collection("ModuleRegistryTests")]
@@ -363,4 +364,5 @@ public sealed class EngineRefactoringTests
         }
     }
 }
+#pragma warning restore CA1861
 

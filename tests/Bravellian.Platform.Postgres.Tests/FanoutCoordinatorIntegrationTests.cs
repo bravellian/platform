@@ -327,7 +327,7 @@ public class FanoutCoordinatorIntegrationTests : PostgresTestBase
             this.overrideDuration = overrideDuration;
         }
 
-        public Task<ISystemLease?> AcquireAsync(
+        public async Task<ISystemLease?> AcquireAsync(
             string resourceName,
             TimeSpan duration,
             string? contextJson = null,
@@ -354,18 +354,18 @@ public class FanoutCoordinatorIntegrationTests : PostgresTestBase
                 if (ReferenceEquals(resultingLease, newLease))
                 {
                     // We successfully installed our lease.
-                    return Task.FromResult<ISystemLease?>(newLease);
+                    return newLease;
                 }
 
                 if (!resultingLease.IsExpired)
                 {
                     // Another thread holds a non-expired lease.
-                    newLease.DisposeAsync().AsTask().Wait();
-                    return Task.FromResult<ISystemLease?>(null);
+                    await newLease.DisposeAsync().ConfigureAwait(false);
+                    return null;
                 }
 
                 // If the resulting lease is expired, dispose the unused lease and loop to try again.
-                newLease.DisposeAsync().AsTask().Wait();
+                await newLease.DisposeAsync().ConfigureAwait(false);
             }
         }
 

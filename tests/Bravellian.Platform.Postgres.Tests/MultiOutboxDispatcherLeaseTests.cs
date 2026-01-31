@@ -264,7 +264,7 @@ public class MultiOutboxDispatcherLeaseTests : PostgresTestBase
 
         public string GetStoreIdentifier(IOutboxStore store) => "test-tenant";
 
-        public IOutboxStore? GetStoreByKey(string key) => stores.FirstOrDefault();
+        public IOutboxStore? GetStoreByKey(string key) => stores.Count > 0 ? stores[0] : null;
 
         public IOutbox? GetOutboxByKey(string key) => null;
     }

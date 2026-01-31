@@ -191,17 +191,6 @@ internal static class DatabaseSchemaManager
             CancellationToken.None);
     }
 
-    public static Task EnsureSemaphoreSchemaAsync(
-        string connectionString,
-        string schemaName = "infra")
-    {
-        return PostgresSchemaMigrations.ApplySemaphoreAsync(
-            connectionString,
-            schemaName,
-            NullLogger.Instance,
-            CancellationToken.None);
-    }
-
     public static Task EnsureMetricsSchemaAsync(
         string connectionString,
         string schemaName = "infra")

@@ -33,6 +33,7 @@ public sealed class ConfiguredSchedulerStoreProvider : ISchedulerStoreProvider
     /// <param name="configs">Scheduler database configurations.</param>
     /// <param name="timeProvider">Time provider.</param>
     /// <param name="loggerFactory">Logger factory.</param>
+    /// <param name="eventEmitter">Optional platform event emitter.</param>
     public ConfiguredSchedulerStoreProvider(
         IEnumerable<SchedulerDatabaseConfig> configs,
         TimeProvider timeProvider,

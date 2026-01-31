@@ -83,13 +83,14 @@ public class StartupLatchTests
         const int workerCount = 64;
 
         var tasks = new Task[workerCount];
+        var cancellationToken = TestContext.Current.CancellationToken;
         for (var i = 0; i < workerCount; i++)
         {
             var stepName = $"step-{i}";
             tasks[i] = Task.Run(() =>
             {
                 using var _ = latch.Register(stepName);
-            });
+            }, cancellationToken);
         }
 
         await Task.WhenAll(tasks);

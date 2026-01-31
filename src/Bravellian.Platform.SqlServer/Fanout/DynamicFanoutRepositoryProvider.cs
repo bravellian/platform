@@ -384,12 +384,12 @@ internal sealed class DynamicFanoutRepositoryProvider : IFanoutRepositoryProvide
         };
     }
 
-    private SqlFanoutPolicyRepository CreatePolicyRepository(FanoutDatabaseConfig config)
+    private static SqlFanoutPolicyRepository CreatePolicyRepository(FanoutDatabaseConfig config)
     {
         return new SqlFanoutPolicyRepository(Options.Create(CreateSqlFanoutOptions(config)));
     }
 
-    private SqlFanoutCursorRepository CreateCursorRepository(FanoutDatabaseConfig config)
+    private static SqlFanoutCursorRepository CreateCursorRepository(FanoutDatabaseConfig config)
     {
         return new SqlFanoutCursorRepository(Options.Create(CreateSqlFanoutOptions(config)));
     }

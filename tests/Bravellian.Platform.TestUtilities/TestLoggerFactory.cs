@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
+using System;
 using Microsoft.Extensions.Logging;
 using Xunit;
 
@@ -20,7 +20,7 @@ namespace Bravellian.Platform.Tests.TestUtilities;
 /// <summary>
 /// Test logger factory for creating test loggers with xUnit output helper.
 /// </summary>
-public class TestLoggerFactory : ILoggerFactory
+public sealed class TestLoggerFactory : ILoggerFactory
 {
     private readonly ITestOutputHelper testOutputHelper;
 
@@ -40,6 +40,7 @@ public class TestLoggerFactory : ILoggerFactory
 
     public void Dispose()
     {
+        GC.SuppressFinalize(this);
     }
 }
 

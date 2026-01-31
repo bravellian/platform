@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Bravellian.Platform;
 using Bravellian.Platform.Outbox;
 using Bravellian.Platform.Tests.TestUtilities;
 using Dapper;
@@ -51,6 +52,18 @@ public class OutboxWorkerTests : PostgresTestBase
         qualifiedTableName = PostgresSqlHelper.Qualify(options.Value.SchemaName, options.Value.TableName);
         outboxService = new PostgresOutboxService(options, new TestLogger<PostgresOutboxService>(TestOutputHelper));
         worker = new TestOutboxWorker(outboxService, new TestLogger<TestOutboxWorker>(TestOutputHelper));
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        if (worker != null)
+        {
+            worker.Dispose();
+            worker = null;
+        }
+
+        await base.DisposeAsync().ConfigureAwait(false);
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>When the worker processes claimed items, then it acknowledges them and marks them Done.</summary>
@@ -394,7 +407,7 @@ public class OutboxWorkerTests : PostgresTestBase
                             succeededIds.Add(id);
                             logger.LogInformation("Successfully processed item {Id}", id);
                         }
-                        catch (Exception ex)
+                        catch (Exception ex) when (ExceptionFilter.IsCatchable(ex))
                         {
                             logger.LogWarning(ex, "Failed to process outbox item {Id}", id);
                             failedIds.Add(id);
@@ -423,7 +436,7 @@ public class OutboxWorkerTests : PostgresTestBase
                     logger.LogInformation("Worker cancelled due to stopping token");
                     break;
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ExceptionFilter.IsCatchable(ex))
                 {
                     logger.LogError(ex, "Error in outbox processing loop");
                     await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken).ConfigureAwait(false);

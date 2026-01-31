@@ -13,6 +13,7 @@
 // limitations under the License.
 
 
+using Bravellian.Platform.SqlServer;
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Containers;
 using Microsoft.Data.SqlClient;
@@ -59,6 +60,8 @@ public class ManualSchemaExportTests : IAsyncLifetime
         {
             await msSqlContainer.DisposeAsync().ConfigureAwait(false);
         }
+
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>
@@ -66,7 +69,7 @@ public class ManualSchemaExportTests : IAsyncLifetime
     /// and then uses SqlPackage to extract the schema and update the SQL Server project.
     ///
     /// This test creates two separate databases and two separate dacpac files:
-    /// 1. Control Plane database - contains Semaphore and Central Metrics schemas
+    /// 1. Control Plane database - contains Central Metrics schema
     /// 2. Multi-Database schema - contains Outbox, Inbox, Scheduler, Lease, Fanout, Metrics, and DistributedLock schemas
     ///
     /// Note: This test is skipped by default to prevent it from running in CI.
@@ -137,7 +140,7 @@ public class ManualSchemaExportTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// Creates and deploys the Control Plane database with Semaphore and Central Metrics schemas.
+    /// Creates and deploys the Control Plane database with the Central Metrics schema.
     /// </summary>
     private async Task<string> CreateAndDeployControlPlaneDatabase(string baseConnectionString)
     {
@@ -150,7 +153,9 @@ public class ManualSchemaExportTests : IAsyncLifetime
         {
             await connection.OpenAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
             var createDbCommand = connection.CreateCommand();
+#pragma warning disable CA2100
             createDbCommand.CommandText = $"IF DB_ID(N'{databaseName}') IS NULL CREATE DATABASE [{databaseName}];";
+#pragma warning restore CA2100
             await createDbCommand.ExecuteNonQueryAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
             await connection.CloseAsync().ConfigureAwait(false);
         }
@@ -158,14 +163,17 @@ public class ManualSchemaExportTests : IAsyncLifetime
         builder.InitialCatalog = databaseName;
         string controlPlaneConnectionString = builder.ConnectionString;
 
+#pragma warning disable CA1303
         Console.WriteLine($"Deploying Control Plane schemas to database: {databaseName}");
         Console.WriteLine($"Connection string: {controlPlaneConnectionString}");
+#pragma warning restore CA1303
 
         // Deploy Control Plane schemas
-        await DatabaseSchemaManager.EnsureSemaphoreSchemaAsync(controlPlaneConnectionString, "infra").ConfigureAwait(false);
         await DatabaseSchemaManager.EnsureCentralMetricsSchemaAsync(controlPlaneConnectionString, "infra").ConfigureAwait(false);
 
+#pragma warning disable CA1303
         Console.WriteLine("Control Plane schema deployment completed successfully.");
+#pragma warning restore CA1303
 
         return controlPlaneConnectionString;
     }
@@ -184,7 +192,9 @@ public class ManualSchemaExportTests : IAsyncLifetime
         {
             await connection.OpenAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
             var createDbCommand = connection.CreateCommand();
+#pragma warning disable CA2100
             createDbCommand.CommandText = $"IF DB_ID(N'{databaseName}') IS NULL CREATE DATABASE [{databaseName}];";
+#pragma warning restore CA2100
             await createDbCommand.ExecuteNonQueryAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
             await connection.CloseAsync().ConfigureAwait(false);
         }
@@ -192,8 +202,10 @@ public class ManualSchemaExportTests : IAsyncLifetime
         builder.InitialCatalog = databaseName;
         string multiDatabaseConnectionString = builder.ConnectionString;
 
+#pragma warning disable CA1303
         Console.WriteLine($"Deploying Multi-Database schemas to database: {databaseName}");
         Console.WriteLine($"Connection string: {multiDatabaseConnectionString}");
+#pragma warning restore CA1303
 
         // Deploy Multi-Database schemas
         await DatabaseSchemaManager.EnsureOutboxSchemaAsync(multiDatabaseConnectionString, "infra", "Outbox").ConfigureAwait(false);
@@ -206,7 +218,9 @@ public class ManualSchemaExportTests : IAsyncLifetime
         await DatabaseSchemaManager.EnsureFanoutSchemaAsync(multiDatabaseConnectionString, "infra", "FanoutPolicy", "FanoutCursor").ConfigureAwait(false);
         await DatabaseSchemaManager.EnsureMetricsSchemaAsync(multiDatabaseConnectionString, "infra").ConfigureAwait(false);
 
+#pragma warning disable CA1303
         Console.WriteLine("Multi-Database schema deployment completed successfully.");
+#pragma warning restore CA1303
 
         return multiDatabaseConnectionString;
     }
@@ -287,11 +301,13 @@ public class ManualSchemaExportTests : IAsyncLifetime
             throw new InvalidOperationException($"SqlPackage Script failed with exit code {process.ExitCode}\nOutput: {output}\nError: {error}");
         }
 
+#pragma warning disable CA1303
         Console.WriteLine($"SqlPackage output: {output}");
         Console.WriteLine($"Generated script file: {scriptFilePath}");
         Console.WriteLine("\nIMPORTANT: The script file has been generated.");
         Console.WriteLine("You need to manually organize it into the SQL Server project structure.");
         Console.WriteLine("Consider using SQL Server Data Tools in Visual Studio for this task.");
+#pragma warning restore CA1303
     }
 
     /// <summary>

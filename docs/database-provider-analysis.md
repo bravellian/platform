@@ -24,7 +24,7 @@ These are SQL Server-only constructs that should live in the SQL Server provider
 ## Proposed Project Split
 ### Core (`Bravellian.Platform`)
 Keep provider-agnostic abstractions and orchestration:
-- Interfaces: `IOutbox`, `IOutboxStore`, `IInbox`, `IScheduler*`, `IFanout*`, `ISystemLease`, `ISemaphoreService`.
+- Interfaces: `IOutbox`, `IOutboxStore`, `IInbox`, `IScheduler*`, `IFanout*`, `ISystemLease`.
 - Routing/selection: `*Router`, `*SelectionStrategy`, round-robin strategies.
 - Background orchestration that is not tied to a DB provider (e.g., multi-outbox/inbox polling).
 - General utilities and identifiers.

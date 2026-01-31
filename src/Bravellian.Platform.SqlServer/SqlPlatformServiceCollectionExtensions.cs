@@ -16,7 +16,6 @@ using Bravellian.Platform.Audit;
 using Bravellian.Platform.Email;
 using Bravellian.Platform.Metrics;
 using Bravellian.Platform.Operations;
-using Bravellian.Platform.Semaphore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -155,10 +154,7 @@ public static class SqlPlatformServiceCollectionExtensions
         string connectionString,
         Action<SqlPlatformOptions>? configure = null)
     {
-        if (services is null)
-        {
-            throw new ArgumentNullException(nameof(services));
-        }
+        ArgumentNullException.ThrowIfNull(services);
 
         if (string.IsNullOrWhiteSpace(connectionString))
         {
@@ -185,10 +181,7 @@ public static class SqlPlatformServiceCollectionExtensions
         this IServiceCollection services,
         SqlPlatformOptions options)
     {
-        if (services is null)
-        {
-            throw new ArgumentNullException(nameof(services));
-        }
+        ArgumentNullException.ThrowIfNull(services);
 
         ArgumentNullException.ThrowIfNull(options);
         ArgumentException.ThrowIfNullOrWhiteSpace(options.ConnectionString);
@@ -200,7 +193,6 @@ public static class SqlPlatformServiceCollectionExtensions
         RegisterScheduler(services, options);
         RegisterFanout(services, options);
         RegisterIdempotency(services, options);
-        RegisterSemaphore(services, options);
         RegisterExternalSideEffects(services, options);
         RegisterMetrics(services, options);
         RegisterAudit(services, options);
@@ -312,14 +304,6 @@ public static class SqlPlatformServiceCollectionExtensions
 
         options.ConfigureIdempotency?.Invoke(idempotencyOptions);
         services.AddSqlIdempotency(idempotencyOptions);
-    }
-
-    private static void RegisterSemaphore(IServiceCollection services, SqlPlatformOptions options)
-    {
-        services.AddSemaphoreServices(
-            options.ConnectionString,
-            options.SchemaName,
-            options.ConfigureSemaphore);
     }
 
     private static void RegisterExternalSideEffects(IServiceCollection services, SqlPlatformOptions options)

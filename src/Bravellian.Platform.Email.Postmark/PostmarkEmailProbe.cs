@@ -45,22 +45,23 @@ public sealed class PostmarkEmailProbe : IOutboundEmailProbe
         var lookup = await client.SearchOutboundByMetadataAsync(MessageKeyMetadataKey, message.MessageKey, cancellationToken)
             .ConfigureAwait(false);
 
-        if (lookup.Status == PostmarkOutboundMessageClient.PostmarkQueryStatus.NotFound)
+        if (lookup.Status == PostmarkQueryStatus.NotFound)
         {
             return EmailProbeResult.NotFound();
         }
 
-        if (lookup.Status == PostmarkOutboundMessageClient.PostmarkQueryStatus.Error || lookup.Response == null)
+        if (lookup.Status == PostmarkQueryStatus.Error || lookup.Response == null)
         {
             return EmailProbeResult.Unknown("postmark_lookup_failed", lookup.Error);
         }
 
-        var match = lookup.Response.Messages?.FirstOrDefault();
-        if (match == null)
+        var messages = lookup.Response.Messages;
+        if (messages == null || messages.Count == 0)
         {
             return EmailProbeResult.NotFound();
         }
 
+        var match = messages[0];
         var status = MapStatus(match.Status);
         return EmailProbeResult.Confirmed(status, match.MessageId);
     }

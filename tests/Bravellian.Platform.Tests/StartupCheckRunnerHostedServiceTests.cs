@@ -15,6 +15,7 @@
 using Microsoft.Extensions.Logging;
 using Shouldly;
 
+#pragma warning disable CA1861
 namespace Bravellian.Platform.Tests;
 
 public class StartupCheckRunnerHostedServiceTests
@@ -171,3 +172,4 @@ public class StartupCheckRunnerHostedServiceTests
 
     private sealed record LogEntry(LogLevel Level, string Message);
 }
+#pragma warning restore CA1861

@@ -80,6 +80,7 @@ internal static class IdempotencyServiceCollectionExtensions
     /// <param name="schemaName">Schema name.</param>
     /// <param name="tableName">Table name.</param>
     /// <param name="lockDuration">Lock duration.</param>
+    /// <param name="lockDurationProvider">Optional function to compute lock duration per key.</param>
     /// <param name="enableSchemaDeployment">Whether schema deployment should run at startup.</param>
     /// <returns>The updated service collection.</returns>
     public static IServiceCollection AddSqlIdempotency(

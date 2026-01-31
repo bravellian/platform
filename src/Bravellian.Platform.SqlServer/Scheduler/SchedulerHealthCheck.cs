@@ -81,7 +81,7 @@ internal class SchedulerHealthCheck : IHealthCheck
         }
     }
 
-    private DateTimeOffset? Min(params DateTimeOffset?[] dates)
+    private static DateTimeOffset? Min(params DateTimeOffset?[] dates)
     {
         DateTimeOffset? minDate = null;
         foreach (var date in dates)

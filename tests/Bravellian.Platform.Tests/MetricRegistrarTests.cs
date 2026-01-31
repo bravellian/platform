@@ -16,6 +16,7 @@
 using Bravellian.Platform.Metrics;
 using Microsoft.Extensions.Logging.Abstractions;
 
+#pragma warning disable CA1861
 namespace Bravellian.Platform.Tests;
 
 public class MetricRegistrarTests
@@ -168,4 +169,5 @@ public class MetricRegistrarTests
         result.ShouldBeFalse();
     }
 }
+#pragma warning restore CA1861
 

@@ -25,7 +25,7 @@ public sealed class PostmarkEmailSenderTests
     [Fact]
     public async Task SendAsync_SendsExpectedPayload()
     {
-        var handler = new CapturingHandler(HttpStatusCode.OK, "{\"MessageID\":\"abc-123\"}");
+        using var handler = new CapturingHandler(HttpStatusCode.OK, "{\"MessageID\":\"abc-123\"}");
         using var httpClient = new HttpClient(handler)
         {
             BaseAddress = new Uri("https://api.postmarkapp.com/")
@@ -72,7 +72,7 @@ public sealed class PostmarkEmailSenderTests
     [Fact]
     public async Task SendAsync_ReportsTransientFailureOnServerError()
     {
-        var handler = new CapturingHandler(HttpStatusCode.InternalServerError, "{\"Message\":\"boom\"}");
+        using var handler = new CapturingHandler(HttpStatusCode.InternalServerError, "{\"Message\":\"boom\"}");
         using var httpClient = new HttpClient(handler)
         {
             BaseAddress = new Uri("https://api.postmarkapp.com/")
@@ -96,7 +96,7 @@ public sealed class PostmarkEmailSenderTests
     [Fact]
     public async Task SendAsync_ReportsPermanentFailureOnBadRequest()
     {
-        var handler = new CapturingHandler(HttpStatusCode.BadRequest, "{\"Message\":\"invalid\"}");
+        using var handler = new CapturingHandler(HttpStatusCode.BadRequest, "{\"Message\":\"invalid\"}");
         using var httpClient = new HttpClient(handler)
         {
             BaseAddress = new Uri("https://api.postmarkapp.com/")

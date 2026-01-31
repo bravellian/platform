@@ -30,7 +30,7 @@ public class OutboxRouterTests
         timeProvider = new FakeTimeProvider();
     }
 
-    private ILoggerFactory CreateLoggerFactory()
+    private TestLoggerFactory CreateLoggerFactory()
     {
         return new TestLoggerFactory(testOutputHelper);
     }
@@ -59,7 +59,7 @@ public class OutboxRouterTests
             },
         };
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
         var provider = new ConfiguredOutboxStoreProvider(options, timeProvider, loggerFactory);
         var router = new OutboxRouter(provider);
 
@@ -92,7 +92,7 @@ public class OutboxRouterTests
             },
         };
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
         var provider = new ConfiguredOutboxStoreProvider(options, timeProvider, loggerFactory);
         var router = new OutboxRouter(provider);
 
@@ -121,7 +121,7 @@ public class OutboxRouterTests
             },
         };
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
         var provider = new ConfiguredOutboxStoreProvider(options, timeProvider, loggerFactory);
         var router = new OutboxRouter(provider);
 
@@ -148,7 +148,7 @@ public class OutboxRouterTests
             },
         };
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
         var provider = new ConfiguredOutboxStoreProvider(options, timeProvider, loggerFactory);
         var router = new OutboxRouter(provider);
 
@@ -174,7 +174,7 @@ public class OutboxRouterTests
             },
         };
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
         var provider = new ConfiguredOutboxStoreProvider(options, timeProvider, loggerFactory);
         var router = new OutboxRouter(provider);
 
@@ -208,7 +208,7 @@ public class OutboxRouterTests
             },
         });
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
         var logger = loggerFactory.CreateLogger<DynamicOutboxStoreProvider>();
 
         var provider = new DynamicOutboxStoreProvider(
@@ -250,7 +250,7 @@ public class OutboxRouterTests
             },
         });
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
         var logger = loggerFactory.CreateLogger<DynamicOutboxStoreProvider>();
 
         var provider = new DynamicOutboxStoreProvider(
@@ -299,7 +299,7 @@ public class OutboxRouterTests
             },
         };
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
         var provider = new ConfiguredOutboxStoreProvider(options, timeProvider, loggerFactory);
         var router = new OutboxRouter(provider);
 
@@ -332,7 +332,7 @@ public class OutboxRouterTests
             },
         };
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
         var provider = new ConfiguredOutboxStoreProvider(options, timeProvider, loggerFactory);
 
         // Create router - but it should use Customer1 as the identifier, not the GUID
@@ -345,4 +345,6 @@ public class OutboxRouterTests
         ex.Message.ShouldContain(customerId.ToString());
     }
 }
+
+
 

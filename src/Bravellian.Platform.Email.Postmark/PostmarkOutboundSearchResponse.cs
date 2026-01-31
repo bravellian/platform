@@ -12,14 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System.Diagnostics.CodeAnalysis;
-using Xunit;
+using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
-namespace Bravellian.Platform.Tests.Modularity;
+namespace Bravellian.Platform.Email.Postmark;
 
-[CollectionDefinition("ModuleRegistryTests", DisableParallelization = true)]
-[SuppressMessage("Naming", "CA1711:Identifiers should not have incorrect suffix", Justification = "xUnit collection definitions use the Collection suffix.")]
-public sealed class ModuleRegistryTestCollection
+/// <summary>
+/// Postmark outbound search response.
+/// </summary>
+public sealed record PostmarkOutboundSearchResponse
 {
-}
+    /// <summary>
+    /// Gets the total count of results.
+    /// </summary>
+    [JsonPropertyName("TotalCount")]
+    public int TotalCount { get; init; }
 
+    /// <summary>
+    /// Gets the returned message list.
+    /// </summary>
+    [JsonPropertyName("Messages")]
+    public IReadOnlyList<PostmarkOutboundSearchMessage>? Messages { get; init; }
+}

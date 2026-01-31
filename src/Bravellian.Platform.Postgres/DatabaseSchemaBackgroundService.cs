@@ -13,7 +13,6 @@
 // limitations under the License.
 
 
-using Bravellian.Platform.Semaphore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -33,7 +32,6 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
     private readonly IOptionsMonitor<PostgresAuditOptions> auditOptions;
     private readonly IOptionsMonitor<PostgresEmailOutboxOptions> emailOutboxOptions;
     private readonly IOptionsMonitor<PostgresEmailDeliveryOptions> emailDeliveryOptions;
-    private readonly IOptionsMonitor<PostgresSemaphoreOptions> semaphoreOptions;
     private readonly IOptionsMonitor<PostgresSystemLeaseOptions> systemLeaseOptions;
     private readonly DatabaseSchemaCompletion schemaCompletion;
     private readonly PlatformConfiguration? platformConfiguration;
@@ -50,7 +48,6 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
         IOptionsMonitor<PostgresAuditOptions> auditOptions,
         IOptionsMonitor<PostgresEmailOutboxOptions> emailOutboxOptions,
         IOptionsMonitor<PostgresEmailDeliveryOptions> emailDeliveryOptions,
-        IOptionsMonitor<PostgresSemaphoreOptions> semaphoreOptions,
         IOptionsMonitor<PostgresSystemLeaseOptions> systemLeaseOptions,
         DatabaseSchemaCompletion schemaCompletion,
         PlatformConfiguration? platformConfiguration = null,
@@ -66,7 +63,6 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
         this.auditOptions = auditOptions;
         this.emailOutboxOptions = emailOutboxOptions;
         this.emailDeliveryOptions = emailDeliveryOptions;
-        this.semaphoreOptions = semaphoreOptions;
         this.systemLeaseOptions = systemLeaseOptions;
         this.schemaCompletion = schemaCompletion;
         this.platformConfiguration = platformConfiguration;
@@ -166,11 +162,6 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
                     deploymentTasks.Add(DeploySystemLeaseSchemaAsync(systemLeaseOpts, stoppingToken));
                 }
 
-                // Deploy semaphore schema if enabled
-                if (platformConfiguration?.EnableSchemaDeployment == true)
-                {
-                    deploymentTasks.Add(DeploySemaphoreSchemaAsync(stoppingToken));
-                }
             }
 
             if (deploymentTasks.Count > 0)
@@ -345,15 +336,6 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
             options.ConnectionString,
             options.SchemaName,
             options.TableName).ConfigureAwait(false);
-    }
-
-    private async Task DeploySemaphoreSchemaAsync(CancellationToken cancellationToken)
-    {
-        var options = semaphoreOptions.CurrentValue;
-        logger.LogDebug("Deploying semaphore schema at {Schema}", options.SchemaName);
-        await DatabaseSchemaManager.EnsureSemaphoreSchemaAsync(
-            options.ConnectionString,
-            options.SchemaName).ConfigureAwait(false);
     }
 
     private async Task DeploySystemLeaseSchemaAsync(PostgresSystemLeaseOptions options, CancellationToken cancellationToken)

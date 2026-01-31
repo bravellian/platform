@@ -199,27 +199,6 @@ internal static class PostgresSchemaMigrations
             cancellationToken);
     }
 
-    public static Task ApplySemaphoreAsync(
-        string connectionString,
-        string schemaName,
-        ILogger? logger,
-        CancellationToken cancellationToken)
-    {
-        var variables = new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            ["SchemaName"] = schemaName,
-        };
-
-        return ApplyModuleAsync(
-            connectionString,
-            "Semaphore",
-            schemaName,
-            BuildJournalTableName("Semaphore"),
-            variables,
-            logger,
-            cancellationToken);
-    }
-
     public static Task ApplyMetricsAsync(
         string connectionString,
         string schemaName,
@@ -358,16 +337,12 @@ internal static class PostgresSchemaMigrations
         CancellationToken cancellationToken)
     {
         var scripts = new List<SqlScript>();
-        scripts.AddRange(GetModuleScriptsWithVariables("Semaphore", new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            ["SchemaName"] = schemaName,
-        }));
         scripts.AddRange(GetModuleScriptsWithVariables("MetricsCentral", new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["SchemaName"] = schemaName,
         }));
 
-        var journalTable = BuildJournalTableName("ControlPlaneBundle", "Semaphore", "MetricsCentral");
+        var journalTable = BuildJournalTableName("ControlPlaneBundle", "MetricsCentral");
 
         return DbUpSchemaRunner.ApplyAsync(
             connectionString,

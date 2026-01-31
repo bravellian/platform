@@ -38,17 +38,17 @@ public sealed class SqlAuditEventReader : IAuditEventReader
     /// <param name="logger">Logger instance.</param>
     public SqlAuditEventReader(IOptions<SqlAuditOptions> options, ILogger<SqlAuditEventReader> logger)
     {
-        this.options = options?.Value ?? throw new ArgumentNullException(nameof(options));
-        this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(logger);
+
+        this.options = options.Value;
+        this.logger = logger;
     }
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<AuditEvent>> QueryAsync(AuditQuery query, CancellationToken cancellationToken)
     {
-        if (query is null)
-        {
-            throw new ArgumentNullException(nameof(query));
-        }
+        ArgumentNullException.ThrowIfNull(query);
 
         var parameters = new DynamicParameters();
         var sql = new StringBuilder();
@@ -161,7 +161,7 @@ public sealed class SqlAuditEventReader : IAuditEventReader
         }
     }
 
-    private static AuditEvent MapAuditEvent(AuditEventRow row, IReadOnlyDictionary<string, IReadOnlyList<EventAnchor>> anchorLookup)
+    private static AuditEvent MapAuditEvent(AuditEventRow row, Dictionary<string, IReadOnlyList<EventAnchor>> anchorLookup)
     {
         var anchors = anchorLookup.TryGetValue(row.AuditEventId, out var list)
             ? list
@@ -195,7 +195,7 @@ public sealed class SqlAuditEventReader : IAuditEventReader
             correlation);
     }
 
-    private static IReadOnlyDictionary<string, string>? DeserializeTags(string? json)
+    private static Dictionary<string, string>? DeserializeTags(string? json)
     {
         if (string.IsNullOrWhiteSpace(json))
         {

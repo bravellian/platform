@@ -19,6 +19,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Npgsql;
 
+#pragma warning disable CA1849, CA2100
 namespace Bravellian.Platform.Tests;
 
 [Collection(PostgresCollection.Name)]
@@ -377,4 +378,5 @@ public class PostgresOutboxServiceTests : PostgresTestBase
         }
     }
 }
+#pragma warning restore CA1849, CA2100
 

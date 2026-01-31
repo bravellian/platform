@@ -12,14 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System.Diagnostics.CodeAnalysis;
-using Xunit;
+namespace Bravellian.Platform.Email.Postmark;
 
-namespace Bravellian.Platform.Tests.Modularity;
-
-[CollectionDefinition("ModuleRegistryTests", DisableParallelization = true)]
-[SuppressMessage("Naming", "CA1711:Identifiers should not have incorrect suffix", Justification = "xUnit collection definitions use the Collection suffix.")]
-public sealed class ModuleRegistryTestCollection
+/// <summary>
+/// Result for a metadata search query.
+/// </summary>
+public sealed record PostmarkSearchLookup(
+    PostmarkQueryStatus Status,
+    PostmarkOutboundSearchResponse? Response,
+    string? Error)
 {
+    /// <summary>
+    /// Gets a value indicating whether the lookup succeeded.
+    /// </summary>
+    public bool IsFound => Status == PostmarkQueryStatus.Found;
 }
-

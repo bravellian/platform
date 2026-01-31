@@ -12,25 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Bravellian.Platform.Semaphore;
+namespace Bravellian.Platform.Email.Postmark;
 
 /// <summary>
-/// Result of a semaphore release operation.
+/// Postmark query status.
 /// </summary>
-public enum SemaphoreReleaseStatus
+public enum PostmarkQueryStatus
 {
     /// <summary>
-    /// The lease was successfully released.
+    /// The lookup was successful.
     /// </summary>
-    Released,
+    Found = 0,
 
     /// <summary>
-    /// The lease was not found (idempotent - already released or never existed).
+    /// The requested item was not found.
     /// </summary>
-    NotFound,
+    NotFound = 1,
 
     /// <summary>
-    /// The control plane is unavailable; operation could not be completed.
+    /// The lookup failed.
     /// </summary>
-    Unavailable,
+    Error = 2,
 }

@@ -264,7 +264,7 @@ public class InboxCleanupTests : PostgresTestBase
             CleanupInterval = TimeSpan.FromMilliseconds(100),
         };
 
-        var service = new InboxCleanupService(
+        using var service = new InboxCleanupService(
             Options.Create(options),
             mono,
             logger);

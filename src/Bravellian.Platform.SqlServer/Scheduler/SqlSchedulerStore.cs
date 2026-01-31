@@ -106,7 +106,7 @@ internal sealed class SqlSchedulerStore : ISchedulerStore
     {
         using var connection = new SqlConnection(connectionString);
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-        using var transaction = connection.BeginTransaction();
+        var transaction = await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
 
         try
         {
@@ -118,12 +118,13 @@ internal sealed class SqlSchedulerStore : ISchedulerStore
                         WHERE NextDueTime <= @Now;
             """;
 
-            var dueJobs = (await transaction.Connection.QueryAsync<(Guid Id, string CronSchedule)>(
+            var dbConnection = transaction.Connection ?? throw new InvalidOperationException("Transaction connection was not available.");
+            var dueJobs = (await dbConnection.QueryAsync<(Guid Id, string CronSchedule)>(
                 findDueJobsSql, new { Now = timeProvider.GetUtcNow() }, transaction).ConfigureAwait(false)).AsList();
 
-            if (!dueJobs.Any())
+            if (dueJobs.Count == 0)
             {
-                transaction.Commit();
+                await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
                 return 0;
             }
 
@@ -175,18 +176,22 @@ internal sealed class SqlSchedulerStore : ISchedulerStore
 
             await transaction.Connection.ExecuteAsync(updateJobSql, jobsToUpdate, transaction).ConfigureAwait(false);
 
-            transaction.Commit();
+            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
             return dueJobs.Count;
         }
         catch (LostLeaseException)
         {
-            transaction.Rollback();
+            await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
             throw;
         }
         catch
         {
-            transaction.Rollback();
+            await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
             throw;
+        }
+        finally
+        {
+            await transaction.DisposeAsync().ConfigureAwait(false);
         }
     }
 

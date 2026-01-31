@@ -28,7 +28,7 @@ internal static class SqlOperationSchemaScripts
     /// <param name="operationsTable">Operations table name.</param>
     /// <param name="operationEventsTable">Operation events table name.</param>
     /// <returns>Ordered list of scripts.</returns>
-    public static IReadOnlyList<string> GetScripts(
+    public static List<string> GetScripts(
         string schemaName,
         string operationsTable,
         string operationEventsTable)
@@ -43,7 +43,7 @@ internal static class SqlOperationSchemaScripts
         return GetScripts(variables);
     }
 
-    private static IReadOnlyList<string> GetScripts(IReadOnlyDictionary<string, string> variables)
+    private static List<string> GetScripts(IReadOnlyDictionary<string, string> variables)
     {
         var assembly = Assembly.GetExecutingAssembly();
         var prefix = $"{assembly.GetName().Name}.sql.";

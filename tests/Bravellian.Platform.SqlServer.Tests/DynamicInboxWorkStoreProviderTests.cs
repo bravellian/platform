@@ -19,53 +19,30 @@ using Microsoft.Extensions.Time.Testing;
 
 namespace Bravellian.Platform.Tests;
 
-public class DynamicOutboxStoreProviderTests
+public class DynamicInboxWorkStoreProviderTests
 {
     private readonly ITestOutputHelper testOutputHelper;
     private readonly FakeTimeProvider timeProvider;
 
-    public DynamicOutboxStoreProviderTests(ITestOutputHelper testOutputHelper)
+    public DynamicInboxWorkStoreProviderTests(ITestOutputHelper testOutputHelper)
     {
         this.testOutputHelper = testOutputHelper;
         timeProvider = new FakeTimeProvider();
     }
 
-    private ILoggerFactory CreateLoggerFactory()
+    private TestLoggerFactory CreateLoggerFactory()
     {
         return new TestLoggerFactory(testOutputHelper);
     }
 
-    private class TestLoggerFactory : ILoggerFactory
-    {
-        private readonly ITestOutputHelper testOutputHelper;
-
-        public TestLoggerFactory(ITestOutputHelper testOutputHelper)
-        {
-            this.testOutputHelper = testOutputHelper;
-        }
-
-        public void AddProvider(ILoggerProvider provider)
-        {
-        }
-
-        public ILogger CreateLogger(string categoryName)
-        {
-            return new TestLogger<DynamicOutboxStoreProvider>(testOutputHelper);
-        }
-
-        public void Dispose()
-        {
-        }
-    }
-
     /// <summary>
-    /// When the dynamic outbox provider performs initial discovery, then it returns stores for all configured databases.
+    /// When the dynamic inbox provider performs initial discovery, then it returns stores for all configured databases.
     /// </summary>
     /// <intent>
-    /// Verify initial discovery populates outbox stores from discovery results.
+    /// Verify initial discovery populates inbox work stores from discovery results.
     /// </intent>
     /// <scenario>
-    /// Given a SampleOutboxDatabaseDiscovery returning Customer1 and Customer2 configs.
+    /// Given a SampleInboxDatabaseDiscovery returning Customer1 and Customer2 configs.
     /// </scenario>
     /// <behavior>
     /// Then GetAllStoresAsync returns two stores with identifiers matching the discovered customers.
@@ -74,28 +51,28 @@ public class DynamicOutboxStoreProviderTests
     public async Task DynamicProvider_DiscoversInitialDatabases()
     {
         // Arrange
-        var discovery = new SampleOutboxDatabaseDiscovery(new[]
+        var discovery = new SampleInboxDatabaseDiscovery(new[]
         {
-            new OutboxDatabaseConfig
+            new InboxDatabaseConfig
             {
                 Identifier = "Customer1",
                 ConnectionString = "Server=localhost;Database=Customer1;",
                 SchemaName = "infra",
-                TableName = "Outbox",
+                TableName = "Inbox",
             },
-            new OutboxDatabaseConfig
+            new InboxDatabaseConfig
             {
                 Identifier = "Customer2",
                 ConnectionString = "Server=localhost;Database=Customer2;",
                 SchemaName = "infra",
-                TableName = "Outbox",
+                TableName = "Inbox",
             },
         });
 
-        var loggerFactory = CreateLoggerFactory();
-        var logger = loggerFactory.CreateLogger<DynamicOutboxStoreProvider>();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
+        var logger = loggerFactory.CreateLogger<DynamicInboxWorkStoreProvider>();
 
-        var provider = new DynamicOutboxStoreProvider(
+        var provider = new DynamicInboxWorkStoreProvider(
             discovery,
             timeProvider,
             loggerFactory,
@@ -112,10 +89,10 @@ public class DynamicOutboxStoreProviderTests
     }
 
     /// <summary>
-    /// When a new outbox database is added to discovery, then RefreshAsync updates the store list.
+    /// When a new inbox database is added to discovery, then RefreshAsync updates the store list.
     /// </summary>
     /// <intent>
-    /// Ensure the provider detects newly added outbox databases.
+    /// Ensure the provider detects newly added inbox databases.
     /// </intent>
     /// <scenario>
     /// Given discovery initially returns Customer1 and later adds Customer2 before RefreshAsync.
@@ -127,20 +104,20 @@ public class DynamicOutboxStoreProviderTests
     public async Task DynamicProvider_DetectsNewDatabases()
     {
         // Arrange
-        var discovery = new SampleOutboxDatabaseDiscovery(new[]
+        var discovery = new SampleInboxDatabaseDiscovery(new[]
         {
-            new OutboxDatabaseConfig
+            new InboxDatabaseConfig
             {
                 Identifier = "Customer1",
                 ConnectionString = "Server=localhost;Database=Customer1;",
             },
         });
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
 
-        var logger = loggerFactory.CreateLogger<DynamicOutboxStoreProvider>();
+        var logger = loggerFactory.CreateLogger<DynamicInboxWorkStoreProvider>();
 
-        var provider = new DynamicOutboxStoreProvider(
+        var provider = new DynamicInboxWorkStoreProvider(
             discovery,
             timeProvider,
             loggerFactory,
@@ -151,7 +128,7 @@ public class DynamicOutboxStoreProviderTests
         initialStores.Count.ShouldBe(1);
 
         // Add a new database
-        discovery.AddDatabase(new OutboxDatabaseConfig
+        discovery.AddDatabase(new InboxDatabaseConfig
         {
             Identifier = "Customer2",
             ConnectionString = "Server=localhost;Database=Customer2;",
@@ -168,10 +145,10 @@ public class DynamicOutboxStoreProviderTests
     }
 
     /// <summary>
-    /// When an outbox database is removed from discovery, then RefreshAsync removes its store.
+    /// When an inbox database is removed from discovery, then RefreshAsync removes its store.
     /// </summary>
     /// <intent>
-    /// Ensure the provider drops stores for removed outbox databases.
+    /// Ensure the provider drops stores for removed inbox databases.
     /// </intent>
     /// <scenario>
     /// Given discovery initially returns Customer1 and Customer2, then Customer2 is removed before RefreshAsync.
@@ -183,25 +160,25 @@ public class DynamicOutboxStoreProviderTests
     public async Task DynamicProvider_DetectsRemovedDatabases()
     {
         // Arrange
-        var discovery = new SampleOutboxDatabaseDiscovery(new[]
+        var discovery = new SampleInboxDatabaseDiscovery(new[]
         {
-            new OutboxDatabaseConfig
+            new InboxDatabaseConfig
             {
                 Identifier = "Customer1",
                 ConnectionString = "Server=localhost;Database=Customer1;",
             },
-            new OutboxDatabaseConfig
+            new InboxDatabaseConfig
             {
                 Identifier = "Customer2",
                 ConnectionString = "Server=localhost;Database=Customer2;",
             },
         });
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
 
-        var logger = loggerFactory.CreateLogger<DynamicOutboxStoreProvider>();
+        var logger = loggerFactory.CreateLogger<DynamicInboxWorkStoreProvider>();
 
-        var provider = new DynamicOutboxStoreProvider(
+        var provider = new DynamicInboxWorkStoreProvider(
             discovery,
             timeProvider,
             loggerFactory,
@@ -227,7 +204,7 @@ public class DynamicOutboxStoreProviderTests
     /// When the refresh interval elapses, then the provider automatically refreshes discovery results.
     /// </summary>
     /// <intent>
-    /// Validate time-based automatic refresh behavior.
+    /// Validate time-based automatic refresh behavior for inbox work stores.
     /// </intent>
     /// <scenario>
     /// Given a FakeTimeProvider, one initial database, and a second database added before time advances.
@@ -239,20 +216,20 @@ public class DynamicOutboxStoreProviderTests
     public async Task DynamicProvider_RefreshesAutomaticallyAfterInterval()
     {
         // Arrange
-        var discovery = new SampleOutboxDatabaseDiscovery(new[]
+        var discovery = new SampleInboxDatabaseDiscovery(new[]
         {
-            new OutboxDatabaseConfig
+            new InboxDatabaseConfig
             {
                 Identifier = "Customer1",
                 ConnectionString = "Server=localhost;Database=Customer1;",
             },
         });
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
 
-        var logger = loggerFactory.CreateLogger<DynamicOutboxStoreProvider>();
+        var logger = loggerFactory.CreateLogger<DynamicInboxWorkStoreProvider>();
 
-        var provider = new DynamicOutboxStoreProvider(
+        var provider = new DynamicInboxWorkStoreProvider(
             discovery,
             timeProvider,
             loggerFactory,
@@ -263,7 +240,7 @@ public class DynamicOutboxStoreProviderTests
         initialStores.Count.ShouldBe(1);
 
         // Add a new database
-        discovery.AddDatabase(new OutboxDatabaseConfig
+        discovery.AddDatabase(new InboxDatabaseConfig
         {
             Identifier = "Customer2",
             ConnectionString = "Server=localhost;Database=Customer2;",
@@ -277,4 +254,5 @@ public class DynamicOutboxStoreProviderTests
         updatedStores.Count.ShouldBe(2);
     }
 }
+
 

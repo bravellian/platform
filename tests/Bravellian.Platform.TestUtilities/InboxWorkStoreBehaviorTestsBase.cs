@@ -12,11 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System;
+using System.Diagnostics.CodeAnalysis;
 using Shouldly;
 using Xunit;
 
 namespace Bravellian.Platform.Tests.TestUtilities;
 
+[SuppressMessage("Naming", "CA1707:Identifiers should not contain underscores", Justification = "Test naming uses underscores for readability.")]
 public abstract class InboxWorkStoreBehaviorTestsBase : IAsyncLifetime
 {
     private readonly IInboxWorkStoreBehaviorHarness harness;
@@ -30,7 +33,11 @@ public abstract class InboxWorkStoreBehaviorTestsBase : IAsyncLifetime
 
     public ValueTask InitializeAsync() => harness.InitializeAsync();
 
-    public ValueTask DisposeAsync() => harness.DisposeAsync();
+    public async ValueTask DisposeAsync()
+    {
+        await harness.DisposeAsync().ConfigureAwait(false);
+        GC.SuppressFinalize(this);
+    }
 
     [Fact]
     public async Task ClaimAsync_WithNoMessages_ReturnsEmptyList()

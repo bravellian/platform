@@ -16,7 +16,6 @@ using Bravellian.Platform.Audit;
 using Bravellian.Platform.Email;
 using Bravellian.Platform.Metrics;
 using Bravellian.Platform.Operations;
-using Bravellian.Platform.Semaphore;
 
 namespace Bravellian.Platform;
 
@@ -59,9 +58,6 @@ public sealed class SqlPlatformOptions
 
     /// <summary>Optional idempotency options customization.</summary>
     public Action<SqlIdempotencyOptions>? ConfigureIdempotency { get; set; }
-
-    /// <summary>Optional semaphore options customization.</summary>
-    public Action<SemaphoreOptions>? ConfigureSemaphore { get; set; }
 
     /// <summary>Optional external side-effect options customization.</summary>
     public Action<SqlExternalSideEffectOptions>? ConfigureExternalSideEffects { get; set; }

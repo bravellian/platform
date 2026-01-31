@@ -19,12 +19,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
+#pragma warning disable CA1822, CA2100
 namespace Bravellian.Platform.Tests;
 /// <summary>
 /// Integration tests that stand up real SQL Server databases (via Testcontainers) and wire
 /// multi-database + control plane registration for both list-based and discovery-based setups.
 /// These run by default; filter with Traits if needed:
-/// dotnet test --filter "Category=Integration&FullyQualifiedName~MultiDatabaseControlPlaneIntegrationTests"
+/// dotnet test --filter "Category=Integration and FullyQualifiedName~MultiDatabaseControlPlaneIntegrationTests"
 /// </summary>
 [Collection(PostgresCollection.Name)]
 [Trait("Category", "Integration")]
@@ -260,8 +261,6 @@ public class MultiDatabaseControlPlaneIntegrationTests
 .ConfigureAwait(false);
         }
 
-        await DatabaseSchemaManager.EnsureSemaphoreSchemaAsync(controlPlaneConnection, "control")
-.ConfigureAwait(false);
         await DatabaseSchemaManager.EnsureCentralMetricsSchemaAsync(controlPlaneConnection, "control")
 .ConfigureAwait(false);
     }
@@ -448,5 +447,6 @@ SELECT COUNT(*) FROM {outboxTable} WHERE "IsProcessed" = TRUE
         }
     }
 }
+#pragma warning restore CA1822, CA2100
 
 

@@ -44,7 +44,7 @@ public class MockInboxWorkStore : IInboxWorkStore
         => Task.CompletedTask;
 
     /// <inheritdoc/>
-    public Task FailAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<string> messageIds, string error, CancellationToken cancellationToken)
+    public Task FailAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<string> messageIds, string errorMessage, CancellationToken cancellationToken)
         => Task.CompletedTask;
 
     /// <inheritdoc/>

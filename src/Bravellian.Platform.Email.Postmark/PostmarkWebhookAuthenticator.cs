@@ -87,8 +87,10 @@ internal sealed class PostmarkWebhookAuthenticator : IWebhookAuthenticator
         }
         else
         {
+#pragma warning disable CA5350 // Postmark signatures may use HMACSHA1 for legacy compatibility.
             using var hmac = new HMACSHA1(keyBytes);
             hash = hmac.ComputeHash(bodyBytes);
+#pragma warning restore CA5350
         }
 
         var hex = Convert.ToHexString(hash);

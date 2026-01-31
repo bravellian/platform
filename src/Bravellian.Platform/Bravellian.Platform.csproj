@@ -1,87 +1,93 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<TargetFramework>net10.0</TargetFramework>
-		<Nullable>enable</Nullable>
-		<Deterministic>true</Deterministic>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <Deterministic>true</Deterministic>
 
-		<!-- Package metadata -->
-		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
-		<PackageId>Bravellian.Platform</PackageId>
-		<Version>1.0.0</Version>
-		<Authors>Bravellian</Authors>
-		<Owners>Bravellian</Owners>
-		<Description>Core platform abstractions and orchestration.</Description>
-		<PackageProjectUrl>https://github.com/bravellian/platform</PackageProjectUrl>
-		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-		<RepositoryUrl>https://github.com/bravellian/platform</RepositoryUrl>
-		<PackageIcon>nuget_logo.png</PackageIcon>
-		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<PackageReleaseNotes>For support, contact oss@bravellian.com</PackageReleaseNotes>
-		<NuspecProperties>id=$(PackageId);version=$(Version);authors=$(Authors)</NuspecProperties>
-		<EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
-		<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
-		<WarningsNotAsErrors>$(WarningsNotAsErrors);MA0051;MA0015</WarningsNotAsErrors>
-		<NoWarn>$(NoWarn);CS1591</NoWarn>
-	</PropertyGroup>
-  
-	<ItemGroup>
-		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-			<_Parameter1>Bravellian.Platform.Tests</_Parameter1>
-		</AssemblyAttribute>
-		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-			<_Parameter1>Bravellian.Platform.Postgres.Tests</_Parameter1>
-		</AssemblyAttribute>
-        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-          <_Parameter1>Bravellian.Platform.Email.Tests</_Parameter1>
-        </AssemblyAttribute>
-		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-			<_Parameter1>Bravellian.Platform.SqlServer</_Parameter1>
-		</AssemblyAttribute>
-		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-			<_Parameter1>Bravellian.Platform.Postgres</_Parameter1>
-		</AssemblyAttribute>
-		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-			<_Parameter1>Bravellian.Platform.InMemory</_Parameter1>
-		</AssemblyAttribute>
-		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-			<_Parameter1>Bravellian.Platform.TestUtilities</_Parameter1>
-		</AssemblyAttribute>
-	</ItemGroup>
+    <!-- Package metadata -->
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <PackageId>Bravellian.Platform</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Bravellian</Authors>
+    <Owners>Bravellian</Owners>
+    <Description>Core platform abstractions and orchestration.</Description>
+    <PackageProjectUrl>https://github.com/bravellian/platform</PackageProjectUrl>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/bravellian/platform</RepositoryUrl>
+    <PackageIcon>nuget_logo.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>For support, contact oss@bravellian.com</PackageReleaseNotes>
+    <NuspecProperties>id=$(PackageId);version=$(Version);authors=$(Authors)</NuspecProperties>
+    <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
+    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);MA0051;MA0015</WarningsNotAsErrors>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
 
-	<ItemGroup>
-	  <None Include="..\..\assets\nuget_logo.png">
-	    <Pack>True</Pack>
-	    <PackagePath>\</PackagePath>
-	  </None>
-	  <None Include="README.md">
-	    <Pack>True</Pack>
-	    <PackagePath>\</PackagePath>
-	  </None>
-	</ItemGroup>
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>Bravellian.Platform.Tests</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>Bravellian.Platform.Postgres.Tests</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>Bravellian.Platform.SqlServer.Tests</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>Bravellian.Platform.InMemory.Tests</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>Bravellian.Platform.Email.Tests</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>Bravellian.Platform.SqlServer</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>Bravellian.Platform.Postgres</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>Bravellian.Platform.InMemory</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>Bravellian.Platform.TestUtilities</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
 
-	<ItemGroup>
-		<ProjectReference Include="..\Bravellian.Platform.ExactlyOnce\Bravellian.Platform.ExactlyOnce.csproj" />
-		<PackageReference Include="Bravellian.Generators" Version="2025.12.15.1154" PrivateAssets="all" />
-		<PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.2" />
-		<PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions" Version="10.0.2" />
-		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.2" />
-		<PackageReference Include="Microsoft.Extensions.Options" Version="10.0.2" />
-	</ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\assets\nuget_logo.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
 
-	<ItemGroup>
-	  <PackageReference Update="DotNet.ReproducibleBuilds.Isolated" Version="1.2.39" />
-	  <PackageReference Update="Meziantou.Analyzer" Version="2.0.284" />
-	  <PackageReference Update="Microsoft.SourceLink.GitHub" Version="10.0.102" />
-	  <PackageReference Update="Roslynator.Analyzers" Version="4.15.0" />
-	  <PackageReference Update="Roslynator.CodeAnalysis.Analyzers" Version="4.15.0" />
-	  <PackageReference Update="Roslynator.Formatting.Analyzers" Version="4.15.0" />
-	</ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Bravellian.Platform.ExactlyOnce\Bravellian.Platform.ExactlyOnce.csproj" />
+    <PackageReference Include="Bravellian.Generators" Version="2025.12.15.1154" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.2" />
+  </ItemGroup>
 
-	<ItemGroup>
-		<Compile Update="**/*.g.cs" NoWarn="CS1591" />
-		<Compile Update="**/*.g.i.cs" NoWarn="CS1591" />
-	</ItemGroup>
+  <ItemGroup>
+    <PackageReference Update="DotNet.ReproducibleBuilds.Isolated" Version="1.2.39" />
+    <PackageReference Update="Meziantou.Analyzer" Version="2.0.284" />
+    <PackageReference Update="Microsoft.SourceLink.GitHub" Version="10.0.102" />
+    <PackageReference Update="Roslynator.Analyzers" Version="4.15.0" />
+    <PackageReference Update="Roslynator.CodeAnalysis.Analyzers" Version="4.15.0" />
+    <PackageReference Update="Roslynator.Formatting.Analyzers" Version="4.15.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="**/*.g.cs" NoWarn="CS1591" />
+    <Compile Update="**/*.g.i.cs" NoWarn="CS1591" />
+  </ItemGroup>
 
 </Project>

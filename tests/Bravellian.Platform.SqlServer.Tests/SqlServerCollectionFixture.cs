@@ -29,7 +29,7 @@ public sealed class SqlServerCollectionFixture : IAsyncLifetime
     private const string SaPassword = "Str0ng!Passw0rd!";
     private readonly IContainer msSqlContainer;
     private string? connectionString;
-    private int databaseCounter = 0;
+    private int databaseCounter;
     private bool isAvailable;
 
     public SqlServerCollectionFixture()

@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System;
+using System.Linq;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 
@@ -30,13 +32,15 @@ public sealed class PlatformMetricsHttpServer : IDisposable
     /// <param name="options">The configuration for the server.</param>
     public PlatformMetricsHttpServer(PlatformMetricsHttpServerOptions options)
     {
+        ArgumentNullException.ThrowIfNull(options);
+
         provider = Sdk.CreateMeterProviderBuilder()
             .AddMeter(options.Meter.MeterName)
             .ConfigureInstrumentation(options)
             .AddPrometheusHttpListener(listenerOptions =>
             {
                 listenerOptions.ScrapeEndpointPath = options.ScrapeEndpointPath;
-                listenerOptions.UriPrefixes = options.UriPrefixes;
+                listenerOptions.UriPrefixes = options.UriPrefixes.ToArray();
             })
             .Build();
     }

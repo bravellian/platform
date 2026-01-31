@@ -19,6 +19,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
 using Xunit;
 
+#pragma warning disable CA1861
 namespace Bravellian.Platform.Tests.Modularity;
 
 [Collection("ModuleRegistryTests")]
@@ -234,4 +235,5 @@ public sealed class RequiredServiceValidationTests
         }
     }
 }
+#pragma warning restore CA1861
 

@@ -13,7 +13,6 @@
 // limitations under the License.
 
 
-using Bravellian.Platform.Semaphore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -30,7 +29,6 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
     private readonly IOptionsMonitor<SqlInboxOptions> inboxOptions;
     private readonly IOptionsMonitor<SqlIdempotencyOptions> idempotencyOptions;
     private readonly IOptionsMonitor<SqlEmailOutboxOptions> emailOutboxOptions;
-    private readonly IOptionsMonitor<SemaphoreOptions> semaphoreOptions;
     private readonly IOptionsMonitor<SystemLeaseOptions> systemLeaseOptions;
     private readonly DatabaseSchemaCompletion schemaCompletion;
     private readonly PlatformConfiguration? platformConfiguration;
@@ -44,7 +42,6 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
         IOptionsMonitor<SqlInboxOptions> inboxOptions,
         IOptionsMonitor<SqlIdempotencyOptions> idempotencyOptions,
         IOptionsMonitor<SqlEmailOutboxOptions> emailOutboxOptions,
-        IOptionsMonitor<SemaphoreOptions> semaphoreOptions,
         IOptionsMonitor<SystemLeaseOptions> systemLeaseOptions,
         DatabaseSchemaCompletion schemaCompletion,
         PlatformConfiguration? platformConfiguration = null,
@@ -57,7 +54,6 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
         this.inboxOptions = inboxOptions;
         this.idempotencyOptions = idempotencyOptions;
         this.emailOutboxOptions = emailOutboxOptions;
-        this.semaphoreOptions = semaphoreOptions;
         this.systemLeaseOptions = systemLeaseOptions;
         this.schemaCompletion = schemaCompletion;
         this.platformConfiguration = platformConfiguration;
@@ -88,7 +84,7 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
                     deploymentTasks.Add(DeployMultiDatabaseSchemasAsync(stoppingToken));
                 }
 
-                // Deploy semaphore schema to control plane if configured
+                // Deploy control-plane bundles if configured
                 if (platformConfiguration!.EnableSchemaDeployment &&
                     platformConfiguration.EnvironmentStyle == PlatformEnvironmentStyle.MultiDatabaseWithControl &&
                     !string.IsNullOrEmpty(platformConfiguration.ControlPlaneConnectionString))
@@ -139,11 +135,6 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
                     deploymentTasks.Add(DeploySystemLeaseSchemaAsync(systemLeaseOpts, stoppingToken));
                 }
 
-                // Deploy semaphore schema if enabled
-                if (platformConfiguration?.EnableSchemaDeployment == true)
-                {
-                    deploymentTasks.Add(DeploySemaphoreSchemaAsync(stoppingToken));
-                }
             }
 
             if (deploymentTasks.Count > 0)
@@ -282,15 +273,6 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
             options.ConnectionString,
             options.SchemaName,
             options.TableName).ConfigureAwait(false);
-    }
-
-    private async Task DeploySemaphoreSchemaAsync(CancellationToken cancellationToken)
-    {
-        var options = semaphoreOptions.CurrentValue;
-        logger.LogDebug("Deploying semaphore schema at {Schema}", options.SchemaName);
-        await DatabaseSchemaManager.EnsureSemaphoreSchemaAsync(
-            options.ConnectionString,
-            options.SchemaName).ConfigureAwait(false);
     }
 
     private async Task DeploySystemLeaseSchemaAsync(SystemLeaseOptions options, CancellationToken cancellationToken)

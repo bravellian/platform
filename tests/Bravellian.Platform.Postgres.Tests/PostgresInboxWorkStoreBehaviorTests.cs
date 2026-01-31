@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Diagnostics.CodeAnalysis;
 using Bravellian.Platform.Tests.TestUtilities;
 
 namespace Bravellian.Platform.Tests;
@@ -19,6 +20,7 @@ namespace Bravellian.Platform.Tests;
 [Collection(PostgresCollection.Name)]
 [Trait("Category", "Integration")]
 [Trait("RequiresDocker", "true")]
+[SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Base class owns harness lifetime.")]
 public sealed class PostgresInboxWorkStoreBehaviorTests : InboxWorkStoreBehaviorTestsBase
 {
     public PostgresInboxWorkStoreBehaviorTests(ITestOutputHelper testOutputHelper, PostgresCollectionFixture fixture)

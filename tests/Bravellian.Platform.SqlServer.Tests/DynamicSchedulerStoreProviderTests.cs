@@ -30,32 +30,9 @@ public class DynamicSchedulerStoreProviderTests
         timeProvider = new FakeTimeProvider();
     }
 
-    private ILoggerFactory CreateLoggerFactory()
+    private TestLoggerFactory CreateLoggerFactory()
     {
         return new TestLoggerFactory(testOutputHelper);
-    }
-
-    private class TestLoggerFactory : ILoggerFactory
-    {
-        private readonly ITestOutputHelper testOutputHelper;
-
-        public TestLoggerFactory(ITestOutputHelper testOutputHelper)
-        {
-            this.testOutputHelper = testOutputHelper;
-        }
-
-        public void AddProvider(ILoggerProvider provider)
-        {
-        }
-
-        public ILogger CreateLogger(string categoryName)
-        {
-            return new TestLogger<DynamicSchedulerStoreProvider>(testOutputHelper);
-        }
-
-        public void Dispose()
-        {
-        }
     }
 
     /// <summary>
@@ -96,7 +73,7 @@ public class DynamicSchedulerStoreProviderTests
             },
         });
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
         var logger = loggerFactory.CreateLogger<DynamicSchedulerStoreProvider>();
 
         var provider = new DynamicSchedulerStoreProvider(
@@ -140,7 +117,7 @@ public class DynamicSchedulerStoreProviderTests
             },
         });
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
         var logger = loggerFactory.CreateLogger<DynamicSchedulerStoreProvider>();
 
         var provider = new DynamicSchedulerStoreProvider(
@@ -200,7 +177,7 @@ public class DynamicSchedulerStoreProviderTests
             },
         });
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
         var logger = loggerFactory.CreateLogger<DynamicSchedulerStoreProvider>();
 
         var provider = new DynamicSchedulerStoreProvider(
@@ -250,7 +227,7 @@ public class DynamicSchedulerStoreProviderTests
             },
         });
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
         var logger = loggerFactory.CreateLogger<DynamicSchedulerStoreProvider>();
 
         var provider = new DynamicSchedulerStoreProvider(
@@ -294,7 +271,7 @@ public class DynamicSchedulerStoreProviderTests
             },
         });
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
         var logger = loggerFactory.CreateLogger<DynamicSchedulerStoreProvider>();
 
         var provider = new DynamicSchedulerStoreProvider(
@@ -313,4 +290,5 @@ public class DynamicSchedulerStoreProviderTests
         client.ShouldBeNull();
     }
 }
+
 

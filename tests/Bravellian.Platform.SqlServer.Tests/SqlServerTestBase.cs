@@ -94,6 +94,7 @@ public abstract class SqlServerTestBase : IAsyncLifetime
 
         // In shared mode, we don't dispose the container - it's managed by the collection fixture
         // The database will be cleaned up when the container is disposed at the end of all tests
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>

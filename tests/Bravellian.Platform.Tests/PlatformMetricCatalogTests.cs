@@ -13,6 +13,7 @@
 // limitations under the License.
 
 
+using System;
 using Bravellian.Platform.Metrics;
 
 namespace Bravellian.Platform.Tests;
@@ -142,7 +143,7 @@ public class PlatformMetricCatalogTests
             metric.AllowedTags.ShouldNotBeNull();
 
             // Verify AggKind is a valid enum value
-            Enum.IsDefined(typeof(MetricAggregationKind), metric.AggKind).ShouldBeTrue();
+            Enum.IsDefined<MetricAggregationKind>(metric.AggKind).ShouldBeTrue();
         }
     }
 
@@ -170,7 +171,8 @@ public class PlatformMetricCatalogTests
         foreach (var metric in counterMetrics)
         {
             // Most counters should have "count" as unit
-            if (!metric.Name.Contains("latency") && !metric.Name.Contains("age"))
+            if (!metric.Name.Contains("latency", StringComparison.Ordinal)
+                && !metric.Name.Contains("age", StringComparison.Ordinal))
             {
                 metric.Unit.ShouldBe(MetricUnit.Count);
             }

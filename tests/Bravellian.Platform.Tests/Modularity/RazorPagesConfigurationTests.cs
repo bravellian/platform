@@ -75,7 +75,7 @@ public sealed class RazorPagesConfigurationTests
     /// Given TestRazorModule is registered and services are configured with its required configuration key.
     /// </scenario>
     /// <behavior>
-    /// Then an IOptionsMonitor<RazorPagesOptions> is available from the built service provider.
+    /// Then an <see cref="IOptionsMonitor{RazorPagesOptions}"/> is available from the built service provider.
     /// </behavior>
     [Fact]
     public void ConfigureRazorModulePages_invokes_module_configuration()

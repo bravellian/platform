@@ -1,1 +1,0 @@
--- No-op for PostgreSQL. Semaphore operations are implemented in application SQL.

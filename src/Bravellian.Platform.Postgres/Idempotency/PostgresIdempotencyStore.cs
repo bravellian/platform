@@ -204,7 +204,7 @@ internal sealed class PostgresIdempotencyStore : IIdempotencyStore, IIdempotency
         return connection.QuerySingleOrDefaultAsync<IdempotencyRecord>(sql, new { Key = key }, transaction);
     }
 
-    private Task InsertRecordAsync(
+    private Task<int> InsertRecordAsync(
         NpgsqlConnection connection,
         NpgsqlTransaction transaction,
         string key,
@@ -244,7 +244,7 @@ internal sealed class PostgresIdempotencyStore : IIdempotencyStore, IIdempotency
             transaction);
     }
 
-    private Task MarkInProgressAsync(
+    private Task<int> MarkInProgressAsync(
         NpgsqlConnection connection,
         NpgsqlTransaction transaction,
         string key,
@@ -273,7 +273,7 @@ internal sealed class PostgresIdempotencyStore : IIdempotencyStore, IIdempotency
             transaction);
     }
 
-    private Task InsertCompletionAsync(NpgsqlConnection connection, string key, DateTimeOffset now)
+    private Task<int> InsertCompletionAsync(NpgsqlConnection connection, string key, DateTimeOffset now)
     {
         var sql = $"""
             INSERT INTO "{schemaName}"."{tableName}" (
@@ -304,7 +304,7 @@ internal sealed class PostgresIdempotencyStore : IIdempotencyStore, IIdempotency
             });
     }
 
-    private Task InsertFailureAsync(NpgsqlConnection connection, string key, DateTimeOffset now)
+    private Task<int> InsertFailureAsync(NpgsqlConnection connection, string key, DateTimeOffset now)
     {
         var sql = $"""
             INSERT INTO "{schemaName}"."{tableName}" (

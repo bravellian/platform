@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma warning disable CA2201
 namespace Bravellian.Platform.Tests;
 
 public class ExceptionFilterTests
@@ -600,6 +601,7 @@ public class ExceptionFilterTests
     public void IsCatchable_WithVariousCommonExceptions_ReturnsTrue(Type exceptionType)
     {
         // Arrange
+        ArgumentNullException.ThrowIfNull(exceptionType);
         var exception = (Exception)Activator.CreateInstance(exceptionType, "Test message")!;
 
         // Act
@@ -680,4 +682,5 @@ public class ExceptionFilterTests
         return new ArgumentNullException(parameterName);
     }
 }
+#pragma warning restore CA2201
 

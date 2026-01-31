@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,6 +31,8 @@ public static class PlatformMetricsEndpointExtensions
     /// <returns>The convention builder or null when the exporter is disabled.</returns>
     public static IEndpointConventionBuilder? MapPlatformMetricsEndpoint(this IEndpointRouteBuilder endpoints)
     {
+        ArgumentNullException.ThrowIfNull(endpoints);
+
         var options = endpoints.ServiceProvider.GetRequiredService<PlatformMetricsOptions>();
         if (!options.EnablePrometheusExporter)
         {
@@ -46,6 +49,8 @@ public static class PlatformMetricsEndpointExtensions
     /// <returns>The application builder.</returns>
     public static IApplicationBuilder UsePlatformMetricsEndpoint(this IApplicationBuilder app)
     {
+        ArgumentNullException.ThrowIfNull(app);
+
         var options = app.ApplicationServices.GetRequiredService<PlatformMetricsOptions>();
         if (!options.EnablePrometheusExporter)
         {

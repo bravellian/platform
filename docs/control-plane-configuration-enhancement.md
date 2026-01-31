@@ -117,20 +117,6 @@ services.AddPlatformMultiDatabaseWithControlPlaneAndDiscovery(
 
 ## Internal Changes
 
-### Semaphore Service Updates
-
-The internal semaphore service registration has been updated to accept schema names:
-
-```csharp
-internal static void AddSemaphoreServices(
-    this IServiceCollection services,
-    string connectionString,
-    string schemaName = "infra",  // Now accepts schema name
-    Action<SemaphoreOptions>? configure = null)
-```
-
-This ensures that semaphores (which run in the control plane) respect the configured schema name.
-
 ### Platform Configuration
 
 The `PlatformConfiguration` class now stores the control plane schema name:
@@ -152,6 +138,4 @@ Comprehensive tests have been added to verify:
 1. Schema name configuration is properly passed through to services
 2. Default schema name ("infra") is used when not specified
 3. Backward compatibility with old API signatures
-4. Semaphore services respect the control plane schema configuration
-
 See `ControlPlaneConfigurationTests.cs` for the full test suite.

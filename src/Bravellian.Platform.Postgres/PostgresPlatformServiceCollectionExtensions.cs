@@ -16,7 +16,6 @@
 using Bravellian.Platform.Email;
 using Bravellian.Platform.Metrics;
 using Bravellian.Platform.Observability;
-using Bravellian.Platform.Semaphore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -139,10 +138,7 @@ public static class PostgresPlatformServiceCollectionExtensions
         string connectionString,
         Action<PostgresPlatformOptions>? configure = null)
     {
-        if (services is null)
-        {
-            throw new ArgumentNullException(nameof(services));
-        }
+        ArgumentNullException.ThrowIfNull(services);
 
         if (string.IsNullOrWhiteSpace(connectionString))
         {
@@ -169,10 +165,7 @@ public static class PostgresPlatformServiceCollectionExtensions
         this IServiceCollection services,
         PostgresPlatformOptions options)
     {
-        if (services is null)
-        {
-            throw new ArgumentNullException(nameof(services));
-        }
+        ArgumentNullException.ThrowIfNull(services);
 
         ArgumentNullException.ThrowIfNull(options);
         ArgumentException.ThrowIfNullOrWhiteSpace(options.ConnectionString);
@@ -345,21 +338,10 @@ public static class PostgresPlatformServiceCollectionExtensions
         // Register core abstractions
         RegisterCoreServices(services, controlPlaneOptions.EnableSchemaDeployment);
 
-        // Register semaphore services for control plane
-        services.AddSemaphoreServices(controlPlaneOptions.ConnectionString, controlPlaneOptions.SchemaName);
 
         return services;
     }
 
-    /// <summary>
-    /// Registers the platform for a multi-database environment with control plane.
-    /// Features run across the provided list of databases with control plane coordination available for future features.
-    /// </summary>
-    /// <param name="services">The service collection.</param>
-    /// <param name="databases">The list of application databases.</param>
-    /// <param name="controlPlaneConnectionString">The connection string for the control plane database.</param>
-    /// <param name="enableSchemaDeployment">Whether to automatically create platform tables and procedures at startup.</param>
-    /// <returns>The service collection for chaining.</returns>
     /// <summary>
     /// Registers the platform for a multi-database environment with control plane.
     /// Features run across databases discovered via the provided discovery service with control plane coordination available for future features.
@@ -410,23 +392,10 @@ public static class PostgresPlatformServiceCollectionExtensions
         // Register core abstractions
         RegisterCoreServices(services, controlPlaneOptions.EnableSchemaDeployment);
 
-        // Register semaphore services for control plane
-        services.AddSemaphoreServices(controlPlaneOptions.ConnectionString, controlPlaneOptions.SchemaName);
 
         return services;
     }
 
-    /// <summary>
-    /// Registers the platform for a multi-database environment with control plane.
-    /// Features run across databases discovered via the provided discovery service with control plane coordination available for future features.
-    /// </summary>
-    /// <param name="services">The service collection.</param>
-    /// <param name="controlPlaneConnectionString">The connection string for the control plane database.</param>
-    /// <param name="enableSchemaDeployment">Whether to automatically create platform tables and procedures at startup.</param>
-    /// <returns>The service collection for chaining.</returns>
-    /// <remarks>
-    /// Requires an implementation of <see cref="IPlatformDatabaseDiscovery"/> to be registered in the service collection.
-    /// </remarks>
     /// <summary>
     /// Registers the platform for a multi-database environment with control plane using a discovery factory.
     /// </summary>
@@ -840,14 +809,6 @@ public static class PostgresPlatformServiceCollectionExtensions
 
         options.ConfigureIdempotency?.Invoke(idempotencyOptions);
         services.AddPostgresIdempotency(idempotencyOptions);
-    }
-
-    private static void RegisterSemaphore(IServiceCollection services, PostgresPlatformOptions options)
-    {
-        services.AddSemaphoreServices(
-            options.ConnectionString,
-            options.SchemaName,
-            options.ConfigureSemaphore);
     }
 
     private static void RegisterMetrics(IServiceCollection services, PostgresPlatformOptions options)

@@ -33,7 +33,7 @@ public class OutboxRouterIntegrationTests
         timeProvider = new FakeTimeProvider();
     }
 
-    private ILoggerFactory CreateLoggerFactory()
+    private TestLoggerFactory CreateLoggerFactory()
     {
         return new TestLoggerFactory(testOutputHelper);
     }
@@ -64,7 +64,7 @@ public class OutboxRouterIntegrationTests
             },
         };
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
         var provider = new ConfiguredOutboxStoreProvider(tenantOptions, timeProvider, loggerFactory);
         var router = new OutboxRouter(provider);
 
@@ -105,7 +105,7 @@ public class OutboxRouterIntegrationTests
             },
         });
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
         var logger = loggerFactory.CreateLogger<DynamicOutboxStoreProvider>();
         var provider = new DynamicOutboxStoreProvider(
             discovery,
@@ -154,7 +154,7 @@ public class OutboxRouterIntegrationTests
             },
         };
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
         var provider = new ConfiguredOutboxStoreProvider(tenantOptions, timeProvider, loggerFactory);
         var router = new OutboxRouter(provider);
 
@@ -216,4 +216,6 @@ public class OutboxRouterIntegrationTests
         public decimal TotalAmount { get; set; }
     }
 }
+
+
 

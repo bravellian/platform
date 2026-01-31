@@ -30,7 +30,7 @@ public class DynamicLeaseFactoryProviderTests
         timeProvider = new FakeTimeProvider();
     }
 
-    private ILoggerFactory CreateLoggerFactory()
+    private TestLoggerFactory CreateLoggerFactory()
     {
         return new TestLoggerFactory(testOutputHelper);
     }
@@ -69,7 +69,7 @@ public class DynamicLeaseFactoryProviderTests
             },
         });
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
         var logger = loggerFactory.CreateLogger<DynamicLeaseFactoryProvider>();
 
         var provider = new DynamicLeaseFactoryProvider(
@@ -114,7 +114,7 @@ public class DynamicLeaseFactoryProviderTests
             },
         });
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
         var logger = loggerFactory.CreateLogger<DynamicLeaseFactoryProvider>();
 
         var provider = new DynamicLeaseFactoryProvider(
@@ -177,7 +177,7 @@ public class DynamicLeaseFactoryProviderTests
             },
         });
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
         var logger = loggerFactory.CreateLogger<DynamicLeaseFactoryProvider>();
 
         var provider = new DynamicLeaseFactoryProvider(
@@ -228,7 +228,7 @@ public class DynamicLeaseFactoryProviderTests
             },
         });
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
         var logger = loggerFactory.CreateLogger<DynamicLeaseFactoryProvider>();
 
         var provider = new DynamicLeaseFactoryProvider(
@@ -291,7 +291,7 @@ public class DynamicLeaseFactoryProviderTests
             },
         });
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
         var logger = loggerFactory.CreateLogger<DynamicLeaseFactoryProvider>();
 
         var provider = new DynamicLeaseFactoryProvider(
@@ -344,7 +344,7 @@ public class DynamicLeaseFactoryProviderTests
             },
         });
 
-        var loggerFactory = CreateLoggerFactory();
+        ILoggerFactory loggerFactory = CreateLoggerFactory();
         var logger = loggerFactory.CreateLogger<DynamicLeaseFactoryProvider>();
 
         var provider = new DynamicLeaseFactoryProvider(
@@ -379,4 +379,6 @@ public class DynamicLeaseFactoryProviderTests
         ReferenceEquals(initialFactory, updatedFactories[0]).ShouldBeFalse();
     }
 }
+
+
 

@@ -28,20 +28,20 @@ public class WatchdogServiceTests
     /// <scenario>Given a WatchdogService configured with a FakeTimeProvider and no sinks.</scenario>
     /// <behavior>Then GetSnapshot returns empty alerts and timestamps equal the initial fake time.</behavior>
     [Fact]
-    public void GetSnapshot_ReturnsInitialState()
+    public async Task GetSnapshot_ReturnsInitialState()
     {
         // Arrange
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton<TimeProvider>(new FakeTimeProvider(DateTimeOffset.Parse("2024-01-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture)));
         services.Configure<ObservabilityOptions>(o => { });
-        var serviceProvider = services.BuildServiceProvider();
+        await using var serviceProvider = services.BuildServiceProvider();
 
         var logger = serviceProvider.GetRequiredService<ILogger<WatchdogService>>();
         var options = serviceProvider.GetRequiredService<IOptions<ObservabilityOptions>>();
         var timeProvider = serviceProvider.GetRequiredService<TimeProvider>();
 
-        var watchdog = new WatchdogService(
+        using var watchdog = new WatchdogService(
             logger,
             options,
             timeProvider,
@@ -86,13 +86,13 @@ public class WatchdogServiceTests
             return Task.CompletedTask;
         }));
 
-        var serviceProvider = services.BuildServiceProvider();
+        await using var serviceProvider = services.BuildServiceProvider();
 
         var logger = serviceProvider.GetRequiredService<ILogger<WatchdogService>>();
         var options = serviceProvider.GetRequiredService<IOptions<ObservabilityOptions>>();
         var heartbeatSinks = serviceProvider.GetRequiredService<IEnumerable<IHeartbeatSink>>();
 
-        var watchdog = new WatchdogService(
+        using var watchdog = new WatchdogService(
             logger,
             options,
             fakeTime,
@@ -110,7 +110,7 @@ public class WatchdogServiceTests
         // Give the service a moment to process (minimal real time needed)
         await Task.Delay(50, cts.Token);
 
-        cts.Cancel();
+        await cts.CancelAsync();
         await watchdog.StopAsync(TestContext.Current.CancellationToken);
         await watchdogTask; // Ensure background service has fully stopped
 
@@ -148,13 +148,13 @@ public class WatchdogServiceTests
             return Task.CompletedTask;
         }));
 
-        var serviceProvider = services.BuildServiceProvider();
+        await using var serviceProvider = services.BuildServiceProvider();
 
         var logger = serviceProvider.GetRequiredService<ILogger<WatchdogService>>();
         var options = serviceProvider.GetRequiredService<IOptions<ObservabilityOptions>>();
         var alertSinks = serviceProvider.GetRequiredService<IEnumerable<IWatchdogAlertSink>>();
 
-        var watchdog = new WatchdogService(
+        using var watchdog = new WatchdogService(
             logger,
             options,
             fakeTime,
@@ -171,7 +171,7 @@ public class WatchdogServiceTests
         fakeTime.Advance(TimeSpan.FromSeconds(6));
         await Task.Delay(100, cts.Token); // Give the service time to process
 
-        cts.Cancel();
+        await cts.CancelAsync();
         await watchdog.StopAsync(TestContext.Current.CancellationToken);
         await watchdogTask; // Ensure background service has fully stopped
 
@@ -196,12 +196,12 @@ public class WatchdogServiceTests
         services.AddLogging();
         services.AddSingleton<TimeProvider>(fakeTime);
         services.Configure<ObservabilityOptions>(o => { });
-        var serviceProvider = services.BuildServiceProvider();
+        await using var serviceProvider = services.BuildServiceProvider();
 
         var logger = serviceProvider.GetRequiredService<ILogger<WatchdogService>>();
         var options = serviceProvider.GetRequiredService<IOptions<ObservabilityOptions>>();
 
-        var watchdog = new WatchdogService(
+        using var watchdog = new WatchdogService(
             logger,
             options,
             fakeTime,

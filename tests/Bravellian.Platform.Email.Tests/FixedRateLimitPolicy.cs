@@ -27,15 +27,13 @@ internal sealed class FixedRateLimitPolicy : IEmailSendPolicy
 
     public FixedRateLimitPolicy(int limit, TimeSpan window, bool perRecipient, TimeProvider timeProvider)
     {
-        if (limit <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(limit));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
 
         this.limit = limit;
         this.window = window;
         this.perRecipient = perRecipient;
-        this.timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
+        ArgumentNullException.ThrowIfNull(timeProvider);
+        this.timeProvider = timeProvider;
     }
 
     public Task<PolicyDecision> EvaluateAsync(OutboundEmailMessage message, CancellationToken cancellationToken)

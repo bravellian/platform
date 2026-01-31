@@ -34,7 +34,6 @@ public sealed class PostmarkWebhookProvider : WebhookProviderBase
     /// Initializes a new instance of the <see cref="PostmarkWebhookProvider"/> class.
     /// </summary>
     /// <param name="deliverySink">Delivery sink for recording provider updates.</param>
-    /// <param name="eventEmitter">Optional platform event emitter.</param>
     /// <param name="options">Webhook options.</param>
     public PostmarkWebhookProvider(IEmailDeliverySink deliverySink, PostmarkWebhookOptions? options = null)
         : this(deliverySink, null, options)

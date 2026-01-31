@@ -231,14 +231,14 @@ public class MultiOutboxDispatcherTests : PostgresTestBase
 
     private class TestOutboxStoreProvider : IOutboxStoreProvider
     {
-        private readonly IReadOnlyList<IOutboxStore> stores;
+        private readonly List<IOutboxStore> stores;
 
         public TestOutboxStoreProvider(IEnumerable<IOutboxStore> stores)
         {
             this.stores = stores.ToList();
         }
 
-        public Task<IReadOnlyList<IOutboxStore>> GetAllStoresAsync() => Task.FromResult(stores);
+        public Task<IReadOnlyList<IOutboxStore>> GetAllStoresAsync() => Task.FromResult<IReadOnlyList<IOutboxStore>>(stores);
 
         public string GetStoreIdentifier(IOutboxStore store)
         {

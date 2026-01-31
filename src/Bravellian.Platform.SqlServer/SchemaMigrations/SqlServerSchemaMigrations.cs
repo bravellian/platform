@@ -199,27 +199,6 @@ internal static class SqlServerSchemaMigrations
             cancellationToken);
     }
 
-    public static Task ApplySemaphoreAsync(
-        string connectionString,
-        string schemaName,
-        ILogger? logger,
-        CancellationToken cancellationToken)
-    {
-        var variables = new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            ["SchemaName"] = schemaName,
-        };
-
-        return ApplyModuleAsync(
-            connectionString,
-            "Semaphore",
-            schemaName,
-            BuildJournalTableName("Semaphore"),
-            variables,
-            logger,
-            cancellationToken);
-    }
-
     public static Task ApplyMetricsAsync(
         string connectionString,
         string schemaName,
@@ -365,16 +344,12 @@ internal static class SqlServerSchemaMigrations
         CancellationToken cancellationToken)
     {
         var scripts = new List<SqlScript>();
-        scripts.AddRange(GetModuleScriptsWithVariables("Semaphore", new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            ["SchemaName"] = schemaName,
-        }));
         scripts.AddRange(GetModuleScriptsWithVariables("MetricsCentral", new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["SchemaName"] = schemaName,
         }));
 
-        var journalTable = BuildJournalTableName("ControlPlaneBundle", "Semaphore", "MetricsCentral");
+        var journalTable = BuildJournalTableName("ControlPlaneBundle", "MetricsCentral");
 
         return DbUpSchemaRunner.ApplyAsync(
             connectionString,
@@ -555,7 +530,7 @@ internal static class SqlServerSchemaMigrations
             cancellationToken);
     }
 
-    private static IReadOnlyList<SqlScript> GetModuleScripts(string moduleName)
+    private static List<SqlScript> GetModuleScripts(string moduleName)
     {
         var assembly = Assembly.GetExecutingAssembly();
         var prefix = $"{assembly.GetName().Name}.SchemaMigrations.{moduleName}.";
@@ -568,7 +543,7 @@ internal static class SqlServerSchemaMigrations
             .ToList();
     }
 
-    private static IReadOnlyList<SqlScript> GetModuleScriptsWithVariables(
+    private static List<SqlScript> GetModuleScriptsWithVariables(
         string moduleName,
         IReadOnlyDictionary<string, string> variables)
     {
@@ -583,7 +558,7 @@ internal static class SqlServerSchemaMigrations
             .ToList();
     }
 
-    private static IReadOnlyList<string> GetModuleScriptsText(
+    private static List<string> GetModuleScriptsText(
         string moduleName,
         IReadOnlyDictionary<string, string> variables)
     {

@@ -62,6 +62,7 @@ public sealed class EmailIdempotencyCleanupService : BackgroundService
         this.schemaCompletion = schemaCompletion;
     }
 
+    /// <inheritdoc />
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Cleanup loop logs failures and continues.")]
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -145,7 +146,7 @@ public sealed class EmailIdempotencyCleanupService : BackgroundService
                     logger.LogDebug("Deleted {DeletedCount} idempotency records from store {StoreIdentifier}", deleted, identifier);
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionFilter.IsCatchable(ex))
             {
                 logger.LogError(ex, "Failed to cleanup idempotency records for store {StoreIdentifier}", identifier);
             }

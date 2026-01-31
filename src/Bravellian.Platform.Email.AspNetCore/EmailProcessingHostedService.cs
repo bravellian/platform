@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Bravellian.Platform;
 using Bravellian.Platform.Email;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -59,7 +60,7 @@ public sealed class EmailProcessingHostedService : BackgroundService
             {
                 break;
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionFilter.IsCatchable(ex))
             {
                 logger.LogError(ex, "Email outbox processing run failed.");
             }

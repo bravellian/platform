@@ -44,7 +44,6 @@ If you want to prevent the test from running automatically, you can add a `Skip`
    - **Control Plane Database** (`BravellianPlatform_ControlPlane`)
    - **Multi-Database Schema** (`BravellianPlatform_MultiDatabase`)
 3. **Deploys Control Plane schemas** to the Control Plane database:
-   - Semaphore
    - Central Metrics (infra schema)
 4. **Deploys Multi-Database schemas** to the Multi-Database:
    - Outbox and Outbox work queue

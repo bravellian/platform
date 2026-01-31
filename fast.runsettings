@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <RunConfiguration>
+    <!-- Limit parallelization to prevent machine from being overwhelmed -->
+    <MaxCpuCount>2</MaxCpuCount>
+    <!-- Batch size for test execution -->
+    <BatchSize>10</BatchSize>
+    <!-- Disable code coverage for faster test runs -->
+    <DisableAppDomain>true</DisableAppDomain>
+  </RunConfiguration>
+</RunSettings>

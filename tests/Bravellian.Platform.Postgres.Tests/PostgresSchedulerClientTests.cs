@@ -17,6 +17,7 @@ using System.Globalization;
 using Microsoft.Extensions.Options;
 using Npgsql;
 
+#pragma warning disable CA2100
 namespace Bravellian.Platform.Tests;
 
 [Collection(PostgresCollection.Name)]
@@ -260,4 +261,5 @@ public class PostgresSchedulerClientTests : PostgresTestBase
         count.ShouldBeGreaterThan(0);
     }
 }
+#pragma warning restore CA2100
 

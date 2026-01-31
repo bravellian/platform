@@ -21,6 +21,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Bravellian.Platform;
+
+#pragma warning disable CA2100 // SQL command text uses validated schema/table names with parameters.
 /// <summary>
 /// SQL Server implementation of IInboxWorkStore using work queue stored procedures.
 /// </summary>
@@ -466,7 +468,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
         }
     }
 
-    private static System.Data.DataTable CreateStringIdTable(IList<string> ids)
+    private static System.Data.DataTable CreateStringIdTable(List<string> ids)
     {
         var table = new System.Data.DataTable();
         table.Columns.Add("Id", typeof(string));

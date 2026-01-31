@@ -24,7 +24,7 @@ namespace Bravellian.Platform.Tests;
 /// Integration tests that stand up real SQL Server databases (via Testcontainers) and wire
 /// multi-database + control plane registration for both list-based and discovery-based setups.
 /// These run by default; filter with Traits if needed:
-/// dotnet test --filter "Category=Integration&FullyQualifiedName~MultiDatabaseControlPlaneIntegrationTests"
+/// dotnet test --filter "Category=Integration and FullyQualifiedName~MultiDatabaseControlPlaneIntegrationTests"
 /// </summary>
 [Collection(SqlServerCollection.Name)]
 [Trait("Category", "Integration")]
@@ -260,8 +260,6 @@ public class MultiDatabaseControlPlaneIntegrationTests
 .ConfigureAwait(false);
         }
 
-        await DatabaseSchemaManager.EnsureSemaphoreSchemaAsync(controlPlaneConnection, "control")
-.ConfigureAwait(false);
         await DatabaseSchemaManager.EnsureCentralMetricsSchemaAsync(controlPlaneConnection, "control")
 .ConfigureAwait(false);
     }

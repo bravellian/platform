@@ -56,6 +56,18 @@ public class OutboxWorkerTests : SqlServerTestBase
         worker = new TestOutboxWorker(outboxService, new TestLogger<TestOutboxWorker>(TestOutputHelper));
     }
 
+    public override async ValueTask DisposeAsync()
+    {
+        if (worker != null)
+        {
+            worker.Dispose();
+            worker = null;
+        }
+
+        await base.DisposeAsync().ConfigureAwait(false);
+        GC.SuppressFinalize(this);
+    }
+
     private async Task WaitForDatabaseReadyAsync(string connectionString)
     {
         const int maxRetries = 10;

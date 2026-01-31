@@ -13,11 +13,9 @@
 // limitations under the License.
 
 
-using Bravellian.Platform.Semaphore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
 using Shouldly;
 
 namespace Bravellian.Platform.Tests;
@@ -27,15 +25,15 @@ namespace Bravellian.Platform.Tests;
 public class ControlPlaneConfigurationTests
 {
     /// <summary>
-    /// When list-based control plane registration specifies a schema name, then configuration and semaphore options use it.
+    /// When list-based control plane registration specifies a schema name, then configuration uses it.
     /// </summary>
     /// <intent>
-    /// Verify control-plane schema settings are propagated to configuration and semaphore options.</intent>
+    /// Verify control-plane schema settings are propagated to configuration.</intent>
     /// <scenario>
     /// Given AddSqlPlatformMultiDatabaseWithControlPlaneAndList called with control plane options specifying SchemaName = "control".
     /// </scenario>
     /// <behavior>
-    /// Then PlatformConfiguration and SemaphoreOptions use the control plane schema and connection string.</behavior>
+    /// Then PlatformConfiguration uses the control plane schema and connection string.</behavior>
     [Fact]
     public void AddSqlPlatformMultiDatabaseWithControlPlaneAndList_WithOptions_ConfiguresSchemaName()
     {
@@ -70,14 +68,10 @@ public class ControlPlaneConfigurationTests
         config.ControlPlaneSchemaName.ShouldBe("control");
         config.ControlPlaneConnectionString.ShouldBe("Server=localhost;Database=ControlPlane;");
 
-        // Verify semaphore options are configured with the control plane schema
-        var semaphoreOptions = serviceProvider.GetRequiredService<IOptions<SemaphoreOptions>>();
-        semaphoreOptions.Value.SchemaName.ShouldBe("control");
-        semaphoreOptions.Value.ConnectionString.ShouldBe("Server=localhost;Database=ControlPlane;");
     }
 
     /// <summary>
-    /// When discovery-based control plane registration specifies a schema name, then configuration and semaphore options use it.
+    /// When discovery-based control plane registration specifies a schema name, then configuration uses it.
     /// </summary>
     /// <intent>
     /// Verify control-plane settings flow through discovery-based registration.</intent>
@@ -85,7 +79,7 @@ public class ControlPlaneConfigurationTests
     /// Given AddSqlPlatformMultiDatabaseWithControlPlaneAndDiscovery with a ListBasedDatabaseDiscovery and custom SchemaName.
     /// </scenario>
     /// <behavior>
-    /// Then PlatformConfiguration reflects the schema and semaphore options use the same values.</behavior>
+    /// Then PlatformConfiguration reflects the schema and connection string.</behavior>
     [Fact]
     public void AddSqlPlatformMultiDatabaseWithControlPlaneAndDiscovery_WithOptions_ConfiguresSchemaName()
     {
@@ -123,10 +117,6 @@ public class ControlPlaneConfigurationTests
         config.ControlPlaneConnectionString.ShouldBe("Server=localhost;Database=ControlPlane;");
         config.EnableSchemaDeployment.ShouldBeTrue();
 
-        // Verify semaphore options are configured with the control plane schema
-        var semaphoreOptions = serviceProvider.GetRequiredService<IOptions<SemaphoreOptions>>();
-        semaphoreOptions.Value.SchemaName.ShouldBe("custom_control");
-        semaphoreOptions.Value.ConnectionString.ShouldBe("Server=localhost;Database=ControlPlane;");
     }
 
     /// <summary>
@@ -205,7 +195,7 @@ public class ControlPlaneConfigurationTests
     /// Given AddSqlPlatformMultiDatabaseWithControlPlaneAndList called via the obsolete signature.
     /// </scenario>
     /// <behavior>
-    /// Then PlatformConfiguration and SemaphoreOptions default the schema to "infra".</behavior>
+    /// Then PlatformConfiguration defaults the schema to "infra".</behavior>
     [Fact]
     public void AddSqlPlatformMultiDatabaseWithControlPlaneAndList_OldSignature_StillWorks()
     {
@@ -240,8 +230,6 @@ public class ControlPlaneConfigurationTests
         var config = serviceProvider.GetRequiredService<PlatformConfiguration>();
         config.ControlPlaneSchemaName.ShouldBe("infra");
 
-        var semaphoreOptions = serviceProvider.GetRequiredService<IOptions<SemaphoreOptions>>();
-        semaphoreOptions.Value.SchemaName.ShouldBe("infra");
     }
 
     /// <summary>
@@ -253,7 +241,7 @@ public class ControlPlaneConfigurationTests
     /// Given AddSqlPlatformMultiDatabaseWithControlPlaneAndDiscovery called via the obsolete signature and a list-based discovery.
     /// </scenario>
     /// <behavior>
-    /// Then PlatformConfiguration and SemaphoreOptions default the schema to "infra".</behavior>
+    /// Then PlatformConfiguration defaults the schema to "infra".</behavior>
     [Fact]
     public void AddSqlPlatformMultiDatabaseWithControlPlaneAndDiscovery_OldSignature_StillWorks()
     {
@@ -287,8 +275,6 @@ public class ControlPlaneConfigurationTests
         var config = serviceProvider.GetRequiredService<PlatformConfiguration>();
         config.ControlPlaneSchemaName.ShouldBe("infra");
 
-        var semaphoreOptions = serviceProvider.GetRequiredService<IOptions<SemaphoreOptions>>();
-        semaphoreOptions.Value.SchemaName.ShouldBe("infra");
     }
 }
 
