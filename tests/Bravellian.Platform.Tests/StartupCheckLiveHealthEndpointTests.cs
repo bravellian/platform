@@ -24,6 +24,10 @@ namespace Bravellian.Platform.Tests;
 
 public sealed class StartupCheckLiveHealthEndpointTests
 {
+    /// <summary>When live Endpoint Returns503 While Startup Checks Run, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for live Endpoint Returns503 While Startup Checks Run.</intent>
+    /// <scenario>Given live Endpoint Returns503 While Startup Checks Run.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task LiveEndpoint_Returns503WhileStartupChecksRun()
     {

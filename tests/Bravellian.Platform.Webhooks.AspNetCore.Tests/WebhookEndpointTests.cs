@@ -24,6 +24,10 @@ namespace Bravellian.Platform.Webhooks.AspNetCore.Tests;
 
 public sealed class WebhookEndpointTests
 {
+    /// <summary>When accepted Returns202 And Calls Ingestor Async, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for accepted Returns202 And Calls Ingestor Async.</intent>
+    /// <scenario>Given accepted Returns202 And Calls Ingestor Async.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task AcceptedReturns202AndCallsIngestorAsync()
     {
@@ -45,6 +49,10 @@ public sealed class WebhookEndpointTests
         Encoding.UTF8.GetString(fake.Calls[0].Envelope.BodyBytes).ShouldBe(payload);
     }
 
+    /// <summary>When rejected Returns401 Async, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for rejected Returns401 Async.</intent>
+    /// <scenario>Given rejected Returns401 Async.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task RejectedReturns401Async()
     {
@@ -60,6 +68,10 @@ public sealed class WebhookEndpointTests
         fake.Calls.Count.ShouldBe(1);
     }
 
+    /// <summary>When logging Callbacks Emit Events, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for logging Callbacks Emit Events.</intent>
+    /// <scenario>Given logging Callbacks Emit Events.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public void LoggingCallbacksEmitEvents()
     {

@@ -29,6 +29,10 @@ public sealed class ControlPlaneSchemaBundleTests
         this.fixture = fixture;
     }
 
+    /// <summary>When tenant Bundle Does Not Include Control Plane Schema, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for tenant Bundle Does Not Include Control Plane Schema.</intent>
+    /// <scenario>Given tenant Bundle Does Not Include Control Plane Schema.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task TenantBundle_DoesNotInclude_ControlPlaneSchema()
     {
@@ -43,6 +47,10 @@ public sealed class ControlPlaneSchemaBundleTests
         (await TableExistsAsync(tenantConnection, "app", "MetricDef")).ShouldBeFalse();
     }
 
+    /// <summary>When tenant Bundle Creates Fanout Tables, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for tenant Bundle Creates Fanout Tables.</intent>
+    /// <scenario>Given tenant Bundle Creates Fanout Tables.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task TenantBundle_CreatesFanoutTables()
     {
@@ -54,6 +62,10 @@ public sealed class ControlPlaneSchemaBundleTests
         (await TableExistsAsync(tenantConnection, "app", "FanoutCursor")).ShouldBeTrue();
     }
 
+    /// <summary>When control Plane Bundle Adds Control Plane Schema On Top Of Tenant Bundle, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for control Plane Bundle Adds Control Plane Schema On Top Of Tenant Bundle.</intent>
+    /// <scenario>Given control Plane Bundle Adds Control Plane Schema On Top Of Tenant Bundle.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task ControlPlaneBundle_AddsControlPlaneSchema_OnTopOfTenantBundle()
     {

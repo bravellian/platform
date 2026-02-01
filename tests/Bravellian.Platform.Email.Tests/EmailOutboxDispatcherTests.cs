@@ -16,6 +16,10 @@ namespace Bravellian.Platform.Email.Tests;
 
 public sealed class EmailOutboxDispatcherTests
 {
+    /// <summary>When dispatch Async Sends And Tracks Outcomes, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for dispatch Async Sends And Tracks Outcomes.</intent>
+    /// <scenario>Given dispatch Async Sends And Tracks Outcomes.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task DispatchAsync_SendsAndTracksOutcomes()
     {

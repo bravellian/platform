@@ -23,6 +23,10 @@ public sealed class WebhookProcessorTests
 {
     private static readonly DateTimeOffset FixedNow = new(2024, 01, 01, 0, 0, 0, TimeSpan.Zero);
 
+    /// <summary>When successful Handling Marks Completed Async, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for successful Handling Marks Completed Async.</intent>
+    /// <scenario>Given successful Handling Marks Completed Async.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task SuccessfulHandlingMarksCompletedAsync()
     {
@@ -46,6 +50,10 @@ public sealed class WebhookProcessorTests
         handler.Invocations.ShouldBe(1);
     }
 
+    /// <summary>When transient Failure Schedules Retry Async, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for transient Failure Schedules Retry Async.</intent>
+    /// <scenario>Given transient Failure Schedules Retry Async.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task TransientFailureSchedulesRetryAsync()
     {
@@ -74,6 +82,10 @@ public sealed class WebhookProcessorTests
         workStore.Abandoned[0].Delay.ShouldBe(TimeSpan.FromSeconds(2));
     }
 
+    /// <summary>When max Attempts Poisons Message Async, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for max Attempts Poisons Message Async.</intent>
+    /// <scenario>Given max Attempts Poisons Message Async.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task MaxAttemptsPoisonsMessageAsync()
     {
@@ -98,6 +110,10 @@ public sealed class WebhookProcessorTests
         workStore.Abandoned.Count.ShouldBe(0);
     }
 
+    /// <summary>When no Handler Marks Completed Async, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for no Handler Marks Completed Async.</intent>
+    /// <scenario>Given no Handler Marks Completed Async.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task NoHandlerMarksCompletedAsync()
     {
@@ -117,6 +133,10 @@ public sealed class WebhookProcessorTests
         workStore.Failed.Count.ShouldBe(0);
     }
 
+    /// <summary>When processing Invokes Callback Async, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for processing Invokes Callback Async.</intent>
+    /// <scenario>Given processing Invokes Callback Async.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task ProcessingInvokesCallbackAsync()
     {

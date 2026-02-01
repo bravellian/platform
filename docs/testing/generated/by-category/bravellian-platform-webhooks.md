@@ -1,0 +1,74 @@
+# Bravellian.Platform.Webhooks
+
+Total tests: 14
+
+- **Bravellian.Platform.Webhooks.AspNetCore.Tests:Bravellian.Platform.Webhooks.AspNetCore.Tests.WebhookEndpointTests.AcceptedReturns202AndCallsIngestorAsync**
+  - Summary: When accepted Returns202 And Calls Ingestor Async, then it behaves as expected.
+  - Intent: Document expected behavior for accepted Returns202 And Calls Ingestor Async.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Webhooks.AspNetCore.Tests/WebhookEndpointTests.cs#L32](tests/Bravellian.Platform.Webhooks.AspNetCore.Tests/WebhookEndpointTests.cs#L32)
+- **Bravellian.Platform.Webhooks.AspNetCore.Tests:Bravellian.Platform.Webhooks.AspNetCore.Tests.WebhookEndpointTests.LoggingCallbacksEmitEvents**
+  - Summary: When logging Callbacks Emit Events, then it behaves as expected.
+  - Intent: Document expected behavior for logging Callbacks Emit Events.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Webhooks.AspNetCore.Tests/WebhookEndpointTests.cs#L76](tests/Bravellian.Platform.Webhooks.AspNetCore.Tests/WebhookEndpointTests.cs#L76)
+- **Bravellian.Platform.Webhooks.AspNetCore.Tests:Bravellian.Platform.Webhooks.AspNetCore.Tests.WebhookEndpointTests.RejectedReturns401Async**
+  - Summary: When rejected Returns401 Async, then it behaves as expected.
+  - Intent: Document expected behavior for rejected Returns401 Async.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Webhooks.AspNetCore.Tests/WebhookEndpointTests.cs#L57](tests/Bravellian.Platform.Webhooks.AspNetCore.Tests/WebhookEndpointTests.cs#L57)
+- **Bravellian.Platform.Webhooks.AspNetCore.Tests:Bravellian.Platform.Webhooks.AspNetCore.Tests.WebhookProcessingHostedServiceTests.HostedServiceInvokesProcessorAsync**
+  - Summary: When hosted Service Invokes Processor Async, then it behaves as expected.
+  - Intent: Document expected behavior for hosted Service Invokes Processor Async.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Webhooks.AspNetCore.Tests/WebhookProcessingHostedServiceTests.cs#L28](tests/Bravellian.Platform.Webhooks.AspNetCore.Tests/WebhookProcessingHostedServiceTests.cs#L28)
+- **Bravellian.Platform.Webhooks.Tests:Bravellian.Platform.Webhooks.Tests.WebhookIngestorTests.AcceptedStoresExactlyOnceAsync**
+  - Summary: When accepted Stores Exactly Once Async, then it behaves as expected.
+  - Intent: Document expected behavior for accepted Stores Exactly Once Async.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Webhooks.Tests/WebhookIngestorTests.cs#L75](tests/Bravellian.Platform.Webhooks.Tests/WebhookIngestorTests.cs#L75)
+- **Bravellian.Platform.Webhooks.Tests:Bravellian.Platform.Webhooks.Tests.WebhookIngestorTests.AuthFailureReturnsRejectedAndDoesNotStoreAsync**
+  - Summary: When auth Failure Returns Rejected And Does Not Store Async, then it behaves as expected.
+  - Intent: Document expected behavior for auth Failure Returns Rejected And Does Not Store Async.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Webhooks.Tests/WebhookIngestorTests.cs#L31](tests/Bravellian.Platform.Webhooks.Tests/WebhookIngestorTests.cs#L31)
+- **Bravellian.Platform.Webhooks.Tests:Bravellian.Platform.Webhooks.Tests.WebhookIngestorTests.CallbacksInvokedForRejectedAsync**
+  - Summary: When callbacks Invoked For Rejected Async, then it behaves as expected.
+  - Intent: Document expected behavior for callbacks Invoked For Rejected Async.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Webhooks.Tests/WebhookIngestorTests.cs#L126](tests/Bravellian.Platform.Webhooks.Tests/WebhookIngestorTests.cs#L126)
+- **Bravellian.Platform.Webhooks.Tests:Bravellian.Platform.Webhooks.Tests.WebhookIngestorTests.DuplicateDedupeDoesNotStoreAgainAsync**
+  - Summary: When duplicate Dedupe Does Not Store Again Async, then it behaves as expected.
+  - Intent: Document expected behavior for duplicate Dedupe Does Not Store Again Async.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Webhooks.Tests/WebhookIngestorTests.cs#L103](tests/Bravellian.Platform.Webhooks.Tests/WebhookIngestorTests.cs#L103)
+- **Bravellian.Platform.Webhooks.Tests:Bravellian.Platform.Webhooks.Tests.WebhookIngestorTests.IgnoredDoesNotStoreAsync**
+  - Summary: When ignored Does Not Store Async, then it behaves as expected.
+  - Intent: Document expected behavior for ignored Does Not Store Async.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Webhooks.Tests/WebhookIngestorTests.cs#L53](tests/Bravellian.Platform.Webhooks.Tests/WebhookIngestorTests.cs#L53)
+- **Bravellian.Platform.Webhooks.Tests:Bravellian.Platform.Webhooks.Tests.WebhookProcessorTests.MaxAttemptsPoisonsMessageAsync**
+  - Summary: When max Attempts Poisons Message Async, then it behaves as expected.
+  - Intent: Document expected behavior for max Attempts Poisons Message Async.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Webhooks.Tests/WebhookProcessorTests.cs#L90](tests/Bravellian.Platform.Webhooks.Tests/WebhookProcessorTests.cs#L90)
+- **Bravellian.Platform.Webhooks.Tests:Bravellian.Platform.Webhooks.Tests.WebhookProcessorTests.NoHandlerMarksCompletedAsync**
+  - Summary: When no Handler Marks Completed Async, then it behaves as expected.
+  - Intent: Document expected behavior for no Handler Marks Completed Async.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Webhooks.Tests/WebhookProcessorTests.cs#L118](tests/Bravellian.Platform.Webhooks.Tests/WebhookProcessorTests.cs#L118)
+- **Bravellian.Platform.Webhooks.Tests:Bravellian.Platform.Webhooks.Tests.WebhookProcessorTests.ProcessingInvokesCallbackAsync**
+  - Summary: When processing Invokes Callback Async, then it behaves as expected.
+  - Intent: Document expected behavior for processing Invokes Callback Async.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Webhooks.Tests/WebhookProcessorTests.cs#L141](tests/Bravellian.Platform.Webhooks.Tests/WebhookProcessorTests.cs#L141)
+- **Bravellian.Platform.Webhooks.Tests:Bravellian.Platform.Webhooks.Tests.WebhookProcessorTests.SuccessfulHandlingMarksCompletedAsync**
+  - Summary: When successful Handling Marks Completed Async, then it behaves as expected.
+  - Intent: Document expected behavior for successful Handling Marks Completed Async.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Webhooks.Tests/WebhookProcessorTests.cs#L31](tests/Bravellian.Platform.Webhooks.Tests/WebhookProcessorTests.cs#L31)
+- **Bravellian.Platform.Webhooks.Tests:Bravellian.Platform.Webhooks.Tests.WebhookProcessorTests.TransientFailureSchedulesRetryAsync**
+  - Summary: When transient Failure Schedules Retry Async, then it behaves as expected.
+  - Intent: Document expected behavior for transient Failure Schedules Retry Async.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Webhooks.Tests/WebhookProcessorTests.cs#L58](tests/Bravellian.Platform.Webhooks.Tests/WebhookProcessorTests.cs#L58)

@@ -18,6 +18,10 @@ namespace Bravellian.Platform.Tests;
 
 public class StartupCheckValidatorTests
 {
+    /// <summary>When validate Throws When Name Missing, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for validate Throws When Name Missing.</intent>
+    /// <scenario>Given validate Throws When Name Missing.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -29,6 +33,10 @@ public class StartupCheckValidatorTests
         Should.Throw<ArgumentException>(() => StartupCheckValidator.Validate(check));
     }
 
+    /// <summary>When validate Unique Names Throws On Duplicates, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for validate Unique Names Throws On Duplicates.</intent>
+    /// <scenario>Given validate Unique Names Throws On Duplicates.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public void ValidateUniqueNames_ThrowsOnDuplicates()
     {

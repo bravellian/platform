@@ -18,6 +18,10 @@ namespace Bravellian.Platform.Tests;
 
 public class StartupLatchTests
 {
+    /// <summary>When is Ready Is True Initially, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for is Ready Is True Initially.</intent>
+    /// <scenario>Given is Ready Is True Initially.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public void IsReady_IsTrueInitially()
     {
@@ -26,6 +30,10 @@ public class StartupLatchTests
         latch.IsReady.ShouldBeTrue();
     }
 
+    /// <summary>When is Ready Becomes False After Register, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for is Ready Becomes False After Register.</intent>
+    /// <scenario>Given is Ready Becomes False After Register.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public void IsReady_BecomesFalseAfterRegister()
     {
@@ -36,6 +44,10 @@ public class StartupLatchTests
         latch.IsReady.ShouldBeFalse();
     }
 
+    /// <summary>When is Ready Becomes True After Dispose, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for is Ready Becomes True After Dispose.</intent>
+    /// <scenario>Given is Ready Becomes True After Dispose.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public void IsReady_BecomesTrueAfterDispose()
     {
@@ -47,6 +59,10 @@ public class StartupLatchTests
         latch.IsReady.ShouldBeTrue();
     }
 
+    /// <summary>When multiple Steps Are Required Before Ready, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for multiple Steps Are Required Before Ready.</intent>
+    /// <scenario>Given multiple Steps Are Required Before Ready.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public void MultipleSteps_AreRequiredBeforeReady()
     {
@@ -64,6 +80,10 @@ public class StartupLatchTests
         latch.IsReady.ShouldBeTrue();
     }
 
+    /// <summary>When disposing Twice Is Safe, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for disposing Twice Is Safe.</intent>
+    /// <scenario>Given disposing Twice Is Safe.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public void DisposingTwice_IsSafe()
     {
@@ -76,6 +96,10 @@ public class StartupLatchTests
         latch.IsReady.ShouldBeTrue();
     }
 
+    /// <summary>When concurrency Sanity Check, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for concurrency Sanity Check.</intent>
+    /// <scenario>Given concurrency Sanity Check.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task Concurrency_SanityCheck()
     {

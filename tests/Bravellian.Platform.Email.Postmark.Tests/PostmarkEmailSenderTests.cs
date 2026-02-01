@@ -22,6 +22,10 @@ namespace Bravellian.Platform.Email.Postmark.Tests;
 
 public sealed class PostmarkEmailSenderTests
 {
+    /// <summary>When send Async Sends Expected Payload, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for send Async Sends Expected Payload.</intent>
+    /// <scenario>Given send Async Sends Expected Payload.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task SendAsync_SendsExpectedPayload()
     {
@@ -69,6 +73,10 @@ public sealed class PostmarkEmailSenderTests
         metadata.GetProperty("MessageKey").GetString().ShouldBe("key-1");
     }
 
+    /// <summary>When send Async Reports Transient Failure On Server Error, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for send Async Reports Transient Failure On Server Error.</intent>
+    /// <scenario>Given send Async Reports Transient Failure On Server Error.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task SendAsync_ReportsTransientFailureOnServerError()
     {
@@ -93,6 +101,10 @@ public sealed class PostmarkEmailSenderTests
         result.ErrorMessage?.ShouldContain("boom");
     }
 
+    /// <summary>When send Async Reports Permanent Failure On Bad Request, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for send Async Reports Permanent Failure On Bad Request.</intent>
+    /// <scenario>Given send Async Reports Permanent Failure On Bad Request.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task SendAsync_ReportsPermanentFailureOnBadRequest()
     {

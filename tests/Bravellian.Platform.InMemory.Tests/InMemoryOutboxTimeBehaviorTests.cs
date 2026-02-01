@@ -22,6 +22,10 @@ namespace Bravellian.Platform.Tests;
 [Trait("Category", "Unit")]
 public sealed class InMemoryOutboxTimeBehaviorTests
 {
+    /// <summary>When claim Due Async Respects Fake Time Provider, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for claim Due Async Respects Fake Time Provider.</intent>
+    /// <scenario>Given claim Due Async Respects Fake Time Provider.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task ClaimDueAsync_RespectsFakeTimeProvider()
     {

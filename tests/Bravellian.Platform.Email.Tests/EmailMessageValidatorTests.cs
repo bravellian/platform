@@ -16,6 +16,10 @@ namespace Bravellian.Platform.Email.Tests;
 
 public sealed class EmailMessageValidatorTests
 {
+    /// <summary>When validate Returns Success For Valid Message, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for validate Returns Success For Valid Message.</intent>
+    /// <scenario>Given validate Returns Success For Valid Message.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public void Validate_ReturnsSuccessForValidMessage()
     {
@@ -28,6 +32,10 @@ public sealed class EmailMessageValidatorTests
         result.Errors.ShouldBeEmpty();
     }
 
+    /// <summary>When validate Returns Errors For Missing Body, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for validate Returns Errors For Missing Body.</intent>
+    /// <scenario>Given validate Returns Errors For Missing Body.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public void Validate_ReturnsErrorsForMissingBody()
     {

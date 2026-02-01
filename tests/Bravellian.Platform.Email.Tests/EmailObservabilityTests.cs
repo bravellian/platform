@@ -23,6 +23,10 @@ namespace Bravellian.Platform.Email.Tests;
 
 public sealed class EmailObservabilityTests
 {
+    /// <summary>When enqueue Emits Queued Audit Event, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for enqueue Emits Queued Audit Event.</intent>
+    /// <scenario>Given enqueue Emits Queued Audit Event.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task Enqueue_EmitsQueuedAuditEvent()
     {
@@ -40,6 +44,10 @@ public sealed class EmailObservabilityTests
         payload.RootElement.GetProperty(PlatformTagKeys.MessageKey).GetString().ShouldBe("obs-queued");
     }
 
+    /// <summary>When processor Emits Attempt And Sent Audit Events, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for processor Emits Attempt And Sent Audit Events.</intent>
+    /// <scenario>Given processor Emits Attempt And Sent Audit Events.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task Processor_EmitsAttemptAndSentAuditEvents()
     {

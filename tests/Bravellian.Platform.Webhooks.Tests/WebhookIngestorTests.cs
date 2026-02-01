@@ -23,6 +23,10 @@ public sealed class WebhookIngestorTests
 {
     private static readonly DateTimeOffset FixedNow = new(2024, 01, 01, 0, 0, 0, TimeSpan.Zero);
 
+    /// <summary>When auth Failure Returns Rejected And Does Not Store Async, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for auth Failure Returns Rejected And Does Not Store Async.</intent>
+    /// <scenario>Given auth Failure Returns Rejected And Does Not Store Async.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task AuthFailureReturnsRejectedAndDoesNotStoreAsync()
     {
@@ -41,6 +45,10 @@ public sealed class WebhookIngestorTests
         inbox.Enqueued.Count.ShouldBe(0);
     }
 
+    /// <summary>When ignored Does Not Store Async, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for ignored Does Not Store Async.</intent>
+    /// <scenario>Given ignored Does Not Store Async.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task IgnoredDoesNotStoreAsync()
     {
@@ -59,6 +67,10 @@ public sealed class WebhookIngestorTests
         inbox.Enqueued.Count.ShouldBe(0);
     }
 
+    /// <summary>When accepted Stores Exactly Once Async, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for accepted Stores Exactly Once Async.</intent>
+    /// <scenario>Given accepted Stores Exactly Once Async.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task AcceptedStoresExactlyOnceAsync()
     {
@@ -83,6 +95,10 @@ public sealed class WebhookIngestorTests
         record.Status.ShouldBe(WebhookEventStatus.Pending);
     }
 
+    /// <summary>When duplicate Dedupe Does Not Store Again Async, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for duplicate Dedupe Does Not Store Again Async.</intent>
+    /// <scenario>Given duplicate Dedupe Does Not Store Again Async.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task DuplicateDedupeDoesNotStoreAgainAsync()
     {
@@ -102,6 +118,10 @@ public sealed class WebhookIngestorTests
         inbox.Enqueued.Count.ShouldBe(1);
     }
 
+    /// <summary>When callbacks Invoked For Rejected Async, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for callbacks Invoked For Rejected Async.</intent>
+    /// <scenario>Given callbacks Invoked For Rejected Async.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task CallbacksInvokedForRejectedAsync()
     {

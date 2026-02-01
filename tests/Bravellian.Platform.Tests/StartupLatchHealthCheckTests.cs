@@ -20,6 +20,10 @@ namespace Bravellian.Platform.Tests;
 
 public class StartupLatchHealthCheckTests
 {
+    /// <summary>When check Health Async Returns Healthy When Latch Is Ready, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for check Health Async Returns Healthy When Latch Is Ready.</intent>
+    /// <scenario>Given check Health Async Returns Healthy When Latch Is Ready.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task CheckHealthAsync_ReturnsHealthy_WhenLatchIsReady()
     {
@@ -34,6 +38,10 @@ public class StartupLatchHealthCheckTests
         result.Description.ShouldBe("Startup complete");
     }
 
+    /// <summary>When check Health Async Returns Unhealthy When Latch Is Not Ready, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for check Health Async Returns Unhealthy When Latch Is Not Ready.</intent>
+    /// <scenario>Given check Health Async Returns Unhealthy When Latch Is Not Ready.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task CheckHealthAsync_ReturnsUnhealthy_WhenLatchIsNotReady()
     {

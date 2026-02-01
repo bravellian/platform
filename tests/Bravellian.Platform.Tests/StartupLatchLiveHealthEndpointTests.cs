@@ -23,6 +23,10 @@ namespace Bravellian.Platform.Tests;
 
 public sealed class StartupLatchLiveHealthEndpointTests
 {
+    /// <summary>When live Endpoint Returns503 Until Startup Completes, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for live Endpoint Returns503 Until Startup Completes.</intent>
+    /// <scenario>Given live Endpoint Returns503 Until Startup Completes.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task LiveEndpoint_Returns503UntilStartupCompletes()
     {

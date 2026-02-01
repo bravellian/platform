@@ -39,6 +39,10 @@ public abstract class InboxWorkStoreBehaviorTestsBase : IAsyncLifetime
         GC.SuppressFinalize(this);
     }
 
+    /// <summary>When claim Async With No Messages Returns Empty List, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for claim Async With No Messages Returns Empty List.</intent>
+    /// <scenario>Given claim Async With No Messages Returns Empty List.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task ClaimAsync_WithNoMessages_ReturnsEmptyList()
     {
@@ -53,6 +57,10 @@ public abstract class InboxWorkStoreBehaviorTestsBase : IAsyncLifetime
         claimed.Count.ShouldBe(0);
     }
 
+    /// <summary>When claim Async With Available Message Returns Message Id, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for claim Async With Available Message Returns Message Id.</intent>
+    /// <scenario>Given claim Async With Available Message Returns Message Id.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task ClaimAsync_WithAvailableMessage_ReturnsMessageId()
     {
@@ -76,6 +84,10 @@ public abstract class InboxWorkStoreBehaviorTestsBase : IAsyncLifetime
         claimed[0].ShouldBe(messageId);
     }
 
+    /// <summary>When claim Async With Future Due Time Returns Empty, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for claim Async With Future Due Time Returns Empty.</intent>
+    /// <scenario>Given claim Async With Future Due Time Returns Empty.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task ClaimAsync_WithFutureDueTime_ReturnsEmpty()
     {
@@ -102,6 +114,10 @@ public abstract class InboxWorkStoreBehaviorTestsBase : IAsyncLifetime
         claimed.Count.ShouldBe(0);
     }
 
+    /// <summary>When ack Async Removes Message From Claims, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for ack Async Removes Message From Claims.</intent>
+    /// <scenario>Given ack Async Removes Message From Claims.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task AckAsync_RemovesMessageFromClaims()
     {
@@ -135,6 +151,10 @@ public abstract class InboxWorkStoreBehaviorTestsBase : IAsyncLifetime
         remaining.Count.ShouldBe(0);
     }
 
+    /// <summary>When abandon Async Returns Message To Queue, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for abandon Async Returns Message To Queue.</intent>
+    /// <scenario>Given abandon Async Returns Message To Queue.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task AbandonAsync_ReturnsMessageToQueue()
     {
@@ -174,6 +194,10 @@ public abstract class InboxWorkStoreBehaviorTestsBase : IAsyncLifetime
         reClaimed[0].ShouldBe(messageId);
     }
 
+    /// <summary>When fail Async Removes Message From Claims, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for fail Async Removes Message From Claims.</intent>
+    /// <scenario>Given fail Async Removes Message From Claims.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task FailAsync_RemovesMessageFromClaims()
     {
@@ -207,6 +231,10 @@ public abstract class InboxWorkStoreBehaviorTestsBase : IAsyncLifetime
         remaining.Count.ShouldBe(0);
     }
 
+    /// <summary>When get Async Returns Stored Message, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for get Async Returns Stored Message.</intent>
+    /// <scenario>Given get Async Returns Stored Message.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task GetAsync_ReturnsStoredMessage()
     {

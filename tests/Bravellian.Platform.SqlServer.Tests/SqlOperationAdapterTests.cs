@@ -36,6 +36,10 @@ public sealed class SqlOperationAdapterTests : SqlServerTestBase
             .ConfigureAwait(false);
     }
 
+    /// <summary>When start Update Complete Round Trip, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for start Update Complete Round Trip.</intent>
+    /// <scenario>Given start Update Complete Round Trip.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task StartUpdateCompleteRoundTrip()
     {
@@ -86,6 +90,10 @@ public sealed class SqlOperationAdapterTests : SqlServerTestBase
         completed.CompletedAtUtc.ShouldNotBeNull();
     }
 
+    /// <summary>When watcher Finds And Marks Stalled, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for watcher Finds And Marks Stalled.</intent>
+    /// <scenario>Given watcher Finds And Marks Stalled.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task WatcherFindsAndMarksStalled()
     {

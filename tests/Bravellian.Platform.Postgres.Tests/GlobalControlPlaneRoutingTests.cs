@@ -31,6 +31,10 @@ public sealed class GlobalControlPlaneRoutingTests
         this.fixture = fixture;
     }
 
+    /// <summary>When global Aliases Route To Control Plane, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for global Aliases Route To Control Plane.</intent>
+    /// <scenario>Given global Aliases Route To Control Plane.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task GlobalAliases_RouteToControlPlane()
     {

@@ -21,6 +21,10 @@ namespace Bravellian.Platform.Tests;
 
 public sealed class ExactlyOnceExecutorTests
 {
+    /// <summary>When execute Async Suppresses Duplicate Without Executing, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for execute Async Suppresses Duplicate Without Executing.</intent>
+    /// <scenario>Given execute Async Suppresses Duplicate Without Executing.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task ExecuteAsync_SuppressesDuplicateWithoutExecuting()
     {
@@ -42,6 +46,10 @@ public sealed class ExactlyOnceExecutorTests
         executed.ShouldBeFalse();
     }
 
+    /// <summary>When execute Async Success Completes Idempotency, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for execute Async Success Completes Idempotency.</intent>
+    /// <scenario>Given execute Async Success Completes Idempotency.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task ExecuteAsync_Success_CompletesIdempotency()
     {
@@ -57,6 +65,10 @@ public sealed class ExactlyOnceExecutorTests
         store.GetState("key-2").ShouldBe(InMemoryIdempotencyStore.IdempotencyState.Completed);
     }
 
+    /// <summary>When execute Async Transient Failure Fails Idempotency, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for execute Async Transient Failure Fails Idempotency.</intent>
+    /// <scenario>Given execute Async Transient Failure Fails Idempotency.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task ExecuteAsync_TransientFailure_FailsIdempotency()
     {
@@ -72,6 +84,10 @@ public sealed class ExactlyOnceExecutorTests
         store.GetState("key-3").ShouldBe(InMemoryIdempotencyStore.IdempotencyState.Failed);
     }
 
+    /// <summary>When execute Async Permanent Failure Completes Idempotency, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for execute Async Permanent Failure Completes Idempotency.</intent>
+    /// <scenario>Given execute Async Permanent Failure Completes Idempotency.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task ExecuteAsync_PermanentFailure_CompletesIdempotency()
     {
@@ -87,6 +103,10 @@ public sealed class ExactlyOnceExecutorTests
         store.GetState("key-4").ShouldBe(InMemoryIdempotencyStore.IdempotencyState.Completed);
     }
 
+    /// <summary>When execute Async Probe Confirmation Completes After Failure, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for execute Async Probe Confirmation Completes After Failure.</intent>
+    /// <scenario>Given execute Async Probe Confirmation Completes After Failure.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task ExecuteAsync_ProbeConfirmation_CompletesAfterFailure()
     {

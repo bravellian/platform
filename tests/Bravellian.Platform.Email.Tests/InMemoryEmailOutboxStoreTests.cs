@@ -16,6 +16,10 @@ namespace Bravellian.Platform.Email.Tests;
 
 public sealed class InMemoryEmailOutboxStoreTests
 {
+    /// <summary>When enqueue Marks Message Key, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for enqueue Marks Message Key.</intent>
+    /// <scenario>Given enqueue Marks Message Key.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task Enqueue_MarksMessageKey()
     {
@@ -39,6 +43,10 @@ public sealed class InMemoryEmailOutboxStoreTests
         enqueuedAfter.ShouldBeTrue();
     }
 
+    /// <summary>When dequeue Returns Pending Items In Order, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for dequeue Returns Pending Items In Order.</intent>
+    /// <scenario>Given dequeue Returns Pending Items In Order.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task Dequeue_ReturnsPendingItemsInOrder()
     {

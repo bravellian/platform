@@ -65,6 +65,15 @@ public sealed class EngineRefactoringTests
     /// <summary>
     /// When a webhook request has a valid event type, then the handler is invoked.
     /// </summary>
+    /// <intent>
+    /// Verify webhook classification and handler dispatch for accepted requests.
+    /// </intent>
+    /// <scenario>
+    /// Given a Postmark webhook envelope with the expected event type header.
+    /// </scenario>
+    /// <behavior>
+    /// Then classification accepts the request and the handler processes the webhook.
+    /// </behavior>
     [Fact]
     public async Task Webhook_pipeline_authenticates_and_dispatches()
     {
@@ -114,6 +123,15 @@ public sealed class EngineRefactoringTests
     /// <summary>
     /// When the event type header is missing, then classification rejects the request.
     /// </summary>
+    /// <intent>
+    /// Ensure webhook classification requires an explicit event type header.
+    /// </intent>
+    /// <scenario>
+    /// Given a webhook envelope without the event type header.
+    /// </scenario>
+    /// <behavior>
+    /// Then classification returns a rejected decision with a failure reason.
+    /// </behavior>
     [Fact]
     public async Task Webhook_pipeline_requires_event_type_header()
     {
@@ -365,4 +383,3 @@ public sealed class EngineRefactoringTests
     }
 }
 #pragma warning restore CA1861
-

@@ -24,6 +24,10 @@ public sealed class EmailOutboxOrchestrationTests
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
+    /// <summary>When enqueue Validates And Records Queued, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for enqueue Validates And Records Queued.</intent>
+    /// <scenario>Given enqueue Validates And Records Queued.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task Enqueue_ValidatesAndRecordsQueued()
     {
@@ -40,6 +44,10 @@ public sealed class EmailOutboxOrchestrationTests
         sink.Queued[0].MessageKey.ShouldBe("key-1");
     }
 
+    /// <summary>When processor Sends Once And Marks Sent, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for processor Sends Once And Marks Sent.</intent>
+    /// <scenario>Given processor Sends Once And Marks Sent.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task Processor_SendsOnceAndMarksSent()
     {
@@ -63,6 +71,10 @@ public sealed class EmailOutboxOrchestrationTests
         sink.Final.Single().Status.ShouldBe(EmailDeliveryStatus.Sent);
     }
 
+    /// <summary>When duplicate Enqueue Does Not Create Second Send, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for duplicate Enqueue Does Not Create Second Send.</intent>
+    /// <scenario>Given duplicate Enqueue Does Not Create Second Send.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task DuplicateEnqueue_DoesNotCreateSecondSend()
     {
@@ -88,6 +100,10 @@ public sealed class EmailOutboxOrchestrationTests
         sink.Final.Any(entry => entry.Status == EmailDeliveryStatus.Suppressed).ShouldBeTrue();
     }
 
+    /// <summary>When transient Failure Retries And Eventually Succeeds, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for transient Failure Retries And Eventually Succeeds.</intent>
+    /// <scenario>Given transient Failure Retries And Eventually Succeeds.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task TransientFailure_RetriesAndEventuallySucceeds()
     {
@@ -122,6 +138,10 @@ public sealed class EmailOutboxOrchestrationTests
         sink.Final.Last().Status.ShouldBe(EmailDeliveryStatus.Sent);
     }
 
+    /// <summary>When probe Confirmation Finalizes After Failure, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for probe Confirmation Finalizes After Failure.</intent>
+    /// <scenario>Given probe Confirmation Finalizes After Failure.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task ProbeConfirmation_FinalizesAfterFailure()
     {
@@ -145,6 +165,10 @@ public sealed class EmailOutboxOrchestrationTests
         sink.Final.Last().Status.ShouldBe(EmailDeliveryStatus.Sent);
     }
 
+    /// <summary>When permanent Failure Stops And Marks Final, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for permanent Failure Stops And Marks Final.</intent>
+    /// <scenario>Given permanent Failure Stops And Marks Final.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task PermanentFailure_StopsAndMarksFinal()
     {
@@ -165,6 +189,10 @@ public sealed class EmailOutboxOrchestrationTests
         sink.Final.Last().Status.ShouldBe(EmailDeliveryStatus.FailedPermanent);
     }
 
+    /// <summary>When policy Delay Reschedules Without Sending, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for policy Delay Reschedules Without Sending.</intent>
+    /// <scenario>Given policy Delay Reschedules Without Sending.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task PolicyDelay_ReschedulesWithoutSending()
     {
@@ -195,6 +223,10 @@ public sealed class EmailOutboxOrchestrationTests
         sink.Attempts.Any(attempt => attempt.Status == EmailDeliveryStatus.Queued).ShouldBeTrue();
     }
 
+    /// <summary>When policy Reject Finalizes Without Sending, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for policy Reject Finalizes Without Sending.</intent>
+    /// <scenario>Given policy Reject Finalizes Without Sending.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task PolicyReject_FinalizesWithoutSending()
     {

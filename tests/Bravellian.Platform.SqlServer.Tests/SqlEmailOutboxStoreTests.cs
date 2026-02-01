@@ -51,6 +51,10 @@ public sealed class SqlEmailOutboxStoreTests : SqlServerTestBase
         store = new SqlEmailOutboxStore(Options.Create(options), timeProvider, NullLogger<SqlEmailOutboxStore>.Instance);
     }
 
+    /// <summary>When enqueue Marks Message Key, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for enqueue Marks Message Key.</intent>
+    /// <scenario>Given enqueue Marks Message Key.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task Enqueue_MarksMessageKey()
     {
@@ -73,6 +77,10 @@ public sealed class SqlEmailOutboxStoreTests : SqlServerTestBase
         after.ShouldBeTrue();
     }
 
+    /// <summary>When dequeue Returns Pending Items In Order, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for dequeue Returns Pending Items In Order.</intent>
+    /// <scenario>Given dequeue Returns Pending Items In Order.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task Dequeue_ReturnsPendingItemsInOrder()
     {
@@ -105,6 +113,10 @@ public sealed class SqlEmailOutboxStoreTests : SqlServerTestBase
         batch[0].AttemptCount.ShouldBe(1);
     }
 
+    /// <summary>When enqueue Is Idempotent For Provider And Message Key, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for enqueue Is Idempotent For Provider And Message Key.</intent>
+    /// <scenario>Given enqueue Is Idempotent For Provider And Message Key.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task Enqueue_IsIdempotentForProviderAndMessageKey()
     {

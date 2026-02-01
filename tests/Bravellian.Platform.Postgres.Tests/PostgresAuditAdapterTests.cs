@@ -35,6 +35,10 @@ public sealed class PostgresAuditAdapterTests : PostgresTestBase
         await DatabaseSchemaManager.EnsureAuditSchemaAsync(ConnectionString).ConfigureAwait(false);
     }
 
+    /// <summary>When write And Query By Anchor Round Trip, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for write And Query By Anchor Round Trip.</intent>
+    /// <scenario>Given write And Query By Anchor Round Trip.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task WriteAndQueryByAnchorRoundTrip()
     {

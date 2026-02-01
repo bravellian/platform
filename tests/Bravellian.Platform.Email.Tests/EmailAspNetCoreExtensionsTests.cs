@@ -26,6 +26,10 @@ namespace Bravellian.Platform.Email.Tests;
 
 public sealed class EmailAspNetCoreExtensionsTests
 {
+    /// <summary>When add Bravellian Email Core Registers Components, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for add Bravellian Email Core Registers Components.</intent>
+    /// <scenario>Given add Bravellian Email Core Registers Components.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public void AddBravellianEmailCoreRegistersComponents()
     {
@@ -43,6 +47,10 @@ public sealed class EmailAspNetCoreExtensionsTests
         provider.GetService<IEmailOutboxProcessor>().ShouldNotBeNull();
     }
 
+    /// <summary>When hosted Service Invokes Processor Async, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for hosted Service Invokes Processor Async.</intent>
+    /// <scenario>Given hosted Service Invokes Processor Async.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task HostedServiceInvokesProcessorAsync()
     {

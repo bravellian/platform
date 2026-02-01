@@ -19,6 +19,10 @@ namespace Bravellian.Platform.Email.Postmark.Tests;
 
 public sealed class PostmarkEmailValidatorTests
 {
+    /// <summary>When validate Rejects Body Over Limit, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for validate Rejects Body Over Limit.</intent>
+    /// <scenario>Given validate Rejects Body Over Limit.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public void Validate_RejectsBodyOverLimit()
     {
@@ -35,6 +39,10 @@ public sealed class PostmarkEmailValidatorTests
         result.Errors.ShouldContain("Text body exceeds maximum of 5 bytes.");
     }
 
+    /// <summary>When validate Rejects Forbidden Extensions, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for validate Rejects Forbidden Extensions.</intent>
+    /// <scenario>Given validate Rejects Forbidden Extensions.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public void Validate_RejectsForbiddenExtensions()
     {
@@ -52,6 +60,10 @@ public sealed class PostmarkEmailValidatorTests
         result.Errors.ShouldContain("Attachment 'malware.exe' has forbidden extension '.exe'.");
     }
 
+    /// <summary>When validate Rejects Total Size Over Limit, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for validate Rejects Total Size Over Limit.</intent>
+    /// <scenario>Given validate Rejects Total Size Over Limit.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public void Validate_RejectsTotalSizeOverLimit()
     {
@@ -69,6 +81,10 @@ public sealed class PostmarkEmailValidatorTests
         result.Errors.ShouldContain("Total message size exceeds maximum of 10 bytes.");
     }
 
+    /// <summary>When validate Uses Base64 Encoded Attachment Size For Total, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for validate Uses Base64 Encoded Attachment Size For Total.</intent>
+    /// <scenario>Given validate Uses Base64 Encoded Attachment Size For Total.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public void Validate_UsesBase64EncodedAttachmentSizeForTotal()
     {

@@ -44,6 +44,10 @@ public sealed class SqlOutboxStoreWhiteBoxTests : SqlServerTestBase
         store = new SqlOutboxStore(Options.Create(options), timeProvider, NullLogger<SqlOutboxStore>.Instance);
     }
 
+    /// <summary>When mark Dispatched Async Sets Processed Flags, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for mark Dispatched Async Sets Processed Flags.</intent>
+    /// <scenario>Given mark Dispatched Async Sets Processed Flags.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task MarkDispatchedAsync_SetsProcessedFlags()
     {
@@ -67,6 +71,10 @@ public sealed class SqlOutboxStoreWhiteBoxTests : SqlServerTestBase
         ((DateTimeOffset?)result.ProcessedAt).ShouldNotBeNull();
     }
 
+    /// <summary>When fail Async Sets Failure Metadata, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for fail Async Sets Failure Metadata.</intent>
+    /// <scenario>Given fail Async Sets Failure Metadata.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task FailAsync_SetsFailureMetadata()
     {
@@ -92,6 +100,10 @@ public sealed class SqlOutboxStoreWhiteBoxTests : SqlServerTestBase
         ((string)result.ProcessedBy).ShouldContain("FAILED");
     }
 
+    /// <summary>When reschedule Async Increments Retry Count And Sets Error, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for reschedule Async Increments Retry Count And Sets Error.</intent>
+    /// <scenario>Given reschedule Async Increments Retry Count And Sets Error.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task RescheduleAsync_IncrementsRetryCountAndSetsError()
     {

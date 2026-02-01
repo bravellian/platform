@@ -1,0 +1,194 @@
+# Bravellian.Platform.Email
+
+Total tests: 38
+
+- **Bravellian.Platform.Email.Postmark.Tests:Bravellian.Platform.Email.Postmark.Tests.PostmarkEmailSenderTests.SendAsync_ReportsPermanentFailureOnBadRequest**
+  - Summary: When send Async Reports Permanent Failure On Bad Request, then it behaves as expected.
+  - Intent: Document expected behavior for send Async Reports Permanent Failure On Bad Request.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Postmark.Tests/PostmarkEmailSenderTests.cs#L109](tests/Bravellian.Platform.Email.Postmark.Tests/PostmarkEmailSenderTests.cs#L109)
+- **Bravellian.Platform.Email.Postmark.Tests:Bravellian.Platform.Email.Postmark.Tests.PostmarkEmailSenderTests.SendAsync_ReportsTransientFailureOnServerError**
+  - Summary: When send Async Reports Transient Failure On Server Error, then it behaves as expected.
+  - Intent: Document expected behavior for send Async Reports Transient Failure On Server Error.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Postmark.Tests/PostmarkEmailSenderTests.cs#L81](tests/Bravellian.Platform.Email.Postmark.Tests/PostmarkEmailSenderTests.cs#L81)
+- **Bravellian.Platform.Email.Postmark.Tests:Bravellian.Platform.Email.Postmark.Tests.PostmarkEmailSenderTests.SendAsync_SendsExpectedPayload**
+  - Summary: When send Async Sends Expected Payload, then it behaves as expected.
+  - Intent: Document expected behavior for send Async Sends Expected Payload.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Postmark.Tests/PostmarkEmailSenderTests.cs#L30](tests/Bravellian.Platform.Email.Postmark.Tests/PostmarkEmailSenderTests.cs#L30)
+- **Bravellian.Platform.Email.Postmark.Tests:Bravellian.Platform.Email.Postmark.Tests.PostmarkEmailValidatorTests.Validate_RejectsBodyOverLimit**
+  - Summary: When validate Rejects Body Over Limit, then it behaves as expected.
+  - Intent: Document expected behavior for validate Rejects Body Over Limit.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Postmark.Tests/PostmarkEmailValidatorTests.cs#L27](tests/Bravellian.Platform.Email.Postmark.Tests/PostmarkEmailValidatorTests.cs#L27)
+- **Bravellian.Platform.Email.Postmark.Tests:Bravellian.Platform.Email.Postmark.Tests.PostmarkEmailValidatorTests.Validate_RejectsForbiddenExtensions**
+  - Summary: When validate Rejects Forbidden Extensions, then it behaves as expected.
+  - Intent: Document expected behavior for validate Rejects Forbidden Extensions.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Postmark.Tests/PostmarkEmailValidatorTests.cs#L47](tests/Bravellian.Platform.Email.Postmark.Tests/PostmarkEmailValidatorTests.cs#L47)
+- **Bravellian.Platform.Email.Postmark.Tests:Bravellian.Platform.Email.Postmark.Tests.PostmarkEmailValidatorTests.Validate_RejectsTotalSizeOverLimit**
+  - Summary: When validate Rejects Total Size Over Limit, then it behaves as expected.
+  - Intent: Document expected behavior for validate Rejects Total Size Over Limit.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Postmark.Tests/PostmarkEmailValidatorTests.cs#L68](tests/Bravellian.Platform.Email.Postmark.Tests/PostmarkEmailValidatorTests.cs#L68)
+- **Bravellian.Platform.Email.Postmark.Tests:Bravellian.Platform.Email.Postmark.Tests.PostmarkEmailValidatorTests.Validate_UsesBase64EncodedAttachmentSizeForTotal**
+  - Summary: When validate Uses Base64 Encoded Attachment Size For Total, then it behaves as expected.
+  - Intent: Document expected behavior for validate Uses Base64 Encoded Attachment Size For Total.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Postmark.Tests/PostmarkEmailValidatorTests.cs#L89](tests/Bravellian.Platform.Email.Postmark.Tests/PostmarkEmailValidatorTests.cs#L89)
+- **Bravellian.Platform.Email.Postmark.Tests:Bravellian.Platform.Email.Postmark.Tests.PostmarkOutboundMessageClientTests.GetOutboundMessageDetailsAsync_ReturnsNotFoundOn404**
+  - Summary: When get Outbound Message Details Async Returns Not Found On404, then it behaves as expected.
+  - Intent: Document expected behavior for get Outbound Message Details Async Returns Not Found On404.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Postmark.Tests/PostmarkOutboundMessageClientTests.cs#L28](tests/Bravellian.Platform.Email.Postmark.Tests/PostmarkOutboundMessageClientTests.cs#L28)
+- **Bravellian.Platform.Email.Postmark.Tests:Bravellian.Platform.Email.Postmark.Tests.PostmarkOutboundMessageClientTests.SearchOutboundByMetadataAsync_ReturnsErrorOnFailure**
+  - Summary: When search Outbound By Metadata Async Returns Error On Failure, then it behaves as expected.
+  - Intent: Document expected behavior for search Outbound By Metadata Async Returns Error On Failure.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Postmark.Tests/PostmarkOutboundMessageClientTests.cs#L89](tests/Bravellian.Platform.Email.Postmark.Tests/PostmarkOutboundMessageClientTests.cs#L89)
+- **Bravellian.Platform.Email.Postmark.Tests:Bravellian.Platform.Email.Postmark.Tests.PostmarkOutboundMessageClientTests.SearchOutboundByMetadataAsync_ReturnsFoundWhenMessageExists**
+  - Summary: When search Outbound By Metadata Async Returns Found When Message Exists, then it behaves as expected.
+  - Intent: Document expected behavior for search Outbound By Metadata Async Returns Found When Message Exists.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Postmark.Tests/PostmarkOutboundMessageClientTests.cs#L67](tests/Bravellian.Platform.Email.Postmark.Tests/PostmarkOutboundMessageClientTests.cs#L67)
+- **Bravellian.Platform.Email.Postmark.Tests:Bravellian.Platform.Email.Postmark.Tests.PostmarkOutboundMessageClientTests.SearchOutboundByMetadataAsync_ReturnsNotFoundWhenEmpty**
+  - Summary: When search Outbound By Metadata Async Returns Not Found When Empty, then it behaves as expected.
+  - Intent: Document expected behavior for search Outbound By Metadata Async Returns Not Found When Empty.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Postmark.Tests/PostmarkOutboundMessageClientTests.cs#L47](tests/Bravellian.Platform.Email.Postmark.Tests/PostmarkOutboundMessageClientTests.cs#L47)
+- **Bravellian.Platform.Email.Postmark.Tests:Bravellian.Platform.Email.Postmark.Tests.PostmarkWebhookTests.WebhookIngestorStoresPostmarkBounceAsync**
+  - Summary: When webhook Ingestor Stores Postmark Bounce Async, then it behaves as expected.
+  - Intent: Document expected behavior for webhook Ingestor Stores Postmark Bounce Async.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Postmark.Tests/PostmarkWebhookTests.cs#L35](tests/Bravellian.Platform.Email.Postmark.Tests/PostmarkWebhookTests.cs#L35)
+- **Bravellian.Platform.Email.Postmark.Tests:Bravellian.Platform.Email.Postmark.Tests.PostmarkWebhookTests.WebhookIngestorStoresPostmarkInboundAsync**
+  - Summary: When webhook Ingestor Stores Postmark Inbound Async, then it behaves as expected.
+  - Intent: Document expected behavior for webhook Ingestor Stores Postmark Inbound Async.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Postmark.Tests/PostmarkWebhookTests.cs#L110](tests/Bravellian.Platform.Email.Postmark.Tests/PostmarkWebhookTests.cs#L110)
+- **Bravellian.Platform.Email.Postmark.Tests:Bravellian.Platform.Email.Postmark.Tests.PostmarkWebhookTests.WebhookIngestorStoresPostmarkSpamComplaintAsync**
+  - Summary: When webhook Ingestor Stores Postmark Spam Complaint Async, then it behaves as expected.
+  - Intent: Document expected behavior for webhook Ingestor Stores Postmark Spam Complaint Async.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Postmark.Tests/PostmarkWebhookTests.cs#L60](tests/Bravellian.Platform.Email.Postmark.Tests/PostmarkWebhookTests.cs#L60)
+- **Bravellian.Platform.Email.Postmark.Tests:Bravellian.Platform.Email.Postmark.Tests.PostmarkWebhookTests.WebhookIngestorStoresPostmarkSubscriptionChangeAsync**
+  - Summary: When webhook Ingestor Stores Postmark Subscription Change Async, then it behaves as expected.
+  - Intent: Document expected behavior for webhook Ingestor Stores Postmark Subscription Change Async.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Postmark.Tests/PostmarkWebhookTests.cs#L85](tests/Bravellian.Platform.Email.Postmark.Tests/PostmarkWebhookTests.cs#L85)
+- **Bravellian.Platform.Email.Postmark.Tests:Bravellian.Platform.Email.Postmark.Tests.PostmarkWebhookTests.WebhookProcessorDispatchesBounceToSinkAsync**
+  - Summary: When webhook Processor Dispatches Bounce To Sink Async, then it behaves as expected.
+  - Intent: Document expected behavior for webhook Processor Dispatches Bounce To Sink Async.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Postmark.Tests/PostmarkWebhookTests.cs#L135](tests/Bravellian.Platform.Email.Postmark.Tests/PostmarkWebhookTests.cs#L135)
+- **Bravellian.Platform.Email.Postmark.Tests:Bravellian.Platform.Email.Postmark.Tests.PostmarkWebhookTests.WebhookProcessorDispatchesSpamComplaintAsSuppressedAsync**
+  - Summary: When webhook Processor Dispatches Spam Complaint As Suppressed Async, then it behaves as expected.
+  - Intent: Document expected behavior for webhook Processor Dispatches Spam Complaint As Suppressed Async.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Postmark.Tests/PostmarkWebhookTests.cs#L214](tests/Bravellian.Platform.Email.Postmark.Tests/PostmarkWebhookTests.cs#L214)
+- **Bravellian.Platform.Email.Postmark.Tests:Bravellian.Platform.Email.Postmark.Tests.PostmarkWebhookTests.WebhookProcessor_EmitsWebhookReceivedAuditEvent**
+  - Summary: When webhook Processor Emits Webhook Received Audit Event, then it behaves as expected.
+  - Intent: Document expected behavior for webhook Processor Emits Webhook Received Audit Event.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Postmark.Tests/PostmarkWebhookTests.cs#L178](tests/Bravellian.Platform.Email.Postmark.Tests/PostmarkWebhookTests.cs#L178)
+- **Bravellian.Platform.Email.Tests:Bravellian.Platform.Email.Tests.EmailAspNetCoreExtensionsTests.AddBravellianEmailCoreRegistersComponents**
+  - Summary: When add Bravellian Email Core Registers Components, then it behaves as expected.
+  - Intent: Document expected behavior for add Bravellian Email Core Registers Components.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Tests/EmailAspNetCoreExtensionsTests.cs#L34](tests/Bravellian.Platform.Email.Tests/EmailAspNetCoreExtensionsTests.cs#L34)
+- **Bravellian.Platform.Email.Tests:Bravellian.Platform.Email.Tests.EmailAspNetCoreExtensionsTests.HostedServiceInvokesProcessorAsync**
+  - Summary: When hosted Service Invokes Processor Async, then it behaves as expected.
+  - Intent: Document expected behavior for hosted Service Invokes Processor Async.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Tests/EmailAspNetCoreExtensionsTests.cs#L55](tests/Bravellian.Platform.Email.Tests/EmailAspNetCoreExtensionsTests.cs#L55)
+- **Bravellian.Platform.Email.Tests:Bravellian.Platform.Email.Tests.EmailIdempotencyCleanupTests.AddEmailIdempotencyCleanupHostedService_ThrowsForInvalidInterval**
+  - Summary: When add Email Idempotency Cleanup Hosted Service Throws For Invalid Interval, then it behaves as expected.
+  - Intent: Document expected behavior for add Email Idempotency Cleanup Hosted Service Throws For Invalid Interval.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Tests/EmailIdempotencyCleanupTests.cs#L47](tests/Bravellian.Platform.Email.Tests/EmailIdempotencyCleanupTests.cs#L47)
+- **Bravellian.Platform.Email.Tests:Bravellian.Platform.Email.Tests.EmailIdempotencyCleanupTests.AddEmailIdempotencyCleanupHostedService_ThrowsForInvalidRetention**
+  - Summary: When add Email Idempotency Cleanup Hosted Service Throws For Invalid Retention, then it behaves as expected.
+  - Intent: Document expected behavior for add Email Idempotency Cleanup Hosted Service Throws For Invalid Retention.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Tests/EmailIdempotencyCleanupTests.cs#L31](tests/Bravellian.Platform.Email.Tests/EmailIdempotencyCleanupTests.cs#L31)
+- **Bravellian.Platform.Email.Tests:Bravellian.Platform.Email.Tests.EmailIdempotencyCleanupTests.CleanupService_InvokesCleanupOnSchedule**
+  - Summary: When cleanup Service Invokes Cleanup On Schedule, then it behaves as expected.
+  - Intent: Document expected behavior for cleanup Service Invokes Cleanup On Schedule.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Tests/EmailIdempotencyCleanupTests.cs#L63](tests/Bravellian.Platform.Email.Tests/EmailIdempotencyCleanupTests.cs#L63)
+- **Bravellian.Platform.Email.Tests:Bravellian.Platform.Email.Tests.EmailMessageValidatorTests.Validate_ReturnsErrorsForMissingBody**
+  - Summary: When validate Returns Errors For Missing Body, then it behaves as expected.
+  - Intent: Document expected behavior for validate Returns Errors For Missing Body.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Tests/EmailMessageValidatorTests.cs#L40](tests/Bravellian.Platform.Email.Tests/EmailMessageValidatorTests.cs#L40)
+- **Bravellian.Platform.Email.Tests:Bravellian.Platform.Email.Tests.EmailMessageValidatorTests.Validate_ReturnsSuccessForValidMessage**
+  - Summary: When validate Returns Success For Valid Message, then it behaves as expected.
+  - Intent: Document expected behavior for validate Returns Success For Valid Message.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Tests/EmailMessageValidatorTests.cs#L24](tests/Bravellian.Platform.Email.Tests/EmailMessageValidatorTests.cs#L24)
+- **Bravellian.Platform.Email.Tests:Bravellian.Platform.Email.Tests.EmailObservabilityTests.Enqueue_EmitsQueuedAuditEvent**
+  - Summary: When enqueue Emits Queued Audit Event, then it behaves as expected.
+  - Intent: Document expected behavior for enqueue Emits Queued Audit Event.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Tests/EmailObservabilityTests.cs#L31](tests/Bravellian.Platform.Email.Tests/EmailObservabilityTests.cs#L31)
+- **Bravellian.Platform.Email.Tests:Bravellian.Platform.Email.Tests.EmailObservabilityTests.Processor_EmitsAttemptAndSentAuditEvents**
+  - Summary: When processor Emits Attempt And Sent Audit Events, then it behaves as expected.
+  - Intent: Document expected behavior for processor Emits Attempt And Sent Audit Events.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Tests/EmailObservabilityTests.cs#L52](tests/Bravellian.Platform.Email.Tests/EmailObservabilityTests.cs#L52)
+- **Bravellian.Platform.Email.Tests:Bravellian.Platform.Email.Tests.EmailOutboxDispatcherTests.DispatchAsync_SendsAndTracksOutcomes**
+  - Summary: When dispatch Async Sends And Tracks Outcomes, then it behaves as expected.
+  - Intent: Document expected behavior for dispatch Async Sends And Tracks Outcomes.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Tests/EmailOutboxDispatcherTests.cs#L24](tests/Bravellian.Platform.Email.Tests/EmailOutboxDispatcherTests.cs#L24)
+- **Bravellian.Platform.Email.Tests:Bravellian.Platform.Email.Tests.EmailOutboxOrchestrationTests.DuplicateEnqueue_DoesNotCreateSecondSend**
+  - Summary: When duplicate Enqueue Does Not Create Second Send, then it behaves as expected.
+  - Intent: Document expected behavior for duplicate Enqueue Does Not Create Second Send.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Tests/EmailOutboxOrchestrationTests.cs#L79](tests/Bravellian.Platform.Email.Tests/EmailOutboxOrchestrationTests.cs#L79)
+- **Bravellian.Platform.Email.Tests:Bravellian.Platform.Email.Tests.EmailOutboxOrchestrationTests.Enqueue_ValidatesAndRecordsQueued**
+  - Summary: When enqueue Validates And Records Queued, then it behaves as expected.
+  - Intent: Document expected behavior for enqueue Validates And Records Queued.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Tests/EmailOutboxOrchestrationTests.cs#L32](tests/Bravellian.Platform.Email.Tests/EmailOutboxOrchestrationTests.cs#L32)
+- **Bravellian.Platform.Email.Tests:Bravellian.Platform.Email.Tests.EmailOutboxOrchestrationTests.PermanentFailure_StopsAndMarksFinal**
+  - Summary: When permanent Failure Stops And Marks Final, then it behaves as expected.
+  - Intent: Document expected behavior for permanent Failure Stops And Marks Final.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Tests/EmailOutboxOrchestrationTests.cs#L173](tests/Bravellian.Platform.Email.Tests/EmailOutboxOrchestrationTests.cs#L173)
+- **Bravellian.Platform.Email.Tests:Bravellian.Platform.Email.Tests.EmailOutboxOrchestrationTests.PolicyDelay_ReschedulesWithoutSending**
+  - Summary: When policy Delay Reschedules Without Sending, then it behaves as expected.
+  - Intent: Document expected behavior for policy Delay Reschedules Without Sending.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Tests/EmailOutboxOrchestrationTests.cs#L197](tests/Bravellian.Platform.Email.Tests/EmailOutboxOrchestrationTests.cs#L197)
+- **Bravellian.Platform.Email.Tests:Bravellian.Platform.Email.Tests.EmailOutboxOrchestrationTests.PolicyReject_FinalizesWithoutSending**
+  - Summary: When policy Reject Finalizes Without Sending, then it behaves as expected.
+  - Intent: Document expected behavior for policy Reject Finalizes Without Sending.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Tests/EmailOutboxOrchestrationTests.cs#L231](tests/Bravellian.Platform.Email.Tests/EmailOutboxOrchestrationTests.cs#L231)
+- **Bravellian.Platform.Email.Tests:Bravellian.Platform.Email.Tests.EmailOutboxOrchestrationTests.ProbeConfirmation_FinalizesAfterFailure**
+  - Summary: When probe Confirmation Finalizes After Failure, then it behaves as expected.
+  - Intent: Document expected behavior for probe Confirmation Finalizes After Failure.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Tests/EmailOutboxOrchestrationTests.cs#L146](tests/Bravellian.Platform.Email.Tests/EmailOutboxOrchestrationTests.cs#L146)
+- **Bravellian.Platform.Email.Tests:Bravellian.Platform.Email.Tests.EmailOutboxOrchestrationTests.Processor_SendsOnceAndMarksSent**
+  - Summary: When processor Sends Once And Marks Sent, then it behaves as expected.
+  - Intent: Document expected behavior for processor Sends Once And Marks Sent.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Tests/EmailOutboxOrchestrationTests.cs#L52](tests/Bravellian.Platform.Email.Tests/EmailOutboxOrchestrationTests.cs#L52)
+- **Bravellian.Platform.Email.Tests:Bravellian.Platform.Email.Tests.EmailOutboxOrchestrationTests.TransientFailure_RetriesAndEventuallySucceeds**
+  - Summary: When transient Failure Retries And Eventually Succeeds, then it behaves as expected.
+  - Intent: Document expected behavior for transient Failure Retries And Eventually Succeeds.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Tests/EmailOutboxOrchestrationTests.cs#L108](tests/Bravellian.Platform.Email.Tests/EmailOutboxOrchestrationTests.cs#L108)
+- **Bravellian.Platform.Email.Tests:Bravellian.Platform.Email.Tests.InMemoryEmailOutboxStoreTests.Dequeue_ReturnsPendingItemsInOrder**
+  - Summary: When dequeue Returns Pending Items In Order, then it behaves as expected.
+  - Intent: Document expected behavior for dequeue Returns Pending Items In Order.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Tests/InMemoryEmailOutboxStoreTests.cs#L51](tests/Bravellian.Platform.Email.Tests/InMemoryEmailOutboxStoreTests.cs#L51)
+- **Bravellian.Platform.Email.Tests:Bravellian.Platform.Email.Tests.InMemoryEmailOutboxStoreTests.Enqueue_MarksMessageKey**
+  - Summary: When enqueue Marks Message Key, then it behaves as expected.
+  - Intent: Document expected behavior for enqueue Marks Message Key.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Email.Tests/InMemoryEmailOutboxStoreTests.cs#L24](tests/Bravellian.Platform.Email.Tests/InMemoryEmailOutboxStoreTests.cs#L24)

@@ -22,6 +22,10 @@ namespace Bravellian.Platform.Tests;
 
 public sealed class ExactlyOnceHandlerTests
 {
+    /// <summary>When outbox Handler Suppressed Does Not Execute, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for outbox Handler Suppressed Does Not Execute.</intent>
+    /// <scenario>Given outbox Handler Suppressed Does Not Execute.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task OutboxHandler_Suppressed_DoesNotExecute()
     {
@@ -35,6 +39,10 @@ public sealed class ExactlyOnceHandlerTests
         handler.Executed.ShouldBeFalse();
     }
 
+    /// <summary>When outbox Handler Transient Failure Throws For Retry, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for outbox Handler Transient Failure Throws For Retry.</intent>
+    /// <scenario>Given outbox Handler Transient Failure Throws For Retry.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task OutboxHandler_TransientFailure_ThrowsForRetry()
     {
@@ -44,6 +52,10 @@ public sealed class ExactlyOnceHandlerTests
         await Should.ThrowAsync<Exception>(() => handler.HandleAsync(CreateOutboxMessage(), CancellationToken.None));
     }
 
+    /// <summary>When outbox Handler Permanent Failure Throws Permanent Exception, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for outbox Handler Permanent Failure Throws Permanent Exception.</intent>
+    /// <scenario>Given outbox Handler Permanent Failure Throws Permanent Exception.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task OutboxHandler_PermanentFailure_ThrowsPermanentException()
     {
@@ -54,6 +66,10 @@ public sealed class ExactlyOnceHandlerTests
             () => handler.HandleAsync(CreateOutboxMessage(), CancellationToken.None));
     }
 
+    /// <summary>When inbox Handler Transient Failure Throws For Retry, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for inbox Handler Transient Failure Throws For Retry.</intent>
+    /// <scenario>Given inbox Handler Transient Failure Throws For Retry.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task InboxHandler_TransientFailure_ThrowsForRetry()
     {
@@ -63,6 +79,10 @@ public sealed class ExactlyOnceHandlerTests
         await Should.ThrowAsync<Exception>(() => handler.HandleAsync(CreateInboxMessage(), CancellationToken.None));
     }
 
+    /// <summary>When inbox Handler Permanent Failure Throws Permanent Exception, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for inbox Handler Permanent Failure Throws Permanent Exception.</intent>
+    /// <scenario>Given inbox Handler Permanent Failure Throws Permanent Exception.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task InboxHandler_PermanentFailure_ThrowsPermanentException()
     {
@@ -73,6 +93,10 @@ public sealed class ExactlyOnceHandlerTests
             () => handler.HandleAsync(CreateInboxMessage(), CancellationToken.None));
     }
 
+    /// <summary>When inbox Handler Suppressed Does Not Execute, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for inbox Handler Suppressed Does Not Execute.</intent>
+    /// <scenario>Given inbox Handler Suppressed Does Not Execute.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task InboxHandler_Suppressed_DoesNotExecute()
     {

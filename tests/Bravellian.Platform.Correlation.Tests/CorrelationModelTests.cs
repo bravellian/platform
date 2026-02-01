@@ -18,12 +18,20 @@ namespace Bravellian.Platform.Correlation.Tests;
 
 public sealed class CorrelationModelTests
 {
+    /// <summary>When correlation Id Requires Value, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for correlation Id Requires Value.</intent>
+    /// <scenario>Given correlation Id Requires Value.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public void CorrelationIdRequiresValue()
     {
         Should.Throw<ArgumentException>(() => new CorrelationId(" "));
     }
 
+    /// <summary>When correlation Id Try Parse Rejects Empty, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for correlation Id Try Parse Rejects Empty.</intent>
+    /// <scenario>Given correlation Id Try Parse Rejects Empty.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public void CorrelationIdTryParseRejectsEmpty()
     {
@@ -31,6 +39,10 @@ public sealed class CorrelationModelTests
         CorrelationId.TryParse(" ", out _).ShouldBeFalse();
     }
 
+    /// <summary>When generator Returns Value, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for generator Returns Value.</intent>
+    /// <scenario>Given generator Returns Value.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public void GeneratorReturnsValue()
     {
@@ -40,6 +52,10 @@ public sealed class CorrelationModelTests
         id.Value.ShouldNotBeNullOrWhiteSpace();
     }
 
+    /// <summary>When generator Can Be Deterministic, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for generator Can Be Deterministic.</intent>
+    /// <scenario>Given generator Can Be Deterministic.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public void GeneratorCanBeDeterministic()
     {
@@ -49,6 +65,10 @@ public sealed class CorrelationModelTests
         generator.NewId().Value.ShouldBe("corr-fixed");
     }
 
+    /// <summary>When ambient Accessor Stores Context, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for ambient Accessor Stores Context.</intent>
+    /// <scenario>Given ambient Accessor Stores Context.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public void AmbientAccessorStoresContext()
     {
@@ -65,6 +85,10 @@ public sealed class CorrelationModelTests
         accessor.Current.ShouldBe(context);
     }
 
+    /// <summary>When ambient Accessor Flows Across Async, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for ambient Accessor Flows Across Async.</intent>
+    /// <scenario>Given ambient Accessor Flows Across Async.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task AmbientAccessorFlowsAcrossAsync()
     {
@@ -84,6 +108,10 @@ public sealed class CorrelationModelTests
         observed.ShouldBe(context);
     }
 
+    /// <summary>When scope Restores Previous Context, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for scope Restores Previous Context.</intent>
+    /// <scenario>Given scope Restores Previous Context.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public void ScopeRestoresPreviousContext()
     {
@@ -111,6 +139,10 @@ public sealed class CorrelationModelTests
         accessor.Current.ShouldBe(previous);
     }
 
+    /// <summary>When serializer Round Trips, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for serializer Round Trips.</intent>
+    /// <scenario>Given serializer Round Trips.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public void SerializerRoundTrips()
     {

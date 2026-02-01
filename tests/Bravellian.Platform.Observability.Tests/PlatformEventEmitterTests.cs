@@ -24,6 +24,10 @@ public sealed class PlatformEventEmitterTests
 {
     private static readonly DateTimeOffset FixedNow = new(2024, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
+    /// <summary>When emit Operation Started Uses Tracker And Writer, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for emit Operation Started Uses Tracker And Writer.</intent>
+    /// <scenario>Given emit Operation Started Uses Tracker And Writer.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task EmitOperationStartedUsesTrackerAndWriter()
     {
@@ -69,6 +73,10 @@ public sealed class PlatformEventEmitterTests
         payload!.ContainsKey("tags").ShouldBeTrue();
     }
 
+    /// <summary>When emit Operation Completed Marks Failure, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for emit Operation Completed Marks Failure.</intent>
+    /// <scenario>Given emit Operation Completed Marks Failure.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task EmitOperationCompletedMarksFailure()
     {

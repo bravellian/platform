@@ -18,6 +18,10 @@ namespace Bravellian.Platform.Observability.Tests;
 
 public sealed class ObservationAnchorTests
 {
+    /// <summary>When anchor Requires Values, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for anchor Requires Values.</intent>
+    /// <scenario>Given anchor Requires Values.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public void AnchorRequiresValues()
     {

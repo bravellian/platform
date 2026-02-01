@@ -20,6 +20,10 @@ namespace Bravellian.Platform.Webhooks.AspNetCore.Tests;
 
 public sealed class WebhookProcessingHostedServiceTests
 {
+    /// <summary>When hosted Service Invokes Processor Async, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for hosted Service Invokes Processor Async.</intent>
+    /// <scenario>Given hosted Service Invokes Processor Async.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task HostedServiceInvokesProcessorAsync()
     {

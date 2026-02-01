@@ -19,6 +19,10 @@ namespace Bravellian.Platform.Audit.Tests;
 
 public sealed class AuditModelTests
 {
+    /// <summary>When anchor Trims Values, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for anchor Trims Values.</intent>
+    /// <scenario>Given anchor Trims Values.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public void AnchorTrimsValues()
     {
@@ -29,6 +33,10 @@ public sealed class AuditModelTests
         anchor.Role.ShouldBe("Subject");
     }
 
+    /// <summary>When validation Requires Name Message And Anchor, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for validation Requires Name Message And Anchor.</intent>
+    /// <scenario>Given validation Requires Name Message And Anchor.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public void ValidationRequiresNameMessageAndAnchor()
     {
@@ -48,6 +56,10 @@ public sealed class AuditModelTests
         result.Errors.ShouldContain("At least one anchor is required.");
     }
 
+    /// <summary>When validation Enforces Data Json Limit, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for validation Enforces Data Json Limit.</intent>
+    /// <scenario>Given validation Enforces Data Json Limit.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public void ValidationEnforcesDataJsonLimit()
     {
@@ -67,6 +79,10 @@ public sealed class AuditModelTests
         result.Errors.ShouldContain("DataJson exceeds maximum length of 5 characters.");
     }
 
+    /// <summary>When validation Accepts Valid Event, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for validation Accepts Valid Event.</intent>
+    /// <scenario>Given validation Accepts Valid Event.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public void ValidationAcceptsValidEvent()
     {

@@ -20,6 +20,10 @@ namespace Bravellian.Platform.Email.Postmark.Tests;
 
 public sealed class PostmarkOutboundMessageClientTests
 {
+    /// <summary>When get Outbound Message Details Async Returns Not Found On404, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for get Outbound Message Details Async Returns Not Found On404.</intent>
+    /// <scenario>Given get Outbound Message Details Async Returns Not Found On404.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task GetOutboundMessageDetailsAsync_ReturnsNotFoundOn404()
     {
@@ -35,6 +39,10 @@ public sealed class PostmarkOutboundMessageClientTests
         result.Status.ShouldBe(PostmarkQueryStatus.NotFound);
     }
 
+    /// <summary>When search Outbound By Metadata Async Returns Not Found When Empty, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for search Outbound By Metadata Async Returns Not Found When Empty.</intent>
+    /// <scenario>Given search Outbound By Metadata Async Returns Not Found When Empty.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task SearchOutboundByMetadataAsync_ReturnsNotFoundWhenEmpty()
     {
@@ -51,6 +59,10 @@ public sealed class PostmarkOutboundMessageClientTests
         result.Status.ShouldBe(PostmarkQueryStatus.NotFound);
     }
 
+    /// <summary>When search Outbound By Metadata Async Returns Found When Message Exists, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for search Outbound By Metadata Async Returns Found When Message Exists.</intent>
+    /// <scenario>Given search Outbound By Metadata Async Returns Found When Message Exists.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task SearchOutboundByMetadataAsync_ReturnsFoundWhenMessageExists()
     {
@@ -69,6 +81,10 @@ public sealed class PostmarkOutboundMessageClientTests
         result.Response.Messages[0].MessageId.ShouldBe("abc");
     }
 
+    /// <summary>When search Outbound By Metadata Async Returns Error On Failure, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for search Outbound By Metadata Async Returns Error On Failure.</intent>
+    /// <scenario>Given search Outbound By Metadata Async Returns Error On Failure.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task SearchOutboundByMetadataAsync_ReturnsErrorOnFailure()
     {

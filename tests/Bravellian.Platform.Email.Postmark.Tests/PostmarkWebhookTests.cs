@@ -27,6 +27,10 @@ public sealed class PostmarkWebhookTests
 {
     private static readonly DateTimeOffset FixedNow = new(2024, 01, 01, 0, 0, 0, TimeSpan.Zero);
 
+    /// <summary>When webhook Ingestor Stores Postmark Bounce Async, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for webhook Ingestor Stores Postmark Bounce Async.</intent>
+    /// <scenario>Given webhook Ingestor Stores Postmark Bounce Async.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task WebhookIngestorStoresPostmarkBounceAsync()
     {
@@ -48,6 +52,10 @@ public sealed class PostmarkWebhookTests
         record.ProviderEventId.ShouldBe("42");
     }
 
+    /// <summary>When webhook Ingestor Stores Postmark Spam Complaint Async, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for webhook Ingestor Stores Postmark Spam Complaint Async.</intent>
+    /// <scenario>Given webhook Ingestor Stores Postmark Spam Complaint Async.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task WebhookIngestorStoresPostmarkSpamComplaintAsync()
     {
@@ -69,6 +77,10 @@ public sealed class PostmarkWebhookTests
         record.ProviderEventId.ShouldBe("spam-1");
     }
 
+    /// <summary>When webhook Ingestor Stores Postmark Subscription Change Async, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for webhook Ingestor Stores Postmark Subscription Change Async.</intent>
+    /// <scenario>Given webhook Ingestor Stores Postmark Subscription Change Async.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task WebhookIngestorStoresPostmarkSubscriptionChangeAsync()
     {
@@ -90,6 +102,10 @@ public sealed class PostmarkWebhookTests
         record.ProviderEventId.ShouldBe("sub-1");
     }
 
+    /// <summary>When webhook Ingestor Stores Postmark Inbound Async, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for webhook Ingestor Stores Postmark Inbound Async.</intent>
+    /// <scenario>Given webhook Ingestor Stores Postmark Inbound Async.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task WebhookIngestorStoresPostmarkInboundAsync()
     {
@@ -111,6 +127,10 @@ public sealed class PostmarkWebhookTests
         record.ProviderEventId.ShouldBe("inb-1");
     }
 
+    /// <summary>When webhook Processor Dispatches Bounce To Sink Async, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for webhook Processor Dispatches Bounce To Sink Async.</intent>
+    /// <scenario>Given webhook Processor Dispatches Bounce To Sink Async.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task WebhookProcessorDispatchesBounceToSinkAsync()
     {
@@ -150,6 +170,10 @@ public sealed class PostmarkWebhookTests
         update.ErrorMessage.ShouldBe("Mailbox not found");
     }
 
+    /// <summary>When webhook Processor Emits Webhook Received Audit Event, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for webhook Processor Emits Webhook Received Audit Event.</intent>
+    /// <scenario>Given webhook Processor Emits Webhook Received Audit Event.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task WebhookProcessor_EmitsWebhookReceivedAuditEvent()
     {
@@ -182,6 +206,10 @@ public sealed class PostmarkWebhookTests
         emitter.AuditEvents.ShouldContain(e => e.Name == PlatformEventNames.WebhookReceived);
     }
 
+    /// <summary>When webhook Processor Dispatches Spam Complaint As Suppressed Async, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for webhook Processor Dispatches Spam Complaint As Suppressed Async.</intent>
+    /// <scenario>Given webhook Processor Dispatches Spam Complaint As Suppressed Async.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task WebhookProcessorDispatchesSpamComplaintAsSuppressedAsync()
     {

@@ -40,6 +40,10 @@ public abstract class OutboxStoreBehaviorTestsBase : IAsyncLifetime
         GC.SuppressFinalize(this);
     }
 
+    /// <summary>When claim Due Async With No Messages Returns Empty List, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for claim Due Async With No Messages Returns Empty List.</intent>
+    /// <scenario>Given claim Due Async With No Messages Returns Empty List.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task ClaimDueAsync_WithNoMessages_ReturnsEmptyList()
     {
@@ -50,6 +54,10 @@ public abstract class OutboxStoreBehaviorTestsBase : IAsyncLifetime
         messages.Count.ShouldBe(0);
     }
 
+    /// <summary>When claim Due Async With Due Messages Returns Messages, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for claim Due Async With Due Messages Returns Messages.</intent>
+    /// <scenario>Given claim Due Async With Due Messages Returns Messages.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task ClaimDueAsync_WithDueMessages_ReturnsMessages()
     {
@@ -65,6 +73,10 @@ public abstract class OutboxStoreBehaviorTestsBase : IAsyncLifetime
         messages[0].IsProcessed.ShouldBeFalse();
     }
 
+    /// <summary>When claim Due Async With Future Messages Returns Empty, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for claim Due Async With Future Messages Returns Empty.</intent>
+    /// <scenario>Given claim Due Async With Future Messages Returns Empty.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task ClaimDueAsync_WithFutureMessages_ReturnsEmpty()
     {
@@ -78,6 +90,10 @@ public abstract class OutboxStoreBehaviorTestsBase : IAsyncLifetime
         messages.Count.ShouldBe(0);
     }
 
+    /// <summary>When claim Due Async Returns Correlation Id And Due Time, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for claim Due Async Returns Correlation Id And Due Time.</intent>
+    /// <scenario>Given claim Due Async Returns Correlation Id And Due Time.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task ClaimDueAsync_ReturnsCorrelationIdAndDueTime()
     {
@@ -98,6 +114,10 @@ public abstract class OutboxStoreBehaviorTestsBase : IAsyncLifetime
             dueTime.UtcDateTime.AddSeconds(2));
     }
 
+    /// <summary>When mark Dispatched Async Removes Message From Claims, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for mark Dispatched Async Removes Message From Claims.</intent>
+    /// <scenario>Given mark Dispatched Async Removes Message From Claims.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task MarkDispatchedAsync_RemovesMessageFromClaims()
     {
@@ -114,6 +134,10 @@ public abstract class OutboxStoreBehaviorTestsBase : IAsyncLifetime
         remaining.Count.ShouldBe(0);
     }
 
+    /// <summary>When reschedule Async Makes Message Available Again, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for reschedule Async Makes Message Available Again.</intent>
+    /// <scenario>Given reschedule Async Makes Message Available Again.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task RescheduleAsync_MakesMessageAvailableAgain()
     {
@@ -133,6 +157,10 @@ public abstract class OutboxStoreBehaviorTestsBase : IAsyncLifetime
         rescheduled[0].LastError.ShouldBe(errorMessage);
     }
 
+    /// <summary>When fail Async Removes Message From Claims, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for fail Async Removes Message From Claims.</intent>
+    /// <scenario>Given fail Async Removes Message From Claims.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task FailAsync_RemovesMessageFromClaims()
     {

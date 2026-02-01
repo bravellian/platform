@@ -1,15 +1,17 @@
 # Test Documentation
 
-- Total tests: 674
-- Compliant: 670 (99.4%)
-- Missing required: 4
+- Total tests: 743
+- Compliant: 743 (100.0%)
+- Missing required: 0
 - Invalid format: 0
 
 ## Top categories
 
-- Bravellian.Platform.Tests (644)
+- Bravellian.Platform.Tests (626)
+- Bravellian.Platform.Email (38)
 - Bravellian.Platform.HealthProbe (17)
-- Modularity (13)
+- Bravellian.Platform.Webhooks (14)
+- TestUtilities (14)
 
 ## Browse
 

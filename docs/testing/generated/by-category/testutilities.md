@@ -1,0 +1,74 @@
+# TestUtilities
+
+Total tests: 14
+
+- **Bravellian.Platform.TestUtilities:Bravellian.Platform.Tests.TestUtilities.InboxWorkStoreBehaviorTestsBase.AbandonAsync_ReturnsMessageToQueue**
+  - Summary: When abandon Async Returns Message To Queue, then it behaves as expected.
+  - Intent: Document expected behavior for abandon Async Returns Message To Queue.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.TestUtilities/InboxWorkStoreBehaviorTestsBase.cs#L159](tests/Bravellian.Platform.TestUtilities/InboxWorkStoreBehaviorTestsBase.cs#L159)
+- **Bravellian.Platform.TestUtilities:Bravellian.Platform.Tests.TestUtilities.InboxWorkStoreBehaviorTestsBase.AckAsync_RemovesMessageFromClaims**
+  - Summary: When ack Async Removes Message From Claims, then it behaves as expected.
+  - Intent: Document expected behavior for ack Async Removes Message From Claims.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.TestUtilities/InboxWorkStoreBehaviorTestsBase.cs#L122](tests/Bravellian.Platform.TestUtilities/InboxWorkStoreBehaviorTestsBase.cs#L122)
+- **Bravellian.Platform.TestUtilities:Bravellian.Platform.Tests.TestUtilities.InboxWorkStoreBehaviorTestsBase.ClaimAsync_WithAvailableMessage_ReturnsMessageId**
+  - Summary: When claim Async With Available Message Returns Message Id, then it behaves as expected.
+  - Intent: Document expected behavior for claim Async With Available Message Returns Message Id.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.TestUtilities/InboxWorkStoreBehaviorTestsBase.cs#L65](tests/Bravellian.Platform.TestUtilities/InboxWorkStoreBehaviorTestsBase.cs#L65)
+- **Bravellian.Platform.TestUtilities:Bravellian.Platform.Tests.TestUtilities.InboxWorkStoreBehaviorTestsBase.ClaimAsync_WithFutureDueTime_ReturnsEmpty**
+  - Summary: When claim Async With Future Due Time Returns Empty, then it behaves as expected.
+  - Intent: Document expected behavior for claim Async With Future Due Time Returns Empty.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.TestUtilities/InboxWorkStoreBehaviorTestsBase.cs#L92](tests/Bravellian.Platform.TestUtilities/InboxWorkStoreBehaviorTestsBase.cs#L92)
+- **Bravellian.Platform.TestUtilities:Bravellian.Platform.Tests.TestUtilities.InboxWorkStoreBehaviorTestsBase.ClaimAsync_WithNoMessages_ReturnsEmptyList**
+  - Summary: When claim Async With No Messages Returns Empty List, then it behaves as expected.
+  - Intent: Document expected behavior for claim Async With No Messages Returns Empty List.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.TestUtilities/InboxWorkStoreBehaviorTestsBase.cs#L47](tests/Bravellian.Platform.TestUtilities/InboxWorkStoreBehaviorTestsBase.cs#L47)
+- **Bravellian.Platform.TestUtilities:Bravellian.Platform.Tests.TestUtilities.InboxWorkStoreBehaviorTestsBase.FailAsync_RemovesMessageFromClaims**
+  - Summary: When fail Async Removes Message From Claims, then it behaves as expected.
+  - Intent: Document expected behavior for fail Async Removes Message From Claims.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.TestUtilities/InboxWorkStoreBehaviorTestsBase.cs#L202](tests/Bravellian.Platform.TestUtilities/InboxWorkStoreBehaviorTestsBase.cs#L202)
+- **Bravellian.Platform.TestUtilities:Bravellian.Platform.Tests.TestUtilities.InboxWorkStoreBehaviorTestsBase.GetAsync_ReturnsStoredMessage**
+  - Summary: When get Async Returns Stored Message, then it behaves as expected.
+  - Intent: Document expected behavior for get Async Returns Stored Message.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.TestUtilities/InboxWorkStoreBehaviorTestsBase.cs#L239](tests/Bravellian.Platform.TestUtilities/InboxWorkStoreBehaviorTestsBase.cs#L239)
+- **Bravellian.Platform.TestUtilities:Bravellian.Platform.Tests.TestUtilities.OutboxStoreBehaviorTestsBase.ClaimDueAsync_ReturnsCorrelationIdAndDueTime**
+  - Summary: When claim Due Async Returns Correlation Id And Due Time, then it behaves as expected.
+  - Intent: Document expected behavior for claim Due Async Returns Correlation Id And Due Time.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.TestUtilities/OutboxStoreBehaviorTestsBase.cs#L98](tests/Bravellian.Platform.TestUtilities/OutboxStoreBehaviorTestsBase.cs#L98)
+- **Bravellian.Platform.TestUtilities:Bravellian.Platform.Tests.TestUtilities.OutboxStoreBehaviorTestsBase.ClaimDueAsync_WithDueMessages_ReturnsMessages**
+  - Summary: When claim Due Async With Due Messages Returns Messages, then it behaves as expected.
+  - Intent: Document expected behavior for claim Due Async With Due Messages Returns Messages.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.TestUtilities/OutboxStoreBehaviorTestsBase.cs#L62](tests/Bravellian.Platform.TestUtilities/OutboxStoreBehaviorTestsBase.cs#L62)
+- **Bravellian.Platform.TestUtilities:Bravellian.Platform.Tests.TestUtilities.OutboxStoreBehaviorTestsBase.ClaimDueAsync_WithFutureMessages_ReturnsEmpty**
+  - Summary: When claim Due Async With Future Messages Returns Empty, then it behaves as expected.
+  - Intent: Document expected behavior for claim Due Async With Future Messages Returns Empty.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.TestUtilities/OutboxStoreBehaviorTestsBase.cs#L81](tests/Bravellian.Platform.TestUtilities/OutboxStoreBehaviorTestsBase.cs#L81)
+- **Bravellian.Platform.TestUtilities:Bravellian.Platform.Tests.TestUtilities.OutboxStoreBehaviorTestsBase.ClaimDueAsync_WithNoMessages_ReturnsEmptyList**
+  - Summary: When claim Due Async With No Messages Returns Empty List, then it behaves as expected.
+  - Intent: Document expected behavior for claim Due Async With No Messages Returns Empty List.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.TestUtilities/OutboxStoreBehaviorTestsBase.cs#L48](tests/Bravellian.Platform.TestUtilities/OutboxStoreBehaviorTestsBase.cs#L48)
+- **Bravellian.Platform.TestUtilities:Bravellian.Platform.Tests.TestUtilities.OutboxStoreBehaviorTestsBase.FailAsync_RemovesMessageFromClaims**
+  - Summary: When fail Async Removes Message From Claims, then it behaves as expected.
+  - Intent: Document expected behavior for fail Async Removes Message From Claims.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.TestUtilities/OutboxStoreBehaviorTestsBase.cs#L165](tests/Bravellian.Platform.TestUtilities/OutboxStoreBehaviorTestsBase.cs#L165)
+- **Bravellian.Platform.TestUtilities:Bravellian.Platform.Tests.TestUtilities.OutboxStoreBehaviorTestsBase.MarkDispatchedAsync_RemovesMessageFromClaims**
+  - Summary: When mark Dispatched Async Removes Message From Claims, then it behaves as expected.
+  - Intent: Document expected behavior for mark Dispatched Async Removes Message From Claims.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.TestUtilities/OutboxStoreBehaviorTestsBase.cs#L122](tests/Bravellian.Platform.TestUtilities/OutboxStoreBehaviorTestsBase.cs#L122)
+- **Bravellian.Platform.TestUtilities:Bravellian.Platform.Tests.TestUtilities.OutboxStoreBehaviorTestsBase.RescheduleAsync_MakesMessageAvailableAgain**
+  - Summary: When reschedule Async Makes Message Available Again, then it behaves as expected.
+  - Intent: Document expected behavior for reschedule Async Makes Message Available Again.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.TestUtilities/OutboxStoreBehaviorTestsBase.cs#L142](tests/Bravellian.Platform.TestUtilities/OutboxStoreBehaviorTestsBase.cs#L142)

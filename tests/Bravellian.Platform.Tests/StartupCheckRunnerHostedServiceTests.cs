@@ -20,6 +20,10 @@ namespace Bravellian.Platform.Tests;
 
 public class StartupCheckRunnerHostedServiceTests
 {
+    /// <summary>When start Async Executes Checks In Order, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for start Async Executes Checks In Order.</intent>
+    /// <scenario>Given start Async Executes Checks In Order.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task StartAsync_ExecutesChecksInOrder()
     {
@@ -42,6 +46,10 @@ public class StartupCheckRunnerHostedServiceTests
         execution.ShouldBe(new[] { "a", "c", "b" });
     }
 
+    /// <summary>When start Async Throws When Duplicate Names, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for start Async Throws When Duplicate Names.</intent>
+    /// <scenario>Given start Async Throws When Duplicate Names.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task StartAsync_ThrowsWhenDuplicateNames()
     {
@@ -62,6 +70,10 @@ public class StartupCheckRunnerHostedServiceTests
         execution.Count.ShouldBe(0);
     }
 
+    /// <summary>When start Async Critical Failure Stops Further Checks, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for start Async Critical Failure Stops Further Checks.</intent>
+    /// <scenario>Given start Async Critical Failure Stops Further Checks.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task StartAsync_CriticalFailureStopsFurtherChecks()
     {
@@ -83,6 +95,10 @@ public class StartupCheckRunnerHostedServiceTests
         execution.ShouldBe(new[] { "first" });
     }
 
+    /// <summary>When start Async Non Critical Failure Logs And Continues, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for start Async Non Critical Failure Logs And Continues.</intent>
+    /// <scenario>Given start Async Non Critical Failure Logs And Continues.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task StartAsync_NonCriticalFailureLogsAndContinues()
     {

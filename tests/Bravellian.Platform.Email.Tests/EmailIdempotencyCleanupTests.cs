@@ -23,6 +23,10 @@ namespace Bravellian.Platform.Email.Tests;
 
 public sealed class EmailIdempotencyCleanupTests
 {
+    /// <summary>When add Email Idempotency Cleanup Hosted Service Throws For Invalid Retention, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for add Email Idempotency Cleanup Hosted Service Throws For Invalid Retention.</intent>
+    /// <scenario>Given add Email Idempotency Cleanup Hosted Service Throws For Invalid Retention.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public void AddEmailIdempotencyCleanupHostedService_ThrowsForInvalidRetention()
     {
@@ -35,6 +39,10 @@ public sealed class EmailIdempotencyCleanupTests
             }));
     }
 
+    /// <summary>When add Email Idempotency Cleanup Hosted Service Throws For Invalid Interval, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for add Email Idempotency Cleanup Hosted Service Throws For Invalid Interval.</intent>
+    /// <scenario>Given add Email Idempotency Cleanup Hosted Service Throws For Invalid Interval.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public void AddEmailIdempotencyCleanupHostedService_ThrowsForInvalidInterval()
     {
@@ -47,6 +55,10 @@ public sealed class EmailIdempotencyCleanupTests
             }));
     }
 
+    /// <summary>When cleanup Service Invokes Cleanup On Schedule, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for cleanup Service Invokes Cleanup On Schedule.</intent>
+    /// <scenario>Given cleanup Service Invokes Cleanup On Schedule.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task CleanupService_InvokesCleanupOnSchedule()
     {

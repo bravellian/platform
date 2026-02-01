@@ -31,15 +31,15 @@ Total tests: 13
   - Summary: When the same module type is registered twice, then the second registration is ignored without error.
   - Intent: Confirm ModuleRegistry.RegisterModule is idempotent for identical types.
   - Tags: (none)
-  - Source: [tests/Bravellian.Platform.Tests/Modularity/ModuleSystemTests.cs#L227](tests/Bravellian.Platform.Tests/Modularity/ModuleSystemTests.cs#L227)
-- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.Modularity.ModuleSystemTests.Webhook_metadata_must_be_unique**
-  - Summary: When two modules register identical webhook metadata, then AddModuleServices throws.
-  - Intent: Prevent conflicting webhook metadata registrations across modules.
+  - Source: [tests/Bravellian.Platform.Tests/Modularity/ModuleSystemTests.cs#L230](tests/Bravellian.Platform.Tests/Modularity/ModuleSystemTests.cs#L230)
+- **Bravellian.Platform.Tests:Bravellian.Platform.Tests.Modularity.ModuleSystemTests.Webhook_metadata_allows_fanout**
+  - Summary: When two modules register identical webhook metadata, then both engines are registered for fanout.
+  - Intent: Allow multiple webhook engines to handle the same provider/event pair.
   - Tags: (none)
   - Source: [tests/Bravellian.Platform.Tests/Modularity/ModuleSystemTests.cs#L200](tests/Bravellian.Platform.Tests/Modularity/ModuleSystemTests.cs#L200)
 - **Bravellian.Platform.Tests:Bravellian.Platform.Tests.Modularity.RazorPagesConfigurationTests.ConfigureRazorModulePages_invokes_module_configuration**
-  - Summary: (missing summary)
-  - Intent: (missing intent)
+  - Summary: When ConfigureRazorModulePages runs for a registered module, then RazorPagesOptions can be resolved from the service provider.
+  - Intent: Confirm that module Razor configuration wires up Razor pages options in DI.
   - Tags: (none)
   - Source: [tests/Bravellian.Platform.Tests/Modularity/RazorPagesConfigurationTests.cs#L81](tests/Bravellian.Platform.Tests/Modularity/RazorPagesConfigurationTests.cs#L81)
 - **Bravellian.Platform.Tests:Bravellian.Platform.Tests.Modularity.RazorPagesConfigurationTests.ConfigureRazorModulePages_registers_application_parts**
@@ -51,19 +51,19 @@ Total tests: 13
   - Summary: When an engine descriptor factory returns null, then ResolveEngine throws and identifies the module/engine key.
   - Intent: Guard against null engine factories during discovery resolution.
   - Tags: (none)
-  - Source: [tests/Bravellian.Platform.Tests/Modularity/RequiredServiceValidationTests.cs#L144](tests/Bravellian.Platform.Tests/Modularity/RequiredServiceValidationTests.cs#L144)
+  - Source: [tests/Bravellian.Platform.Tests/Modularity/RequiredServiceValidationTests.cs#L145](tests/Bravellian.Platform.Tests/Modularity/RequiredServiceValidationTests.cs#L145)
 - **Bravellian.Platform.Tests:Bravellian.Platform.Tests.Modularity.RequiredServiceValidationTests.Ui_adapter_executes_when_required_services_are_satisfied**
   - Summary: When required services are satisfied, then ExecuteAsync returns the engine result.
   - Intent: Confirm successful execution when required services are available.
   - Tags: (none)
-  - Source: [tests/Bravellian.Platform.Tests/Modularity/RequiredServiceValidationTests.cs#L110](tests/Bravellian.Platform.Tests/Modularity/RequiredServiceValidationTests.cs#L110)
+  - Source: [tests/Bravellian.Platform.Tests/Modularity/RequiredServiceValidationTests.cs#L111](tests/Bravellian.Platform.Tests/Modularity/RequiredServiceValidationTests.cs#L111)
 - **Bravellian.Platform.Tests:Bravellian.Platform.Tests.Modularity.RequiredServiceValidationTests.Ui_adapter_requires_required_service_validator_when_engine_declares_required_services**
   - Summary: When a UI engine declares required services and no validator is registered, then ExecuteAsync fails and mentions IRequiredServiceValidator.
   - Intent: Ensure required service validation is enforced when engines declare dependencies.
   - Tags: (none)
-  - Source: [tests/Bravellian.Platform.Tests/Modularity/RequiredServiceValidationTests.cs#L40](tests/Bravellian.Platform.Tests/Modularity/RequiredServiceValidationTests.cs#L40)
+  - Source: [tests/Bravellian.Platform.Tests/Modularity/RequiredServiceValidationTests.cs#L41](tests/Bravellian.Platform.Tests/Modularity/RequiredServiceValidationTests.cs#L41)
 - **Bravellian.Platform.Tests:Bravellian.Platform.Tests.Modularity.RequiredServiceValidationTests.Ui_adapter_throws_when_required_services_are_missing**
   - Summary: When required services are missing, then ExecuteAsync throws with missing service details.
   - Intent: Validate that required service checks surface missing dependencies in the error message.
   - Tags: (none)
-  - Source: [tests/Bravellian.Platform.Tests/Modularity/RequiredServiceValidationTests.cs#L74](tests/Bravellian.Platform.Tests/Modularity/RequiredServiceValidationTests.cs#L74)
+  - Source: [tests/Bravellian.Platform.Tests/Modularity/RequiredServiceValidationTests.cs#L75](tests/Bravellian.Platform.Tests/Modularity/RequiredServiceValidationTests.cs#L75)

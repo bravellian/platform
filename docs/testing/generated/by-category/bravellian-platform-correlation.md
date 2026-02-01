@@ -1,0 +1,44 @@
+# Bravellian.Platform.Correlation
+
+Total tests: 8
+
+- **Bravellian.Platform.Correlation.Tests:Bravellian.Platform.Correlation.Tests.CorrelationModelTests.AmbientAccessorFlowsAcrossAsync**
+  - Summary: When ambient Accessor Flows Across Async, then it behaves as expected.
+  - Intent: Document expected behavior for ambient Accessor Flows Across Async.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Correlation.Tests/CorrelationModelTests.cs#L93](tests/Bravellian.Platform.Correlation.Tests/CorrelationModelTests.cs#L93)
+- **Bravellian.Platform.Correlation.Tests:Bravellian.Platform.Correlation.Tests.CorrelationModelTests.AmbientAccessorStoresContext**
+  - Summary: When ambient Accessor Stores Context, then it behaves as expected.
+  - Intent: Document expected behavior for ambient Accessor Stores Context.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Correlation.Tests/CorrelationModelTests.cs#L73](tests/Bravellian.Platform.Correlation.Tests/CorrelationModelTests.cs#L73)
+- **Bravellian.Platform.Correlation.Tests:Bravellian.Platform.Correlation.Tests.CorrelationModelTests.CorrelationIdRequiresValue**
+  - Summary: When correlation Id Requires Value, then it behaves as expected.
+  - Intent: Document expected behavior for correlation Id Requires Value.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Correlation.Tests/CorrelationModelTests.cs#L26](tests/Bravellian.Platform.Correlation.Tests/CorrelationModelTests.cs#L26)
+- **Bravellian.Platform.Correlation.Tests:Bravellian.Platform.Correlation.Tests.CorrelationModelTests.CorrelationIdTryParseRejectsEmpty**
+  - Summary: When correlation Id Try Parse Rejects Empty, then it behaves as expected.
+  - Intent: Document expected behavior for correlation Id Try Parse Rejects Empty.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Correlation.Tests/CorrelationModelTests.cs#L36](tests/Bravellian.Platform.Correlation.Tests/CorrelationModelTests.cs#L36)
+- **Bravellian.Platform.Correlation.Tests:Bravellian.Platform.Correlation.Tests.CorrelationModelTests.GeneratorCanBeDeterministic**
+  - Summary: When generator Can Be Deterministic, then it behaves as expected.
+  - Intent: Document expected behavior for generator Can Be Deterministic.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Correlation.Tests/CorrelationModelTests.cs#L60](tests/Bravellian.Platform.Correlation.Tests/CorrelationModelTests.cs#L60)
+- **Bravellian.Platform.Correlation.Tests:Bravellian.Platform.Correlation.Tests.CorrelationModelTests.GeneratorReturnsValue**
+  - Summary: When generator Returns Value, then it behaves as expected.
+  - Intent: Document expected behavior for generator Returns Value.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Correlation.Tests/CorrelationModelTests.cs#L47](tests/Bravellian.Platform.Correlation.Tests/CorrelationModelTests.cs#L47)
+- **Bravellian.Platform.Correlation.Tests:Bravellian.Platform.Correlation.Tests.CorrelationModelTests.ScopeRestoresPreviousContext**
+  - Summary: When scope Restores Previous Context, then it behaves as expected.
+  - Intent: Document expected behavior for scope Restores Previous Context.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Correlation.Tests/CorrelationModelTests.cs#L116](tests/Bravellian.Platform.Correlation.Tests/CorrelationModelTests.cs#L116)
+- **Bravellian.Platform.Correlation.Tests:Bravellian.Platform.Correlation.Tests.CorrelationModelTests.SerializerRoundTrips**
+  - Summary: When serializer Round Trips, then it behaves as expected.
+  - Intent: Document expected behavior for serializer Round Trips.
+  - Tags: (none)
+  - Source: [tests/Bravellian.Platform.Correlation.Tests/CorrelationModelTests.cs#L147](tests/Bravellian.Platform.Correlation.Tests/CorrelationModelTests.cs#L147)

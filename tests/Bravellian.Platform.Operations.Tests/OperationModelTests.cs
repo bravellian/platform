@@ -19,6 +19,10 @@ namespace Bravellian.Platform.Operations.Tests;
 
 public sealed class OperationModelTests
 {
+    /// <summary>When start Update Complete Transitions, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for start Update Complete Transitions.</intent>
+    /// <scenario>Given start Update Complete Transitions.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task StartUpdateCompleteTransitions()
     {
@@ -59,6 +63,10 @@ public sealed class OperationModelTests
         completed.Message.ShouldBe("Done");
     }
 
+    /// <summary>When scope Completes On Success, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for scope Completes On Success.</intent>
+    /// <scenario>Given scope Completes On Success.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task ScopeCompletesOnSuccess()
     {
@@ -74,6 +82,10 @@ public sealed class OperationModelTests
         snapshot!.Status.ShouldBe(OperationStatus.Succeeded);
     }
 
+    /// <summary>When scope Records Failure On Dispose, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for scope Records Failure On Dispose.</intent>
+    /// <scenario>Given scope Records Failure On Dispose.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task ScopeRecordsFailureOnDispose()
     {
@@ -90,6 +102,10 @@ public sealed class OperationModelTests
         tracker.Events.ShouldContain(evt => evt.Kind == "Error" && evt.Message == "boom");
     }
 
+    /// <summary>When run Async Completes And Propagates Failure, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for run Async Completes And Propagates Failure.</intent>
+    /// <scenario>Given run Async Completes And Propagates Failure.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task RunAsyncCompletesAndPropagatesFailure()
     {
@@ -107,6 +123,10 @@ public sealed class OperationModelTests
         snapshot!.Status.ShouldBe(OperationStatus.Failed);
     }
 
+    /// <summary>When watcher Contract Returns Snapshots, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for watcher Contract Returns Snapshots.</intent>
+    /// <scenario>Given watcher Contract Returns Snapshots.</scenario>
+    /// <behavior>Then the operation matches the expected outcome.</behavior>
     [Fact]
     public async Task WatcherContractReturnsSnapshots()
     {
