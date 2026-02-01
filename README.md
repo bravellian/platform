@@ -99,7 +99,7 @@ Package-specific READMEs live under `src/Bravellian.Platform.*`.
 
 - Tests live in `tests/Bravellian.Platform.Tests/` and related projects.
 - `tests/Bravellian.Platform.SmokeWeb/` is a minimal ASP.NET Core UI for exercising outbox/inbox/scheduler/fanout/leases.
-- `tests/Bravellian.Platform.SmokeWeb.AppHost/` is an Aspire app host that can spin up SQL Server and Postgres containers.
+- `tests/Bravellian.Platform.Smoke.AppHost/` is an Aspire app host that can spin up SQL Server and Postgres containers.
 
 ## Contributing
 
