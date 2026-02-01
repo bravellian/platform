@@ -1731,7 +1731,26 @@ internal static class DatabaseSchemaManager
               CONSTRAINT PK_MetricPointHourly PRIMARY KEY NONCLUSTERED (SeriesId, BucketStartUtc, BucketSecs)
             );
 
-            CREATE CLUSTERED COLUMNSTORE INDEX CCI_MetricPointHourly ON [{schemaName}].[MetricPointHourly];
+            BEGIN TRY
+              CREATE CLUSTERED COLUMNSTORE INDEX CCI_MetricPointHourly ON [{schemaName}].[MetricPointHourly];
+            END TRY
+            BEGIN CATCH
+              IF ERROR_NUMBER() = 40536
+              BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM sys.indexes
+                    WHERE name = 'IX_MetricPointHourly_ByTime'
+                      AND object_id = OBJECT_ID(N'[{schemaName}].[MetricPointHourly]', N'U'))
+                BEGIN
+                  CREATE INDEX IX_MetricPointHourly_ByTime ON [{schemaName}].[MetricPointHourly] (BucketStartUtc)
+                    INCLUDE (SeriesId, ValueSum, ValueCount, P95);
+                END
+              END
+              ELSE
+              BEGIN
+                THROW;
+              END
+            END CATCH
             """;
     }
 

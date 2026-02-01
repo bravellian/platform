@@ -128,7 +128,26 @@ IF NOT EXISTS (
     WHERE name = 'CCI_MetricPointHourly'
       AND object_id = OBJECT_ID(N'[$SchemaName$].MetricPointHourly', N'U'))
 BEGIN
-    CREATE CLUSTERED COLUMNSTORE INDEX CCI_MetricPointHourly ON [$SchemaName$].MetricPointHourly;
+    BEGIN TRY
+        CREATE CLUSTERED COLUMNSTORE INDEX CCI_MetricPointHourly ON [$SchemaName$].MetricPointHourly;
+    END TRY
+    BEGIN CATCH
+        IF ERROR_NUMBER() = 40536
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM sys.indexes
+                WHERE name = 'IX_MetricPointHourly_ByTime'
+                  AND object_id = OBJECT_ID(N'[$SchemaName$].MetricPointHourly', N'U'))
+            BEGIN
+                CREATE INDEX IX_MetricPointHourly_ByTime ON [$SchemaName$].MetricPointHourly (BucketStartUtc)
+                    INCLUDE (SeriesId, ValueSum, ValueCount, P95);
+            END
+        END
+        ELSE
+        BEGIN
+            THROW;
+        END
+    END CATCH
 END
 GO
 
