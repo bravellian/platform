@@ -33,10 +33,15 @@ public sealed class SmokeRun
         var stepNames = new[]
         {
             SmokeStepNames.Lease,
+            SmokeStepNames.LeaseStorm,
             SmokeStepNames.Outbox,
             SmokeStepNames.Inbox,
             SmokeStepNames.Scheduler,
-            SmokeStepNames.Fanout,
+            SmokeStepNames.FanoutSmall,
+            SmokeStepNames.FanoutBurst,
+            SmokeStepNames.Idempotency,
+            SmokeStepNames.Operations,
+            SmokeStepNames.Audit,
         };
 
         return new SmokeRun(Guid.NewGuid().ToString("N"), provider, startedAtUtc, stepNames);

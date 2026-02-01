@@ -13,6 +13,7 @@
 // limitations under the License.
 
 
+using Bravellian.Platform.Metrics;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -27,7 +28,9 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
     private readonly IOptionsMonitor<PostgresOutboxOptions> outboxOptions;
     private readonly IOptionsMonitor<PostgresSchedulerOptions> schedulerOptions;
     private readonly IOptionsMonitor<PostgresInboxOptions> inboxOptions;
+    private readonly IOptionsMonitor<PostgresFanoutOptions> fanoutOptions;
     private readonly IOptionsMonitor<PostgresIdempotencyOptions> idempotencyOptions;
+    private readonly IOptionsMonitor<PostgresMetricsExporterOptions> metricsOptions;
     private readonly IOptionsMonitor<PostgresOperationOptions> operationOptions;
     private readonly IOptionsMonitor<PostgresAuditOptions> auditOptions;
     private readonly IOptionsMonitor<PostgresEmailOutboxOptions> emailOutboxOptions;
@@ -43,7 +46,9 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
         IOptionsMonitor<PostgresOutboxOptions> outboxOptions,
         IOptionsMonitor<PostgresSchedulerOptions> schedulerOptions,
         IOptionsMonitor<PostgresInboxOptions> inboxOptions,
+        IOptionsMonitor<PostgresFanoutOptions> fanoutOptions,
         IOptionsMonitor<PostgresIdempotencyOptions> idempotencyOptions,
+        IOptionsMonitor<PostgresMetricsExporterOptions> metricsOptions,
         IOptionsMonitor<PostgresOperationOptions> operationOptions,
         IOptionsMonitor<PostgresAuditOptions> auditOptions,
         IOptionsMonitor<PostgresEmailOutboxOptions> emailOutboxOptions,
@@ -58,7 +63,9 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
         this.outboxOptions = outboxOptions;
         this.schedulerOptions = schedulerOptions;
         this.inboxOptions = inboxOptions;
+        this.fanoutOptions = fanoutOptions;
         this.idempotencyOptions = idempotencyOptions;
+        this.metricsOptions = metricsOptions;
         this.operationOptions = operationOptions;
         this.auditOptions = auditOptions;
         this.emailOutboxOptions = emailOutboxOptions;
@@ -123,6 +130,27 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
                 if (inboxOpts.EnableSchemaDeployment && !string.IsNullOrEmpty(inboxOpts.ConnectionString))
                 {
                     deploymentTasks.Add(DeployInboxSchemaAsync(inboxOpts, stoppingToken));
+                }
+
+                var fanoutOpts = fanoutOptions.CurrentValue;
+                if (fanoutOpts.EnableSchemaDeployment && !string.IsNullOrEmpty(fanoutOpts.ConnectionString))
+                {
+                    deploymentTasks.Add(DeployFanoutSchemaAsync(fanoutOpts, stoppingToken));
+                }
+
+                var metricsOpts = metricsOptions.CurrentValue;
+                if (metricsOpts.Enabled)
+                {
+                    var metricsConnection = GetPrimaryConnectionString();
+                    if (!string.IsNullOrWhiteSpace(metricsConnection))
+                    {
+                        deploymentTasks.Add(DeployMetricsSchemaAsync(metricsConnection, metricsOpts, stoppingToken));
+                    }
+
+                    if (metricsOpts.EnableCentralRollup && !string.IsNullOrWhiteSpace(metricsOpts.CentralConnectionString))
+                    {
+                        deploymentTasks.Add(DeployCentralMetricsSchemaAsync(metricsOpts, stoppingToken));
+                    }
                 }
 
                 var idempotencyOpts = idempotencyOptions.CurrentValue;
@@ -279,6 +307,106 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
             options.SchemaName).ConfigureAwait(false);
     }
 
+    private async Task DeployFanoutSchemaAsync(PostgresFanoutOptions options, CancellationToken cancellationToken)
+    {
+        logger.LogDebug(
+            "Deploying fanout schema to {Schema} with tables {PolicyTable}, {CursorTable}",
+            options.SchemaName,
+            options.PolicyTableName,
+            options.CursorTableName);
+        await DatabaseSchemaManager.EnsureFanoutSchemaAsync(
+            options.ConnectionString,
+            options.SchemaName,
+            options.PolicyTableName,
+            options.CursorTableName).ConfigureAwait(false);
+    }
+
+    private async Task DeployMetricsSchemaAsync(
+        string connectionString,
+        PostgresMetricsExporterOptions options,
+        CancellationToken cancellationToken)
+    {
+        logger.LogDebug("Deploying metrics schema to {Schema}", options.SchemaName);
+        await DatabaseSchemaManager.EnsureMetricsSchemaAsync(
+            connectionString,
+            options.SchemaName).ConfigureAwait(false);
+    }
+
+    private async Task DeployCentralMetricsSchemaAsync(
+        PostgresMetricsExporterOptions options,
+        CancellationToken cancellationToken)
+    {
+        logger.LogDebug("Deploying central metrics schema to {Schema}", options.SchemaName);
+        await DatabaseSchemaManager.EnsureCentralMetricsSchemaAsync(
+            options.CentralConnectionString!,
+            options.SchemaName).ConfigureAwait(false);
+    }
+
+    private string? GetPrimaryConnectionString()
+    {
+        var outbox = outboxOptions.CurrentValue.ConnectionString;
+        if (!string.IsNullOrWhiteSpace(outbox))
+        {
+            return outbox;
+        }
+
+        var scheduler = schedulerOptions.CurrentValue.ConnectionString;
+        if (!string.IsNullOrWhiteSpace(scheduler))
+        {
+            return scheduler;
+        }
+
+        var inbox = inboxOptions.CurrentValue.ConnectionString;
+        if (!string.IsNullOrWhiteSpace(inbox))
+        {
+            return inbox;
+        }
+
+        var fanout = fanoutOptions.CurrentValue.ConnectionString;
+        if (!string.IsNullOrWhiteSpace(fanout))
+        {
+            return fanout;
+        }
+
+        var idempotency = idempotencyOptions.CurrentValue.ConnectionString;
+        if (!string.IsNullOrWhiteSpace(idempotency))
+        {
+            return idempotency;
+        }
+
+        var operations = operationOptions.CurrentValue.ConnectionString;
+        if (!string.IsNullOrWhiteSpace(operations))
+        {
+            return operations;
+        }
+
+        var audit = auditOptions.CurrentValue.ConnectionString;
+        if (!string.IsNullOrWhiteSpace(audit))
+        {
+            return audit;
+        }
+
+        var emailOutbox = emailOutboxOptions.CurrentValue.ConnectionString;
+        if (!string.IsNullOrWhiteSpace(emailOutbox))
+        {
+            return emailOutbox;
+        }
+
+        var emailDelivery = emailDeliveryOptions.CurrentValue.ConnectionString;
+        if (!string.IsNullOrWhiteSpace(emailDelivery))
+        {
+            return emailDelivery;
+        }
+
+        var leases = systemLeaseOptions.CurrentValue.ConnectionString;
+        if (!string.IsNullOrWhiteSpace(leases))
+        {
+            return leases;
+        }
+
+        return null;
+    }
+
     private async Task DeployIdempotencySchemaAsync(PostgresIdempotencyOptions options, CancellationToken cancellationToken)
     {
         logger.LogDebug("Deploying idempotency schema to {Schema}.{Table}", options.SchemaName, options.TableName);
@@ -373,8 +501,6 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
             schemaName).ConfigureAwait(false);
     }
 }
-
-
 
 
 

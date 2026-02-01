@@ -76,7 +76,7 @@ internal sealed class PostgresLease : ISystemLease
 
         renewTimer = new Timer(RenewTimerCallback, null, renewInterval, renewInterval);
 
-        this.logger.LogInformation(
+        this.logger.LogDebug(
             "Acquired lease for resource '{ResourceName}' with owner token '{OwnerToken}' and fencing token {FencingToken}",
             resourceName, ownerToken, fencingToken);
     }

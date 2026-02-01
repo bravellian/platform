@@ -11,5 +11,6 @@
     <ProjectReference Include="..\..\src\Bravellian.Platform.SqlServer\Bravellian.Platform.SqlServer.csproj" />
     <ProjectReference Include="..\..\src\Bravellian.Platform.Postgres\Bravellian.Platform.Postgres.csproj" />
     <ProjectReference Include="..\..\src\Bravellian.Platform.InMemory\Bravellian.Platform.InMemory.csproj" />
+    <ProjectReference Include="..\Bravellian.Platform.Smoke.ServiceDefaults\Bravellian.Platform.Smoke.ServiceDefaults.csproj" />
   </ItemGroup>
 </Project>

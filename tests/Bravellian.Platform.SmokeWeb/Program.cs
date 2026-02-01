@@ -4,6 +4,8 @@ using Bravellian.Platform.SmokeWeb.Smoke;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddServiceDefaults();
+
 builder.Services.Configure<SmokeOptions>(builder.Configuration.GetSection("Smoke"));
 
 var smokeOptions = builder.Configuration.GetSection("Smoke").Get<SmokeOptions>() ?? new SmokeOptions();
@@ -84,6 +86,8 @@ builder.Services.AddSingleton(new SmokeRuntimeInfo
 builder.Services.AddSmokeServices();
 
 var app = builder.Build();
+
+app.MapDefaultEndpoints();
 
 app.MapGet("/", (SmokeRuntimeInfo info) =>
     Results.Content(BuildHomePage(info), "text/html"));

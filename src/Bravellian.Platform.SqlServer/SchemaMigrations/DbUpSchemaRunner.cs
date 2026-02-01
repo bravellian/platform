@@ -64,9 +64,18 @@ internal static class DbUpSchemaRunner
         CancellationToken cancellationToken)
     {
         var sql = """
-            IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = @SchemaName)
+            IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE LOWER(name) = LOWER(@SchemaName))
             BEGIN
-                EXEC('CREATE SCHEMA [' + @SchemaName + ']');
+                BEGIN TRY
+                    DECLARE @sql nvarchar(4000) = N'CREATE SCHEMA ' + QUOTENAME(@SchemaName);
+                    EXEC sp_executesql @sql;
+                END TRY
+                BEGIN CATCH
+                    IF EXISTS (SELECT 1 FROM sys.schemas WHERE LOWER(name) = LOWER(@SchemaName))
+                        RETURN;
+
+                    THROW;
+                END CATCH
             END
             """;
 
@@ -118,4 +127,3 @@ internal static class DbUpSchemaRunner
         }
     }
 }
-

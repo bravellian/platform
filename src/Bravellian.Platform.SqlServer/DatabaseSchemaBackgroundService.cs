@@ -13,6 +13,7 @@
 // limitations under the License.
 
 
+using Bravellian.Platform.Metrics;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -27,7 +28,9 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
     private readonly IOptionsMonitor<SqlOutboxOptions> outboxOptions;
     private readonly IOptionsMonitor<SqlSchedulerOptions> schedulerOptions;
     private readonly IOptionsMonitor<SqlInboxOptions> inboxOptions;
+    private readonly IOptionsMonitor<SqlFanoutOptions> fanoutOptions;
     private readonly IOptionsMonitor<SqlIdempotencyOptions> idempotencyOptions;
+    private readonly IOptionsMonitor<MetricsExporterOptions> metricsOptions;
     private readonly IOptionsMonitor<SqlEmailOutboxOptions> emailOutboxOptions;
     private readonly IOptionsMonitor<SystemLeaseOptions> systemLeaseOptions;
     private readonly DatabaseSchemaCompletion schemaCompletion;
@@ -40,7 +43,9 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
         IOptionsMonitor<SqlOutboxOptions> outboxOptions,
         IOptionsMonitor<SqlSchedulerOptions> schedulerOptions,
         IOptionsMonitor<SqlInboxOptions> inboxOptions,
+        IOptionsMonitor<SqlFanoutOptions> fanoutOptions,
         IOptionsMonitor<SqlIdempotencyOptions> idempotencyOptions,
+        IOptionsMonitor<MetricsExporterOptions> metricsOptions,
         IOptionsMonitor<SqlEmailOutboxOptions> emailOutboxOptions,
         IOptionsMonitor<SystemLeaseOptions> systemLeaseOptions,
         DatabaseSchemaCompletion schemaCompletion,
@@ -52,7 +57,9 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
         this.outboxOptions = outboxOptions;
         this.schedulerOptions = schedulerOptions;
         this.inboxOptions = inboxOptions;
+        this.fanoutOptions = fanoutOptions;
         this.idempotencyOptions = idempotencyOptions;
+        this.metricsOptions = metricsOptions;
         this.emailOutboxOptions = emailOutboxOptions;
         this.systemLeaseOptions = systemLeaseOptions;
         this.schemaCompletion = schemaCompletion;
@@ -114,6 +121,27 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
                 if (inboxOpts.EnableSchemaDeployment && !string.IsNullOrEmpty(inboxOpts.ConnectionString))
                 {
                     deploymentTasks.Add(DeployInboxSchemaAsync(inboxOpts, stoppingToken));
+                }
+
+                var fanoutOpts = fanoutOptions.CurrentValue;
+                if (fanoutOpts.EnableSchemaDeployment && !string.IsNullOrEmpty(fanoutOpts.ConnectionString))
+                {
+                    deploymentTasks.Add(DeployFanoutSchemaAsync(fanoutOpts, stoppingToken));
+                }
+
+                var metricsOpts = metricsOptions.CurrentValue;
+                if (metricsOpts.Enabled)
+                {
+                    var metricsConnection = GetPrimaryConnectionString();
+                    if (!string.IsNullOrWhiteSpace(metricsConnection))
+                    {
+                        deploymentTasks.Add(DeployMetricsSchemaAsync(metricsConnection, metricsOpts, stoppingToken));
+                    }
+
+                    if (metricsOpts.EnableCentralRollup && !string.IsNullOrWhiteSpace(metricsOpts.CentralConnectionString))
+                    {
+                        deploymentTasks.Add(DeployCentralMetricsSchemaAsync(metricsOpts, stoppingToken));
+                    }
                 }
 
                 var idempotencyOpts = idempotencyOptions.CurrentValue;
@@ -255,6 +283,88 @@ internal sealed class DatabaseSchemaBackgroundService : BackgroundService
         await DatabaseSchemaManager.EnsureInboxWorkQueueSchemaAsync(
             options.ConnectionString,
             options.SchemaName).ConfigureAwait(false);
+    }
+
+    private async Task DeployFanoutSchemaAsync(SqlFanoutOptions options, CancellationToken cancellationToken)
+    {
+        logger.LogDebug(
+            "Deploying fanout schema to {Schema} with tables {PolicyTable}, {CursorTable}",
+            options.SchemaName,
+            options.PolicyTableName,
+            options.CursorTableName);
+        await DatabaseSchemaManager.EnsureFanoutSchemaAsync(
+            options.ConnectionString,
+            options.SchemaName,
+            options.PolicyTableName,
+            options.CursorTableName).ConfigureAwait(false);
+    }
+
+    private async Task DeployMetricsSchemaAsync(
+        string connectionString,
+        MetricsExporterOptions options,
+        CancellationToken cancellationToken)
+    {
+        logger.LogDebug("Deploying metrics schema to {Schema}", options.SchemaName);
+        await DatabaseSchemaManager.EnsureMetricsSchemaAsync(
+            connectionString,
+            options.SchemaName).ConfigureAwait(false);
+    }
+
+    private async Task DeployCentralMetricsSchemaAsync(
+        MetricsExporterOptions options,
+        CancellationToken cancellationToken)
+    {
+        logger.LogDebug("Deploying central metrics schema to {Schema}", options.SchemaName);
+        await DatabaseSchemaManager.EnsureCentralMetricsSchemaAsync(
+            options.CentralConnectionString!,
+            options.SchemaName).ConfigureAwait(false);
+    }
+
+    private string? GetPrimaryConnectionString()
+    {
+        var outbox = outboxOptions.CurrentValue.ConnectionString;
+        if (!string.IsNullOrWhiteSpace(outbox))
+        {
+            return outbox;
+        }
+
+        var scheduler = schedulerOptions.CurrentValue.ConnectionString;
+        if (!string.IsNullOrWhiteSpace(scheduler))
+        {
+            return scheduler;
+        }
+
+        var inbox = inboxOptions.CurrentValue.ConnectionString;
+        if (!string.IsNullOrWhiteSpace(inbox))
+        {
+            return inbox;
+        }
+
+        var fanout = fanoutOptions.CurrentValue.ConnectionString;
+        if (!string.IsNullOrWhiteSpace(fanout))
+        {
+            return fanout;
+        }
+
+        var idempotency = idempotencyOptions.CurrentValue.ConnectionString;
+        if (!string.IsNullOrWhiteSpace(idempotency))
+        {
+            return idempotency;
+        }
+
+        var emailOutbox = emailOutboxOptions.CurrentValue.ConnectionString;
+        if (!string.IsNullOrWhiteSpace(emailOutbox))
+        {
+            return emailOutbox;
+        }
+
+        var leases = systemLeaseOptions.CurrentValue.ConnectionString;
+        if (!string.IsNullOrWhiteSpace(leases))
+        {
+            return leases;
+        }
+
+        return null;
     }
 
     private async Task DeployIdempotencySchemaAsync(SqlIdempotencyOptions options, CancellationToken cancellationToken)

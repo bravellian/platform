@@ -44,7 +44,7 @@ if (pgDb != null)
         .WaitFor(pgDb);
 }
 
-builder.Build().Run();
+await builder.Build().RunAsync();
 
 static bool GetBool(string? value, bool defaultValue)
 {

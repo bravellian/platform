@@ -1,6 +1,15 @@
-IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = '$SchemaName$')
+IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE LOWER(name) = LOWER('$SchemaName$'))
 BEGIN
-    EXEC('CREATE SCHEMA [$SchemaName$]');
+    BEGIN TRY
+        DECLARE @schemaSql NVARCHAR(4000) = N'CREATE SCHEMA ' + QUOTENAME('$SchemaName$');
+        EXEC sp_executesql @schemaSql;
+    END TRY
+    BEGIN CATCH
+        IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE LOWER(name) = LOWER('$SchemaName$'))
+        BEGIN
+            THROW;
+        END
+    END CATCH
 END
 GO
 

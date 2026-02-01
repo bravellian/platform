@@ -24,9 +24,11 @@ internal class SqlSchedulerService : BackgroundService
     private readonly ISystemLeaseFactory leaseFactory;
     private readonly IOutbox outbox;
     private readonly IDatabaseSchemaCompletion? schemaCompletion;
+    private readonly IStartupLatch? startupLatch;
     private readonly string connectionString;
     private readonly SqlSchedulerOptions options;
     private readonly TimeProvider timeProvider;
+    private readonly TimeSpan startupLatchPollInterval = TimeSpan.FromMilliseconds(250);
 
     // This is the key tunable parameter.
     private readonly TimeSpan maxWaitTime = TimeSpan.FromSeconds(30);
@@ -45,11 +47,13 @@ internal class SqlSchedulerService : BackgroundService
         IOutboxStoreProvider outboxStoreProvider,
         SqlSchedulerOptions options,
         TimeProvider timeProvider,
-        IDatabaseSchemaCompletion? schemaCompletion = null)
+        IDatabaseSchemaCompletion? schemaCompletion = null,
+        IStartupLatch? startupLatch = null)
     {
         this.leaseFactory = leaseFactory;
         outbox = ResolveOutbox(outboxRouter, outboxStoreProvider);
         this.schemaCompletion = schemaCompletion;
+        this.startupLatch = startupLatch;
         this.options = options;
         connectionString = options.ConnectionString;
         this.timeProvider = timeProvider;
@@ -130,6 +134,8 @@ internal class SqlSchedulerService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        await WaitForStartupLatchAsync(stoppingToken).ConfigureAwait(false);
+
         // Wait for schema deployment to complete if available
         if (schemaCompletion != null)
         {
@@ -148,6 +154,19 @@ internal class SqlSchedulerService : BackgroundService
         {
             await SchedulerLoopAsync(stoppingToken).ConfigureAwait(false);
             await Task.Delay(30_000, stoppingToken).ConfigureAwait(false); // Poll every 30 seconds
+        }
+    }
+
+    private async Task WaitForStartupLatchAsync(CancellationToken cancellationToken)
+    {
+        if (startupLatch == null)
+        {
+            return;
+        }
+
+        while (!startupLatch.IsReady)
+        {
+            await Task.Delay(startupLatchPollInterval, cancellationToken).ConfigureAwait(false);
         }
     }
 

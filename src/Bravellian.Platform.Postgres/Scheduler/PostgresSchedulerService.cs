@@ -26,11 +26,13 @@ internal sealed class PostgresSchedulerService : BackgroundService
     private readonly ISystemLeaseFactory leaseFactory;
     private readonly IOutbox outbox;
     private readonly IDatabaseSchemaCompletion? schemaCompletion;
+    private readonly IStartupLatch? startupLatch;
     private readonly string connectionString;
     private readonly PostgresSchedulerOptions options;
     private readonly TimeProvider timeProvider;
 
     private readonly TimeSpan maxWaitTime = TimeSpan.FromSeconds(30);
+    private readonly TimeSpan startupLatchPollInterval = TimeSpan.FromMilliseconds(250);
     private readonly string instanceId = $"{Environment.MachineName}:{Guid.NewGuid()}";
 
     private readonly string jobsTable;
@@ -49,11 +51,13 @@ internal sealed class PostgresSchedulerService : BackgroundService
         IOutboxStoreProvider outboxStoreProvider,
         PostgresSchedulerOptions options,
         TimeProvider timeProvider,
-        IDatabaseSchemaCompletion? schemaCompletion = null)
+        IDatabaseSchemaCompletion? schemaCompletion = null,
+        IStartupLatch? startupLatch = null)
     {
         this.leaseFactory = leaseFactory;
         outbox = ResolveOutbox(outboxRouter, outboxStoreProvider);
         this.schemaCompletion = schemaCompletion;
+        this.startupLatch = startupLatch;
         this.options = options;
         connectionString = options.ConnectionString;
         this.timeProvider = timeProvider;
@@ -135,6 +139,8 @@ internal sealed class PostgresSchedulerService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        await WaitForStartupLatchAsync(stoppingToken).ConfigureAwait(false);
+
         if (schemaCompletion != null)
         {
             try
@@ -151,6 +157,19 @@ internal sealed class PostgresSchedulerService : BackgroundService
         {
             await SchedulerLoopAsync(stoppingToken).ConfigureAwait(false);
             await Task.Delay(30_000, stoppingToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task WaitForStartupLatchAsync(CancellationToken cancellationToken)
+    {
+        if (startupLatch == null)
+        {
+            return;
+        }
+
+        while (!startupLatch.IsReady)
+        {
+            await Task.Delay(startupLatchPollInterval, cancellationToken).ConfigureAwait(false);
         }
     }
 

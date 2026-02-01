@@ -8,20 +8,23 @@ internal sealed class SmokeFanoutSliceHandler : IOutboxHandler
     private readonly SmokeTestSignals signals;
     private readonly SmokeFanoutRepositories repositories;
     private readonly TimeProvider timeProvider;
+    private readonly string topic;
 
     public SmokeFanoutSliceHandler(
         SmokeTestState state,
         SmokeTestSignals signals,
         SmokeFanoutRepositories repositories,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        string topic)
     {
         this.state = state ?? throw new ArgumentNullException(nameof(state));
         this.signals = signals ?? throw new ArgumentNullException(nameof(signals));
         this.repositories = repositories ?? throw new ArgumentNullException(nameof(repositories));
         this.timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
+        this.topic = topic ?? throw new ArgumentNullException(nameof(topic));
     }
 
-    public string Topic => SmokeFanoutDefaults.SliceTopic;
+    public string Topic => topic;
 
     public async Task HandleAsync(OutboxMessage message, CancellationToken cancellationToken)
     {
@@ -43,7 +46,11 @@ internal sealed class SmokeFanoutSliceHandler : IOutboxHandler
         var runId = state.GetActiveRunId();
         if (!string.IsNullOrWhiteSpace(runId))
         {
-            signals.Signal(runId, SmokeStepNames.Fanout, "Processed fanout slice.");
+            var stepName = SmokeFanoutDefaults.ResolveStepName(slice.workKey);
+            if (!string.IsNullOrWhiteSpace(stepName))
+            {
+                signals.Signal(runId, stepName, $"Processed fanout slice ({slice.workKey}/{slice.shardKey}).");
+            }
         }
     }
 }

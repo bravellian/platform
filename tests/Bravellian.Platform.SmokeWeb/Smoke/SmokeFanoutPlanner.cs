@@ -25,7 +25,13 @@ internal sealed class SmokeFanoutPlanner : IFanoutPlanner
             return Array.Empty<FanoutSlice>();
         }
 
-        if (workKey is not null && !string.Equals(workKey, SmokeFanoutDefaults.WorkKey, StringComparison.OrdinalIgnoreCase))
+        if (workKey is null)
+        {
+            return Array.Empty<FanoutSlice>();
+        }
+
+        if (!string.Equals(workKey, SmokeFanoutDefaults.WorkKey, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(workKey, SmokeFanoutDefaults.WorkKeyBurst, StringComparison.OrdinalIgnoreCase))
         {
             return Array.Empty<FanoutSlice>();
         }
@@ -33,33 +39,34 @@ internal sealed class SmokeFanoutPlanner : IFanoutPlanner
         var (policyRepository, cursorRepository) = await repositories.GetAsync(ct).ConfigureAwait(false);
         var (everySeconds, jitterSeconds) = await policyRepository.GetCadenceAsync(
             SmokeFanoutDefaults.FanoutTopic,
-            SmokeFanoutDefaults.WorkKey,
-            ct).ConfigureAwait(false);
-
-        var lastCompleted = await cursorRepository.GetLastAsync(
-            SmokeFanoutDefaults.FanoutTopic,
-            SmokeFanoutDefaults.WorkKey,
-            SmokeFanoutDefaults.ShardKey,
+            workKey,
             ct).ConfigureAwait(false);
 
         var now = timeProvider.GetUtcNow();
         _ = jitterSeconds;
         var spacing = TimeSpan.FromSeconds(Math.Max(0, everySeconds));
+        var shards = SmokeFanoutDefaults.GetShardKeys(workKey);
+        var slices = new List<FanoutSlice>(shards.Count);
 
-        if (lastCompleted is null || (now - lastCompleted) >= spacing)
+        foreach (var shardKey in shards)
         {
-            var correlationId = state.GetActiveRunId();
-            return new[]
+            var lastCompleted = await cursorRepository.GetLastAsync(
+                SmokeFanoutDefaults.FanoutTopic,
+                workKey,
+                shardKey,
+                ct).ConfigureAwait(false);
+
+            if (lastCompleted is null || (now - lastCompleted) >= spacing)
             {
-                new FanoutSlice(
+                slices.Add(new FanoutSlice(
                     SmokeFanoutDefaults.FanoutTopic,
-                    SmokeFanoutDefaults.ShardKey,
-                    SmokeFanoutDefaults.WorkKey,
+                    shardKey,
+                    workKey,
                     windowStart: lastCompleted,
-                    correlationId: correlationId),
-            };
+                    correlationId: state.GetActiveRunId()));
+            }
         }
 
-        return Array.Empty<FanoutSlice>();
+        return slices;
     }
 }

@@ -41,6 +41,11 @@
     <Project Path="src/Bravellian.Platform.Metrics.AspNetCore/Bravellian.Platform.Metrics.AspNetCore.csproj" />
     <Project Path="src/Bravellian.Platform.Metrics.HttpServer/Bravellian.Platform.Metrics.HttpServer.csproj" />
   </Folder>
+  <Folder Name="/tests/smoke/">
+    <Project Path="tests/Bravellian.Platform.Smoke.AppHost/Bravellian.Platform.Smoke.AppHost.csproj" Id="2ef1f535-a613-459d-9e9e-4edb11397283" />
+    <Project Path="tests/Bravellian.Platform.Smoke.ServiceDefaults/Bravellian.Platform.Smoke.ServiceDefaults.csproj" />
+    <Project Path="tests/Bravellian.Platform.SmokeWeb/Bravellian.Platform.SmokeWeb.csproj" />
+  </Folder>
   <Folder Name="/tools/">
     <Project Path="tools/observability/src/Bravellian.Platform.Observability.Analyzers/Bravellian.Platform.Observability.Analyzers.csproj" />
     <Project Path="tools/testdocs/src/Bravellian.TestDocs.Analyzers/Bravellian.TestDocs.Analyzers.csproj" />
@@ -65,8 +70,6 @@
     <Project Path="tests/Bravellian.Platform.Audit.Tests/Bravellian.Platform.Audit.Tests.csproj" />
     <Project Path="tests/Bravellian.Platform.Correlation.Tests/Bravellian.Platform.Correlation.Tests.csproj" />
     <Project Path="tests/Bravellian.Platform.Observability.Tests/Bravellian.Platform.Observability.Tests.csproj" />
-    <Project Path="tests/Bravellian.Platform.SmokeWeb/Bravellian.Platform.SmokeWeb.csproj" />
-    <Project Path="tests/Bravellian.Platform.SmokeWeb.AppHost/Bravellian.Platform.SmokeWeb.AppHost.csproj" />
   </Folder>
   <Folder Name="/_src/">
     <File Path=".editorconfig" />

@@ -1,10 +1,25 @@
-IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = '$SchemaName$')
+IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE LOWER(name) = LOWER('$SchemaName$'))
 BEGIN
-    EXEC('CREATE SCHEMA [$SchemaName$]');
+    BEGIN TRY
+        DECLARE @schemaSql NVARCHAR(4000) = N'CREATE SCHEMA ' + QUOTENAME('$SchemaName$');
+        EXEC sp_executesql @schemaSql;
+    END TRY
+    BEGIN CATCH
+        IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE LOWER(name) = LOWER('$SchemaName$'))
+        BEGIN
+            THROW;
+        END
+    END CATCH
 END
 GO
 
-IF TYPE_ID(N'[$SchemaName$].GuidIdList') IS NULL
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.types t
+    JOIN sys.schemas s ON s.schema_id = t.schema_id
+    WHERE t.is_table_type = 1
+      AND LOWER(s.name) = LOWER('$SchemaName$')
+      AND LOWER(t.name) = LOWER('GuidIdList'))
 BEGIN
     CREATE TYPE [$SchemaName$].GuidIdList AS TABLE (Id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY);
 END
