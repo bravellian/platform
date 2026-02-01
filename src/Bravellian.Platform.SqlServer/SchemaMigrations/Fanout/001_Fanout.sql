@@ -55,7 +55,6 @@ BEGIN
         LastCompletedAt DATETIMEOFFSET NULL,
         LastAttemptAt DATETIMEOFFSET NULL,
         LastAttemptStatus NVARCHAR(20) NULL,
-        NextAttemptAt DATETIMEOFFSET NULL,
         CreatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(),
         UpdatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(),
         CONSTRAINT PK_$CursorTable$ PRIMARY KEY (FanoutTopic, WorkKey, ShardKey)
