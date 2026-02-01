@@ -129,10 +129,12 @@ IF NOT EXISTS (
       AND object_id = OBJECT_ID(N'[$SchemaName$].MetricPointHourly', N'U'))
 BEGIN
     BEGIN TRY
-        CREATE CLUSTERED COLUMNSTORE INDEX CCI_MetricPointHourly ON [$SchemaName$].MetricPointHourly;
+        DECLARE @csSql NVARCHAR(MAX) = N'CREATE CLUSTERED COLUMNSTORE INDEX CCI_MetricPointHourly ON [$SchemaName$].MetricPointHourly;';
+        EXEC sp_executesql @csSql;
     END TRY
     BEGIN CATCH
-        IF ERROR_NUMBER() = 40536
+        IF ERROR_MESSAGE() LIKE '%COLUMNSTORE%'
+           OR ERROR_NUMBER() IN (40536, 35345, 35337, 35339)
         BEGIN
             IF NOT EXISTS (
                 SELECT 1 FROM sys.indexes

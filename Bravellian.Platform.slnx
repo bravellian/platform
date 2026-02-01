@@ -50,6 +50,7 @@
     <Project Path="tools/observability/src/Bravellian.Platform.Observability.Analyzers/Bravellian.Platform.Observability.Analyzers.csproj" />
     <Project Path="tools/testdocs/src/Bravellian.TestDocs.Analyzers/Bravellian.TestDocs.Analyzers.csproj" />
     <Project Path="tools/testdocs/src/TestDocs.Cli/TestDocs.Cli.csproj" />
+    <Project Path="tools/migrations/src/Bravellian.Platform.SchemaMigrations.Cli/Bravellian.Platform.SchemaMigrations.Cli.csproj" />
   </Folder>
   <Folder Name="/webhooks/">
     <Project Path="src/Bravellian.Platform.Webhooks/Bravellian.Platform.Webhooks.csproj" />

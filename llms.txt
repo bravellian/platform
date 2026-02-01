@@ -61,3 +61,4 @@ Tests use xUnit v3, Shouldly, and NSubstitute. Integration tests rely on Docker 
 ## Optional
 
 Advanced patterns: multi-database routing, fanout/join coordination, and internal work-queue mechanics.
+CLI tools: `tools/migrations` ships `bravellian-schema` for applying SQL Server/Postgres schema migrations from the command line.
