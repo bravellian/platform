@@ -182,8 +182,17 @@ internal sealed class MetricsExporterService : BackgroundService
             // Record to hourly aggregator if enabled
             if (_options.EnableCentralRollup && !string.IsNullOrEmpty(_options.CentralConnectionString))
             {
-                var hourlyAggregator = _hourlyAggregators.GetOrAdd(seriesKey, _ => new MetricAggregator(_options.ReservoirSize));
-                hourlyAggregator.Record(value);
+                if (databaseId is null)
+                {
+                    _logger.LogWarning(
+                        "Skipping central rollup for metric {MetricName} because database_id tag is missing.",
+                        metricName);
+                }
+                else
+                {
+                    var hourlyAggregator = _hourlyAggregators.GetOrAdd(seriesKey, _ => new MetricAggregator(_options.ReservoirSize));
+                    hourlyAggregator.Record(value);
+                }
             }
         }
         catch (Exception ex)

@@ -43,6 +43,7 @@ internal sealed class SqlMetricsWriter
 
         var tagsJson = JsonSerializer.Serialize(seriesKey.Tags);
         var tagHash = ComputeTagHash(tagsJson);
+        var databaseId = seriesKey.DatabaseId ?? Guid.Empty;
 
         // Upsert series
         var seriesIdParam = new DynamicParameters();
@@ -109,7 +110,7 @@ internal sealed class SqlMetricsWriter
         seriesIdParam.Add("@Unit", unit);
         seriesIdParam.Add("@AggKind", aggKind);
         seriesIdParam.Add("@Description", description);
-        seriesIdParam.Add("@DatabaseId", seriesKey.DatabaseId);
+        seriesIdParam.Add("@DatabaseId", databaseId);
         seriesIdParam.Add("@Service", seriesKey.Service);
         seriesIdParam.Add("@TagsJson", tagsJson);
         seriesIdParam.Add("@TagHash", tagHash);
