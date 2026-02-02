@@ -42,6 +42,7 @@ internal static class PostgresPlatformFeatureServiceCollectionExtensions
         bool enableSchemaDeployment = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(tableName);
+        ValidateMultiDatabaseRegistrations(services);
 
         services.AddMultiPostgresOutbox(
             sp => new PlatformOutboxStoreProvider(
@@ -84,6 +85,7 @@ internal static class PostgresPlatformFeatureServiceCollectionExtensions
         bool enableSchemaDeployment = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(tableName);
+        ValidateMultiDatabaseRegistrations(services);
 
         services.AddMultiPostgresInbox(
             sp => new PlatformInboxWorkStoreProvider(
@@ -119,13 +121,18 @@ internal static class PostgresPlatformFeatureServiceCollectionExtensions
         this IServiceCollection services,
         IOutboxSelectionStrategy? selectionStrategy = null)
     {
-        return services.AddMultiPostgresScheduler(
+        ValidateMultiDatabaseRegistrations(services);
+        services.AddMultiPostgresScheduler(
             sp => new PlatformSchedulerStoreProvider(
                 sp.GetRequiredService<IPlatformDatabaseDiscovery>(),
                 sp.GetRequiredService<TimeProvider>(),
                 sp.GetRequiredService<ILoggerFactory>(),
                 sp.GetService<PlatformConfiguration>()),
             selectionStrategy ?? new RoundRobinOutboxSelectionStrategy());
+
+        services.TryAddSingleton<ISchedulerClient>(ResolveDefaultSchedulerClient);
+
+        return services;
     }
 
     /// <summary>
@@ -135,6 +142,7 @@ internal static class PostgresPlatformFeatureServiceCollectionExtensions
     /// <returns>The updated service collection.</returns>
     public static IServiceCollection AddPlatformFanout(this IServiceCollection services)
     {
+        ValidateMultiDatabaseRegistrations(services);
         return services.AddMultiPostgresFanout(sp => new PlatformFanoutRepositoryProvider(
             sp.GetRequiredService<IPlatformDatabaseDiscovery>(),
             sp.GetRequiredService<ILoggerFactory>()));
@@ -150,6 +158,7 @@ internal static class PostgresPlatformFeatureServiceCollectionExtensions
         this IServiceCollection services,
         bool enableSchemaDeployment = false)
     {
+        ValidateMultiDatabaseRegistrations(services);
         return services.AddMultiSystemLeases(sp => new PlatformLeaseFactoryProvider(
             sp.GetRequiredService<IPlatformDatabaseDiscovery>(),
             sp.GetRequiredService<ILoggerFactory>(),
@@ -174,6 +183,7 @@ internal static class PostgresPlatformFeatureServiceCollectionExtensions
         bool enableSchemaDeployment = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(tableName);
+        ValidateMultiDatabaseRegistrations(services);
 
         var duration = lockDuration ?? TimeSpan.FromMinutes(5);
 
@@ -227,6 +237,114 @@ internal static class PostgresPlatformFeatureServiceCollectionExtensions
         }
 
         return stores[0];
+    }
+
+    private static void ValidateMultiDatabaseRegistrations(IServiceCollection services)
+    {
+        ValidateNoDirectRegistrations(
+            services,
+            typeof(IOutboxStore),
+            "IOutboxStoreProvider/IOutboxRouter",
+            "Direct IOutboxStore registrations are not supported in multi-database configurations.");
+
+        ValidateNoDirectRegistrations(
+            services,
+            typeof(IOutbox),
+            "IOutboxRouter",
+            "Direct IOutbox registrations are not supported in multi-database configurations.");
+
+        ValidateNoDirectRegistrations(
+            services,
+            typeof(IInboxWorkStore),
+            "IInboxWorkStoreProvider/IInboxRouter",
+            "Direct IInboxWorkStore registrations are not supported in multi-database configurations.");
+
+        ValidateNoDirectRegistrations(
+            services,
+            typeof(IInbox),
+            "IInboxRouter",
+            "Direct IInbox registrations are not supported in multi-database configurations.");
+
+        ValidateNoDirectRegistrations(
+            services,
+            typeof(ISchedulerClient),
+            "ISchedulerRouter",
+            "Direct ISchedulerClient registrations are not supported in multi-database configurations.");
+
+        ValidateNoDirectRegistrations(
+            services,
+            typeof(IFanoutPolicyRepository),
+            "IFanoutRouter",
+            "Direct IFanoutPolicyRepository registrations are not supported in multi-database configurations.");
+
+        ValidateNoDirectRegistrations(
+            services,
+            typeof(IFanoutCursorRepository),
+            "IFanoutRouter",
+            "Direct IFanoutCursorRepository registrations are not supported in multi-database configurations.");
+
+        ValidateNoDirectRegistrations(
+            services,
+            typeof(IIdempotencyStore),
+            "IIdempotencyStoreRouter",
+            "Direct IIdempotencyStore registrations are not supported in multi-database configurations.");
+    }
+
+    private static void ValidateNoDirectRegistrations(
+        IServiceCollection services,
+        Type serviceType,
+        string recommendedService,
+        string message)
+    {
+        var descriptors = services.Where(d => d.ServiceType == serviceType).ToList();
+        if (descriptors.Count == 0)
+        {
+            return;
+        }
+
+        var details = string.Join(", ", descriptors.Select(DescribeDescriptor));
+        throw new InvalidOperationException(
+            $"{message} Remove the following registrations and use {recommendedService} instead: {details}.");
+    }
+
+    private static string DescribeDescriptor(ServiceDescriptor descriptor)
+    {
+        if (descriptor.ImplementationType != null)
+        {
+            return descriptor.ImplementationType.FullName ?? "UnknownType";
+        }
+
+        if (descriptor.ImplementationInstance != null)
+        {
+            return descriptor.ImplementationInstance.GetType().FullName ?? "UnknownInstance";
+        }
+
+        if (descriptor.ImplementationFactory != null)
+        {
+            return $"Factory:{descriptor.ServiceType.FullName}";
+        }
+
+        return descriptor.ServiceType.FullName ?? "Unknown";
+    }
+
+    private static ISchedulerClient ResolveDefaultSchedulerClient(IServiceProvider provider)
+    {
+        var storeProvider = provider.GetRequiredService<ISchedulerStoreProvider>();
+        var stores = storeProvider.GetAllStoresAsync().GetAwaiter().GetResult();
+
+        if (stores.Count == 0)
+        {
+            throw new InvalidOperationException("No scheduler stores are configured. Configure at least one store or use ISchedulerRouter.");
+        }
+
+        if (stores.Count > 1)
+        {
+            throw new InvalidOperationException("Multiple scheduler stores are configured. Resolve ISchedulerRouter instead of ISchedulerClient for multi-database setups.");
+        }
+
+        var key = storeProvider.GetStoreIdentifier(stores[0]);
+        var router = provider.GetRequiredService<ISchedulerRouter>();
+        return router.GetSchedulerClient(key);
     }
 }
 

@@ -326,30 +326,77 @@ internal static class PlatformServiceCollectionExtensions
     {
         if (config.EnvironmentStyle is PlatformEnvironmentStyle.MultiDatabaseNoControl or PlatformEnvironmentStyle.MultiDatabaseWithControl)
         {
-            var outboxStores = services.Where(d => d.ServiceType == typeof(IOutboxStore)).ToList();
-            if (outboxStores.Count > 0)
-            {
-                var details = string.Join(", ", outboxStores.Select(DescribeDescriptor));
-                throw new InvalidOperationException(
-                    $"Direct IOutboxStore registrations are not supported in multi-database configurations. Remove the following registrations and rely on discovery/IOutboxStoreProvider instead: {details}.");
-            }
+            ValidateNoDirectRegistrations(
+                services,
+                typeof(IOutboxStore),
+                "IOutboxStoreProvider/IOutboxRouter",
+                "Direct IOutboxStore registrations are not supported in multi-database configurations.");
 
-            var inboxStores = services.Where(d => d.ServiceType == typeof(IInboxWorkStore)).ToList();
-            if (inboxStores.Count > 0)
-            {
-                var details = string.Join(", ", inboxStores.Select(DescribeDescriptor));
-                throw new InvalidOperationException(
-                    $"Direct IInboxWorkStore registrations are not supported in multi-database configurations. Remove the following registrations and rely on discovery/IInboxWorkStoreProvider instead: {details}.");
-            }
+            ValidateNoDirectRegistrations(
+                services,
+                typeof(IOutbox),
+                "IOutboxRouter",
+                "Direct IOutbox registrations are not supported in multi-database configurations.");
 
-            var outboxes = services.Where(d => d.ServiceType == typeof(IOutbox)).ToList();
-            if (outboxes.Count > 0)
-            {
-                var details = string.Join(", ", outboxes.Select(DescribeDescriptor));
-                throw new InvalidOperationException(
-                    $"Direct IOutbox registrations are not supported in multi-database configurations. Use IOutboxRouter via discovery instead. Remove: {details}.");
-            }
+            ValidateNoDirectRegistrations(
+                services,
+                typeof(IInboxWorkStore),
+                "IInboxWorkStoreProvider/IInboxRouter",
+                "Direct IInboxWorkStore registrations are not supported in multi-database configurations.");
+
+            ValidateNoDirectRegistrations(
+                services,
+                typeof(IInbox),
+                "IInboxRouter",
+                "Direct IInbox registrations are not supported in multi-database configurations.");
+
+            ValidateNoDirectRegistrations(
+                services,
+                typeof(ISchedulerClient),
+                "ISchedulerRouter",
+                "Direct ISchedulerClient registrations are not supported in multi-database configurations.");
+
+            ValidateNoDirectRegistrations(
+                services,
+                typeof(IFanoutPolicyRepository),
+                "IFanoutRouter",
+                "Direct IFanoutPolicyRepository registrations are not supported in multi-database configurations.");
+
+            ValidateNoDirectRegistrations(
+                services,
+                typeof(IFanoutCursorRepository),
+                "IFanoutRouter",
+                "Direct IFanoutCursorRepository registrations are not supported in multi-database configurations.");
+
+            ValidateNoDirectRegistrations(
+                services,
+                typeof(IIdempotencyStore),
+                "IIdempotencyStoreRouter",
+                "Direct IIdempotencyStore registrations are not supported in multi-database configurations.");
+
+            ValidateNoDirectRegistrations(
+                services,
+                typeof(IExternalSideEffectStore),
+                "IExternalSideEffectStoreProvider",
+                "Direct IExternalSideEffectStore registrations are not supported in multi-database configurations.");
         }
+    }
+
+    private static void ValidateNoDirectRegistrations(
+        IServiceCollection services,
+        Type serviceType,
+        string recommendedService,
+        string message)
+    {
+        var descriptors = services.Where(d => d.ServiceType == serviceType).ToList();
+        if (descriptors.Count == 0)
+        {
+            return;
+        }
+
+        var details = string.Join(", ", descriptors.Select(DescribeDescriptor));
+        throw new InvalidOperationException(
+            $"{message} Remove the following registrations and use {recommendedService} instead: {details}.");
     }
 
     private static void RegisterCoreServices(IServiceCollection services, bool enableSchemaDeployment)
@@ -470,6 +517,8 @@ internal static class PlatformServiceCollectionExtensions
                 sp.GetService<IPlatformEventEmitter>()), // Pass configuration to filter out control plane
             new RoundRobinOutboxSelectionStrategy());
 
+        services.TryAddSingleton<ISchedulerClient>(ResolveDefaultSchedulerClient);
+
         RegisterGlobalControlPlaneScheduler(services, config);
 
         // Leases
@@ -515,6 +564,26 @@ internal static class PlatformServiceCollectionExtensions
         }
 
         return stores[0];
+    }
+
+    private static ISchedulerClient ResolveDefaultSchedulerClient(IServiceProvider provider)
+    {
+        var storeProvider = provider.GetRequiredService<ISchedulerStoreProvider>();
+        var stores = storeProvider.GetAllStoresAsync().GetAwaiter().GetResult();
+
+        if (stores.Count == 0)
+        {
+            throw new InvalidOperationException("No scheduler stores are configured. Configure at least one store or use ISchedulerRouter.");
+        }
+
+        if (stores.Count > 1)
+        {
+            throw new InvalidOperationException("Multiple scheduler stores are configured. Resolve ISchedulerRouter instead of ISchedulerClient for multi-database setups.");
+        }
+
+        var key = storeProvider.GetStoreIdentifier(stores[0]);
+        var router = provider.GetRequiredService<ISchedulerRouter>();
+        return router.GetSchedulerClient(key);
     }
 
     private static void RegisterGlobalControlPlaneScheduler(IServiceCollection services, PlatformConfiguration? config)

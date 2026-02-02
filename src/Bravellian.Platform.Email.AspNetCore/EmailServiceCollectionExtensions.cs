@@ -70,16 +70,51 @@ public static class EmailServiceCollectionExtensions
             sp.GetService<IPlatformEventEmitter>(),
             sp.GetService<EmailMessageValidator>(),
             sp.GetService<IOptions<EmailOutboxOptions>>()?.Value));
-        services.AddSingleton<IEmailOutboxProcessor>(sp => new EmailOutboxProcessor(
-            sp.GetRequiredService<IOutboxStore>(),
-            sp.GetRequiredService<IOutboundEmailSender>(),
-            sp.GetRequiredService<IIdempotencyStore>(),
-            sp.GetRequiredService<IEmailDeliverySink>(),
-            sp.GetService<IOutboundEmailProbe>(),
-            sp.GetService<IPlatformEventEmitter>(),
-            sp.GetService<IEmailSendPolicy>(),
-            sp.GetService<TimeProvider>(),
-            sp.GetService<IOptions<EmailOutboxProcessorOptions>>()?.Value));
+        services.AddSingleton<IEmailOutboxProcessor>(sp =>
+        {
+            var outboxStoreProvider = sp.GetService<IOutboxStoreProvider>();
+            var outboxStore = sp.GetService<IOutboxStore>();
+
+            var sender = sp.GetRequiredService<IOutboundEmailSender>();
+            var idempotencyStore = sp.GetRequiredService<IIdempotencyStore>();
+            var deliverySink = sp.GetRequiredService<IEmailDeliverySink>();
+            var probe = sp.GetService<IOutboundEmailProbe>();
+            var eventEmitter = sp.GetService<IPlatformEventEmitter>();
+            var policy = sp.GetService<IEmailSendPolicy>();
+            var timeProvider = sp.GetService<TimeProvider>();
+            var options = sp.GetService<IOptions<EmailOutboxProcessorOptions>>()?.Value;
+
+            if (outboxStoreProvider != null)
+            {
+                return new MultiEmailOutboxProcessor(
+                    outboxStoreProvider,
+                    sender,
+                    idempotencyStore,
+                    deliverySink,
+                    probe,
+                    eventEmitter,
+                    policy,
+                    timeProvider,
+                    options);
+            }
+
+            if (outboxStore != null)
+            {
+                return new EmailOutboxProcessor(
+                    outboxStore,
+                    sender,
+                    idempotencyStore,
+                    deliverySink,
+                    probe,
+                    eventEmitter,
+                    policy,
+                    timeProvider,
+                    options);
+            }
+
+            throw new InvalidOperationException(
+                "No outbox store is registered. Register outbox storage (or an IOutboxStoreProvider) before adding email processing.");
+        });
 
         return services;
     }
