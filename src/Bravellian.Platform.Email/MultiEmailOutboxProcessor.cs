@@ -21,7 +21,7 @@ namespace Bravellian.Platform.Email;
 /// <summary>
 /// Processes outbound email messages across all configured outbox stores.
 /// </summary>
-internal sealed class MultiEmailOutboxProcessor : IEmailOutboxProcessor
+public sealed class MultiEmailOutboxProcessor : IEmailOutboxProcessor
 {
     private readonly IOutboxStoreProvider storeProvider;
     private readonly IOutboundEmailSender sender;
