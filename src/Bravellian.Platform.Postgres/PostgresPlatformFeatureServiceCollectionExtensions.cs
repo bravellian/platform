@@ -332,9 +332,24 @@ internal static class PostgresPlatformFeatureServiceCollectionExtensions
 
     private static bool IsPlatformDefaultRegistration(ServiceDescriptor descriptor)
     {
+        var assembly = typeof(PostgresPlatformFeatureServiceCollectionExtensions).Assembly;
         var declaringType = descriptor.ImplementationFactory?.Method.DeclaringType;
-        return declaringType == typeof(PostgresPlatformFeatureServiceCollectionExtensions)
-            || declaringType == typeof(PostgresPlatformServiceCollectionExtensions);
+        if (declaringType != null && declaringType.Assembly == assembly)
+        {
+            return true;
+        }
+
+        if (descriptor.ImplementationType != null && descriptor.ImplementationType.Assembly == assembly)
+        {
+            return true;
+        }
+
+        if (descriptor.ImplementationInstance != null && descriptor.ImplementationInstance.GetType().Assembly == assembly)
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private static ISchedulerClient ResolveDefaultSchedulerClient(IServiceProvider provider)
