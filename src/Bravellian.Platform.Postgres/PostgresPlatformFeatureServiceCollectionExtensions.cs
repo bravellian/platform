@@ -296,7 +296,10 @@ internal static class PostgresPlatformFeatureServiceCollectionExtensions
         string recommendedService,
         string message)
     {
-        var descriptors = services.Where(d => d.ServiceType == serviceType).ToList();
+        var descriptors = services
+            .Where(d => d.ServiceType == serviceType)
+            .Where(d => !IsPlatformDefaultRegistration(d))
+            .ToList();
         if (descriptors.Count == 0)
         {
             return;
@@ -325,6 +328,13 @@ internal static class PostgresPlatformFeatureServiceCollectionExtensions
         }
 
         return descriptor.ServiceType.FullName ?? "Unknown";
+    }
+
+    private static bool IsPlatformDefaultRegistration(ServiceDescriptor descriptor)
+    {
+        var declaringType = descriptor.ImplementationFactory?.Method.DeclaringType;
+        return declaringType == typeof(PostgresPlatformFeatureServiceCollectionExtensions)
+            || declaringType == typeof(PostgresPlatformServiceCollectionExtensions);
     }
 
     private static ISchedulerClient ResolveDefaultSchedulerClient(IServiceProvider provider)
