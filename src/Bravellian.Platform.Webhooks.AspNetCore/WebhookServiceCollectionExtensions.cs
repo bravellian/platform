@@ -46,7 +46,12 @@ public static class WebhookServiceCollectionExtensions
         services.AddSingleton<IWebhookIngestor>(sp =>
         {
             var registry = sp.GetRequiredService<IWebhookProviderRegistry>();
-            var inbox = sp.GetRequiredService<Bravellian.Platform.IInbox>();
+            var inbox = sp.GetService<Bravellian.Platform.IInbox>() ?? sp.GetService<Bravellian.Platform.IGlobalInbox>();
+            if (inbox == null)
+            {
+                throw new InvalidOperationException("No inbox is registered. Register IInbox (single database) or IGlobalInbox (multi-database) before adding webhooks.");
+            }
+
             var timeProvider = sp.GetService<TimeProvider>();
             var options = sp.GetService<IOptions<WebhookOptions>>()?.Value;
             var inboxRouter = sp.GetService<Bravellian.Platform.IInboxRouter>();
