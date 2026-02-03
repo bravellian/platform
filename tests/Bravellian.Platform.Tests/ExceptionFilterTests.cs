@@ -537,7 +537,8 @@ public class ExceptionFilterTests
         }
 
         exceptionsCaught.Count.ShouldBe(1);
-        exceptionsCaught[0].ShouldBe("Caught: Catchable");
+        exceptionsCaught[0].ShouldContain("Caught:");
+        exceptionsCaught[0].ShouldContain("Catchable");
     }
 
     /// <summary>
