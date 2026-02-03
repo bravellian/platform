@@ -154,10 +154,12 @@ internal sealed class MetricsExporterService : BackgroundService
                 }
             }
 
+            var normalizedDatabaseId = databaseId ?? Guid.Empty;
+
             var seriesKey = new MetricSeriesKey
             {
                 MetricName = metricName,
-                DatabaseId = databaseId,
+                DatabaseId = normalizedDatabaseId,
                 Service = service,
                 InstanceId = _instanceId,
                 Tags = filteredTags,
@@ -182,17 +184,8 @@ internal sealed class MetricsExporterService : BackgroundService
             // Record to hourly aggregator if enabled
             if (_options.EnableCentralRollup && !string.IsNullOrEmpty(_options.CentralConnectionString))
             {
-                if (databaseId is null)
-                {
-                    _logger.LogWarning(
-                        "Skipping central rollup for metric {MetricName} because database_id tag is missing.",
-                        metricName);
-                }
-                else
-                {
-                    var hourlyAggregator = _hourlyAggregators.GetOrAdd(seriesKey, _ => new MetricAggregator(_options.ReservoirSize));
-                    hourlyAggregator.Record(value);
-                }
+                var hourlyAggregator = _hourlyAggregators.GetOrAdd(seriesKey, _ => new MetricAggregator(_options.ReservoirSize));
+                hourlyAggregator.Record(value);
             }
         }
         catch (Exception ex)
