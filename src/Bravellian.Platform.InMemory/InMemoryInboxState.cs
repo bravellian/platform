@@ -231,6 +231,35 @@ internal sealed class InMemoryInboxState
         }
     }
 
+    public void Revive(IEnumerable<string> messageIds, string? reason, TimeSpan? delay)
+    {
+        if (delay.HasValue && delay.Value < TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(delay), delay, "Delay must be non-negative when reviving inbox messages.");
+        }
+
+        var normalizedReason = NormalizeReason(reason);
+        var now = timeProvider.GetUtcNow();
+        var dueTime = delay.HasValue ? now.Add(delay.Value) : (DateTimeOffset?)null;
+
+        lock (sync)
+        {
+            foreach (var id in messageIds)
+            {
+                if (entries.TryGetValue(id, out var entry)
+                    && string.Equals(entry.Status, StatusDead, StringComparison.Ordinal))
+                {
+                    entry.Status = StatusSeen;
+                    entry.OwnerToken = null;
+                    entry.LockedUntil = null;
+                    entry.LastError = normalizedReason;
+                    entry.DueTimeUtc = dueTime;
+                    entry.LastSeenUtc = now;
+                }
+            }
+        }
+    }
+
     public int ReapExpired()
     {
         var now = timeProvider.GetUtcNow();
@@ -335,5 +364,10 @@ internal sealed class InMemoryInboxState
         public DateTimeOffset? LockedUntil { get; set; }
 
         public OwnerToken? OwnerToken { get; set; }
+    }
+
+    private static string? NormalizeReason(string? reason)
+    {
+        return string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
     }
 }

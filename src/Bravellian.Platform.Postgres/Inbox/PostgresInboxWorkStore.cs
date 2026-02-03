@@ -384,6 +384,92 @@ internal sealed class PostgresInboxWorkStore : IInboxWorkStore
         }
     }
 
+    public async Task ReviveAsync(
+        IEnumerable<string> messageIds,
+        string? reason = null,
+        TimeSpan? delay = null,
+        CancellationToken cancellationToken = default)
+    {
+        var messageIdList = messageIds.ToArray();
+        if (messageIdList.Length == 0)
+        {
+            return;
+        }
+
+        if (delay.HasValue && delay.Value < TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(delay), delay, "Delay must be non-negative when reviving inbox messages.");
+        }
+
+        logger.LogInformation(
+            "Reviving {MessageCount} dead inbox messages with delay {DelayMs}ms",
+            messageIdList.Length,
+            delay?.TotalMilliseconds ?? 0);
+
+        var stopwatch = Stopwatch.StartNew();
+        var dueTimeUtc = delay.HasValue ? timeProvider.GetUtcNow().Add(delay.Value).UtcDateTime : (DateTime?)null;
+
+        var sql = $"""
+            UPDATE {qualifiedTableName}
+            SET "Status" = 'Seen',
+                "OwnerToken" = NULL,
+                "LockedUntil" = NULL,
+                "LastSeenUtc" = CURRENT_TIMESTAMP,
+                "LastError" = @Reason,
+                "DueTimeUtc" = @DueTimeUtc
+            WHERE "Status" = 'Dead'
+                AND "MessageId" = ANY(@Ids);
+            """;
+
+        try
+        {
+            using var connection = new NpgsqlConnection(connectionString);
+            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+
+            await connection.ExecuteAsync(
+                sql,
+                new
+                {
+                    Ids = messageIdList,
+                    Reason = NormalizeReason(reason),
+                    DueTimeUtc = dueTimeUtc,
+                }).ConfigureAwait(false);
+
+            SchedulerMetrics.InboxItemsRevived.Add(
+                messageIdList.Length,
+                new KeyValuePair<string, object?>("queue", tableName),
+                new KeyValuePair<string, object?>("store", schemaName));
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(
+                ex,
+                "Failed to revive inbox messages in {Schema}.{Table} on {Server}/{Database}",
+                schemaName,
+                tableName,
+                serverName,
+                databaseName);
+            throw;
+        }
+        finally
+        {
+            stopwatch.Stop();
+            SchedulerMetrics.WorkQueueReviveDuration.Record(
+                stopwatch.Elapsed.TotalMilliseconds,
+                new KeyValuePair<string, object?>("queue", "inbox"),
+                new KeyValuePair<string, object?>("store", schemaName));
+            SchedulerMetrics.WorkQueueBatchSize.Record(
+                messageIdList.Length,
+                new KeyValuePair<string, object?>("queue", "inbox"),
+                new KeyValuePair<string, object?>("store", schemaName));
+        }
+    }
+
+    private static string? NormalizeReason(string? reason)
+    {
+        return string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
+    }
+
     public async Task ReapExpiredAsync(CancellationToken cancellationToken)
     {
         logger.LogDebug("Reaping expired inbox leases");

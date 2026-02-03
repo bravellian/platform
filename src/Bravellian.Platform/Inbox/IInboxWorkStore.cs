@@ -58,6 +58,15 @@ public interface IInboxWorkStore
     Task FailAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<string> messageIds, string errorMessage, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Requeues dead messages by resetting them to Seen.
+    /// </summary>
+    /// <param name="messageIds">IDs of messages to requeue.</param>
+    /// <param name="reason">Optional reason or note for the requeue.</param>
+    /// <param name="delay">Optional delay before the message becomes eligible again.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task ReviveAsync(IEnumerable<string> messageIds, string? reason = null, TimeSpan? delay = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Reclaims expired leases, returning messages to Ready state.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>

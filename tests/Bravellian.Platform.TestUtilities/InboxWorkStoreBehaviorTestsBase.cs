@@ -255,4 +255,44 @@ public abstract class InboxWorkStoreBehaviorTestsBase : IAsyncLifetime
         message.Topic.ShouldBe("test-topic");
         message.Payload.ShouldBe("payload");
     }
+
+    /// <summary>When revive Async Requeues Dead Message, then it behaves as expected.</summary>
+    /// <intent>Document expected behavior for revive Async Requeues Dead Message.</intent>
+    /// <scenario>Given a failed inbox message that has been marked Dead.</scenario>
+    /// <behavior>Then ReviveAsync makes the message claimable again.</behavior>
+    [Fact]
+    public async Task ReviveAsync_RequeuesDeadMessage()
+    {
+        await harness.ResetAsync();
+
+        const string messageId = "msg-revive-1";
+        await harness.Inbox.EnqueueAsync(
+            "test-topic",
+            "test-source",
+            messageId,
+            "payload",
+            CancellationToken.None);
+
+        var owner = OwnerToken.GenerateNew();
+        var claimed = await harness.WorkStore.ClaimAsync(
+            owner,
+            leaseSeconds: 30,
+            batchSize: 10,
+            CancellationToken.None);
+
+        claimed.Count.ShouldBe(1);
+
+        await harness.WorkStore.FailAsync(owner, claimed, "permanent failure", CancellationToken.None);
+
+        await harness.WorkStore.ReviveAsync(claimed, reason: "manual requeue", delay: TimeSpan.Zero, CancellationToken.None);
+
+        var reClaimed = await harness.WorkStore.ClaimAsync(
+            OwnerToken.GenerateNew(),
+            leaseSeconds: 30,
+            batchSize: 10,
+            CancellationToken.None);
+
+        reClaimed.Count.ShouldBe(1);
+        reClaimed[0].ShouldBe(messageId);
+    }
 }

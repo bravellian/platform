@@ -37,6 +37,7 @@ internal static class SchedulerMetrics
     public static readonly Counter<long> InboxItemsAbandoned = Meter.CreateCounter<long>("inbox.items.abandoned", "items", "Number of inbox items abandoned.");
     public static readonly Counter<long> InboxItemsFailed = Meter.CreateCounter<long>("inbox.items.failed", "items", "Number of inbox items marked as failed.");
     public static readonly Counter<long> InboxItemsReaped = Meter.CreateCounter<long>("inbox.items.reaped", "items", "Number of expired inbox items reaped.");
+    public static readonly Counter<long> InboxItemsRevived = Meter.CreateCounter<long>("inbox.items.revived", "items", "Number of dead inbox items requeued.");
 
     public static readonly Counter<long> TimerItemsClaimed = Meter.CreateCounter<long>("timers.items.claimed", "items", "Number of timer items claimed.");
     public static readonly Counter<long> TimerItemsAcknowledged = Meter.CreateCounter<long>("timers.items.acknowledged", "items", "Number of timer items acknowledged.");
@@ -66,6 +67,7 @@ internal static class SchedulerMetrics
     public static readonly Histogram<double> WorkQueueAbandonDuration = Meter.CreateHistogram<double>("workqueue.abandon.duration", "ms", "Duration of work queue abandon operations.");
     public static readonly Histogram<double> WorkQueueFailDuration = Meter.CreateHistogram<double>("workqueue.fail.duration", "ms", "Duration of work queue fail operations.");
     public static readonly Histogram<double> WorkQueueReapDuration = Meter.CreateHistogram<double>("workqueue.reap.duration", "ms", "Duration of work queue reap operations.");
+    public static readonly Histogram<double> WorkQueueReviveDuration = Meter.CreateHistogram<double>("workqueue.revive.duration", "ms", "Duration of work queue revive operations.");
     public static readonly Histogram<long> WorkQueueBatchSize = Meter.CreateHistogram<long>("workqueue.batch.size", "items", "Batch sizes processed by dispatchers.");
 
     // Gauges: To report current state

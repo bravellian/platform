@@ -414,6 +414,11 @@ public class InboxDispatcherTests : SqlServerTestBase
             return Task.CompletedTask;
         }
 
+        public Task ReviveAsync(IEnumerable<string> messageIds, string? reason = null, TimeSpan? delay = null, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
         public Task<InboxMessage> GetAsync(string messageId, CancellationToken cancellationToken)
         {
             var (attempt, topic) = messages[messageId];

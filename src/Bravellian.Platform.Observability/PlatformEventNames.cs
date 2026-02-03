@@ -60,6 +60,11 @@ public static class PlatformEventNames
     public const string EmailBounced = "email.bounced";
 
     /// <summary>
+    /// Audit event emitted when an inbox message is revived.
+    /// </summary>
+    public const string InboxMessageRevived = "inbox.message.revived";
+
+    /// <summary>
     /// Audit event emitted when an operation starts.
     /// </summary>
     public const string OperationStarted = "operation.started";

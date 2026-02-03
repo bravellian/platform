@@ -47,6 +47,12 @@ internal sealed class InMemoryInboxWorkStore : IInboxWorkStore
         return Task.CompletedTask;
     }
 
+    public Task ReviveAsync(IEnumerable<string> messageIds, string? reason = null, TimeSpan? delay = null, CancellationToken cancellationToken = default)
+    {
+        state.Revive(messageIds, reason, delay);
+        return Task.CompletedTask;
+    }
+
     public Task ReapExpiredAsync(CancellationToken cancellationToken)
     {
         state.ReapExpired();

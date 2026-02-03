@@ -317,6 +317,9 @@ public class PlatformRegistrationTests
         public Task FailAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<string> messageIds, string error, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
+        public Task ReviveAsync(IEnumerable<string> messageIds, string? reason = null, TimeSpan? delay = null, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
         public Task ReapExpiredAsync(CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 

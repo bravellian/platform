@@ -550,6 +550,29 @@ public sealed class PostmarkWebhookTests
             return Task.CompletedTask;
         }
 
+        public Task ReviveAsync(IEnumerable<string> messageIds, string? reason = null, TimeSpan? delay = null, CancellationToken cancellationToken = default)
+        {
+            var now = timeProvider.GetUtcNow();
+            var effectiveDelay = delay ?? TimeSpan.Zero;
+
+            foreach (var messageId in messageIds)
+            {
+                if (!messages.TryGetValue(messageId, out var message))
+                {
+                    continue;
+                }
+
+                messages[messageId] = message with
+                {
+                    DueTimeUtc = effectiveDelay == TimeSpan.Zero ? null : now.Add(effectiveDelay),
+                    LastError = string.IsNullOrEmpty(reason) ? message.LastError : reason,
+                };
+                states[messageId] = WorkState.Ready;
+            }
+
+            return Task.CompletedTask;
+        }
+
         public Task ReapExpiredAsync(CancellationToken cancellationToken)
         {
             return Task.CompletedTask;

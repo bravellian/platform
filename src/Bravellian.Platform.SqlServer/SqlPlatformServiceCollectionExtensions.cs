@@ -202,6 +202,7 @@ public static class SqlPlatformServiceCollectionExtensions
         services.TryAddSingleton<IOutbox>(ResolveDefaultOutbox);
         services.TryAddSingleton<IInbox>(ResolveDefaultInbox);
         services.TryAddSingleton<IInboxWorkStore>(ResolveDefaultInboxWorkStore);
+        services.TryAddSingleton<Observability.InboxRecoveryService>();
 
         return services;
     }

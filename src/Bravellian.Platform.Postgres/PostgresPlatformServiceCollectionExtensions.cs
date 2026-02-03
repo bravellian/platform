@@ -652,6 +652,7 @@ public static class PostgresPlatformServiceCollectionExtensions
             new RoundRobinInboxSelectionStrategy());
 
         services.TryAddSingleton<IInboxWorkStore>(ResolveDefaultInboxWorkStore);
+        services.TryAddSingleton<Observability.InboxRecoveryService>();
 
         // Register multi-inbox cleanup service
         services.AddHostedService<MultiInboxCleanupService>(sp => new MultiInboxCleanupService(

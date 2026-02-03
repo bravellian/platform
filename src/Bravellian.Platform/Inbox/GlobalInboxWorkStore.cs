@@ -38,6 +38,9 @@ internal sealed class GlobalInboxWorkStore : IGlobalInboxWorkStore
     public Task FailAsync(OwnerToken ownerToken, IEnumerable<string> messageIds, string errorMessage, CancellationToken cancellationToken) =>
         inner.FailAsync(ownerToken, messageIds, errorMessage, cancellationToken);
 
+    public Task ReviveAsync(IEnumerable<string> messageIds, string? reason = null, TimeSpan? delay = null, CancellationToken cancellationToken = default) =>
+        inner.ReviveAsync(messageIds, reason, delay, cancellationToken);
+
     public Task ReapExpiredAsync(CancellationToken cancellationToken) =>
         inner.ReapExpiredAsync(cancellationToken);
 

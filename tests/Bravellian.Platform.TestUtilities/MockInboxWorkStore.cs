@@ -48,6 +48,10 @@ public class MockInboxWorkStore : IInboxWorkStore
         => Task.CompletedTask;
 
     /// <inheritdoc/>
+    public Task ReviveAsync(IEnumerable<string> messageIds, string? reason = null, TimeSpan? delay = null, CancellationToken cancellationToken = default)
+        => Task.CompletedTask;
+
+    /// <inheritdoc/>
     public Task ReapExpiredAsync(CancellationToken cancellationToken)
         => Task.CompletedTask;
 

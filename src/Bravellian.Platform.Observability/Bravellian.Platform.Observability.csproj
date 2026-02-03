@@ -37,6 +37,7 @@
     <ProjectReference Include="..\Bravellian.Platform.Audit\Bravellian.Platform.Audit.csproj" />
     <ProjectReference Include="..\Bravellian.Platform.Correlation\Bravellian.Platform.Correlation.csproj" />
     <ProjectReference Include="..\Bravellian.Platform.Operations\Bravellian.Platform.Operations.csproj" />
+    <ProjectReference Include="..\Bravellian.Platform\Bravellian.Platform.csproj" />
   </ItemGroup>
 
   <ItemGroup>

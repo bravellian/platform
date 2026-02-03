@@ -360,6 +360,92 @@ internal class SqlInboxWorkStore : IInboxWorkStore
         }
     }
 
+    [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities", Justification = "Uses configured schema/table names with parameters.")]
+    public async Task ReviveAsync(
+        IEnumerable<string> messageIds,
+        string? reason = null,
+        TimeSpan? delay = null,
+        CancellationToken cancellationToken = default)
+    {
+        var messageIdList = messageIds.ToList();
+        if (messageIdList.Count == 0)
+        {
+            return;
+        }
+
+        if (delay.HasValue && delay.Value < TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(delay), delay, "Delay must be non-negative when reviving inbox messages.");
+        }
+
+        logger.LogInformation(
+            "Reviving {MessageCount} dead inbox messages with delay {DelayMs}ms",
+            messageIdList.Count,
+            delay?.TotalMilliseconds ?? 0);
+
+        var stopwatch = Stopwatch.StartNew();
+
+        try
+        {
+            using var connection = new SqlConnection(connectionString);
+            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+
+            var idsTable = CreateStringIdTable(messageIdList);
+            var sql = $"""
+                        UPDATE i
+                        SET Status = 'Seen',
+                            OwnerToken = NULL,
+                            LockedUntil = NULL,
+                            LastSeenUtc = SYSUTCDATETIME(),
+                            DueTimeUtc = @DueTimeUtc,
+                            LastError = @Reason
+                        FROM [{schemaName}].[{tableName}] i
+                        JOIN @Ids ids ON ids.Id = i.MessageId
+                        WHERE i.Status = 'Dead';
+                """;
+
+            var dueTimeUtc = ComputeDueTimeUtc(delay);
+            var normalizedReason = NormalizeReason(reason);
+
+            using var command = new SqlCommand(sql, connection);
+            var parameter = command.Parameters.AddWithValue("@Ids", idsTable);
+            parameter.SqlDbType = System.Data.SqlDbType.Structured;
+            parameter.TypeName = $"[{schemaName}].[StringIdList]";
+            command.Parameters.AddWithValue("@Reason", normalizedReason ?? (object)DBNull.Value);
+            command.Parameters.AddWithValue("@DueTimeUtc", dueTimeUtc ?? (object)DBNull.Value);
+
+            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+
+            SchedulerMetrics.InboxItemsRevived.Add(
+                messageIdList.Count,
+                new KeyValuePair<string, object?>("queue", tableName),
+                new KeyValuePair<string, object?>("store", schemaName));
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(
+                ex,
+                "Failed to revive inbox messages in {Schema}.{Table} on {Server}/{Database}",
+                schemaName,
+                tableName,
+                serverName,
+                databaseName);
+            throw;
+        }
+        finally
+        {
+            stopwatch.Stop();
+            SchedulerMetrics.WorkQueueReviveDuration.Record(
+                stopwatch.Elapsed.TotalMilliseconds,
+                new KeyValuePair<string, object?>("queue", "inbox"),
+                new KeyValuePair<string, object?>("store", schemaName));
+            SchedulerMetrics.WorkQueueBatchSize.Record(
+                messageIdList.Count,
+                new KeyValuePair<string, object?>("queue", "inbox"),
+                new KeyValuePair<string, object?>("store", schemaName));
+        }
+    }
+
     public async Task ReapExpiredAsync(CancellationToken cancellationToken)
     {
         logger.LogDebug("Reaping expired inbox leases");
@@ -495,5 +581,26 @@ internal class SqlInboxWorkStore : IInboxWorkStore
         {
             return ("unknown-server", "unknown-database");
         }
+    }
+
+    private DateTimeOffset? ComputeDueTimeUtc(TimeSpan? delay)
+    {
+        if (!delay.HasValue)
+        {
+            return null;
+        }
+
+        var now = timeProvider.GetUtcNow();
+        if (now.Offset != TimeSpan.Zero)
+        {
+            logger.LogWarning("Time provider returned non-UTC timestamp {Timestamp}; revive times will be normalized to UTC.", now);
+        }
+
+        return now.Add(delay.Value);
+    }
+
+    private static string? NormalizeReason(string? reason)
+    {
+        return string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
     }
 }
