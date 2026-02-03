@@ -68,7 +68,7 @@ public sealed class SqlServerCollectionFixture : IAsyncLifetime
         {
             await msSqlContainer.StartAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
         }
-        catch (NotSupportedException ex) when (ex.Message.Contains("sqlcmd", StringComparison.OrdinalIgnoreCase))
+        catch (NotSupportedException ex) when (ex.ToString().Contains("sqlcmd", StringComparison.OrdinalIgnoreCase))
         {
             isAvailable = false;
             return;

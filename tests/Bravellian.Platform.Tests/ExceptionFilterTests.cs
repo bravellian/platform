@@ -533,7 +533,7 @@ public class ExceptionFilterTests
         }
         catch (Exception ex) when (ExceptionFilter.IsCatchable(ex))
         {
-            exceptionsCaught.Add("Caught: " + ex.Message);
+            exceptionsCaught.Add("Caught: " + ex.ToString());
         }
 
         exceptionsCaught.Count.ShouldBe(1);

@@ -78,7 +78,7 @@ public sealed class SmokeTestRunner
                 }
                 catch (Exception ex)
                 {
-                    state.MarkStepFailed(run, SmokeStepNames.Outbox, timeProvider.GetUtcNow(), $"Schema deployment failed: {ex.Message}");
+                    state.MarkStepFailed(run, SmokeStepNames.Outbox, timeProvider.GetUtcNow(), $"Schema deployment failed: {ex.ToString()}");
                 }
             }
 
@@ -167,7 +167,7 @@ public sealed class SmokeTestRunner
         }
         catch (Exception ex)
         {
-            state.MarkStepFailed(run, SmokeStepNames.Lease, timeProvider.GetUtcNow(), ex.Message);
+            state.MarkStepFailed(run, SmokeStepNames.Lease, timeProvider.GetUtcNow(), ex.ToString());
         }
     }
 
@@ -204,7 +204,7 @@ public sealed class SmokeTestRunner
         }
         catch (Exception ex)
         {
-            state.MarkStepFailed(run, SmokeStepNames.Outbox, timeProvider.GetUtcNow(), ex.Message);
+            state.MarkStepFailed(run, SmokeStepNames.Outbox, timeProvider.GetUtcNow(), ex.ToString());
         }
     }
 
@@ -248,7 +248,7 @@ public sealed class SmokeTestRunner
         }
         catch (Exception ex)
         {
-            state.MarkStepFailed(run, SmokeStepNames.Inbox, timeProvider.GetUtcNow(), ex.Message);
+            state.MarkStepFailed(run, SmokeStepNames.Inbox, timeProvider.GetUtcNow(), ex.ToString());
         }
     }
 
@@ -310,7 +310,7 @@ public sealed class SmokeTestRunner
         }
         catch (Exception ex)
         {
-            state.MarkStepFailed(run, SmokeStepNames.Scheduler, timeProvider.GetUtcNow(), ex.Message);
+            state.MarkStepFailed(run, SmokeStepNames.Scheduler, timeProvider.GetUtcNow(), ex.ToString());
         }
     }
 
@@ -356,7 +356,7 @@ public sealed class SmokeTestRunner
         }
         catch (Exception ex)
         {
-            state.MarkStepFailed(run, SmokeStepNames.LeaseStorm, timeProvider.GetUtcNow(), ex.Message);
+            state.MarkStepFailed(run, SmokeStepNames.LeaseStorm, timeProvider.GetUtcNow(), ex.ToString());
         }
     }
 
@@ -426,7 +426,7 @@ public sealed class SmokeTestRunner
         }
         catch (Exception ex)
         {
-            state.MarkStepFailed(run, SmokeStepNames.FanoutSmall, timeProvider.GetUtcNow(), ex.Message);
+            state.MarkStepFailed(run, SmokeStepNames.FanoutSmall, timeProvider.GetUtcNow(), ex.ToString());
         }
     }
 
@@ -521,7 +521,7 @@ public sealed class SmokeTestRunner
         }
         catch (Exception ex)
         {
-            state.MarkStepFailed(run, SmokeStepNames.FanoutBurst, timeProvider.GetUtcNow(), ex.Message);
+            state.MarkStepFailed(run, SmokeStepNames.FanoutBurst, timeProvider.GetUtcNow(), ex.ToString());
         }
     }
 
@@ -599,7 +599,7 @@ public sealed class SmokeTestRunner
         }
         catch (Exception ex)
         {
-            state.MarkStepFailed(run, SmokeStepNames.Idempotency, timeProvider.GetUtcNow(), ex.Message);
+            state.MarkStepFailed(run, SmokeStepNames.Idempotency, timeProvider.GetUtcNow(), ex.ToString());
         }
     }
 
@@ -682,7 +682,7 @@ public sealed class SmokeTestRunner
         }
         catch (Exception ex)
         {
-            state.MarkStepFailed(run, SmokeStepNames.Operations, timeProvider.GetUtcNow(), ex.Message);
+            state.MarkStepFailed(run, SmokeStepNames.Operations, timeProvider.GetUtcNow(), ex.ToString());
         }
     }
 
@@ -759,7 +759,7 @@ public sealed class SmokeTestRunner
         }
         catch (Exception ex)
         {
-            state.MarkStepFailed(run, SmokeStepNames.Audit, timeProvider.GetUtcNow(), ex.Message);
+            state.MarkStepFailed(run, SmokeStepNames.Audit, timeProvider.GetUtcNow(), ex.ToString());
         }
     }
 
@@ -804,7 +804,7 @@ public sealed class SmokeTestRunner
         }
         catch (Exception ex)
         {
-            return $"; coordinator probe failed: {ex.Message}";
+            return $"; coordinator probe failed: {ex.ToString()}";
         }
     }
 

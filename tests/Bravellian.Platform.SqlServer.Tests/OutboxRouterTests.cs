@@ -127,7 +127,7 @@ public class OutboxRouterTests
 
         // Act & Assert
         var ex = Should.Throw<InvalidOperationException>(() => router.GetOutbox("NonExistent"));
-        ex.Message.ShouldContain("NonExistent");
+        ex.ToString().ShouldContain("NonExistent");
     }
 
     /// <summary>When a null key is provided, then GetOutbox throws an ArgumentException.</summary>
@@ -342,7 +342,7 @@ public class OutboxRouterTests
         var ex = Should.Throw<InvalidOperationException>(() => router.GetOutbox(customerId));
 
         // Assert
-        ex.Message.ShouldContain(customerId.ToString());
+        ex.ToString().ShouldContain(customerId.ToString());
     }
 }
 

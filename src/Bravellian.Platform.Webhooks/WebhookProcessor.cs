@@ -159,7 +159,7 @@ public sealed class WebhookProcessor : IWebhookProcessor
         }
         catch (Exception ex)
         {
-            return ProcessOutcome.Retry(messageId, null, 0, ex.Message);
+            return ProcessOutcome.Retry(messageId, null, 0, ex.ToString());
         }
     }
 

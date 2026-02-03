@@ -113,7 +113,7 @@ public sealed class PostmarkEmailSender : IOutboundEmailSender
         }
         catch (HttpRequestException ex)
         {
-            return EmailSendResult.TransientFailure(null, ex.Message);
+            return EmailSendResult.TransientFailure(null, ex.ToString());
         }
     }
 

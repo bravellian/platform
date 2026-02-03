@@ -77,7 +77,7 @@ public class PlatformRegistrationTests
                 new PlatformDatabase { Name = "db2", ConnectionString = "Server=localhost;Database=Db2;" },
             }));
 
-        Assert.Contains("already been called", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("already been called", ex.ToString(), StringComparison.Ordinal);
     }
 
     /// <summary>When multiple databases are registered via AddSqlPlatformMultiDatabaseWithList, then platform configuration and discovery are registered.</summary>
@@ -123,7 +123,7 @@ public class PlatformRegistrationTests
         var ex = Assert.Throws<ArgumentException>(
             () => services.AddSqlPlatformMultiDatabaseWithList(databases));
 
-        Assert.Contains("must not be empty", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("must not be empty", ex.ToString(), StringComparison.Ordinal);
     }
 
     /// <summary>When AddSqlPlatformMultiDatabaseWithList receives duplicate database names, then it throws an ArgumentException.</summary>
@@ -237,7 +237,7 @@ public class PlatformRegistrationTests
         var ex = Assert.Throws<InvalidOperationException>(
             () => services.AddSqlPlatformMultiDatabaseWithControlPlaneAndDiscovery(options));
 
-        Assert.Contains("Direct IOutboxStore registrations are not supported", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("Direct IOutboxStore registrations are not supported", ex.ToString(), StringComparison.Ordinal);
     }
 
     /// <summary>When control-plane discovery registration finds a direct IInboxWorkStore registration, then it throws an InvalidOperationException.</summary>
@@ -261,7 +261,7 @@ public class PlatformRegistrationTests
         var ex = Assert.Throws<InvalidOperationException>(
             () => services.AddSqlPlatformMultiDatabaseWithControlPlaneAndDiscovery(options));
 
-        Assert.Contains("Direct IInboxWorkStore registrations are not supported", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("Direct IInboxWorkStore registrations are not supported", ex.ToString(), StringComparison.Ordinal);
     }
 
     /// <summary>When control-plane discovery registration finds a direct IOutbox registration, then it throws an InvalidOperationException.</summary>
@@ -285,7 +285,7 @@ public class PlatformRegistrationTests
         var ex = Assert.Throws<InvalidOperationException>(
             () => services.AddSqlPlatformMultiDatabaseWithControlPlaneAndDiscovery(options));
 
-        Assert.Contains("Direct IOutbox registrations are not supported", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("Direct IOutbox registrations are not supported", ex.ToString(), StringComparison.Ordinal);
     }
 
     private sealed class DummyOutboxStore : IOutboxStore

@@ -164,7 +164,7 @@ internal sealed class GlobalOutboxDispatcher
                 "Permanent failure processing global message {MessageId} with topic '{Topic}'. Marking as failed.",
                 message.Id,
                 message.Topic);
-            await store.FailAsync(message.Id, ex.Message, cancellationToken).ConfigureAwait(false);
+            await store.FailAsync(message.Id, ex.ToString(), cancellationToken).ConfigureAwait(false);
             SchedulerMetrics.OutboxMessagesFailed.Add(1);
         }
         catch (Exception ex)
@@ -178,7 +178,7 @@ internal sealed class GlobalOutboxDispatcher
                     message.Id,
                     message.Topic,
                     nextAttempt);
-                await store.FailAsync(message.Id, ex.Message, cancellationToken).ConfigureAwait(false);
+                await store.FailAsync(message.Id, ex.ToString(), cancellationToken).ConfigureAwait(false);
                 SchedulerMetrics.OutboxMessagesFailed.Add(1);
                 return;
             }
@@ -191,7 +191,7 @@ internal sealed class GlobalOutboxDispatcher
                 message.Topic,
                 nextAttempt,
                 delay.TotalMilliseconds);
-            await store.RescheduleAsync(message.Id, delay, ex.Message, cancellationToken).ConfigureAwait(false);
+            await store.RescheduleAsync(message.Id, delay, ex.ToString(), cancellationToken).ConfigureAwait(false);
             SchedulerMetrics.OutboxMessagesFailed.Add(1);
         }
         finally

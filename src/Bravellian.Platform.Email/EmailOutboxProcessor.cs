@@ -355,7 +355,7 @@ public sealed class EmailOutboxProcessor : IEmailOutboxProcessor
         }
         catch (JsonException ex)
         {
-            error = ex.Message;
+            error = ex.ToString();
             return null;
         }
     }

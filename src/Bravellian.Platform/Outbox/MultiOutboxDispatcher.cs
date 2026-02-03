@@ -298,7 +298,7 @@ internal sealed class MultiOutboxDispatcher
                 message.Topic,
                 storeIdentifier);
 
-            await store.FailAsync(message.Id, ex.Message, cancellationToken).ConfigureAwait(false);
+            await store.FailAsync(message.Id, ex.ToString(), cancellationToken).ConfigureAwait(false);
             SchedulerMetrics.OutboxMessagesFailed.Add(1);
         }
         catch (Exception ex)
@@ -315,7 +315,7 @@ internal sealed class MultiOutboxDispatcher
                     storeIdentifier,
                     nextAttempt);
 
-                await store.FailAsync(message.Id, ex.Message, cancellationToken).ConfigureAwait(false);
+                await store.FailAsync(message.Id, ex.ToString(), cancellationToken).ConfigureAwait(false);
                 SchedulerMetrics.OutboxMessagesFailed.Add(1);
                 return;
             }
@@ -332,7 +332,7 @@ internal sealed class MultiOutboxDispatcher
                 nextAttempt,
                 delay.TotalMilliseconds);
 
-            await store.RescheduleAsync(message.Id, delay, ex.Message, cancellationToken).ConfigureAwait(false);
+            await store.RescheduleAsync(message.Id, delay, ex.ToString(), cancellationToken).ConfigureAwait(false);
             SchedulerMetrics.OutboxMessagesFailed.Add(1);
         }
         finally

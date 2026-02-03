@@ -56,7 +56,7 @@ public sealed class RequiredServiceValidationTests
                 new DummyCommand(),
                 CancellationToken.None));
 
-        ex.Message.ShouldContain(nameof(IRequiredServiceValidator));
+        ex.ToString().ShouldContain(nameof(IRequiredServiceValidator));
     }
 
     /// <summary>
@@ -91,8 +91,8 @@ public sealed class RequiredServiceValidationTests
                 new DummyCommand(),
                 CancellationToken.None));
 
-        ex.Message.ShouldContain("missing required services");
-        ex.Message.ShouldContain("cache");
+        ex.ToString().ShouldContain("missing required services");
+        ex.ToString().ShouldContain("cache");
     }
 
     /// <summary>
@@ -158,8 +158,8 @@ public sealed class RequiredServiceValidationTests
         var services = new ServiceCollection().BuildServiceProvider();
 
         var ex = Should.Throw<InvalidOperationException>(() => discovery.ResolveEngine(descriptor, services));
-        ex.Message.ShouldContain("returned null");
-        ex.Message.ShouldContain("null-module/ui.null");
+        ex.ToString().ShouldContain("returned null");
+        ex.ToString().ShouldContain("null-module/ui.null");
     }
 
     private sealed class RequiredServiceModule : IModuleDefinition

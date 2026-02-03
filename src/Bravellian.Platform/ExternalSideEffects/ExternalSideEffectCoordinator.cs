@@ -168,9 +168,9 @@ public sealed class ExternalSideEffectCoordinator : IExternalSideEffectCoordinat
         {
             LogExecutionFailure(logger, request.Key.OperationName, request.Key.IdempotencyKey, ex);
             var failedAt = timeProvider.GetUtcNow();
-            await store.MarkFailedAsync(request.Key, ex.Message, isPermanent: false, failedAt: failedAt, cancellationToken).ConfigureAwait(false);
+            await store.MarkFailedAsync(request.Key, ex.ToString(), isPermanent: false, failedAt: failedAt, cancellationToken).ConfigureAwait(false);
             record = await store.GetAsync(request.Key, cancellationToken).ConfigureAwait(false) ?? record;
-            return new ExternalSideEffectOutcome(ExternalSideEffectOutcomeStatus.RetryScheduled, record, ex.Message);
+            return new ExternalSideEffectOutcome(ExternalSideEffectOutcomeStatus.RetryScheduled, record, ex.ToString());
         }
     }
 

@@ -164,7 +164,7 @@ internal sealed class ConfiguredOutboxStoreProvider : IOutboxStoreProvider
         catch (Exception ex)
         {
             // Log the exception details for diagnostics
-            System.Diagnostics.Debug.WriteLine($"Failed to extract database name from connection string: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Failed to extract database name from connection string: {ex.ToString()}");
             return "UnknownDB";
         }
     }

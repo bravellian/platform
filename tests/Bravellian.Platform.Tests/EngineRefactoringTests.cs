@@ -201,7 +201,7 @@ public sealed class EngineRefactoringTests
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await adapter.ExecuteAsync<LoginCommand, LoginViewModel>("fake-module", "ui.missing", new LoginCommand("admin", "pass"), CancellationToken.None));
 
-        Assert.Contains("No UI engine registered", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("No UI engine registered", ex.ToString(), StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -225,7 +225,7 @@ public sealed class EngineRefactoringTests
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await adapter.ExecuteAsync<LoginCommand, LoginViewModel>("fake-module", "webhook.postmark", new LoginCommand("admin", "pass"), CancellationToken.None));
 
-        Assert.Contains("does not implement the expected UI contract", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("does not implement the expected UI contract", ex.ToString(), StringComparison.Ordinal);
     }
 
     /// <summary>

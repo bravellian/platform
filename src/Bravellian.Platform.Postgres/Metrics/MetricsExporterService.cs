@@ -115,7 +115,7 @@ internal sealed class MetricsExporterService : BackgroundService
             }
             catch (Exception ex)
             {
-                _lastError = ex.Message;
+                _lastError = ex.ToString();
                 _logger.LogError(ex, "Error during metrics flush");
             }
         }

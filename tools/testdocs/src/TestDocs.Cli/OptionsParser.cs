@@ -89,7 +89,7 @@ internal static class OptionsParser
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            error = ex.ToString();
             return false;
         }
     }

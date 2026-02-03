@@ -126,7 +126,7 @@ public sealed class HttpHealthProbeRunner : IHealthProbeRunner
         {
             stopwatch.Stop();
             LogProbeFailure(logger, ex);
-            return new HealthProbeResult(false, HealthProbeExitCodes.Exception, ex.Message, null, stopwatch.Elapsed);
+            return new HealthProbeResult(false, HealthProbeExitCodes.Exception, ex.ToString(), null, stopwatch.Elapsed);
         }
     }
 

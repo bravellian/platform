@@ -155,7 +155,7 @@ public sealed class ModuleSystemTests
         var ex = Should.Throw<InvalidOperationException>(() =>
             services.AddModuleServices(configuration, NullLoggerFactory.Instance));
 
-        ex.Message.ShouldContain("cannot contain slashes");
+        ex.ToString().ShouldContain("cannot contain slashes");
     }
 
     /// <summary>
@@ -181,7 +181,7 @@ public sealed class ModuleSystemTests
         var ex = Should.Throw<InvalidOperationException>(() =>
             services.AddModuleServices(configuration, NullLoggerFactory.Instance));
 
-        ex.Message.ShouldContain("Engine descriptor module key");
+        ex.ToString().ShouldContain("Engine descriptor module key");
     }
 
     /// <summary>

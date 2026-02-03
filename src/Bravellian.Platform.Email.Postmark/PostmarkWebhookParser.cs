@@ -48,7 +48,7 @@ internal static class PostmarkWebhookParser
         }
         catch (JsonException ex)
         {
-            error = ex.Message;
+            error = ex.ToString();
             return false;
         }
     }

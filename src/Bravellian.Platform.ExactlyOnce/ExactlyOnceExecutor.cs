@@ -77,7 +77,7 @@ public sealed class ExactlyOnceExecutor<TItem>
         }
         catch (Exception ex)
         {
-            executionResult = ExactlyOnceExecutionResult.TransientFailure(errorMessage: ex.Message);
+            executionResult = ExactlyOnceExecutionResult.TransientFailure(errorMessage: ex.ToString());
         }
 
         return await FinalizeAsync(item, key, executionResult, cancellationToken).ConfigureAwait(false);
@@ -121,7 +121,7 @@ public sealed class ExactlyOnceExecutor<TItem>
         catch (Exception ex)
         {
             executionResult = exceptionClassifier?.Invoke(ex)
-                ?? ExactlyOnceExecutionResult.TransientFailure(errorMessage: ex.Message);
+                ?? ExactlyOnceExecutionResult.TransientFailure(errorMessage: ex.ToString());
         }
 
         return await FinalizeAsync(item, key, executionResult, cancellationToken).ConfigureAwait(false);

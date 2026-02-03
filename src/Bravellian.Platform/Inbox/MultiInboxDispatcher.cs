@@ -341,8 +341,8 @@ internal sealed class MultiInboxDispatcher
                 "Permanent failure processing inbox message {MessageId} from store '{StoreIdentifier}': {ErrorMessage}",
                 messageId,
                 storeIdentifier,
-                ex.Message);
-            return (false, ex.Message, true);
+                ex.ToString());
+            return (false, ex.ToString(), true);
         }
         catch (Exception ex)
         {
@@ -351,8 +351,8 @@ internal sealed class MultiInboxDispatcher
                 "Handler failed for inbox message {MessageId} from store '{StoreIdentifier}': {ErrorMessage}",
                 messageId,
                 storeIdentifier,
-                ex.Message);
-            return (false, ex.Message, false); // Return the current error message
+                ex.ToString());
+            return (false, ex.ToString(), false); // Return the current error message
         }
         finally
         {
@@ -406,7 +406,7 @@ internal sealed class MultiInboxDispatcher
                     "Failed to determine retry policy for message {MessageId} from store '{StoreIdentifier}', abandoning for immediate retry",
                     messageId,
                     storeIdentifier);
-                toAbandon.Add((messageId, TimeSpan.Zero, ex.Message));
+                toAbandon.Add((messageId, TimeSpan.Zero, ex.ToString()));
             }
         }
 

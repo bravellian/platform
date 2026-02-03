@@ -91,7 +91,7 @@ public class OutboxWorkerTests : SqlServerTestBase
             }
             catch (Exception ex)
             {
-                TestOutputHelper.WriteLine($"Database connection attempt {i + 1} failed: {ex.Message}");
+                TestOutputHelper.WriteLine($"Database connection attempt {i + 1} failed: {ex.ToString()}");
                 if (i == maxRetries - 1)
                 {
                     throw new InvalidOperationException($"Database not ready after {maxRetries} attempts", ex);

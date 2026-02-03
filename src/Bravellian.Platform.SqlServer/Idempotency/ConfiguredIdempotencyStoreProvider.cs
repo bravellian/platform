@@ -125,7 +125,7 @@ internal sealed class ConfiguredIdempotencyStoreProvider : IIdempotencyStoreProv
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to extract database name from connection string: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Failed to extract database name from connection string: {ex.ToString()}");
             return "UnknownDB";
         }
     }
