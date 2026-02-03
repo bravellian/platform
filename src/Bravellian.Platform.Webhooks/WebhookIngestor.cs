@@ -265,7 +265,14 @@ public sealed class WebhookIngestor : IWebhookIngestor
             return inbox;
         }
 
-        return inboxRouter.GetInbox(partitionKey);
+        try
+        {
+            return inboxRouter.GetInbox(partitionKey);
+        }
+        catch (Exception ex) when (ex is KeyNotFoundException || ex is InvalidOperationException)
+        {
+            return inbox;
+        }
     }
 
     private DateTimeOffset GetNeverDueTimeUtc()
