@@ -18,7 +18,7 @@ namespace Bravellian.Platform.Observability;
 /// Snapshot of inbox message data used for audit events.
 /// </summary>
 public sealed record InboxMessageSnapshot(
-    string MessageId,
+    InboxMessageIdentifier MessageId,
     string? Source,
     string? Topic,
     int? Attempt,

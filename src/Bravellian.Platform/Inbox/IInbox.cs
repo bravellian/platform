@@ -28,7 +28,7 @@ public interface IInbox
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>True if the message was already processed, false if this is the first time seeing it.</returns>
     Task<bool> AlreadyProcessedAsync(
-        string messageId,
+        InboxMessageIdentifier messageId,
         string source,
         CancellationToken cancellationToken);
 
@@ -42,7 +42,7 @@ public interface IInbox
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>True if the message was already processed, false if this is the first time seeing it.</returns>
     Task<bool> AlreadyProcessedAsync(
-        string messageId,
+        InboxMessageIdentifier messageId,
         string source,
         byte[]? hash,
         CancellationToken cancellationToken);
@@ -54,7 +54,7 @@ public interface IInbox
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     Task MarkProcessedAsync(
-        string messageId,
+        InboxMessageIdentifier messageId,
         CancellationToken cancellationToken);
 
     /// <summary>
@@ -64,7 +64,7 @@ public interface IInbox
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     Task MarkProcessingAsync(
-        string messageId,
+        InboxMessageIdentifier messageId,
         CancellationToken cancellationToken);
 
     /// <summary>
@@ -74,7 +74,7 @@ public interface IInbox
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     Task MarkDeadAsync(
-        string messageId,
+        InboxMessageIdentifier messageId,
         CancellationToken cancellationToken);
 
     /// <summary>
@@ -89,7 +89,7 @@ public interface IInbox
     Task EnqueueAsync(
         string topic,
         string source,
-        string messageId,
+        InboxMessageIdentifier messageId,
         string payload,
         CancellationToken cancellationToken);
 
@@ -106,7 +106,7 @@ public interface IInbox
     Task EnqueueAsync(
         string topic,
         string source,
-        string messageId,
+        InboxMessageIdentifier messageId,
         string payload,
         byte[]? hash,
         CancellationToken cancellationToken);
@@ -125,7 +125,7 @@ public interface IInbox
     Task EnqueueAsync(
         string topic,
         string source,
-        string messageId,
+        InboxMessageIdentifier messageId,
         string payload,
         byte[]? hash,
         DateTimeOffset? dueTimeUtc,

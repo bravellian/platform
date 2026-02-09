@@ -78,11 +78,11 @@ public sealed class GlobalControlPlaneRoutingTests
         await globalInbox.EnqueueAsync(
             "global.inbox",
             "source",
-            "global-msg-1",
+            InboxMessageIdentifier.From("global-msg-1"),
             "payload",
             TestContext.Current.CancellationToken);
 
-        var inboxMessage = await globalInboxStore.GetAsync("global-msg-1", TestContext.Current.CancellationToken);
+        var inboxMessage = await globalInboxStore.GetAsync(InboxMessageIdentifier.From("global-msg-1"), TestContext.Current.CancellationToken);
         inboxMessage.Topic.ShouldBe("global.inbox");
         inboxMessage.Source.ShouldBe("source");
     }

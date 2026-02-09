@@ -51,17 +51,19 @@ internal class SqlInboxService : IInbox
                         WHEN MATCHED THEN
                             UPDATE SET 
                                 LastSeenUtc = GETUTCDATE(),
-                                Attempts = Attempts + 1
+                                Attempts = Attempts + 1,
+                                AttemptCount = AttemptCount + 1
                         WHEN NOT MATCHED THEN
-                            INSERT (MessageId, Source, Hash, FirstSeenUtc, LastSeenUtc, Attempts)
-                            VALUES (source.MessageId, source.Source, source.Hash, GETUTCDATE(), GETUTCDATE(), 1)
-                        OUTPUT ISNULL(inserted.ProcessedUtc, deleted.ProcessedUtc) AS ProcessedUtc;
+                            INSERT (MessageId, Source, Hash, FirstSeenUtc, CreatedOn, LastSeenUtc, Attempts, AttemptCount, Status)
+                            VALUES (source.MessageId, source.Source, source.Hash, GETUTCDATE(), GETUTCDATE(), GETUTCDATE(), 1, 1, 'Seen')
+                        OUTPUT COALESCE(inserted.ProcessedOn, inserted.ProcessedUtc, deleted.ProcessedOn, deleted.ProcessedUtc) AS ProcessedUtc;
             """;
 
         markProcessedSql = $"""
 
                         UPDATE {tableName}
-                        SET ProcessedUtc = GETUTCDATE(),
+                        SET ProcessedOn = GETUTCDATE(),
+                            ProcessedUtc = GETUTCDATE(),
                             Status = 'Done',
                             LastSeenUtc = GETUTCDATE()
                         WHERE MessageId = @MessageId;
@@ -92,17 +94,19 @@ internal class SqlInboxService : IInbox
                             UPDATE SET 
                                 LastSeenUtc = GETUTCDATE(),
                                 Attempts = Attempts + 1,
+                                AttemptCount = AttemptCount + 1,
                                 Topic = COALESCE(source.Topic, target.Topic),
                                 Payload = COALESCE(source.Payload, target.Payload),
-                                DueTimeUtc = COALESCE(source.DueTimeUtc, target.DueTimeUtc)
+                                DueTimeUtc = COALESCE(source.DueTimeUtc, target.DueTimeUtc),
+                                DueOn = COALESCE(source.DueTimeUtc, target.DueOn)
                         WHEN NOT MATCHED THEN
-                            INSERT (MessageId, Source, Topic, Payload, Hash, DueTimeUtc, FirstSeenUtc, LastSeenUtc, Attempts, Status)
-                            VALUES (source.MessageId, source.Source, source.Topic, source.Payload, source.Hash, source.DueTimeUtc, GETUTCDATE(), GETUTCDATE(), 1, 'Seen');
+                            INSERT (MessageId, Source, Topic, Payload, Hash, DueTimeUtc, DueOn, FirstSeenUtc, CreatedOn, LastSeenUtc, Attempts, AttemptCount, Status)
+                            VALUES (source.MessageId, source.Source, source.Topic, source.Payload, source.Hash, source.DueTimeUtc, source.DueTimeUtc, GETUTCDATE(), GETUTCDATE(), GETUTCDATE(), 1, 1, 'Seen');
             """;
     }
 
     public async Task<bool> AlreadyProcessedAsync(
-        string messageId,
+        InboxMessageIdentifier messageId,
         string source,
         CancellationToken cancellationToken)
     {
@@ -110,12 +114,12 @@ internal class SqlInboxService : IInbox
     }
 
     public async Task<bool> AlreadyProcessedAsync(
-        string messageId,
+        InboxMessageIdentifier messageId,
         string source,
         byte[]? hash,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrEmpty(messageId))
+        if (string.IsNullOrEmpty(messageId.Value))
         {
             throw new ArgumentException("MessageId cannot be null or empty", nameof(messageId));
         }
@@ -133,7 +137,7 @@ internal class SqlInboxService : IInbox
             // Execute MERGE and get the ProcessedUtc value
             var processedUtc = await connection.QuerySingleOrDefaultAsync<DateTime?>(
                 upsertSql,
-                new { MessageId = messageId, Source = source, Hash = hash }).ConfigureAwait(false);
+                new { MessageId = messageId.Value, Source = source, Hash = hash }).ConfigureAwait(false);
 
             // If ProcessedUtc has a value, the message was already processed
             var alreadyProcessed = processedUtc.HasValue;
@@ -158,10 +162,10 @@ internal class SqlInboxService : IInbox
     }
 
     public async Task MarkProcessedAsync(
-        string messageId,
+        InboxMessageIdentifier messageId,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrEmpty(messageId))
+        if (string.IsNullOrEmpty(messageId.Value))
         {
             throw new ArgumentException("MessageId cannot be null or empty", nameof(messageId));
         }
@@ -173,7 +177,7 @@ internal class SqlInboxService : IInbox
 
             var rowsAffected = await connection.ExecuteAsync(
                 markProcessedSql,
-                new { MessageId = messageId }).ConfigureAwait(false);
+                new { MessageId = messageId.Value }).ConfigureAwait(false);
 
             if (rowsAffected == 0)
             {
@@ -199,10 +203,10 @@ internal class SqlInboxService : IInbox
     }
 
     public async Task MarkProcessingAsync(
-        string messageId,
+        InboxMessageIdentifier messageId,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrEmpty(messageId))
+        if (string.IsNullOrEmpty(messageId.Value))
         {
             throw new ArgumentException("MessageId cannot be null or empty", nameof(messageId));
         }
@@ -214,7 +218,7 @@ internal class SqlInboxService : IInbox
 
             var rowsAffected = await connection.ExecuteAsync(
                 markProcessingSql,
-                new { MessageId = messageId }).ConfigureAwait(false);
+                new { MessageId = messageId.Value }).ConfigureAwait(false);
 
             logger.LogDebug(
                 "Message {MessageId} marked as processing (rows affected: {RowsAffected})",
@@ -232,10 +236,10 @@ internal class SqlInboxService : IInbox
     }
 
     public async Task MarkDeadAsync(
-        string messageId,
+        InboxMessageIdentifier messageId,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrEmpty(messageId))
+        if (string.IsNullOrEmpty(messageId.Value))
         {
             throw new ArgumentException("MessageId cannot be null or empty", nameof(messageId));
         }
@@ -247,19 +251,19 @@ internal class SqlInboxService : IInbox
 
             var rowsAffected = await connection.ExecuteAsync(
                 markDeadSql,
-                new { MessageId = messageId }).ConfigureAwait(false);
+                new { MessageId = messageId.Value }).ConfigureAwait(false);
 
             logger.LogWarning(
                 "Message {MessageId} marked as dead/poison (rows affected: {RowsAffected})",
-                messageId,
-                rowsAffected);
+            messageId,
+            rowsAffected);
         }
         catch (SqlException ex)
         {
             logger.LogError(
                 ex,
                 "Failed to mark message {MessageId} as dead",
-                messageId);
+            messageId);
             throw;
         }
     }
@@ -267,7 +271,7 @@ internal class SqlInboxService : IInbox
     public async Task EnqueueAsync(
         string topic,
         string source,
-        string messageId,
+        InboxMessageIdentifier messageId,
         string payload,
         CancellationToken cancellationToken)
     {
@@ -277,7 +281,7 @@ internal class SqlInboxService : IInbox
     public async Task EnqueueAsync(
         string topic,
         string source,
-        string messageId,
+        InboxMessageIdentifier messageId,
         string payload,
         byte[]? hash,
         CancellationToken cancellationToken)
@@ -288,7 +292,7 @@ internal class SqlInboxService : IInbox
     public async Task EnqueueAsync(
         string topic,
         string source,
-        string messageId,
+        InboxMessageIdentifier messageId,
         string payload,
         byte[]? hash,
         DateTimeOffset? dueTimeUtc,
@@ -304,7 +308,7 @@ internal class SqlInboxService : IInbox
             throw new ArgumentException("Source cannot be null or empty", nameof(source));
         }
 
-        if (string.IsNullOrEmpty(messageId))
+        if (string.IsNullOrEmpty(messageId.Value))
         {
             throw new ArgumentException("MessageId cannot be null or empty", nameof(messageId));
         }
@@ -323,7 +327,7 @@ internal class SqlInboxService : IInbox
                 enqueueSql,
                 new
                 {
-                    MessageId = messageId,
+                    MessageId = messageId.Value,
                     Source = source,
                     Topic = topic,
                     Payload = payload,

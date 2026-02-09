@@ -295,7 +295,7 @@ internal sealed class InMemoryInboxState
 
             return new InboxMessage
             {
-                MessageId = entry.MessageId,
+                MessageId = InboxMessageIdentifier.From(entry.MessageId),
                 Source = entry.Source,
                 Topic = entry.Topic ?? string.Empty,
                 Payload = entry.Payload ?? string.Empty,
@@ -303,6 +303,7 @@ internal sealed class InMemoryInboxState
                 Attempt = entry.Attempts,
                 FirstSeenUtc = entry.FirstSeenUtc,
                 LastSeenUtc = entry.LastSeenUtc,
+                ProcessedUtc = entry.ProcessedUtc,
                 DueTimeUtc = entry.DueTimeUtc,
                 LastError = entry.LastError,
             };

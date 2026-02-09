@@ -288,7 +288,7 @@ public sealed class WebhookProcessorTests
     private sealed class FakeInboxWorkStore : IInboxWorkStore
     {
         private readonly TimeProvider timeProvider;
-    private int messageSequence;
+        private int messageSequence;
         private readonly Dictionary<string, StoredMessage> messages = new(StringComparer.Ordinal);
         private readonly Dictionary<string, WorkState> states = new(StringComparer.Ordinal);
 
@@ -297,11 +297,11 @@ public sealed class WebhookProcessorTests
             this.timeProvider = timeProvider;
         }
 
-        public List<string> Acked { get; } = new();
+        public List<InboxMessageIdentifier> Acked { get; } = new();
 
-        public List<(string MessageId, TimeSpan Delay, string Error)> Abandoned { get; } = new();
+        public List<(InboxMessageIdentifier MessageId, TimeSpan Delay, string Error)> Abandoned { get; } = new();
 
-        public List<(string MessageId, string Error)> Failed { get; } = new();
+        public List<(InboxMessageIdentifier MessageId, string Error)> Failed { get; } = new();
 
         public void AddMessage(string payload, int initialAttempt = 0)
         {
@@ -321,7 +321,7 @@ public sealed class WebhookProcessorTests
             states[messageId] = WorkState.Ready;
         }
 
-        public Task<IReadOnlyList<string>> ClaimAsync(OwnerToken ownerToken, int leaseSeconds, int batchSize, CancellationToken cancellationToken)
+        public Task<IReadOnlyList<InboxMessageIdentifier>> ClaimAsync(OwnerToken ownerToken, int leaseSeconds, int batchSize, CancellationToken cancellationToken)
         {
             var now = timeProvider.GetUtcNow();
             var ready = messages.Values
@@ -342,67 +342,75 @@ public sealed class WebhookProcessorTests
                 states[messageId] = WorkState.Processing;
             }
 
-            return Task.FromResult<IReadOnlyList<string>>(ready);
+            var claimed = ready
+                .Select(InboxMessageIdentifier.From)
+                .ToList();
+
+            return Task.FromResult<IReadOnlyList<InboxMessageIdentifier>>(claimed);
         }
 
-        public Task AckAsync(OwnerToken ownerToken, IEnumerable<string> messageIds, CancellationToken cancellationToken)
+        public Task AckAsync(OwnerToken ownerToken, IEnumerable<InboxMessageIdentifier> messageIds, CancellationToken cancellationToken)
         {
             foreach (var messageId in messageIds)
             {
+                var messageKey = messageId.Value;
                 Acked.Add(messageId);
-                states[messageId] = WorkState.Completed;
+                states[messageKey] = WorkState.Completed;
             }
 
             return Task.CompletedTask;
         }
 
-        public Task AbandonAsync(OwnerToken ownerToken, IEnumerable<string> messageIds, string? lastError = null, TimeSpan? delay = null, CancellationToken cancellationToken = default)
+        public Task AbandonAsync(OwnerToken ownerToken, IEnumerable<InboxMessageIdentifier> messageIds, string? lastError = null, TimeSpan? delay = null, CancellationToken cancellationToken = default)
         {
             var now = timeProvider.GetUtcNow();
             var effectiveDelay = delay ?? TimeSpan.Zero;
             foreach (var messageId in messageIds)
             {
+                var messageKey = messageId.Value;
                 Abandoned.Add((messageId, effectiveDelay, lastError ?? string.Empty));
-                var message = messages[messageId];
-                messages[messageId] = message with
+                var message = messages[messageKey];
+                messages[messageKey] = message with
                 {
                     DueTimeUtc = now.Add(effectiveDelay),
                     LastError = lastError,
                 };
-                states[messageId] = WorkState.Ready;
+                states[messageKey] = WorkState.Ready;
             }
 
             return Task.CompletedTask;
         }
 
-        public Task FailAsync(OwnerToken ownerToken, IEnumerable<string> messageIds, string errorMessage, CancellationToken cancellationToken)
+        public Task FailAsync(OwnerToken ownerToken, IEnumerable<InboxMessageIdentifier> messageIds, string errorMessage, CancellationToken cancellationToken)
         {
             foreach (var messageId in messageIds)
             {
+                var messageKey = messageId.Value;
                 Failed.Add((messageId, errorMessage));
-                states[messageId] = WorkState.Poisoned;
+                states[messageKey] = WorkState.Poisoned;
             }
 
             return Task.CompletedTask;
         }
 
-        public Task ReviveAsync(IEnumerable<string> messageIds, string? reason = null, TimeSpan? delay = null, CancellationToken cancellationToken = default)
+        public Task ReviveAsync(IEnumerable<InboxMessageIdentifier> messageIds, string? reason = null, TimeSpan? delay = null, CancellationToken cancellationToken = default)
         {
             var now = timeProvider.GetUtcNow();
             var effectiveDelay = delay ?? TimeSpan.Zero;
             foreach (var messageId in messageIds)
             {
-                if (!messages.TryGetValue(messageId, out var message))
+                var messageKey = messageId.Value;
+                if (!messages.TryGetValue(messageKey, out var message))
                 {
                     continue;
                 }
 
-                messages[messageId] = message with
+                messages[messageKey] = message with
                 {
                     DueTimeUtc = effectiveDelay == TimeSpan.Zero ? null : now.Add(effectiveDelay),
                     LastError = string.IsNullOrEmpty(reason) ? message.LastError : reason,
                 };
-                states[messageId] = WorkState.Ready;
+                states[messageKey] = WorkState.Ready;
             }
 
             return Task.CompletedTask;
@@ -413,16 +421,16 @@ public sealed class WebhookProcessorTests
             return Task.CompletedTask;
         }
 
-        public Task<InboxMessage> GetAsync(string messageId, CancellationToken cancellationToken)
+        public Task<InboxMessage> GetAsync(InboxMessageIdentifier messageId, CancellationToken cancellationToken)
         {
-            var message = messages[messageId];
+            var message = messages[messageId.Value];
             return Task.FromResult(CreateInboxMessage(message));
         }
 
         private static InboxMessage CreateInboxMessage(StoredMessage message)
         {
             var instance = new InboxMessage();
-            SetProperty(instance, nameof(InboxMessage.MessageId), message.MessageId);
+            SetProperty(instance, nameof(InboxMessage.MessageId), InboxMessageIdentifier.From(message.MessageId));
             SetProperty(instance, nameof(InboxMessage.Source), message.Source);
             SetProperty(instance, nameof(InboxMessage.Topic), message.Topic);
             SetProperty(instance, nameof(InboxMessage.Payload), message.Payload);

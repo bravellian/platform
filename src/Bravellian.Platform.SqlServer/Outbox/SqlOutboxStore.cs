@@ -84,7 +84,18 @@ internal class SqlOutboxStore : IOutboxStore
 
             // Fetch the full message details for claimed IDs
             var sql = $"""
-                SELECT * 
+                SELECT Id,
+                    Payload,
+                    Topic,
+                    COALESCE(CreatedOn, CreatedAt) AS CreatedAt,
+                    IsProcessed,
+                    COALESCE(ProcessedOn, ProcessedAt) AS ProcessedAt,
+                    ProcessedBy,
+                    COALESCE(AttemptCount, RetryCount) AS RetryCount,
+                    LastError,
+                    MessageId,
+                    CorrelationId,
+                    COALESCE(DueOn, DueTimeUtc) AS DueTimeUtc
                 FROM [{schemaName}].[{tableName}]
                 WHERE Id IN @Ids
                 """;

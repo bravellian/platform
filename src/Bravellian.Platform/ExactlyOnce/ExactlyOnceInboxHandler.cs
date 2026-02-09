@@ -47,10 +47,10 @@ public abstract class ExactlyOnceInboxHandler : IInboxHandler, IExactlyOnceKeyRe
         ArgumentNullException.ThrowIfNull(message);
         if (string.IsNullOrWhiteSpace(message.Source))
         {
-            return message.MessageId;
+            return message.MessageId.Value;
         }
 
-        return string.Concat(message.Source, ":", message.MessageId);
+        return string.Concat(message.Source, ":", message.MessageId.Value);
     }
 
     /// <summary>

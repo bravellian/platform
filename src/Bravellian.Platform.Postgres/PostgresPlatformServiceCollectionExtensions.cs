@@ -36,13 +36,15 @@ public static class PostgresPlatformServiceCollectionExtensions
     /// <param name="services">The service collection.</param>
     /// <param name="databases">The list of application databases.</param>
     /// <param name="enableSchemaDeployment">Whether to automatically create platform tables and procedures at startup.</param>
+    /// <param name="enableSchemaVerification">Whether to verify platform schema at startup.</param>
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddPostgresPlatformMultiDatabaseWithList(
         this IServiceCollection services,
         IEnumerable<PlatformDatabase> databases,
-        bool enableSchemaDeployment = true)
+        bool enableSchemaDeployment = true,
+        bool enableSchemaVerification = false)
     {
-        return AddPlatformMultiDatabaseWithList(services, databases, enableSchemaDeployment);
+        return AddPlatformMultiDatabaseWithList(services, databases, enableSchemaDeployment, enableSchemaVerification);
     }
 
     /// <summary>
@@ -51,15 +53,17 @@ public static class PostgresPlatformServiceCollectionExtensions
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="enableSchemaDeployment">Whether to automatically create platform tables and procedures at startup.</param>
+    /// <param name="enableSchemaVerification">Whether to verify platform schema at startup.</param>
     /// <returns>The service collection for chaining.</returns>
     /// <remarks>
     /// Requires an implementation of <see cref="IPlatformDatabaseDiscovery"/> to be registered in the service collection.
     /// </remarks>
     public static IServiceCollection AddPostgresPlatformMultiDatabaseWithDiscovery(
         this IServiceCollection services,
-        bool enableSchemaDeployment = true)
+        bool enableSchemaDeployment = true,
+        bool enableSchemaVerification = false)
     {
-        return AddPlatformMultiDatabaseWithDiscovery(services, enableSchemaDeployment);
+        return AddPlatformMultiDatabaseWithDiscovery(services, enableSchemaDeployment, enableSchemaVerification);
     }
 
     /// <summary>
@@ -186,6 +190,7 @@ public static class PostgresPlatformServiceCollectionExtensions
                 ConnectionString = options.ConnectionString,
                 SchemaName = options.SchemaName,
                 EnableSchemaDeployment = options.EnableSchemaDeployment,
+                EnableSchemaVerification = options.EnableSchemaVerification,
             });
 
         return services;
@@ -199,11 +204,13 @@ public static class PostgresPlatformServiceCollectionExtensions
     /// <param name="services">The service collection.</param>
     /// <param name="databases">The list of application databases.</param>
     /// <param name="enableSchemaDeployment">Whether to automatically create platform tables and procedures at startup.</param>
+    /// <param name="enableSchemaVerification">Whether to verify platform schema at startup.</param>
     /// <returns>The service collection for chaining.</returns>
     private static IServiceCollection AddPlatformMultiDatabaseWithList(
         this IServiceCollection services,
         IEnumerable<PlatformDatabase> databases,
-        bool enableSchemaDeployment = false)
+        bool enableSchemaDeployment = false,
+        bool enableSchemaVerification = false)
     {
         ArgumentNullException.ThrowIfNull(databases);
 
@@ -222,6 +229,7 @@ public static class PostgresPlatformServiceCollectionExtensions
             EnvironmentStyle = PlatformEnvironmentStyle.MultiDatabaseNoControl,
             UsesDiscovery = false,
             EnableSchemaDeployment = enableSchemaDeployment,
+            EnableSchemaVerification = enableSchemaVerification,
             RequiresDatabaseAtStartup = true, // List-based: must have at least one database
         };
 
@@ -235,7 +243,7 @@ public static class PostgresPlatformServiceCollectionExtensions
         services.AddSingleton<IHostedService, PlatformLifecycleService>();
 
         // Register core abstractions
-        RegisterCoreServices(services, enableSchemaDeployment);
+        RegisterCoreServices(services, enableSchemaDeployment, enableSchemaVerification);
 
 
         return services;
@@ -247,13 +255,15 @@ public static class PostgresPlatformServiceCollectionExtensions
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="enableSchemaDeployment">Whether to automatically create platform tables and procedures at startup.</param>
+    /// <param name="enableSchemaVerification">Whether to verify platform schema at startup.</param>
     /// <returns>The service collection for chaining.</returns>
     /// <remarks>
     /// Requires an implementation of <see cref="IPlatformDatabaseDiscovery"/> to be registered in the service collection.
     /// </remarks>
     private static IServiceCollection AddPlatformMultiDatabaseWithDiscovery(
         this IServiceCollection services,
-        bool enableSchemaDeployment = false)
+        bool enableSchemaDeployment = false,
+        bool enableSchemaVerification = false)
     {
         // Prevent multiple registrations
         EnsureNotAlreadyRegistered(services);
@@ -264,6 +274,7 @@ public static class PostgresPlatformServiceCollectionExtensions
             EnvironmentStyle = PlatformEnvironmentStyle.MultiDatabaseNoControl,
             UsesDiscovery = true,
             EnableSchemaDeployment = enableSchemaDeployment,
+            EnableSchemaVerification = enableSchemaVerification,
             RequiresDatabaseAtStartup = false, // Dynamic discovery: can start with zero databases
         };
 
@@ -276,7 +287,7 @@ public static class PostgresPlatformServiceCollectionExtensions
         services.AddSingleton<IHostedService, PlatformLifecycleService>();
 
         // Register core abstractions
-        RegisterCoreServices(services, enableSchemaDeployment);
+        RegisterCoreServices(services, enableSchemaDeployment, enableSchemaVerification);
 
 
         return services;
@@ -324,6 +335,7 @@ public static class PostgresPlatformServiceCollectionExtensions
             ControlPlaneConnectionString = controlPlaneOptions.ConnectionString,
             ControlPlaneSchemaName = controlPlaneOptions.SchemaName,
             EnableSchemaDeployment = controlPlaneOptions.EnableSchemaDeployment,
+            EnableSchemaVerification = controlPlaneOptions.EnableSchemaVerification,
             RequiresDatabaseAtStartup = true, // List-based: must have at least one database
         };
 
@@ -337,7 +349,7 @@ public static class PostgresPlatformServiceCollectionExtensions
         services.AddSingleton<IHostedService, PlatformLifecycleService>();
 
         // Register core abstractions
-        RegisterCoreServices(services, controlPlaneOptions.EnableSchemaDeployment);
+        RegisterCoreServices(services, controlPlaneOptions.EnableSchemaDeployment, controlPlaneOptions.EnableSchemaVerification);
 
 
         return services;
@@ -379,6 +391,7 @@ public static class PostgresPlatformServiceCollectionExtensions
             ControlPlaneConnectionString = controlPlaneOptions.ConnectionString,
             ControlPlaneSchemaName = controlPlaneOptions.SchemaName,
             EnableSchemaDeployment = controlPlaneOptions.EnableSchemaDeployment,
+            EnableSchemaVerification = controlPlaneOptions.EnableSchemaVerification,
             RequiresDatabaseAtStartup = false, // Dynamic discovery: can start with zero databases
         };
 
@@ -391,7 +404,7 @@ public static class PostgresPlatformServiceCollectionExtensions
         services.AddSingleton<IHostedService, PlatformLifecycleService>();
 
         // Register core abstractions
-        RegisterCoreServices(services, controlPlaneOptions.EnableSchemaDeployment);
+        RegisterCoreServices(services, controlPlaneOptions.EnableSchemaDeployment, controlPlaneOptions.EnableSchemaVerification);
 
 
         return services;
@@ -561,7 +574,10 @@ public static class PostgresPlatformServiceCollectionExtensions
             $"{message} Remove the following registrations and use {recommendedService} instead: {details}.");
     }
 
-    private static void RegisterCoreServices(IServiceCollection services, bool enableSchemaDeployment)
+    private static void RegisterCoreServices(
+        IServiceCollection services,
+        bool enableSchemaDeployment,
+        bool enableSchemaVerification)
     {
         // Register Dapper type handlers for strongly-typed IDs
         PostgresDapperTypeHandlerRegistration.RegisterTypeHandlers();
@@ -576,6 +592,11 @@ public static class PostgresPlatformServiceCollectionExtensions
             services.TryAddSingleton<DatabaseSchemaCompletion>();
             services.TryAddSingleton<IDatabaseSchemaCompletion>(provider => provider.GetRequiredService<DatabaseSchemaCompletion>());
             services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, DatabaseSchemaBackgroundService>());
+        }
+
+        if (enableSchemaVerification)
+        {
+            services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, DatabaseSchemaVerificationService>());
         }
 
         // Register all platform features automatically

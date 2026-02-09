@@ -44,7 +44,7 @@ internal class SchedulerHealthCheck : IHealthCheck
             // This query is designed to be very fast and non-locking.
             var sql = $"""
                 SELECT
-                    (SELECT MIN(CreatedAt) FROM [{schemaName}].[Outbox] WITH(NOLOCK) WHERE IsProcessed = 0) AS OldestOutbox,
+                    (SELECT MIN(COALESCE(CreatedOn, CreatedAt)) FROM [{schemaName}].[Outbox] WITH(NOLOCK) WHERE IsProcessed = 0) AS OldestOutbox,
                     (SELECT MIN(DueTime) FROM [{schemaName}].[{timersTableName}] WITH(NOLOCK) WHERE Status = 'Pending') AS OldestTimer,
                     (SELECT MIN(ScheduledTime) FROM [{schemaName}].[{jobRunsTableName}] WITH(NOLOCK) WHERE Status = 'Pending') AS OldestJobRun;
                 """;

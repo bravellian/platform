@@ -32,23 +32,23 @@ public class MockInboxWorkStore : IInboxWorkStore
     }
 
     /// <inheritdoc/>
-    public Task<IReadOnlyList<string>> ClaimAsync(Bravellian.Platform.OwnerToken ownerToken, int leaseSeconds, int batchSize, CancellationToken cancellationToken)
-        => Task.FromResult<IReadOnlyList<string>>(new List<string>());
+    public Task<IReadOnlyList<InboxMessageIdentifier>> ClaimAsync(Bravellian.Platform.OwnerToken ownerToken, int leaseSeconds, int batchSize, CancellationToken cancellationToken)
+        => Task.FromResult<IReadOnlyList<InboxMessageIdentifier>>(new List<InboxMessageIdentifier>());
 
     /// <inheritdoc/>
-    public Task AckAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<string> messageIds, CancellationToken cancellationToken)
+    public Task AckAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<InboxMessageIdentifier> messageIds, CancellationToken cancellationToken)
         => Task.CompletedTask;
 
     /// <inheritdoc/>
-    public Task AbandonAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<string> messageIds, string? lastError = null, TimeSpan? delay = null, CancellationToken cancellationToken = default)
+    public Task AbandonAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<InboxMessageIdentifier> messageIds, string? lastError = null, TimeSpan? delay = null, CancellationToken cancellationToken = default)
         => Task.CompletedTask;
 
     /// <inheritdoc/>
-    public Task FailAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<string> messageIds, string errorMessage, CancellationToken cancellationToken)
+    public Task FailAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<InboxMessageIdentifier> messageIds, string errorMessage, CancellationToken cancellationToken)
         => Task.CompletedTask;
 
     /// <inheritdoc/>
-    public Task ReviveAsync(IEnumerable<string> messageIds, string? reason = null, TimeSpan? delay = null, CancellationToken cancellationToken = default)
+    public Task ReviveAsync(IEnumerable<InboxMessageIdentifier> messageIds, string? reason = null, TimeSpan? delay = null, CancellationToken cancellationToken = default)
         => Task.CompletedTask;
 
     /// <inheritdoc/>
@@ -56,7 +56,7 @@ public class MockInboxWorkStore : IInboxWorkStore
         => Task.CompletedTask;
 
     /// <inheritdoc/>
-    public Task<InboxMessage> GetAsync(string messageId, CancellationToken cancellationToken)
+    public Task<InboxMessage> GetAsync(InboxMessageIdentifier messageId, CancellationToken cancellationToken)
     {
         return Task.FromResult(new InboxMessage
         {

@@ -22,7 +22,7 @@ public sealed record InboxMessage
     /// <summary>
     /// Gets the message identifier.
     /// </summary>
-    public string MessageId { get; internal init; } = string.Empty;
+    public InboxMessageIdentifier MessageId { get; internal init; }
 
     /// <summary>
     /// Gets the source system for the message.
@@ -51,9 +51,19 @@ public sealed record InboxMessage
     public int Attempt { get; internal init; }
 
     /// <summary>
+    /// Gets the processing attempt count (canonical name).
+    /// </summary>
+    public int AttemptCount => Attempt;
+
+    /// <summary>
     /// Gets the first seen timestamp in UTC.
     /// </summary>
     public DateTimeOffset FirstSeenUtc { get; internal init; }
+
+    /// <summary>
+    /// Gets the created timestamp (canonical name).
+    /// </summary>
+    public DateTimeOffset CreatedOn => FirstSeenUtc;
 
     /// <summary>
     /// Gets the last seen timestamp in UTC.
@@ -61,9 +71,34 @@ public sealed record InboxMessage
     public DateTimeOffset LastSeenUtc { get; internal init; }
 
     /// <summary>
+    /// Gets the processed timestamp in UTC, when available.
+    /// </summary>
+    public DateTimeOffset? ProcessedUtc { get; internal init; }
+
+    /// <summary>
+    /// Gets the processed timestamp (canonical name).
+    /// </summary>
+    public DateTimeOffset? ProcessedOn => ProcessedUtc;
+
+    /// <summary>
     /// Gets the due time in UTC, when scheduled.
     /// </summary>
     public DateTimeOffset? DueTimeUtc { get; internal init; }
+
+    /// <summary>
+    /// Gets the due time (canonical name).
+    /// </summary>
+    public DateTimeOffset? DueOn => DueTimeUtc;
+
+    /// <summary>
+    /// Gets the correlation identifier, if provided.
+    /// </summary>
+    public string? CorrelationId { get; internal init; }
+
+    /// <summary>
+    /// Gets the processor identifier, if any.
+    /// </summary>
+    public string? ProcessedBy { get; internal init; }
 
     /// <summary>
     /// Gets the last error message, if any.

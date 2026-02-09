@@ -49,14 +49,14 @@ public sealed class InboxRecoveryService
     /// <param name="delay">Optional delay before reprocessing.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     public async Task ReviveAsync(
-        IEnumerable<string> messageIds,
+        IEnumerable<InboxMessageIdentifier> messageIds,
         string? reason = null,
         TimeSpan? delay = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(messageIds);
 
-        var idList = messageIds.Where(id => !string.IsNullOrWhiteSpace(id)).Distinct(StringComparer.Ordinal).ToList();
+        var idList = messageIds.Where(id => !string.IsNullOrWhiteSpace(id.Value)).Distinct().ToList();
         if (idList.Count == 0)
         {
             return;
@@ -79,7 +79,7 @@ public sealed class InboxRecoveryService
     }
 
     private async Task<IReadOnlyList<InboxMessageSnapshot>> CaptureSnapshotsAsync(
-        IReadOnlyList<string> messageIds,
+        List<InboxMessageIdentifier> messageIds,
         CancellationToken cancellationToken)
     {
         var snapshots = new List<InboxMessageSnapshot>(messageIds.Count);
@@ -97,7 +97,7 @@ public sealed class InboxRecoveryService
                     message.LastError,
                     message.DueTimeUtc));
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
                 logger.LogWarning(
                     ex,

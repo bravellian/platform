@@ -146,6 +146,37 @@ public class DatabaseSchemaDeploymentTests
         Assert.NotNull(hostedServiceDescriptor);
     }
 
+    /// <summary>When schema verification is enabled, then the verification service is registered.</summary>
+    /// <intent>Ensure schema verification wiring is added when enabled.</intent>
+    /// <scenario>Given AddPostgresPlatformMultiDatabaseWithList with enableSchemaVerification set to true.</scenario>
+    /// <behavior>DatabaseSchemaVerificationService is registered in the service collection.</behavior>
+    [Fact]
+    public void AddPostgresPlatformMultiDatabaseWithList_WithSchemaVerificationEnabled_RegistersVerifier()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
+
+        var databases = new[]
+        {
+            new PlatformDatabase
+            {
+                Name = "db1",
+                ConnectionString = "Host=localhost;Database=Db1;Username=postgres;Password=postgres;",
+                SchemaName = "infra",
+            },
+        };
+
+        services.AddPostgresPlatformMultiDatabaseWithList(
+            databases,
+            enableSchemaDeployment: false,
+            enableSchemaVerification: true);
+
+        var hostedServiceDescriptor = services.FirstOrDefault(
+            s => s.ServiceType == typeof(IHostedService) && s.ImplementationType == typeof(DatabaseSchemaVerificationService));
+
+        Assert.NotNull(hostedServiceDescriptor);
+    }
+
     /// <summary>When control-plane schema deployment is enabled, then schema services are registered.</summary>
     /// <intent>Confirm control-plane multi-database registration wires schema deployment services.</intent>
     /// <scenario>Given a ServiceCollection, tenant list, and control-plane options with EnableSchemaDeployment set to true.</scenario>

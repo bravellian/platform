@@ -403,38 +403,38 @@ public sealed class PostmarkWebhookTests
 
         public List<EnqueuedMessage> Enqueued { get; } = new();
 
-        public Task<bool> AlreadyProcessedAsync(string messageId, string source, CancellationToken cancellationToken)
+        public Task<bool> AlreadyProcessedAsync(InboxMessageIdentifier messageId, string source, CancellationToken cancellationToken)
         {
-            return Task.FromResult(!seen.Add(BuildKey(messageId, source)));
+            return Task.FromResult(!seen.Add(BuildKey(messageId.Value, source)));
         }
 
-        public Task<bool> AlreadyProcessedAsync(string messageId, string source, byte[]? hash, CancellationToken cancellationToken)
+        public Task<bool> AlreadyProcessedAsync(InboxMessageIdentifier messageId, string source, byte[]? hash, CancellationToken cancellationToken)
         {
-            return Task.FromResult(!seen.Add(BuildKey(messageId, source)));
+            return Task.FromResult(!seen.Add(BuildKey(messageId.Value, source)));
         }
 
-        public Task MarkProcessedAsync(string messageId, CancellationToken cancellationToken)
-        {
-            return Task.CompletedTask;
-        }
-
-        public Task MarkProcessingAsync(string messageId, CancellationToken cancellationToken)
+        public Task MarkProcessedAsync(InboxMessageIdentifier messageId, CancellationToken cancellationToken)
         {
             return Task.CompletedTask;
         }
 
-        public Task MarkDeadAsync(string messageId, CancellationToken cancellationToken)
+        public Task MarkProcessingAsync(InboxMessageIdentifier messageId, CancellationToken cancellationToken)
         {
             return Task.CompletedTask;
         }
 
-        public Task EnqueueAsync(string topic, string source, string messageId, string payload, CancellationToken cancellationToken)
+        public Task MarkDeadAsync(InboxMessageIdentifier messageId, CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task EnqueueAsync(string topic, string source, InboxMessageIdentifier messageId, string payload, CancellationToken cancellationToken)
         {
             Enqueued.Add(new EnqueuedMessage(topic, source, messageId, payload));
             return Task.CompletedTask;
         }
 
-        public Task EnqueueAsync(string topic, string source, string messageId, string payload, byte[]? hash, CancellationToken cancellationToken)
+        public Task EnqueueAsync(string topic, string source, InboxMessageIdentifier messageId, string payload, byte[]? hash, CancellationToken cancellationToken)
         {
             Enqueued.Add(new EnqueuedMessage(topic, source, messageId, payload));
             return Task.CompletedTask;
@@ -443,7 +443,7 @@ public sealed class PostmarkWebhookTests
         public Task EnqueueAsync(
             string topic,
             string source,
-            string messageId,
+            InboxMessageIdentifier messageId,
             string payload,
             byte[]? hash,
             DateTimeOffset? dueTimeUtc,
@@ -456,7 +456,7 @@ public sealed class PostmarkWebhookTests
         private static string BuildKey(string messageId, string source) => $"{source}:{messageId}";
     }
 
-    private sealed record EnqueuedMessage(string Topic, string Source, string MessageId, string Payload);
+    private sealed record EnqueuedMessage(string Topic, string Source, InboxMessageIdentifier MessageId, string Payload);
 
     private sealed class FakeInboxWorkStore : IInboxWorkStore
     {
@@ -488,7 +488,7 @@ public sealed class PostmarkWebhookTests
             states[messageId] = WorkState.Ready;
         }
 
-        public Task<IReadOnlyList<string>> ClaimAsync(OwnerToken ownerToken, int leaseSeconds, int batchSize, CancellationToken cancellationToken)
+        public Task<IReadOnlyList<InboxMessageIdentifier>> ClaimAsync(OwnerToken ownerToken, int leaseSeconds, int batchSize, CancellationToken cancellationToken)
         {
             var now = timeProvider.GetUtcNow();
             var ready = messages.Values
@@ -509,65 +509,71 @@ public sealed class PostmarkWebhookTests
                 states[messageId] = WorkState.Processing;
             }
 
-            return Task.FromResult<IReadOnlyList<string>>(ready);
+            var claimed = ready
+                .Select(InboxMessageIdentifier.From)
+                .ToList();
+
+            return Task.FromResult<IReadOnlyList<InboxMessageIdentifier>>(claimed);
         }
 
-        public Task AckAsync(OwnerToken ownerToken, IEnumerable<string> messageIds, CancellationToken cancellationToken)
+        public Task AckAsync(OwnerToken ownerToken, IEnumerable<InboxMessageIdentifier> messageIds, CancellationToken cancellationToken)
         {
             foreach (var messageId in messageIds)
             {
-                states[messageId] = WorkState.Completed;
+                states[messageId.Value] = WorkState.Completed;
             }
 
             return Task.CompletedTask;
         }
 
-        public Task AbandonAsync(OwnerToken ownerToken, IEnumerable<string> messageIds, string? lastError = null, TimeSpan? delay = null, CancellationToken cancellationToken = default)
+        public Task AbandonAsync(OwnerToken ownerToken, IEnumerable<InboxMessageIdentifier> messageIds, string? lastError = null, TimeSpan? delay = null, CancellationToken cancellationToken = default)
         {
             var now = timeProvider.GetUtcNow();
             var effectiveDelay = delay ?? TimeSpan.Zero;
             foreach (var messageId in messageIds)
             {
-                var message = messages[messageId];
-                messages[messageId] = message with
+                var messageKey = messageId.Value;
+                var message = messages[messageKey];
+                messages[messageKey] = message with
                 {
                     DueTimeUtc = now.Add(effectiveDelay),
                     LastError = lastError,
                 };
-                states[messageId] = WorkState.Ready;
+                states[messageKey] = WorkState.Ready;
             }
 
             return Task.CompletedTask;
         }
 
-        public Task FailAsync(OwnerToken ownerToken, IEnumerable<string> messageIds, string errorMessage, CancellationToken cancellationToken)
+        public Task FailAsync(OwnerToken ownerToken, IEnumerable<InboxMessageIdentifier> messageIds, string errorMessage, CancellationToken cancellationToken)
         {
             foreach (var messageId in messageIds)
             {
-                states[messageId] = WorkState.Poisoned;
+                states[messageId.Value] = WorkState.Poisoned;
             }
 
             return Task.CompletedTask;
         }
 
-        public Task ReviveAsync(IEnumerable<string> messageIds, string? reason = null, TimeSpan? delay = null, CancellationToken cancellationToken = default)
+        public Task ReviveAsync(IEnumerable<InboxMessageIdentifier> messageIds, string? reason = null, TimeSpan? delay = null, CancellationToken cancellationToken = default)
         {
             var now = timeProvider.GetUtcNow();
             var effectiveDelay = delay ?? TimeSpan.Zero;
 
             foreach (var messageId in messageIds)
             {
-                if (!messages.TryGetValue(messageId, out var message))
+                var messageKey = messageId.Value;
+                if (!messages.TryGetValue(messageKey, out var message))
                 {
                     continue;
                 }
 
-                messages[messageId] = message with
+                messages[messageKey] = message with
                 {
                     DueTimeUtc = effectiveDelay == TimeSpan.Zero ? null : now.Add(effectiveDelay),
                     LastError = string.IsNullOrEmpty(reason) ? message.LastError : reason,
                 };
-                states[messageId] = WorkState.Ready;
+                states[messageKey] = WorkState.Ready;
             }
 
             return Task.CompletedTask;
@@ -578,16 +584,16 @@ public sealed class PostmarkWebhookTests
             return Task.CompletedTask;
         }
 
-        public Task<InboxMessage> GetAsync(string messageId, CancellationToken cancellationToken)
+        public Task<InboxMessage> GetAsync(InboxMessageIdentifier messageId, CancellationToken cancellationToken)
         {
-            var message = messages[messageId];
+            var message = messages[messageId.Value];
             return Task.FromResult(CreateInboxMessage(message));
         }
 
         private static InboxMessage CreateInboxMessage(StoredMessage message)
         {
             var instance = new InboxMessage();
-            SetProperty(instance, nameof(InboxMessage.MessageId), message.MessageId);
+            SetProperty(instance, nameof(InboxMessage.MessageId), InboxMessageIdentifier.From(message.MessageId));
             SetProperty(instance, nameof(InboxMessage.Source), message.Source);
             SetProperty(instance, nameof(InboxMessage.Topic), message.Topic);
             SetProperty(instance, nameof(InboxMessage.Payload), message.Payload);

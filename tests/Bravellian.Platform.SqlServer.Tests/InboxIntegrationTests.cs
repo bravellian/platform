@@ -49,7 +49,7 @@ public class InboxIntegrationTests : SqlServerTestBase
         var logger = new TestLogger<SqlInboxService>(TestOutputHelper);
         var inbox = new SqlInboxService(options, logger);
 
-        var messageId = "integration-test-message";
+        var messageId = InboxMessageIdentifier.From("integration-test-message");
         var source = "IntegrationTestSource";
         var hash = System.Text.Encoding.UTF8.GetBytes("test-content-hash");
 
@@ -89,7 +89,7 @@ public class InboxIntegrationTests : SqlServerTestBase
         var logger = new TestLogger<SqlInboxService>(TestOutputHelper);
         var inbox = new SqlInboxService(options, logger);
 
-        var messageId = "poison-test-message";
+        var messageId = InboxMessageIdentifier.From("poison-test-message");
         var source = "PoisonTestSource";
 
         // Act - Simulate failed processing workflow
@@ -113,7 +113,7 @@ public class InboxIntegrationTests : SqlServerTestBase
     public async Task ConcurrentAccess_WithMultipleThreads_HandledSafely()
     {
         // Arrange
-        var messageId = "concurrent-test-message";
+        var messageId = InboxMessageIdentifier.From("concurrent-test-message");
         var source = "ConcurrentTestSource";
         const int concurrentTasks = 10;
 
@@ -147,13 +147,13 @@ public class InboxIntegrationTests : SqlServerTestBase
 
         var (count, attempts) = await connection.QuerySingleAsync<(int Count, int Attempts)>(
             "SELECT COUNT(*) as Count, MAX(Attempts) as Attempts FROM infra.Inbox WHERE MessageId = @MessageId",
-            new { MessageId = messageId });
+            new { MessageId = messageId.Value });
 
         Assert.Equal(1, count);
         Assert.Equal(concurrentTasks, attempts);
     }
 
-    private async Task VerifyMessageState(string messageId, string expectedStatus, bool processedUtc)
+    private async Task VerifyMessageState(InboxMessageIdentifier messageId, string expectedStatus, bool processedUtc)
     {
         var connection = new Microsoft.Data.SqlClient.SqlConnection(ConnectionString);
         await using (connection.ConfigureAwait(false))
@@ -162,7 +162,7 @@ public class InboxIntegrationTests : SqlServerTestBase
 
             var result = await connection.QuerySingleAsync<(string Status, DateTime? ProcessedUtc)>(
                 "SELECT Status, ProcessedUtc FROM infra.Inbox WHERE MessageId = @MessageId",
-                new { MessageId = messageId }).ConfigureAwait(false);
+                new { MessageId = messageId.Value }).ConfigureAwait(false);
 
             Assert.Equal(expectedStatus, result.Status);
 

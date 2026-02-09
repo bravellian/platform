@@ -21,7 +21,21 @@ internal sealed class OutboxHandlerResolver : IOutboxHandlerResolver
     private readonly Dictionary<string, IOutboxHandler> byTopic;
 
     public OutboxHandlerResolver(IEnumerable<IOutboxHandler> handlers)
-        => byTopic = handlers.ToDictionary(h => h.Topic, StringComparer.OrdinalIgnoreCase);
+    {
+        byTopic = new Dictionary<string, IOutboxHandler>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var handler in handlers)
+        {
+            if (byTopic.TryGetValue(handler.Topic, out var existing))
+            {
+                throw new InvalidOperationException(
+                    $"Duplicate outbox handler registration for topic '{handler.Topic}'. " +
+                    $"Existing handler: {existing.GetType().Name}, New handler: {handler.GetType().Name}.");
+            }
+
+            byTopic.Add(handler.Topic, handler);
+        }
+    }
 
     public bool TryGet(string topic, out IOutboxHandler handler)
         => byTopic.TryGetValue(topic, out handler!);

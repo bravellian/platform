@@ -138,8 +138,8 @@ public sealed class OutboxCleanupService : BackgroundService
             WITH deleted AS (
                 DELETE FROM {qualifiedTable}
                 WHERE "Status" = 2
-                    AND "ProcessedAt" IS NOT NULL
-                    AND "ProcessedAt" < CURRENT_TIMESTAMP - (@RetentionSeconds || ' seconds')::interval
+                    AND COALESCE("ProcessedOn", "ProcessedAt") IS NOT NULL
+                    AND COALESCE("ProcessedOn", "ProcessedAt") < CURRENT_TIMESTAMP - (@RetentionSeconds || ' seconds')::interval
                 RETURNING 1
             )
             SELECT COUNT(*) FROM deleted;

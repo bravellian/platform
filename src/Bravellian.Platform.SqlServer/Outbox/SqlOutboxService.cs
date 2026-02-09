@@ -54,8 +54,8 @@ internal class SqlOutboxService : IOutbox
         // Build the SQL query using configured schema and table names
         enqueueSql = $"""
 
-                        INSERT INTO [{this.options.SchemaName}].[{this.options.TableName}] (Topic, Payload, CorrelationId, MessageId, DueTimeUtc)
-                        VALUES (@Topic, @Payload, @CorrelationId, NEWID(), @DueTimeUtc);
+                        INSERT INTO [{this.options.SchemaName}].[{this.options.TableName}] (Topic, Payload, CorrelationId, MessageId, DueTimeUtc, DueOn)
+                        VALUES (@Topic, @Payload, @CorrelationId, NEWID(), @DueTimeUtc, @DueTimeUtc);
             """;
     }
 

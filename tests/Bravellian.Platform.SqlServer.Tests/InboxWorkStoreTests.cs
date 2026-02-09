@@ -68,14 +68,15 @@ public class InboxWorkStoreTests : SqlServerTestBase
         Bravellian.Platform.OwnerToken ownerToken = Bravellian.Platform.OwnerToken.GenerateNew();
 
         // Enqueue a test message
-        await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload", cancellationToken: TestContext.Current.CancellationToken);
+        var messageId = InboxMessageIdentifier.From("msg-1");
+        await inbox.EnqueueAsync("test-topic", "test-source", messageId, "test payload", cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
         var claimedIds = await store.ClaimAsync(ownerToken, leaseSeconds: 30, batchSize: 10, CancellationToken.None);
 
         // Assert
         Assert.Single(claimedIds);
-        Assert.Contains("msg-1", claimedIds);
+        Assert.Contains(messageId, claimedIds);
 
         // Verify message status is Processing and has owner token
         await using var connection = new Microsoft.Data.SqlClient.SqlConnection(ConnectionString);
@@ -83,7 +84,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
 
         var result = await connection.QuerySingleAsync(
             "SELECT Status, OwnerToken FROM infra.Inbox WHERE MessageId = @MessageId",
-            new { MessageId = "msg-1" });
+            new { MessageId = messageId.Value });
 
         Assert.Equal("Processing", result.Status);
         Assert.Equal(ownerToken.Value, (Guid)result.OwnerToken);
@@ -103,7 +104,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
         var owner2 = OwnerToken.GenerateNew();
 
         // Enqueue a single message
-        await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload", cancellationToken: TestContext.Current.CancellationToken);
+        await inbox.EnqueueAsync("test-topic", "test-source", InboxMessageIdentifier.From("msg-1"), "test payload", cancellationToken: TestContext.Current.CancellationToken);
 
         // Act - Two workers try to claim the same message
         var claims1Task = store.ClaimAsync(owner1, leaseSeconds: 30, batchSize: 10, CancellationToken.None);
@@ -133,7 +134,8 @@ public class InboxWorkStoreTests : SqlServerTestBase
         Bravellian.Platform.OwnerToken ownerToken = Bravellian.Platform.OwnerToken.GenerateNew();
 
         // Enqueue and claim a message
-        await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload", cancellationToken: TestContext.Current.CancellationToken);
+        var messageId = InboxMessageIdentifier.From("msg-1");
+        await inbox.EnqueueAsync("test-topic", "test-source", messageId, "test payload", cancellationToken: TestContext.Current.CancellationToken);
         var claimedIds = await store.ClaimAsync(ownerToken, leaseSeconds: 30, batchSize: 10, CancellationToken.None);
         Assert.Single(claimedIds);
 
@@ -146,7 +148,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
 
         var result = await connection.QuerySingleAsync(
             "SELECT Status, OwnerToken, ProcessedUtc FROM infra.Inbox WHERE MessageId = @MessageId",
-            new { MessageId = "msg-1" });
+            new { MessageId = messageId.Value });
 
         Assert.Equal("Done", result.Status);
         Assert.Null(result.OwnerToken);
@@ -166,7 +168,8 @@ public class InboxWorkStoreTests : SqlServerTestBase
         Bravellian.Platform.OwnerToken ownerToken = Bravellian.Platform.OwnerToken.GenerateNew();
 
         // Enqueue and claim a message
-        await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload", cancellationToken: TestContext.Current.CancellationToken);
+        var messageId = InboxMessageIdentifier.From("msg-1");
+        await inbox.EnqueueAsync("test-topic", "test-source", messageId, "test payload", cancellationToken: TestContext.Current.CancellationToken);
         var claimedIds = await store.ClaimAsync(ownerToken, leaseSeconds: 30, batchSize: 10, CancellationToken.None);
         Assert.Single(claimedIds);
 
@@ -179,7 +182,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
 
         var result = await connection.QuerySingleAsync(
             "SELECT Status, OwnerToken FROM infra.Inbox WHERE MessageId = @MessageId",
-            new { MessageId = "msg-1" });
+            new { MessageId = messageId.Value });
 
         Assert.Equal("Seen", result.Status);
         Assert.Null(result.OwnerToken);
@@ -198,7 +201,8 @@ public class InboxWorkStoreTests : SqlServerTestBase
         Bravellian.Platform.OwnerToken ownerToken = Bravellian.Platform.OwnerToken.GenerateNew();
 
         // Enqueue and claim a message
-        await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload", cancellationToken: TestContext.Current.CancellationToken);
+        var messageId = InboxMessageIdentifier.From("msg-1");
+        await inbox.EnqueueAsync("test-topic", "test-source", messageId, "test payload", cancellationToken: TestContext.Current.CancellationToken);
         var claimedIds = await store.ClaimAsync(ownerToken, leaseSeconds: 30, batchSize: 10, CancellationToken.None);
         Assert.Single(claimedIds);
 
@@ -211,7 +215,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
 
         var result = await connection.QuerySingleAsync(
             "SELECT Status, OwnerToken FROM infra.Inbox WHERE MessageId = @MessageId",
-            new { MessageId = "msg-1" });
+            new { MessageId = messageId.Value });
 
         Assert.Equal("Dead", result.Status);
         Assert.Null(result.OwnerToken);
@@ -231,7 +235,8 @@ public class InboxWorkStoreTests : SqlServerTestBase
         var wrongOwner = OwnerToken.GenerateNew();
 
         // Enqueue and claim a message with rightOwner
-        await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload", cancellationToken: TestContext.Current.CancellationToken);
+        var messageId = InboxMessageIdentifier.From("msg-1");
+        await inbox.EnqueueAsync("test-topic", "test-source", messageId, "test payload", cancellationToken: TestContext.Current.CancellationToken);
         var claimedIds = await store.ClaimAsync(rightOwner, leaseSeconds: 30, batchSize: 10, CancellationToken.None);
         Assert.Single(claimedIds);
 
@@ -244,7 +249,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
 
         var result = await connection.QuerySingleAsync(
             "SELECT Status, OwnerToken FROM infra.Inbox WHERE MessageId = @MessageId",
-            new { MessageId = "msg-1" });
+            new { MessageId = messageId.Value });
 
         Assert.Equal("Processing", result.Status);
         Assert.Equal(rightOwner.Value, (Guid)result.OwnerToken);
@@ -262,14 +267,15 @@ public class InboxWorkStoreTests : SqlServerTestBase
         var store = CreateInboxWorkStore();
 
         // Enqueue a test message
-        await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload", cancellationToken: TestContext.Current.CancellationToken);
+        var messageId = InboxMessageIdentifier.From("msg-1");
+        await inbox.EnqueueAsync("test-topic", "test-source", messageId, "test payload", cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
-        var message = await store.GetAsync("msg-1", CancellationToken.None);
+        var message = await store.GetAsync(messageId, CancellationToken.None);
 
         // Assert
         Assert.NotNull(message);
-        Assert.Equal("msg-1", message.MessageId);
+        Assert.Equal(messageId, message.MessageId);
         Assert.Equal("test-source", message.Source);
         Assert.Equal("test-topic", message.Topic);
         Assert.Equal("test payload", message.Payload);
@@ -288,7 +294,7 @@ public class InboxWorkStoreTests : SqlServerTestBase
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => store.GetAsync("non-existent", CancellationToken.None));
+            () => store.GetAsync(InboxMessageIdentifier.From("non-existent"), CancellationToken.None));
     }
 
     private SqlInboxService CreateInboxService()

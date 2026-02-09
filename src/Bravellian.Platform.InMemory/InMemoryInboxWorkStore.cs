@@ -23,33 +23,35 @@ internal sealed class InMemoryInboxWorkStore : IInboxWorkStore
         this.state = state ?? throw new ArgumentNullException(nameof(state));
     }
 
-    public Task<IReadOnlyList<string>> ClaimAsync(OwnerToken ownerToken, int leaseSeconds, int batchSize, CancellationToken cancellationToken)
+    public Task<IReadOnlyList<InboxMessageIdentifier>> ClaimAsync(OwnerToken ownerToken, int leaseSeconds, int batchSize, CancellationToken cancellationToken)
     {
-        var claimed = state.Claim(ownerToken, leaseSeconds, batchSize);
-        return Task.FromResult<IReadOnlyList<string>>(claimed);
+        var claimed = state.Claim(ownerToken, leaseSeconds, batchSize)
+            .Select(InboxMessageIdentifier.From)
+            .ToList();
+        return Task.FromResult<IReadOnlyList<InboxMessageIdentifier>>(claimed);
     }
 
-    public Task AckAsync(OwnerToken ownerToken, IEnumerable<string> messageIds, CancellationToken cancellationToken)
+    public Task AckAsync(OwnerToken ownerToken, IEnumerable<InboxMessageIdentifier> messageIds, CancellationToken cancellationToken)
     {
-        state.Ack(ownerToken, messageIds);
+        state.Ack(ownerToken, messageIds.Select(id => id.Value));
         return Task.CompletedTask;
     }
 
-    public Task AbandonAsync(OwnerToken ownerToken, IEnumerable<string> messageIds, string? lastError = null, TimeSpan? delay = null, CancellationToken cancellationToken = default)
+    public Task AbandonAsync(OwnerToken ownerToken, IEnumerable<InboxMessageIdentifier> messageIds, string? lastError = null, TimeSpan? delay = null, CancellationToken cancellationToken = default)
     {
-        state.Abandon(ownerToken, messageIds, lastError, delay);
+        state.Abandon(ownerToken, messageIds.Select(id => id.Value), lastError, delay);
         return Task.CompletedTask;
     }
 
-    public Task FailAsync(OwnerToken ownerToken, IEnumerable<string> messageIds, string errorMessage, CancellationToken cancellationToken)
+    public Task FailAsync(OwnerToken ownerToken, IEnumerable<InboxMessageIdentifier> messageIds, string errorMessage, CancellationToken cancellationToken)
     {
-        state.Fail(ownerToken, messageIds, errorMessage);
+        state.Fail(ownerToken, messageIds.Select(id => id.Value), errorMessage);
         return Task.CompletedTask;
     }
 
-    public Task ReviveAsync(IEnumerable<string> messageIds, string? reason = null, TimeSpan? delay = null, CancellationToken cancellationToken = default)
+    public Task ReviveAsync(IEnumerable<InboxMessageIdentifier> messageIds, string? reason = null, TimeSpan? delay = null, CancellationToken cancellationToken = default)
     {
-        state.Revive(messageIds, reason, delay);
+        state.Revive(messageIds.Select(id => id.Value), reason, delay);
         return Task.CompletedTask;
     }
 
@@ -59,8 +61,8 @@ internal sealed class InMemoryInboxWorkStore : IInboxWorkStore
         return Task.CompletedTask;
     }
 
-    public Task<InboxMessage> GetAsync(string messageId, CancellationToken cancellationToken)
+    public Task<InboxMessage> GetAsync(InboxMessageIdentifier messageId, CancellationToken cancellationToken)
     {
-        return Task.FromResult(state.Get(messageId));
+        return Task.FromResult(state.Get(messageId.Value));
     }
 }

@@ -26,31 +26,31 @@ internal sealed class GlobalInbox : IGlobalInbox
         this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
     }
 
-    public Task<bool> AlreadyProcessedAsync(string messageId, string source, CancellationToken cancellationToken) =>
+    public Task<bool> AlreadyProcessedAsync(InboxMessageIdentifier messageId, string source, CancellationToken cancellationToken) =>
         inner.AlreadyProcessedAsync(messageId, source, cancellationToken);
 
-    public Task<bool> AlreadyProcessedAsync(string messageId, string source, byte[]? hash, CancellationToken cancellationToken) =>
+    public Task<bool> AlreadyProcessedAsync(InboxMessageIdentifier messageId, string source, byte[]? hash, CancellationToken cancellationToken) =>
         inner.AlreadyProcessedAsync(messageId, source, hash, cancellationToken);
 
-    public Task MarkProcessedAsync(string messageId, CancellationToken cancellationToken) =>
+    public Task MarkProcessedAsync(InboxMessageIdentifier messageId, CancellationToken cancellationToken) =>
         inner.MarkProcessedAsync(messageId, cancellationToken);
 
-    public Task MarkProcessingAsync(string messageId, CancellationToken cancellationToken) =>
+    public Task MarkProcessingAsync(InboxMessageIdentifier messageId, CancellationToken cancellationToken) =>
         inner.MarkProcessingAsync(messageId, cancellationToken);
 
-    public Task MarkDeadAsync(string messageId, CancellationToken cancellationToken) =>
+    public Task MarkDeadAsync(InboxMessageIdentifier messageId, CancellationToken cancellationToken) =>
         inner.MarkDeadAsync(messageId, cancellationToken);
 
-    public Task EnqueueAsync(string topic, string source, string messageId, string payload, CancellationToken cancellationToken) =>
+    public Task EnqueueAsync(string topic, string source, InboxMessageIdentifier messageId, string payload, CancellationToken cancellationToken) =>
         inner.EnqueueAsync(topic, source, messageId, payload, cancellationToken);
 
-    public Task EnqueueAsync(string topic, string source, string messageId, string payload, byte[]? hash, CancellationToken cancellationToken) =>
+    public Task EnqueueAsync(string topic, string source, InboxMessageIdentifier messageId, string payload, byte[]? hash, CancellationToken cancellationToken) =>
         inner.EnqueueAsync(topic, source, messageId, payload, hash, cancellationToken);
 
     public Task EnqueueAsync(
         string topic,
         string source,
-        string messageId,
+        InboxMessageIdentifier messageId,
         string payload,
         byte[]? hash,
         DateTimeOffset? dueTimeUtc,

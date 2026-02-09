@@ -207,6 +207,34 @@ namespace Bravellian.Platform.Tests
         }
 
         /// <summary>
+        /// When schema verification is enabled, then the verification service is registered.
+        /// </summary>
+        /// <intent>
+        /// Ensure schema verification wiring is added when enabled.
+        /// </intent>
+        /// <scenario>
+        /// Given AddSqlPlatform with EnableSchemaVerification set to true.
+        /// </scenario>
+        /// <behavior>
+        /// Then DatabaseSchemaVerificationService is registered in the service collection.
+        /// </behavior>
+        [Fact]
+        public void AddSqlPlatform_WithSchemaVerificationEnabled_RegistersVerifier()
+        {
+            var services = new ServiceCollection();
+
+            services.AddSqlPlatform("Server=.;Database=TestDb;Integrated Security=true;", options =>
+            {
+                options.EnableSchemaVerification = true;
+            });
+
+            var hostedServiceDescriptor = services.FirstOrDefault(
+                s => s.ServiceType == typeof(IHostedService) && s.ImplementationType == typeof(DatabaseSchemaVerificationService));
+
+            Assert.NotNull(hostedServiceDescriptor);
+        }
+
+        /// <summary>
         /// When control-plane registration enables schema deployment, then schema services are registered.
         /// </summary>
         /// <intent>
@@ -291,6 +319,45 @@ namespace Bravellian.Platform.Tests
 
             Assert.Null(schemaCompletionDescriptor);
             Assert.Null(hostedServiceDescriptor);
+        }
+
+        /// <summary>
+        /// When multi-database list registration enables schema verification, then the verifier is registered.
+        /// </summary>
+        /// <intent>
+        /// Ensure schema verification services are added for list-based registration.
+        /// </intent>
+        /// <scenario>
+        /// Given AddSqlPlatformMultiDatabaseWithList with enableSchemaVerification set to true.
+        /// </scenario>
+        /// <behavior>
+        /// Then DatabaseSchemaVerificationService is registered.
+        /// </behavior>
+        [Fact]
+        public void AddSqlPlatformMultiDatabaseWithList_WithSchemaVerificationEnabled_RegistersVerifier()
+        {
+            var services = new ServiceCollection();
+            services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
+
+            var databases = new[]
+            {
+                new PlatformDatabase
+                {
+                    Name = "db1",
+                    ConnectionString = "Server=localhost;Database=Db1;",
+                    SchemaName = "infra",
+                },
+            };
+
+            services.AddSqlPlatformMultiDatabaseWithList(
+                databases,
+                enableSchemaDeployment: false,
+                enableSchemaVerification: true);
+
+            var hostedServiceDescriptor = services.FirstOrDefault(
+                s => s.ServiceType == typeof(IHostedService) && s.ImplementationType == typeof(DatabaseSchemaVerificationService));
+
+            Assert.NotNull(hostedServiceDescriptor);
         }
 
         /// <summary>

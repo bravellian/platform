@@ -44,8 +44,8 @@ internal sealed class PostgresOutboxService : IOutbox
         qualifiedTableName = PostgresSqlHelper.Qualify(this.options.SchemaName, this.options.TableName);
 
         enqueueSql = $"""
-            INSERT INTO {qualifiedTableName} ("Id", "Topic", "Payload", "CorrelationId", "MessageId", "DueTimeUtc")
-            VALUES (@Id, @Topic, @Payload, @CorrelationId, @MessageId, @DueTimeUtc);
+            INSERT INTO {qualifiedTableName} ("Id", "Topic", "Payload", "CorrelationId", "MessageId", "DueTimeUtc", "DueOn")
+            VALUES (@Id, @Topic, @Payload, @CorrelationId, @MessageId, @DueTimeUtc, @DueTimeUtc);
             """;
     }
 
@@ -168,8 +168,8 @@ internal sealed class PostgresOutboxService : IOutbox
                 FROM {qualifiedTableName}
                 WHERE "Status" = 0
                     AND ("LockedUntil" IS NULL OR "LockedUntil" <= CURRENT_TIMESTAMP)
-                    AND ("DueTimeUtc" IS NULL OR "DueTimeUtc" <= CURRENT_TIMESTAMP)
-                ORDER BY "CreatedAt"
+                    AND (COALESCE("DueOn", "DueTimeUtc") IS NULL OR COALESCE("DueOn", "DueTimeUtc") <= CURRENT_TIMESTAMP)
+                ORDER BY COALESCE("CreatedOn", "CreatedAt")
                 FOR UPDATE SKIP LOCKED
                 LIMIT @BatchSize
             )
@@ -245,7 +245,8 @@ internal sealed class PostgresOutboxService : IOutbox
                 "OwnerToken" = NULL,
                 "LockedUntil" = NULL,
                 "IsProcessed" = TRUE,
-                "ProcessedAt" = CURRENT_TIMESTAMP
+                "ProcessedAt" = CURRENT_TIMESTAMP,
+                "ProcessedOn" = CURRENT_TIMESTAMP
             WHERE "OwnerToken" = @OwnerToken
                 AND "Status" = 1
                 AND "Id" = ANY(@Ids);
@@ -310,8 +311,10 @@ internal sealed class PostgresOutboxService : IOutbox
                 "OwnerToken" = NULL,
                 "LockedUntil" = NULL,
                 "RetryCount" = "RetryCount" + 1,
+                "AttemptCount" = "AttemptCount" + 1,
                 "LastError" = COALESCE(@LastError, "LastError"),
-                "DueTimeUtc" = COALESCE(@DueTimeUtc, "DueTimeUtc", CURRENT_TIMESTAMP)
+                "DueTimeUtc" = COALESCE(@DueTimeUtc, "DueTimeUtc", CURRENT_TIMESTAMP),
+                "DueOn" = COALESCE(@DueTimeUtc, "DueOn", CURRENT_TIMESTAMP)
             WHERE "OwnerToken" = @OwnerToken
                 AND "Status" = 1
                 AND "Id" = ANY(@Ids);

@@ -70,6 +70,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Bravellian.Platform.ExactlyOnce\Bravellian.Platform.ExactlyOnce.csproj" />
     <PackageReference Include="Bravellian.Generators" Version="2025.12.15.1154" PrivateAssets="all" />
+    <PackageReference Include="CommunityToolkit.Diagnostics" Version="8.4.0" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.2" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions" Version="10.0.2" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.2" />

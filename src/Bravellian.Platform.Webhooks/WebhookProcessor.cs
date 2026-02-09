@@ -60,9 +60,9 @@ public sealed class WebhookProcessor : IWebhookProcessor
 
         WebhookMetrics.RecordClaimed(claimedIds.Count);
 
-        var toAck = new List<string>();
-        var toRetry = new Dictionary<string, string>(StringComparer.Ordinal);
-        var retryContexts = new Dictionary<string, WebhookEventContext?>(StringComparer.Ordinal);
+        var toAck = new List<InboxMessageIdentifier>();
+        var toRetry = new Dictionary<InboxMessageIdentifier, string>();
+        var retryContexts = new Dictionary<InboxMessageIdentifier, WebhookEventContext?>();
 
         foreach (var messageId in claimedIds)
         {
@@ -107,7 +107,7 @@ public sealed class WebhookProcessor : IWebhookProcessor
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Webhook processing should retry on unexpected failures.")]
     private async Task<ProcessOutcome> ProcessSingleAsync(
         OwnerToken ownerToken,
-        string messageId,
+        InboxMessageIdentifier messageId,
         CancellationToken cancellationToken)
     {
         try
@@ -165,7 +165,7 @@ public sealed class WebhookProcessor : IWebhookProcessor
 
     private async Task<ProcessOutcome> HandleMissingHandlerAsync(
         OwnerToken ownerToken,
-        string messageId,
+        InboxMessageIdentifier messageId,
         string eventType,
         WebhookEventContext context,
         int attempt,
@@ -194,12 +194,12 @@ public sealed class WebhookProcessor : IWebhookProcessor
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Failure handling should continue when individual message inspection fails.")]
     private async Task HandleFailuresAsync(
         OwnerToken ownerToken,
-        IDictionary<string, string> failedMessages,
-        IDictionary<string, WebhookEventContext?> contexts,
+        IDictionary<InboxMessageIdentifier, string> failedMessages,
+        IDictionary<InboxMessageIdentifier, WebhookEventContext?> contexts,
         CancellationToken cancellationToken)
     {
-        var toFail = new List<string>();
-        var toAbandon = new List<(string MessageId, TimeSpan Delay, string Error)>();
+        var toFail = new List<InboxMessageIdentifier>();
+        var toAbandon = new List<(InboxMessageIdentifier MessageId, TimeSpan Delay, string Error)>();
 
         foreach (var (messageId, error) in failedMessages)
         {
@@ -248,11 +248,11 @@ public sealed class WebhookProcessor : IWebhookProcessor
     }
 
     private void NotifyProcessed(
-        string messageId,
+        InboxMessageIdentifier messageId,
         int attempt,
         WebhookEventStatus status,
         string? errorMessage,
-        IDictionary<string, WebhookEventContext?> contexts,
+        IDictionary<InboxMessageIdentifier, WebhookEventContext?> contexts,
         string payload)
     {
         if (!contexts.TryGetValue(messageId, out var context) || context == null)
@@ -340,7 +340,7 @@ public sealed class WebhookProcessor : IWebhookProcessor
     private readonly struct ProcessOutcome
     {
         private ProcessOutcome(
-            string messageId,
+            InboxMessageIdentifier messageId,
             WebhookEventContext? context,
             int attemptCount,
             ProcessDisposition disposition,
@@ -355,7 +355,7 @@ public sealed class WebhookProcessor : IWebhookProcessor
             ErrorMessage = errorMessage;
         }
 
-        public string MessageId { get; }
+        public InboxMessageIdentifier MessageId { get; }
 
         public WebhookEventContext? Context { get; }
 
@@ -367,17 +367,17 @@ public sealed class WebhookProcessor : IWebhookProcessor
 
         public string? ErrorMessage { get; }
 
-        public static ProcessOutcome Ack(string messageId, WebhookEventContext context, int attempt, WebhookEventStatus status)
+        public static ProcessOutcome Ack(InboxMessageIdentifier messageId, WebhookEventContext context, int attempt, WebhookEventStatus status)
         {
             return new ProcessOutcome(messageId, context, attempt, ProcessDisposition.Ack, status, null);
         }
 
-        public static ProcessOutcome Retry(string messageId, WebhookEventContext? context, int attempt, string? errorMessage)
+        public static ProcessOutcome Retry(InboxMessageIdentifier messageId, WebhookEventContext? context, int attempt, string? errorMessage)
         {
             return new ProcessOutcome(messageId, context, attempt, ProcessDisposition.Retry, null, errorMessage);
         }
 
-        public static ProcessOutcome None(string messageId, WebhookEventContext context, int attempt, WebhookEventStatus status)
+        public static ProcessOutcome None(InboxMessageIdentifier messageId, WebhookEventContext context, int attempt, WebhookEventStatus status)
         {
             return new ProcessOutcome(messageId, context, attempt, ProcessDisposition.None, status, null);
         }

@@ -58,7 +58,7 @@ public class InboxIntegrationTests : PostgresTestBase
         var logger = new TestLogger<PostgresInboxService>(TestOutputHelper);
         var inbox = new PostgresInboxService(options, logger);
 
-        var messageId = "integration-test-message";
+        var messageId = InboxMessageIdentifier.From("integration-test-message");
         var source = "IntegrationTestSource";
         var hash = System.Text.Encoding.UTF8.GetBytes("test-content-hash");
 
@@ -106,7 +106,7 @@ public class InboxIntegrationTests : PostgresTestBase
         var logger = new TestLogger<PostgresInboxService>(TestOutputHelper);
         var inbox = new PostgresInboxService(options, logger);
 
-        var messageId = "poison-test-message";
+        var messageId = InboxMessageIdentifier.From("poison-test-message");
         var source = "PoisonTestSource";
 
         // Act - Simulate failed processing workflow
@@ -138,7 +138,7 @@ public class InboxIntegrationTests : PostgresTestBase
     public async Task ConcurrentAccess_WithMultipleThreads_HandledSafely()
     {
         // Arrange
-        var messageId = "concurrent-test-message";
+        var messageId = InboxMessageIdentifier.From("concurrent-test-message");
         var source = "ConcurrentTestSource";
         const int concurrentTasks = 10;
 
@@ -172,20 +172,20 @@ public class InboxIntegrationTests : PostgresTestBase
 
         var (count, attempts) = await connection.QuerySingleAsync<(int Count, int Attempts)>(
             $"SELECT COUNT(*) as Count, MAX(\"Attempts\") as Attempts FROM {qualifiedInboxTableName} WHERE \"MessageId\" = @MessageId",
-            new { MessageId = messageId });
+            new { MessageId = messageId.Value });
 
         Assert.Equal(1, count);
         Assert.Equal(concurrentTasks, attempts);
     }
 
-    private async Task VerifyMessageState(string messageId, string expectedStatus, bool processedUtc)
+    private async Task VerifyMessageState(InboxMessageIdentifier messageId, string expectedStatus, bool processedUtc)
     {
         await using var connection = new Npgsql.NpgsqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken).ConfigureAwait(false);
 
         var result = await connection.QuerySingleAsync<(string Status, DateTime? ProcessedUtc)>(
             $"SELECT \"Status\", \"ProcessedUtc\" FROM {qualifiedInboxTableName} WHERE \"MessageId\" = @MessageId",
-            new { MessageId = messageId }).ConfigureAwait(false);
+            new { MessageId = messageId.Value }).ConfigureAwait(false);
 
         Assert.Equal(expectedStatus, result.Status);
 

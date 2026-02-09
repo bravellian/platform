@@ -18,7 +18,6 @@ internal static class SmokeServiceCollectionExtensions
 
         services.AddOutboxHandler<SmokeOutboxHandler>();
         services.AddOutboxHandler<SmokeSchedulerOutboxHandler>();
-        services.AddOutboxHandler<SmokeFanoutJobHandler>();
         services.AddOutboxHandler(sp => new SmokeFanoutSliceHandler(
             sp.GetRequiredService<SmokeTestState>(),
             sp.GetRequiredService<SmokeTestSignals>(),

@@ -42,7 +42,7 @@ public sealed class InMemoryInboxTimeBehaviorTests
         await inbox.EnqueueAsync(
             "test-topic",
             "test-source",
-            "msg-1",
+            InboxMessageIdentifier.From("msg-1"),
             "payload",
             hash: null,
             dueTimeUtc: dueTime,

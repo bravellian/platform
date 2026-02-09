@@ -33,4 +33,9 @@ public sealed class PlatformControlPlaneOptions
     /// Gets or initializes whether to automatically create platform tables and procedures at startup.
     /// </summary>
     public bool EnableSchemaDeployment { get; init; }
+
+    /// <summary>
+    /// Gets or initializes whether to verify platform schema at startup.
+    /// </summary>
+    public bool EnableSchemaVerification { get; init; }
 }

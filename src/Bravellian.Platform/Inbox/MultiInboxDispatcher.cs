@@ -195,9 +195,9 @@ internal sealed class MultiInboxDispatcher
                 claimedIds.Count,
                 storeIdentifier);
 
-            var succeeded = new List<string>();
-            var failed = new Dictionary<string, string>(StringComparer.Ordinal); // messageId -> error message
-            var permanentFailures = new Dictionary<string, string>(StringComparer.Ordinal); // messageId -> error message
+            var succeeded = new List<InboxMessageIdentifier>();
+            var failed = new Dictionary<InboxMessageIdentifier, string>(); // messageId -> error message
+            var permanentFailures = new Dictionary<InboxMessageIdentifier, string>(); // messageId -> error message
 
             // Process each claimed message
             foreach (var messageId in claimedIds)
@@ -281,7 +281,7 @@ internal sealed class MultiInboxDispatcher
         IInboxWorkStore store,
         string storeIdentifier,
         Bravellian.Platform.OwnerToken ownerToken,
-        string messageId,
+        InboxMessageIdentifier messageId,
         CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
@@ -365,11 +365,11 @@ internal sealed class MultiInboxDispatcher
         IInboxWorkStore store,
         string storeIdentifier,
         Bravellian.Platform.OwnerToken ownerToken,
-        IDictionary<string, string> failedMessages,
+        IDictionary<InboxMessageIdentifier, string> failedMessages,
         CancellationToken cancellationToken)
     {
-        var toAbandon = new List<(string MessageId, TimeSpan Delay, string Error)>();
-        var toFail = new List<string>();
+        var toAbandon = new List<(InboxMessageIdentifier MessageId, TimeSpan Delay, string Error)>();
+        var toFail = new List<InboxMessageIdentifier>();
 
         // Determine which messages should be retried vs. marked as dead
         foreach (var (messageId, errorMessage) in failedMessages)

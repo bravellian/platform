@@ -138,8 +138,8 @@ public sealed class InboxCleanupService : BackgroundService
             WITH deleted AS (
                 DELETE FROM {qualifiedTable}
                 WHERE "Status" = 'Done'
-                    AND "ProcessedUtc" IS NOT NULL
-                    AND "ProcessedUtc" < CURRENT_TIMESTAMP - (@RetentionSeconds || ' seconds')::interval
+                    AND COALESCE("ProcessedOn", "ProcessedUtc") IS NOT NULL
+                    AND COALESCE("ProcessedOn", "ProcessedUtc") < CURRENT_TIMESTAMP - (@RetentionSeconds || ' seconds')::interval
                 RETURNING 1
             )
             SELECT COUNT(*) FROM deleted;

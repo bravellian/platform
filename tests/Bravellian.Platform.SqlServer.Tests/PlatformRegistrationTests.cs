@@ -305,25 +305,25 @@ public class PlatformRegistrationTests
 
     private sealed class DummyInboxWorkStore : IInboxWorkStore
     {
-        public Task<IReadOnlyList<string>> ClaimAsync(Bravellian.Platform.OwnerToken ownerToken, int leaseSeconds, int batchSize, CancellationToken cancellationToken) =>
+        public Task<IReadOnlyList<InboxMessageIdentifier>> ClaimAsync(Bravellian.Platform.OwnerToken ownerToken, int leaseSeconds, int batchSize, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
-        public Task AckAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<string> messageIds, CancellationToken cancellationToken) =>
+        public Task AckAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<InboxMessageIdentifier> messageIds, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
-        public Task AbandonAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<string> messageIds, string? lastError = null, TimeSpan? delay = null, CancellationToken cancellationToken = default) =>
+        public Task AbandonAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<InboxMessageIdentifier> messageIds, string? lastError = null, TimeSpan? delay = null, CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
 
-        public Task FailAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<string> messageIds, string error, CancellationToken cancellationToken) =>
+        public Task FailAsync(Bravellian.Platform.OwnerToken ownerToken, IEnumerable<InboxMessageIdentifier> messageIds, string error, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
-        public Task ReviveAsync(IEnumerable<string> messageIds, string? reason = null, TimeSpan? delay = null, CancellationToken cancellationToken = default) =>
+        public Task ReviveAsync(IEnumerable<InboxMessageIdentifier> messageIds, string? reason = null, TimeSpan? delay = null, CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
 
         public Task ReapExpiredAsync(CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
-        public Task<InboxMessage> GetAsync(string messageId, CancellationToken cancellationToken) =>
+        public Task<InboxMessage> GetAsync(InboxMessageIdentifier messageId, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
     }
 

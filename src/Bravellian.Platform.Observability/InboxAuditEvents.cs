@@ -53,7 +53,7 @@ public static class InboxAuditEvents
 
         var data = new Dictionary<string, object?>(StringComparer.Ordinal)
         {
-            [PlatformTagKeys.InboxMessageId] = message.MessageId,
+            [PlatformTagKeys.InboxMessageId] = message.MessageId.Value,
             ["source"] = message.Source,
             ["topic"] = message.Topic,
             ["attempt"] = message.Attempt,
@@ -69,7 +69,7 @@ public static class InboxAuditEvents
             PlatformEventNames.InboxMessageRevived,
             "Inbox message revived",
             EventOutcome.Info,
-            new[] { new EventAnchor("Inbox", message.MessageId, "MessageId") },
+            new[] { new EventAnchor("Inbox", message.MessageId.Value, "MessageId") },
             JsonSerializer.Serialize(data, SerializerOptions));
 
         return emitter.EmitAuditEventAsync(auditEvent, cancellationToken);

@@ -43,7 +43,7 @@ internal sealed class SmokeFanoutSliceHandler : IOutboxHandler
             timeProvider.GetUtcNow(),
             cancellationToken).ConfigureAwait(false);
 
-        var runId = state.GetActiveRunId();
+        var runId = state.ActiveRunId;
         if (!string.IsNullOrWhiteSpace(runId))
         {
             var stepName = SmokeFanoutDefaults.ResolveStepName(slice.workKey);

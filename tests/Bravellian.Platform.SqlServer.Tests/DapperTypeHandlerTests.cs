@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Bravellian.Platform.Inbox;
 using Bravellian.Platform.Metrics;
 using Bravellian.Platform.Outbox;
 using Dapper;
@@ -47,7 +46,7 @@ public sealed class DapperTypeHandlerTests : SqlServerTestBase
             CREATE TABLE TestTable (
                 Id INT PRIMARY KEY IDENTITY(1,1),
                 OwnerTokenColumn UNIQUEIDENTIFIER,
-                InboxMessageIdColumn UNIQUEIDENTIFIER,
+                InboxMessageIdColumn VARCHAR(64),
                 OutboxMessageIdColumn UNIQUEIDENTIFIER,
                 OutboxWorkItemIdColumn UNIQUEIDENTIFIER,
                 JoinIdColumn UNIQUEIDENTIFIER,
@@ -189,7 +188,7 @@ public sealed class DapperTypeHandlerTests : SqlServerTestBase
         // Arrange
         await CreateTestTableAsync();
         DapperTypeHandlerRegistration.RegisterTypeHandlers();
-        var messageId = InboxMessageIdentifier.GenerateNew();
+        var messageId = InboxMessageIdentifier.From(Guid.NewGuid().ToString("N"));
 
         await using var connection = new SqlConnection(ConnectionString);
 
@@ -454,7 +453,7 @@ public sealed class DapperTypeHandlerTests : SqlServerTestBase
         await CreateTestTableAsync();
         DapperTypeHandlerRegistration.RegisterTypeHandlers();
         var ownerToken = OwnerToken.GenerateNew();
-        var inboxMessageId = InboxMessageIdentifier.GenerateNew();
+        var inboxMessageId = InboxMessageIdentifier.From(Guid.NewGuid().ToString("N"));
         var outboxMessageId = OutboxMessageIdentifier.GenerateNew();
         var outboxWorkItemId = OutboxWorkItemIdentifier.GenerateNew();
         var joinId = JoinIdentifier.GenerateNew();

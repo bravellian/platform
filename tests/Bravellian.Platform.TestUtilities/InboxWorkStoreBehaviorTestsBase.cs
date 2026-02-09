@@ -66,7 +66,7 @@ public abstract class InboxWorkStoreBehaviorTestsBase : IAsyncLifetime
     {
         await harness.ResetAsync();
 
-        const string messageId = "msg-claim-1";
+        var messageId = InboxMessageIdentifier.From("msg-claim-1");
         await harness.Inbox.EnqueueAsync(
             "test-topic",
             "test-source",
@@ -93,7 +93,7 @@ public abstract class InboxWorkStoreBehaviorTestsBase : IAsyncLifetime
     {
         await harness.ResetAsync();
 
-        const string messageId = "msg-future-1";
+        var messageId = InboxMessageIdentifier.From("msg-future-1");
         var dueTimeUtc = DateTimeOffset.UtcNow.AddMinutes(5);
 
         await harness.Inbox.EnqueueAsync(
@@ -123,7 +123,7 @@ public abstract class InboxWorkStoreBehaviorTestsBase : IAsyncLifetime
     {
         await harness.ResetAsync();
 
-        const string messageId = "msg-ack-1";
+        var messageId = InboxMessageIdentifier.From("msg-ack-1");
         await harness.Inbox.EnqueueAsync(
             "test-topic",
             "test-source",
@@ -160,7 +160,7 @@ public abstract class InboxWorkStoreBehaviorTestsBase : IAsyncLifetime
     {
         await harness.ResetAsync();
 
-        const string messageId = "msg-abandon-1";
+        var messageId = InboxMessageIdentifier.From("msg-abandon-1");
         await harness.Inbox.EnqueueAsync(
             "test-topic",
             "test-source",
@@ -203,7 +203,7 @@ public abstract class InboxWorkStoreBehaviorTestsBase : IAsyncLifetime
     {
         await harness.ResetAsync();
 
-        const string messageId = "msg-fail-1";
+        var messageId = InboxMessageIdentifier.From("msg-fail-1");
         await harness.Inbox.EnqueueAsync(
             "test-topic",
             "test-source",
@@ -240,7 +240,7 @@ public abstract class InboxWorkStoreBehaviorTestsBase : IAsyncLifetime
     {
         await harness.ResetAsync();
 
-        const string messageId = "msg-get-1";
+        var messageId = InboxMessageIdentifier.From("msg-get-1");
         await harness.Inbox.EnqueueAsync(
             "test-topic",
             "test-source",
@@ -265,7 +265,7 @@ public abstract class InboxWorkStoreBehaviorTestsBase : IAsyncLifetime
     {
         await harness.ResetAsync();
 
-        const string messageId = "msg-revive-1";
+        var messageId = InboxMessageIdentifier.From("msg-revive-1");
         await harness.Inbox.EnqueueAsync(
             "test-topic",
             "test-source",

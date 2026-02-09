@@ -34,7 +34,7 @@ public sealed class InboxRecoveryServiceTests
         var service = new InboxRecoveryService(store, NullLogger<InboxRecoveryService>.Instance, emitter);
 
         await service.ReviveAsync(
-            new[] { "msg-1" },
+            new[] { InboxMessageIdentifier.From("msg-1") },
             reason: "manual retry",
             delay: TimeSpan.FromSeconds(5),
             cancellationToken: TestContext.Current.CancellationToken);
@@ -52,10 +52,10 @@ public sealed class InboxRecoveryServiceTests
 
     private sealed class FakeInboxWorkStore : IInboxWorkStore
     {
-        private readonly Dictionary<string, InboxMessage> messages = new(StringComparer.Ordinal)
+        private readonly Dictionary<InboxMessageIdentifier, InboxMessage> messages = new()
         {
-            ["msg-1"] = CreateMessage(
-                messageId: "msg-1",
+            [InboxMessageIdentifier.From("msg-1")] = CreateMessage(
+                messageId: InboxMessageIdentifier.From("msg-1"),
                 source: "webhooks",
                 topic: "test.topic",
                 payload: "{}",
@@ -63,31 +63,31 @@ public sealed class InboxRecoveryServiceTests
                 lastError: "boom"),
         };
 
-        public Task<IReadOnlyList<string>> ClaimAsync(OwnerToken ownerToken, int leaseSeconds, int batchSize, CancellationToken cancellationToken) =>
-            Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>());
+        public Task<IReadOnlyList<InboxMessageIdentifier>> ClaimAsync(OwnerToken ownerToken, int leaseSeconds, int batchSize, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<InboxMessageIdentifier>>(Array.Empty<InboxMessageIdentifier>());
 
-        public Task AckAsync(OwnerToken ownerToken, IEnumerable<string> messageIds, CancellationToken cancellationToken) =>
+        public Task AckAsync(OwnerToken ownerToken, IEnumerable<InboxMessageIdentifier> messageIds, CancellationToken cancellationToken) =>
             Task.CompletedTask;
 
-        public Task AbandonAsync(OwnerToken ownerToken, IEnumerable<string> messageIds, string? lastError = null, TimeSpan? delay = null, CancellationToken cancellationToken = default) =>
+        public Task AbandonAsync(OwnerToken ownerToken, IEnumerable<InboxMessageIdentifier> messageIds, string? lastError = null, TimeSpan? delay = null, CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
 
-        public Task FailAsync(OwnerToken ownerToken, IEnumerable<string> messageIds, string errorMessage, CancellationToken cancellationToken) =>
+        public Task FailAsync(OwnerToken ownerToken, IEnumerable<InboxMessageIdentifier> messageIds, string errorMessage, CancellationToken cancellationToken) =>
             Task.CompletedTask;
 
-        public Task ReviveAsync(IEnumerable<string> messageIds, string? reason = null, TimeSpan? delay = null, CancellationToken cancellationToken = default) =>
+        public Task ReviveAsync(IEnumerable<InboxMessageIdentifier> messageIds, string? reason = null, TimeSpan? delay = null, CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
 
         public Task ReapExpiredAsync(CancellationToken cancellationToken) =>
             Task.CompletedTask;
 
-        public Task<InboxMessage> GetAsync(string messageId, CancellationToken cancellationToken)
+        public Task<InboxMessage> GetAsync(InboxMessageIdentifier messageId, CancellationToken cancellationToken)
         {
             return Task.FromResult(messages[messageId]);
         }
 
         private static InboxMessage CreateMessage(
-            string messageId,
+            InboxMessageIdentifier messageId,
             string source,
             string topic,
             string payload,

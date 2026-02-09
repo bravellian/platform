@@ -143,6 +143,36 @@ Captured: 2026-02-03
 - Dual-write: write to both old and new columns when new columns exist.
 - Avoid relying on IsProcessed once status is unified.
 
+## Generator-Based Typed IDs (Recommendation)
+The platform already references the generator package, but there are **no generator definition files** in the platform repo today, so no types are being generated automatically. We can add typed IDs as part of the alignment work to make inbox/outbox IDs explicit.
+
+### Suggested generated types
+- `InboxMessageId` (string-backed, for varchar(64))
+- `OutboxMessageId` (guid-backed)
+- Optional: `WorkItemId` (generic wrapper) only if we truly want a single ID type; otherwise keep distinct types to avoid accidental cross-usage.
+
+### Definition file examples (to add in platform repo)
+`InboxMessageId.string.json`
+```json
+{
+  "name": "InboxMessageId",
+  "namespace": "Bravellian.Platform"
+}
+```
+
+`OutboxMessageId.guid.json`
+```json
+{
+  "name": "OutboxMessageId",
+  "namespace": "Bravellian.Platform"
+}
+```
+
+### Integration notes
+- Add these files near the related code so the generator runs during build.
+- Update interfaces and stores to use the typed IDs (Phase 2), with bridging conversion for 1–2 releases.
+- This aligns with the migration plan: schema changes can happen independently of type changes, but once both land, we enforce stronger compile-time safety.
+
 ## Open Decisions (Resolved)
 - Primary key: standardize on WorkItemId, but allow “InboxMessageId” / “OutboxMessageId” naming in APIs if desired.
 - Status representation: unify on a single status vocabulary across inbox/outbox (Ready/Processing/Done/Dead).

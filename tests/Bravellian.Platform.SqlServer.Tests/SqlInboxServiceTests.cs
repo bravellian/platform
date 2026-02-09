@@ -38,7 +38,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
     {
         // Arrange
         var inbox = CreateInboxService();
-        var messageId = "test-message-1";
+        var messageId = InboxMessageIdentifier.From("test-message-1");
         var source = "test-source";
 
         // Act
@@ -53,7 +53,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
 
         var count = await connection.QuerySingleAsync<int>(
             "SELECT COUNT(*) FROM infra.Inbox WHERE MessageId = @MessageId",
-            new { MessageId = messageId });
+            new { MessageId = messageId.Value });
 
         Assert.Equal(1, count);
     }
@@ -67,7 +67,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
     {
         // Arrange
         var inbox = CreateInboxService();
-        var messageId = "test-message-2";
+        var messageId = InboxMessageIdentifier.From("test-message-2");
         var source = "test-source";
 
         // First, record and process the message
@@ -90,7 +90,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
     {
         // Arrange
         var inbox = CreateInboxService();
-        var messageId = "test-message-3";
+        var messageId = InboxMessageIdentifier.From("test-message-3");
         var source = "test-source";
 
         // Record the message first
@@ -105,7 +105,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
 
         var result = await connection.QuerySingleAsync<(DateTime? ProcessedUtc, string Status)>(
             "SELECT ProcessedUtc, Status FROM infra.Inbox WHERE MessageId = @MessageId",
-            new { MessageId = messageId });
+            new { MessageId = messageId.Value });
 
         Assert.NotNull(result.ProcessedUtc);
         Assert.Equal("Done", result.Status);
@@ -120,7 +120,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
     {
         // Arrange
         var inbox = CreateInboxService();
-        var messageId = "test-message-4";
+        var messageId = InboxMessageIdentifier.From("test-message-4");
         var source = "test-source";
 
         // Record the message first
@@ -135,7 +135,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
 
         var status = await connection.QuerySingleAsync<string>(
             "SELECT Status FROM infra.Inbox WHERE MessageId = @MessageId",
-            new { MessageId = messageId });
+            new { MessageId = messageId.Value });
 
         Assert.Equal("Processing", status);
     }
@@ -149,7 +149,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
     {
         // Arrange
         var inbox = CreateInboxService();
-        var messageId = "test-message-5";
+        var messageId = InboxMessageIdentifier.From("test-message-5");
         var source = "test-source";
 
         // Record the message first
@@ -164,7 +164,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
 
         var status = await connection.QuerySingleAsync<string>(
             "SELECT Status FROM infra.Inbox WHERE MessageId = @MessageId",
-            new { MessageId = messageId });
+            new { MessageId = messageId.Value });
 
         Assert.Equal("Dead", status);
     }
@@ -178,7 +178,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
     {
         // Arrange
         var inbox = CreateInboxService();
-        var messageId = "concurrent-test-message";
+        var messageId = InboxMessageIdentifier.From("concurrent-test-message");
         var source = "test-source";
 
         // Act - Simulate concurrent calls to AlreadyProcessedAsync
@@ -199,14 +199,14 @@ public class SqlInboxServiceTests : SqlServerTestBase
 
         var count = await connection.QuerySingleAsync<int>(
             "SELECT COUNT(*) FROM infra.Inbox WHERE MessageId = @MessageId",
-            new { MessageId = messageId });
+            new { MessageId = messageId.Value });
 
         Assert.Equal(1, count);
 
         // Check that attempts were incremented appropriately
         var attempts = await connection.QuerySingleAsync<int>(
             "SELECT Attempts FROM infra.Inbox WHERE MessageId = @MessageId",
-            new { MessageId = messageId });
+            new { MessageId = messageId.Value });
 
         Assert.Equal(5, attempts);
     }
@@ -220,7 +220,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
     {
         // Arrange
         var inbox = CreateInboxService();
-        var messageId = "test-message-with-hash";
+        var messageId = InboxMessageIdentifier.From("test-message-with-hash");
         var source = "test-source";
         var hash = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32 };
 
@@ -233,7 +233,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
 
         var storedHash = await connection.QuerySingleAsync<byte[]>(
             "SELECT Hash FROM infra.Inbox WHERE MessageId = @MessageId",
-            new { MessageId = messageId });
+            new { MessageId = messageId.Value });
 
         Assert.Equal(hash, storedHash);
     }
@@ -242,13 +242,12 @@ public class SqlInboxServiceTests : SqlServerTestBase
     /// <intent>Ensure inbox checks validate message id inputs.</intent>
     /// <scenario>Given null or empty message id values.</scenario>
     /// <behavior>Then AlreadyProcessedAsync throws ArgumentException.</behavior>
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    public async Task AlreadyProcessedAsync_WithInvalidMessageId_ThrowsArgumentException(string? invalidMessageId)
+    [Fact]
+    public async Task AlreadyProcessedAsync_WithInvalidMessageId_ThrowsArgumentException()
     {
         // Arrange
         var inbox = CreateInboxService();
+        var invalidMessageId = default(InboxMessageIdentifier);
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(() =>
@@ -269,7 +268,7 @@ public class SqlInboxServiceTests : SqlServerTestBase
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(() =>
-            inbox.AlreadyProcessedAsync("test-message", invalidSource!, cancellationToken: TestContext.Current.CancellationToken));
+            inbox.AlreadyProcessedAsync(InboxMessageIdentifier.From("test-message"), invalidSource!, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     private SqlInboxService CreateInboxService()

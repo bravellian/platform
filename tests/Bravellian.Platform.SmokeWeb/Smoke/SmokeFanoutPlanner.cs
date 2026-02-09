@@ -63,7 +63,7 @@ internal sealed class SmokeFanoutPlanner : IFanoutPlanner
                     shardKey,
                     workKey,
                     windowStart: lastCompleted,
-                    correlationId: state.GetActiveRunId()));
+                    correlationId: state.ActiveRunId));
             }
         }
 

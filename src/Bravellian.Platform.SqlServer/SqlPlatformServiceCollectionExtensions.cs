@@ -35,16 +35,19 @@ public static class SqlPlatformServiceCollectionExtensions
     /// <param name="services">The service collection.</param>
     /// <param name="databases">The list of application databases.</param>
     /// <param name="enableSchemaDeployment">Whether to automatically create platform tables and procedures at startup.</param>
+    /// <param name="enableSchemaVerification">Whether to verify platform schema at startup.</param>
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddSqlPlatformMultiDatabaseWithList(
         this IServiceCollection services,
         IEnumerable<PlatformDatabase> databases,
-        bool enableSchemaDeployment = true)
+        bool enableSchemaDeployment = true,
+        bool enableSchemaVerification = false)
     {
         return PlatformServiceCollectionExtensions.AddPlatformMultiDatabaseWithList(
             services,
             databases,
-            enableSchemaDeployment);
+            enableSchemaDeployment,
+            enableSchemaVerification);
     }
 
     /// <summary>
@@ -53,17 +56,20 @@ public static class SqlPlatformServiceCollectionExtensions
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="enableSchemaDeployment">Whether to automatically create platform tables and procedures at startup.</param>
+    /// <param name="enableSchemaVerification">Whether to verify platform schema at startup.</param>
     /// <returns>The service collection for chaining.</returns>
     /// <remarks>
     /// Requires an implementation of <see cref="IPlatformDatabaseDiscovery"/> to be registered in the service collection.
     /// </remarks>
     public static IServiceCollection AddSqlPlatformMultiDatabaseWithDiscovery(
         this IServiceCollection services,
-        bool enableSchemaDeployment = true)
+        bool enableSchemaDeployment = true,
+        bool enableSchemaVerification = false)
     {
         return PlatformServiceCollectionExtensions.AddPlatformMultiDatabaseWithDiscovery(
             services,
-            enableSchemaDeployment);
+            enableSchemaDeployment,
+            enableSchemaVerification);
     }
 
     /// <summary>
@@ -203,6 +209,11 @@ public static class SqlPlatformServiceCollectionExtensions
         services.TryAddSingleton<IInbox>(ResolveDefaultInbox);
         services.TryAddSingleton<IInboxWorkStore>(ResolveDefaultInboxWorkStore);
         services.TryAddSingleton<Observability.InboxRecoveryService>();
+
+        if (options.EnableSchemaVerification)
+        {
+            services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, DatabaseSchemaVerificationService>());
+        }
 
         return services;
     }

@@ -40,6 +40,11 @@ public sealed class SqlPlatformOptions
     public bool EnableSchemaDeployment { get; set; } = true;
 
     /// <summary>
+    /// Gets or sets a value indicating whether schema verification should run at startup.
+    /// </summary>
+    public bool EnableSchemaVerification { get; set; }
+
+    /// <summary>
     /// Gets or sets a value indicating whether scheduler background workers should run.
     /// </summary>
     public bool EnableSchedulerWorkers { get; set; } = true;

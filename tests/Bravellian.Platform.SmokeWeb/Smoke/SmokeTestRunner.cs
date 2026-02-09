@@ -1,3 +1,4 @@
+using System;
 using System.Globalization;
 using Bravellian.Platform.Audit;
 using Bravellian.Platform.Idempotency;
@@ -7,7 +8,7 @@ using Microsoft.Extensions.Options;
 
 namespace Bravellian.Platform.SmokeWeb.Smoke;
 
-public sealed class SmokeTestRunner
+public sealed class SmokeTestRunner : IDisposable
 {
     private readonly SmokeTestState state;
     private readonly SmokeTestSignals signals;
@@ -218,7 +219,7 @@ public sealed class SmokeTestRunner
             var inbox = await platformClients.GetInboxAsync(CancellationToken.None).ConfigureAwait(false);
             var payload = new SmokePayload(run.RunId, SmokeStepNames.Inbox, timeProvider.GetUtcNow());
             var json = JsonSerializer.Serialize(payload);
-            var messageId = Guid.NewGuid().ToString("N");
+            var messageId = InboxMessageIdentifier.From(Guid.NewGuid().ToString("N"));
 
             await inbox.EnqueueAsync(
                 SmokeTopics.Inbox,
@@ -819,5 +820,10 @@ public sealed class SmokeTestRunner
         {
             return null;
         }
+    }
+
+    public void Dispose()
+    {
+        runLock.Dispose();
     }
 }

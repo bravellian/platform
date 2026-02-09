@@ -45,6 +45,11 @@ internal sealed class PlatformConfiguration
     public bool EnableSchemaDeployment { get; init; }
 
     /// <summary>
+    /// Gets whether schema verification is enabled for platform tables.
+    /// </summary>
+    public bool EnableSchemaVerification { get; init; }
+
+    /// <summary>
     /// Gets whether at least one database is required at startup.
     /// True for static list-based configurations (throw exception if no databases).
     /// False for dynamic discovery configurations (allow zero databases initially).

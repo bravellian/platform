@@ -43,19 +43,21 @@ internal sealed class PostgresInboxService : IInbox
 
         upsertSql = $"""
             INSERT INTO {tableName}
-                ("MessageId", "Source", "Hash", "FirstSeenUtc", "LastSeenUtc", "Attempts", "Status")
+                ("MessageId", "Source", "Hash", "FirstSeenUtc", "CreatedOn", "LastSeenUtc", "Attempts", "AttemptCount", "Status")
             VALUES
-                (@MessageId, @Source, @Hash, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1, 'Seen')
+                (@MessageId, @Source, @Hash, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1, 1, 'Seen')
             ON CONFLICT ("MessageId")
             DO UPDATE SET
                 "LastSeenUtc" = CURRENT_TIMESTAMP,
-                "Attempts" = {tableName}."Attempts" + 1
-            RETURNING "ProcessedUtc";
+                "Attempts" = {tableName}."Attempts" + 1,
+                "AttemptCount" = {tableName}."AttemptCount" + 1
+            RETURNING COALESCE("ProcessedOn", "ProcessedUtc") AS "ProcessedUtc";
             """;
 
         markProcessedSql = $"""
             UPDATE {tableName}
-            SET "ProcessedUtc" = CURRENT_TIMESTAMP,
+            SET "ProcessedOn" = CURRENT_TIMESTAMP,
+                "ProcessedUtc" = CURRENT_TIMESTAMP,
                 "Status" = 'Done',
                 "LastSeenUtc" = CURRENT_TIMESTAMP
             WHERE "MessageId" = @MessageId;
@@ -77,21 +79,23 @@ internal sealed class PostgresInboxService : IInbox
 
         enqueueSql = $"""
             INSERT INTO {tableName}
-                ("MessageId", "Source", "Topic", "Payload", "Hash", "DueTimeUtc", "FirstSeenUtc", "LastSeenUtc", "Attempts", "Status")
+                ("MessageId", "Source", "Topic", "Payload", "Hash", "DueTimeUtc", "DueOn", "FirstSeenUtc", "CreatedOn", "LastSeenUtc", "Attempts", "AttemptCount", "Status")
             VALUES
-                (@MessageId, @Source, @Topic, @Payload, @Hash, @DueTimeUtc, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1, 'Seen')
+                (@MessageId, @Source, @Topic, @Payload, @Hash, @DueTimeUtc, @DueTimeUtc, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1, 1, 'Seen')
             ON CONFLICT ("MessageId")
             DO UPDATE SET
                 "LastSeenUtc" = CURRENT_TIMESTAMP,
                 "Attempts" = {tableName}."Attempts" + 1,
+                "AttemptCount" = {tableName}."AttemptCount" + 1,
                 "Topic" = COALESCE(EXCLUDED."Topic", {tableName}."Topic"),
                 "Payload" = COALESCE(EXCLUDED."Payload", {tableName}."Payload"),
-                "DueTimeUtc" = COALESCE(EXCLUDED."DueTimeUtc", {tableName}."DueTimeUtc");
+                "DueTimeUtc" = COALESCE(EXCLUDED."DueTimeUtc", {tableName}."DueTimeUtc"),
+                "DueOn" = COALESCE(EXCLUDED."DueOn", {tableName}."DueOn");
             """;
     }
 
     public Task<bool> AlreadyProcessedAsync(
-        string messageId,
+        InboxMessageIdentifier messageId,
         string source,
         CancellationToken cancellationToken)
     {
@@ -99,12 +103,12 @@ internal sealed class PostgresInboxService : IInbox
     }
 
     public async Task<bool> AlreadyProcessedAsync(
-        string messageId,
+        InboxMessageIdentifier messageId,
         string source,
         byte[]? hash,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrEmpty(messageId))
+        if (string.IsNullOrEmpty(messageId.Value))
         {
             throw new ArgumentException("MessageId cannot be null or empty", nameof(messageId));
         }
@@ -121,7 +125,7 @@ internal sealed class PostgresInboxService : IInbox
 
             var processedUtc = await connection.QuerySingleOrDefaultAsync<DateTime?>(
                 upsertSql,
-                new { MessageId = messageId, Source = source, Hash = hash }).ConfigureAwait(false);
+                new { MessageId = messageId.Value, Source = source, Hash = hash }).ConfigureAwait(false);
 
             var alreadyProcessed = processedUtc.HasValue;
 
@@ -145,10 +149,10 @@ internal sealed class PostgresInboxService : IInbox
     }
 
     public async Task MarkProcessedAsync(
-        string messageId,
+        InboxMessageIdentifier messageId,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrEmpty(messageId))
+        if (string.IsNullOrEmpty(messageId.Value))
         {
             throw new ArgumentException("MessageId cannot be null or empty", nameof(messageId));
         }
@@ -160,7 +164,7 @@ internal sealed class PostgresInboxService : IInbox
 
             var rowsAffected = await connection.ExecuteAsync(
                 markProcessedSql,
-                new { MessageId = messageId }).ConfigureAwait(false);
+                new { MessageId = messageId.Value }).ConfigureAwait(false);
 
             if (rowsAffected == 0)
             {
@@ -180,10 +184,10 @@ internal sealed class PostgresInboxService : IInbox
     }
 
     public async Task MarkProcessingAsync(
-        string messageId,
+        InboxMessageIdentifier messageId,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrEmpty(messageId))
+        if (string.IsNullOrEmpty(messageId.Value))
         {
             throw new ArgumentException("MessageId cannot be null or empty", nameof(messageId));
         }
@@ -195,7 +199,7 @@ internal sealed class PostgresInboxService : IInbox
 
             var rowsAffected = await connection.ExecuteAsync(
                 markProcessingSql,
-                new { MessageId = messageId }).ConfigureAwait(false);
+                new { MessageId = messageId.Value }).ConfigureAwait(false);
 
             if (rowsAffected == 0)
             {
@@ -215,10 +219,10 @@ internal sealed class PostgresInboxService : IInbox
     }
 
     public async Task MarkDeadAsync(
-        string messageId,
+        InboxMessageIdentifier messageId,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrEmpty(messageId))
+        if (string.IsNullOrEmpty(messageId.Value))
         {
             throw new ArgumentException("MessageId cannot be null or empty", nameof(messageId));
         }
@@ -230,7 +234,7 @@ internal sealed class PostgresInboxService : IInbox
 
             var rowsAffected = await connection.ExecuteAsync(
                 markDeadSql,
-                new { MessageId = messageId }).ConfigureAwait(false);
+                new { MessageId = messageId.Value }).ConfigureAwait(false);
 
             if (rowsAffected == 0)
             {
@@ -252,7 +256,7 @@ internal sealed class PostgresInboxService : IInbox
     public Task EnqueueAsync(
         string topic,
         string source,
-        string messageId,
+        InboxMessageIdentifier messageId,
         string payload,
         CancellationToken cancellationToken)
     {
@@ -262,7 +266,7 @@ internal sealed class PostgresInboxService : IInbox
     public Task EnqueueAsync(
         string topic,
         string source,
-        string messageId,
+        InboxMessageIdentifier messageId,
         string payload,
         byte[]? hash,
         CancellationToken cancellationToken)
@@ -273,13 +277,13 @@ internal sealed class PostgresInboxService : IInbox
     public async Task EnqueueAsync(
         string topic,
         string source,
-        string messageId,
+        InboxMessageIdentifier messageId,
         string payload,
         byte[]? hash,
         DateTimeOffset? dueTimeUtc,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrEmpty(messageId))
+        if (string.IsNullOrEmpty(messageId.Value))
         {
             throw new ArgumentException("MessageId cannot be null or empty", nameof(messageId));
         }
@@ -298,7 +302,7 @@ internal sealed class PostgresInboxService : IInbox
                 enqueueSql,
                 new
                 {
-                    MessageId = messageId,
+                    MessageId = messageId.Value,
                     Source = source,
                     Topic = topic,
                     Payload = payload,

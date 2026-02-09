@@ -26,24 +26,24 @@ internal sealed class GlobalInboxWorkStore : IGlobalInboxWorkStore
         this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
     }
 
-    public Task<IReadOnlyList<string>> ClaimAsync(OwnerToken ownerToken, int leaseSeconds, int batchSize, CancellationToken cancellationToken) =>
+    public Task<IReadOnlyList<InboxMessageIdentifier>> ClaimAsync(OwnerToken ownerToken, int leaseSeconds, int batchSize, CancellationToken cancellationToken) =>
         inner.ClaimAsync(ownerToken, leaseSeconds, batchSize, cancellationToken);
 
-    public Task AckAsync(OwnerToken ownerToken, IEnumerable<string> messageIds, CancellationToken cancellationToken) =>
+    public Task AckAsync(OwnerToken ownerToken, IEnumerable<InboxMessageIdentifier> messageIds, CancellationToken cancellationToken) =>
         inner.AckAsync(ownerToken, messageIds, cancellationToken);
 
-    public Task AbandonAsync(OwnerToken ownerToken, IEnumerable<string> messageIds, string? lastError = null, TimeSpan? delay = null, CancellationToken cancellationToken = default) =>
+    public Task AbandonAsync(OwnerToken ownerToken, IEnumerable<InboxMessageIdentifier> messageIds, string? lastError = null, TimeSpan? delay = null, CancellationToken cancellationToken = default) =>
         inner.AbandonAsync(ownerToken, messageIds, lastError, delay, cancellationToken);
 
-    public Task FailAsync(OwnerToken ownerToken, IEnumerable<string> messageIds, string errorMessage, CancellationToken cancellationToken) =>
+    public Task FailAsync(OwnerToken ownerToken, IEnumerable<InboxMessageIdentifier> messageIds, string errorMessage, CancellationToken cancellationToken) =>
         inner.FailAsync(ownerToken, messageIds, errorMessage, cancellationToken);
 
-    public Task ReviveAsync(IEnumerable<string> messageIds, string? reason = null, TimeSpan? delay = null, CancellationToken cancellationToken = default) =>
+    public Task ReviveAsync(IEnumerable<InboxMessageIdentifier> messageIds, string? reason = null, TimeSpan? delay = null, CancellationToken cancellationToken = default) =>
         inner.ReviveAsync(messageIds, reason, delay, cancellationToken);
 
     public Task ReapExpiredAsync(CancellationToken cancellationToken) =>
         inner.ReapExpiredAsync(cancellationToken);
 
-    public Task<InboxMessage> GetAsync(string messageId, CancellationToken cancellationToken) =>
+    public Task<InboxMessage> GetAsync(InboxMessageIdentifier messageId, CancellationToken cancellationToken) =>
         inner.GetAsync(messageId, cancellationToken);
 }

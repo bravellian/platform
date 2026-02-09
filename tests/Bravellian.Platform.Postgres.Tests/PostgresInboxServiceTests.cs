@@ -39,7 +39,7 @@ public class PostgresInboxServiceTests : PostgresTestBase
     public async Task AlreadyProcessedAsync_WithNewMessage_ReturnsFalseAndRecordsMessage()
     {
         var inbox = CreateInboxService();
-        var messageId = "test-message-1";
+        var messageId = InboxMessageIdentifier.From("test-message-1");
         var source = "test-source";
 
         var alreadyProcessed = await inbox.AlreadyProcessedAsync(messageId, source, cancellationToken: TestContext.Current.CancellationToken);
@@ -51,7 +51,7 @@ public class PostgresInboxServiceTests : PostgresTestBase
 
         var count = await connection.QuerySingleAsync<int>(
             $"SELECT COUNT(*) FROM {qualifiedInboxTableName} WHERE \"MessageId\" = @MessageId",
-            new { MessageId = messageId });
+            new { MessageId = messageId.Value });
 
         Assert.Equal(1, count);
     }
@@ -64,7 +64,7 @@ public class PostgresInboxServiceTests : PostgresTestBase
     public async Task AlreadyProcessedAsync_WithProcessedMessage_ReturnsTrue()
     {
         var inbox = CreateInboxService();
-        var messageId = "test-message-2";
+        var messageId = InboxMessageIdentifier.From("test-message-2");
         var source = "test-source";
 
         await inbox.AlreadyProcessedAsync(messageId, source, cancellationToken: TestContext.Current.CancellationToken);
@@ -83,7 +83,7 @@ public class PostgresInboxServiceTests : PostgresTestBase
     public async Task MarkProcessedAsync_SetsProcessedUtcAndStatus()
     {
         var inbox = CreateInboxService();
-        var messageId = "test-message-3";
+        var messageId = InboxMessageIdentifier.From("test-message-3");
         var source = "test-source";
 
         await inbox.AlreadyProcessedAsync(messageId, source, cancellationToken: TestContext.Current.CancellationToken);
@@ -95,7 +95,7 @@ public class PostgresInboxServiceTests : PostgresTestBase
 
         var result = await connection.QuerySingleAsync<(DateTime? ProcessedUtc, string Status)>(
             $"SELECT \"ProcessedUtc\", \"Status\" FROM {qualifiedInboxTableName} WHERE \"MessageId\" = @MessageId",
-            new { MessageId = messageId });
+            new { MessageId = messageId.Value });
 
         Assert.NotNull(result.ProcessedUtc);
         Assert.Equal("Done", result.Status);
@@ -109,7 +109,7 @@ public class PostgresInboxServiceTests : PostgresTestBase
     public async Task MarkProcessingAsync_UpdatesStatus()
     {
         var inbox = CreateInboxService();
-        var messageId = "test-message-4";
+        var messageId = InboxMessageIdentifier.From("test-message-4");
         var source = "test-source";
 
         await inbox.AlreadyProcessedAsync(messageId, source, cancellationToken: TestContext.Current.CancellationToken);
@@ -121,7 +121,7 @@ public class PostgresInboxServiceTests : PostgresTestBase
 
         var status = await connection.QuerySingleAsync<string>(
             $"SELECT \"Status\" FROM {qualifiedInboxTableName} WHERE \"MessageId\" = @MessageId",
-            new { MessageId = messageId });
+            new { MessageId = messageId.Value });
 
         Assert.Equal("Processing", status);
     }
@@ -134,7 +134,7 @@ public class PostgresInboxServiceTests : PostgresTestBase
     public async Task MarkDeadAsync_UpdatesStatus()
     {
         var inbox = CreateInboxService();
-        var messageId = "test-message-5";
+        var messageId = InboxMessageIdentifier.From("test-message-5");
         var source = "test-source";
 
         await inbox.AlreadyProcessedAsync(messageId, source, cancellationToken: TestContext.Current.CancellationToken);
@@ -146,7 +146,7 @@ public class PostgresInboxServiceTests : PostgresTestBase
 
         var status = await connection.QuerySingleAsync<string>(
             $"SELECT \"Status\" FROM {qualifiedInboxTableName} WHERE \"MessageId\" = @MessageId",
-            new { MessageId = messageId });
+            new { MessageId = messageId.Value });
 
         Assert.Equal("Dead", status);
     }
@@ -159,7 +159,7 @@ public class PostgresInboxServiceTests : PostgresTestBase
     public async Task ConcurrentAlreadyProcessedAsync_WithSameMessage_HandledCorrectly()
     {
         var inbox = CreateInboxService();
-        var messageId = "concurrent-test-message";
+        var messageId = InboxMessageIdentifier.From("concurrent-test-message");
         var source = "test-source";
 
         var tasks = new List<Task<bool>>();
@@ -177,13 +177,13 @@ public class PostgresInboxServiceTests : PostgresTestBase
 
         var count = await connection.QuerySingleAsync<int>(
             $"SELECT COUNT(*) FROM {qualifiedInboxTableName} WHERE \"MessageId\" = @MessageId",
-            new { MessageId = messageId });
+            new { MessageId = messageId.Value });
 
         Assert.Equal(1, count);
 
         var attempts = await connection.QuerySingleAsync<int>(
             $"SELECT \"Attempts\" FROM {qualifiedInboxTableName} WHERE \"MessageId\" = @MessageId",
-            new { MessageId = messageId });
+            new { MessageId = messageId.Value });
 
         Assert.Equal(5, attempts);
     }
@@ -196,7 +196,7 @@ public class PostgresInboxServiceTests : PostgresTestBase
     public async Task AlreadyProcessedAsync_WithHash_StoresHashCorrectly()
     {
         var inbox = CreateInboxService();
-        var messageId = "test-message-with-hash";
+        var messageId = InboxMessageIdentifier.From("test-message-with-hash");
         var source = "test-source";
         var hash = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32 };
 
@@ -207,7 +207,7 @@ public class PostgresInboxServiceTests : PostgresTestBase
 
         var storedHash = await connection.QuerySingleAsync<byte[]>(
             $"SELECT \"Hash\" FROM {qualifiedInboxTableName} WHERE \"MessageId\" = @MessageId",
-            new { MessageId = messageId });
+            new { MessageId = messageId.Value });
 
         Assert.Equal(hash, storedHash);
     }
@@ -216,12 +216,11 @@ public class PostgresInboxServiceTests : PostgresTestBase
     /// <intent>Verify invalid message ids are rejected.</intent>
     /// <scenario>Given null or empty messageId inputs.</scenario>
     /// <behavior>AlreadyProcessedAsync throws ArgumentException.</behavior>
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    public async Task AlreadyProcessedAsync_WithInvalidMessageId_ThrowsArgumentException(string? invalidMessageId)
+    [Fact]
+    public async Task AlreadyProcessedAsync_WithInvalidMessageId_ThrowsArgumentException()
     {
         var inbox = CreateInboxService();
+        var invalidMessageId = default(InboxMessageIdentifier);
 
         await Assert.ThrowsAsync<ArgumentException>(() =>
             inbox.AlreadyProcessedAsync(invalidMessageId!, "test-source", cancellationToken: TestContext.Current.CancellationToken));
@@ -239,7 +238,7 @@ public class PostgresInboxServiceTests : PostgresTestBase
         var inbox = CreateInboxService();
 
         await Assert.ThrowsAsync<ArgumentException>(() =>
-            inbox.AlreadyProcessedAsync("test-message", invalidSource!, cancellationToken: TestContext.Current.CancellationToken));
+            inbox.AlreadyProcessedAsync(InboxMessageIdentifier.From("test-message"), invalidSource!, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     private PostgresInboxService CreateInboxService()

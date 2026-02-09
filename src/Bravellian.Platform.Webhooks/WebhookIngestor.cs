@@ -163,12 +163,13 @@ public sealed class WebhookIngestor : IWebhookIngestor
             null);
 
         var targetInbox = GetInbox(partitionKey);
-        var duplicate = await targetInbox.AlreadyProcessedAsync(dedupeKey, providerName, cancellationToken).ConfigureAwait(false);
+        var messageId = InboxMessageIdentifier.From(dedupeKey);
+        var duplicate = await targetInbox.AlreadyProcessedAsync(messageId, providerName, cancellationToken).ConfigureAwait(false);
         if (!duplicate)
         {
             var payloadJson = JsonSerializer.Serialize(record);
             var topic = string.IsNullOrWhiteSpace(classifyResult.EventType) ? DefaultTopic : classifyResult.EventType;
-            await targetInbox.EnqueueAsync(topic, providerName, dedupeKey, payloadJson, cancellationToken).ConfigureAwait(false);
+            await targetInbox.EnqueueAsync(topic, providerName, messageId, payloadJson, cancellationToken).ConfigureAwait(false);
         }
         else
         {
@@ -219,7 +220,8 @@ public sealed class WebhookIngestor : IWebhookIngestor
             null);
 
         var targetInbox = GetInbox(resolvedPartitionKey);
-        var duplicate = await targetInbox.AlreadyProcessedAsync(dedupeKey, providerName, cancellationToken).ConfigureAwait(false);
+        var messageId = InboxMessageIdentifier.From(dedupeKey);
+        var duplicate = await targetInbox.AlreadyProcessedAsync(messageId, providerName, cancellationToken).ConfigureAwait(false);
         if (duplicate)
         {
             return;
@@ -227,7 +229,7 @@ public sealed class WebhookIngestor : IWebhookIngestor
 
         var payloadJson = JsonSerializer.Serialize(record);
         var dueTimeUtc = GetNeverDueTimeUtc();
-        await targetInbox.EnqueueAsync(RejectedTopic, providerName, dedupeKey, payloadJson, null, dueTimeUtc, cancellationToken).ConfigureAwait(false);
+        await targetInbox.EnqueueAsync(RejectedTopic, providerName, messageId, payloadJson, null, dueTimeUtc, cancellationToken).ConfigureAwait(false);
     }
 
     private static string ResolveDedupeKey(string providerName, ClassifyResult classifyResult, byte[] bodyBytes)

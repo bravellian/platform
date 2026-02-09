@@ -67,8 +67,8 @@ internal sealed class PostgresOutboxStore : IOutboxStore
                 FROM {qualifiedTableName}
                 WHERE "Status" = 0
                     AND ("LockedUntil" IS NULL OR "LockedUntil" <= CURRENT_TIMESTAMP)
-                    AND ("DueTimeUtc" IS NULL OR "DueTimeUtc" <= CURRENT_TIMESTAMP)
-                ORDER BY "CreatedAt"
+                    AND (COALESCE("DueOn", "DueTimeUtc") IS NULL OR COALESCE("DueOn", "DueTimeUtc") <= CURRENT_TIMESTAMP)
+                ORDER BY COALESCE("CreatedOn", "CreatedAt")
                 FOR UPDATE SKIP LOCKED
                 LIMIT @BatchSize
             )
@@ -104,7 +104,18 @@ internal sealed class PostgresOutboxStore : IOutboxStore
             }
 
             var sql = $"""
-                SELECT *
+                SELECT "Id",
+                    "Payload",
+                    "Topic",
+                    COALESCE("CreatedOn", "CreatedAt") AS "CreatedAt",
+                    "IsProcessed",
+                    COALESCE("ProcessedOn", "ProcessedAt") AS "ProcessedAt",
+                    "ProcessedBy",
+                    COALESCE("AttemptCount", "RetryCount") AS "RetryCount",
+                    "LastError",
+                    "MessageId",
+                    "CorrelationId",
+                    COALESCE("DueOn", "DueTimeUtc") AS "DueTimeUtc"
                 FROM {qualifiedTableName}
                 WHERE "Id" = ANY(@Ids);
                 """;
@@ -138,7 +149,8 @@ internal sealed class PostgresOutboxStore : IOutboxStore
                 "OwnerToken" = NULL,
                 "LockedUntil" = NULL,
                 "IsProcessed" = TRUE,
-                "ProcessedAt" = CURRENT_TIMESTAMP
+                "ProcessedAt" = CURRENT_TIMESTAMP,
+                "ProcessedOn" = CURRENT_TIMESTAMP
             WHERE "OwnerToken" = @OwnerToken
                 AND "Status" = 1
                 AND "Id" = @Id;
@@ -194,8 +206,10 @@ internal sealed class PostgresOutboxStore : IOutboxStore
                 "OwnerToken" = NULL,
                 "LockedUntil" = NULL,
                 "RetryCount" = "RetryCount" + 1,
+                "AttemptCount" = "AttemptCount" + 1,
                 "LastError" = COALESCE(@LastError, "LastError"),
-                "DueTimeUtc" = COALESCE(@DueTimeUtc, "DueTimeUtc", CURRENT_TIMESTAMP)
+                "DueTimeUtc" = COALESCE(@DueTimeUtc, "DueTimeUtc", CURRENT_TIMESTAMP),
+                "DueOn" = COALESCE(@DueTimeUtc, "DueOn", CURRENT_TIMESTAMP)
             WHERE "OwnerToken" = @OwnerToken
                 AND "Status" = 1
                 AND "Id" = @Id;

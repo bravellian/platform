@@ -86,7 +86,7 @@ public sealed class WebhookIngestorTests
 
         result.Decision.ShouldBe(WebhookIngestDecision.Accepted);
         inbox.Enqueued.Count.ShouldBe(1);
-        inbox.Enqueued[0].MessageId.ShouldBe("dedupe-1");
+        inbox.Enqueued[0].MessageId.Value.ShouldBe("dedupe-1");
 
         var record = JsonSerializer.Deserialize<WebhookEventRecord>(inbox.Enqueued[0].Payload);
         record.ShouldNotBeNull();
@@ -245,44 +245,44 @@ public sealed class WebhookIngestorTests
 
         public List<EnqueuedMessage> Enqueued { get; } = new();
 
-        public Task<bool> AlreadyProcessedAsync(string messageId, string source, CancellationToken cancellationToken)
+        public Task<bool> AlreadyProcessedAsync(InboxMessageIdentifier messageId, string source, CancellationToken cancellationToken)
         {
-            return Task.FromResult(!seen.Add(BuildKey(messageId, source)));
+            return Task.FromResult(!seen.Add(BuildKey(messageId.Value, source)));
         }
 
-        public Task<bool> AlreadyProcessedAsync(string messageId, string source, byte[]? hash, CancellationToken cancellationToken)
+        public Task<bool> AlreadyProcessedAsync(InboxMessageIdentifier messageId, string source, byte[]? hash, CancellationToken cancellationToken)
         {
-            return Task.FromResult(!seen.Add(BuildKey(messageId, source)));
+            return Task.FromResult(!seen.Add(BuildKey(messageId.Value, source)));
         }
 
-        public Task MarkProcessedAsync(string messageId, CancellationToken cancellationToken)
-        {
-            return Task.CompletedTask;
-        }
-
-        public Task MarkProcessingAsync(string messageId, CancellationToken cancellationToken)
+        public Task MarkProcessedAsync(InboxMessageIdentifier messageId, CancellationToken cancellationToken)
         {
             return Task.CompletedTask;
         }
 
-        public Task MarkDeadAsync(string messageId, CancellationToken cancellationToken)
+        public Task MarkProcessingAsync(InboxMessageIdentifier messageId, CancellationToken cancellationToken)
         {
             return Task.CompletedTask;
         }
 
-        public Task EnqueueAsync(string topic, string source, string messageId, string payload, CancellationToken cancellationToken)
+        public Task MarkDeadAsync(InboxMessageIdentifier messageId, CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task EnqueueAsync(string topic, string source, InboxMessageIdentifier messageId, string payload, CancellationToken cancellationToken)
         {
             Enqueued.Add(new EnqueuedMessage(topic, source, messageId, payload));
             return Task.CompletedTask;
         }
 
-        public Task EnqueueAsync(string topic, string source, string messageId, string payload, byte[]? hash, CancellationToken cancellationToken)
+        public Task EnqueueAsync(string topic, string source, InboxMessageIdentifier messageId, string payload, byte[]? hash, CancellationToken cancellationToken)
         {
             Enqueued.Add(new EnqueuedMessage(topic, source, messageId, payload));
             return Task.CompletedTask;
         }
 
-        public Task EnqueueAsync(string topic, string source, string messageId, string payload, byte[]? hash, DateTimeOffset? dueTimeUtc, CancellationToken cancellationToken)
+        public Task EnqueueAsync(string topic, string source, InboxMessageIdentifier messageId, string payload, byte[]? hash, DateTimeOffset? dueTimeUtc, CancellationToken cancellationToken)
         {
             Enqueued.Add(new EnqueuedMessage(topic, source, messageId, payload));
             return Task.CompletedTask;
@@ -294,7 +294,7 @@ public sealed class WebhookIngestorTests
         }
     }
 
-    private sealed record EnqueuedMessage(string Topic, string Source, string MessageId, string Payload);
+    private sealed record EnqueuedMessage(string Topic, string Source, InboxMessageIdentifier MessageId, string Payload);
 
     private sealed class FixedTimeProvider : TimeProvider
     {

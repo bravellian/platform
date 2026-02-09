@@ -47,7 +47,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
         (serverName, databaseName) = ParseConnectionInfo(connectionString);
     }
 
-    public async Task<IReadOnlyList<string>> ClaimAsync(
+    public async Task<IReadOnlyList<InboxMessageIdentifier>> ClaimAsync(
         Bravellian.Platform.OwnerToken ownerToken,
         int leaseSeconds,
         int batchSize,
@@ -76,7 +76,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
                 },
                 commandType: System.Data.CommandType.StoredProcedure).ConfigureAwait(false);
 
-            var result = messageIds.ToList();
+            var result = messageIds.Select(InboxMessageIdentifier.From).ToList();
             logger.LogDebug(
                 "Successfully claimed {ClaimedCount} inbox messages for owner {OwnerToken}",
                 result.Count,
@@ -118,10 +118,10 @@ internal class SqlInboxWorkStore : IInboxWorkStore
     [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities", Justification = "Uses stored procedure name derived from configured schema and table.")]
     public async Task AckAsync(
         Bravellian.Platform.OwnerToken ownerToken,
-        IEnumerable<string> messageIds,
+        IEnumerable<InboxMessageIdentifier> messageIds,
         CancellationToken cancellationToken)
     {
-        var messageIdList = messageIds.ToList();
+        var messageIdList = messageIds.Select(id => id.Value).ToList();
         if (messageIdList.Count == 0)
         {
             return;
@@ -189,12 +189,12 @@ internal class SqlInboxWorkStore : IInboxWorkStore
 
     public async Task AbandonAsync(
         Bravellian.Platform.OwnerToken ownerToken,
-        IEnumerable<string> messageIds,
+        IEnumerable<InboxMessageIdentifier> messageIds,
         string? lastError = null,
         TimeSpan? delay = null,
         CancellationToken cancellationToken = default)
     {
-        var messageIdList = messageIds.ToList();
+        var messageIdList = messageIds.Select(id => id.Value).ToList();
         if (messageIdList.Count == 0)
         {
             return;
@@ -287,11 +287,11 @@ internal class SqlInboxWorkStore : IInboxWorkStore
     [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities", Justification = "Uses stored procedure name derived from configured schema and table.")]
     public async Task FailAsync(
         Bravellian.Platform.OwnerToken ownerToken,
-        IEnumerable<string> messageIds,
+        IEnumerable<InboxMessageIdentifier> messageIds,
         string error,
         CancellationToken cancellationToken)
     {
-        var messageIdList = messageIds.ToList();
+        var messageIdList = messageIds.Select(id => id.Value).ToList();
         if (messageIdList.Count == 0)
         {
             return;
@@ -362,12 +362,12 @@ internal class SqlInboxWorkStore : IInboxWorkStore
 
     [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities", Justification = "Uses configured schema/table names with parameters.")]
     public async Task ReviveAsync(
-        IEnumerable<string> messageIds,
+        IEnumerable<InboxMessageIdentifier> messageIds,
         string? reason = null,
         TimeSpan? delay = null,
         CancellationToken cancellationToken = default)
     {
-        var messageIdList = messageIds.ToList();
+        var messageIdList = messageIds.Select(id => id.Value).ToList();
         if (messageIdList.Count == 0)
         {
             return;
@@ -398,6 +398,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
                             LockedUntil = NULL,
                             LastSeenUtc = SYSUTCDATETIME(),
                             DueTimeUtc = @DueTimeUtc,
+                            DueOn = @DueTimeUtc,
                             LastError = @Reason
                         FROM [{schemaName}].[{tableName}] i
                         JOIN @Ids ids ON ids.Id = i.MessageId
@@ -498,9 +499,9 @@ internal class SqlInboxWorkStore : IInboxWorkStore
         }
     }
 
-    public async Task<InboxMessage> GetAsync(string messageId, CancellationToken cancellationToken)
+    public async Task<InboxMessage> GetAsync(InboxMessageIdentifier messageId, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrEmpty(messageId))
+        if (string.IsNullOrEmpty(messageId.Value))
         {
             throw new ArgumentException("MessageId cannot be null or empty", nameof(messageId));
         }
@@ -514,12 +515,24 @@ internal class SqlInboxWorkStore : IInboxWorkStore
 
             var sql = $"""
 
-                                SELECT MessageId, Source, Topic, Payload, Hash, Attempts, FirstSeenUtc, LastSeenUtc, DueTimeUtc, LastError
+                                SELECT MessageId,
+                                    Source,
+                                    Topic,
+                                    Payload,
+                                    Hash,
+                                    COALESCE(AttemptCount, Attempts) AS Attempts,
+                                    COALESCE(CreatedOn, FirstSeenUtc) AS FirstSeenUtc,
+                                    LastSeenUtc,
+                                    COALESCE(ProcessedOn, ProcessedUtc) AS ProcessedUtc,
+                                    COALESCE(DueOn, DueTimeUtc) AS DueTimeUtc,
+                                    CorrelationId,
+                                    ProcessedBy,
+                                    LastError
                                 FROM [{schemaName}].[{tableName}]
                                 WHERE MessageId = @MessageId
                 """;
 
-            var row = await connection.QuerySingleOrDefaultAsync(sql, new { MessageId = messageId }).ConfigureAwait(false);
+            var row = await connection.QuerySingleOrDefaultAsync(sql, new { MessageId = messageId.Value }).ConfigureAwait(false);
 
             if (row == null)
             {
@@ -528,7 +541,7 @@ internal class SqlInboxWorkStore : IInboxWorkStore
 
             return new InboxMessage
             {
-                MessageId = row.MessageId,
+                MessageId = InboxMessageIdentifier.From((string)row.MessageId),
                 Source = row.Source ?? string.Empty,
                 Topic = row.Topic ?? string.Empty,
                 Payload = row.Payload ?? string.Empty,
@@ -536,7 +549,10 @@ internal class SqlInboxWorkStore : IInboxWorkStore
                 Attempt = row.Attempts,
                 FirstSeenUtc = row.FirstSeenUtc,
                 LastSeenUtc = row.LastSeenUtc,
+                ProcessedUtc = row.ProcessedUtc,
                 DueTimeUtc = row.DueTimeUtc,
+                CorrelationId = row.CorrelationId,
+                ProcessedBy = row.ProcessedBy,
                 LastError = row.LastError,
             };
         }

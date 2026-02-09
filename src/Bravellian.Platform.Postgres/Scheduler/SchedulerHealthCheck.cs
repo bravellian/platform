@@ -48,7 +48,7 @@ internal class SchedulerHealthCheck : IHealthCheck
             // This query is designed to be lightweight and non-blocking.
             var sql = $"""
                 SELECT
-                    (SELECT MIN("CreatedAt") FROM {outboxTable} WHERE "IsProcessed" = FALSE) AS "OldestOutbox",
+                    (SELECT MIN(COALESCE("CreatedOn", "CreatedAt")) FROM {outboxTable} WHERE "IsProcessed" = FALSE) AS "OldestOutbox",
                     (SELECT MIN("DueTime") FROM {timersTable} WHERE "Status" = 'Pending') AS "OldestTimer",
                     (SELECT MIN("ScheduledTime") FROM {jobRunsTable} WHERE "Status" = 'Pending') AS "OldestJobRun";
                 """;

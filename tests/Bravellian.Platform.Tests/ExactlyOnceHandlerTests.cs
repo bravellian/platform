@@ -125,7 +125,7 @@ public sealed class ExactlyOnceHandlerTests
         return new InboxMessage
         {
             Source = source,
-            MessageId = messageId,
+            MessageId = InboxMessageIdentifier.From(messageId),
             Topic = "exactly-once",
             Payload = "{}"
         };

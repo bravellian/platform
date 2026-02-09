@@ -80,19 +80,20 @@ public class InboxWorkStoreTests : PostgresTestBase
         var store = CreateInboxWorkStore();
         var ownerToken = OwnerToken.GenerateNew();
 
-        await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload", cancellationToken: TestContext.Current.CancellationToken);
+        var messageId = InboxMessageIdentifier.From("msg-1");
+        await inbox.EnqueueAsync("test-topic", "test-source", messageId, "test payload", cancellationToken: TestContext.Current.CancellationToken);
 
         var claimedIds = await store.ClaimAsync(ownerToken, leaseSeconds: 30, batchSize: 10, CancellationToken.None);
 
         Assert.Single(claimedIds);
-        Assert.Contains("msg-1", claimedIds);
+        Assert.Contains(messageId, claimedIds);
 
         await using var connection = new NpgsqlConnection(ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var result = await connection.QuerySingleAsync(
             $"SELECT \"Status\", \"OwnerToken\" FROM {qualifiedInboxTableName} WHERE \"MessageId\" = @MessageId",
-            new { MessageId = "msg-1" });
+            new { MessageId = messageId.Value });
 
         Assert.Equal("Processing", result.Status);
         Assert.Equal(ownerToken.Value, (Guid)result.OwnerToken);
@@ -118,7 +119,7 @@ public class InboxWorkStoreTests : PostgresTestBase
         var owner1 = OwnerToken.GenerateNew();
         var owner2 = OwnerToken.GenerateNew();
 
-        await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload", cancellationToken: TestContext.Current.CancellationToken);
+        await inbox.EnqueueAsync("test-topic", "test-source", InboxMessageIdentifier.From("msg-1"), "test payload", cancellationToken: TestContext.Current.CancellationToken);
 
         var claims1Task = store.ClaimAsync(owner1, leaseSeconds: 30, batchSize: 10, CancellationToken.None);
         var claims2Task = store.ClaimAsync(owner2, leaseSeconds: 30, batchSize: 10, CancellationToken.None);
@@ -148,7 +149,8 @@ public class InboxWorkStoreTests : PostgresTestBase
         var store = CreateInboxWorkStore();
         var ownerToken = OwnerToken.GenerateNew();
 
-        await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload", cancellationToken: TestContext.Current.CancellationToken);
+        var messageId = InboxMessageIdentifier.From("msg-1");
+        await inbox.EnqueueAsync("test-topic", "test-source", messageId, "test payload", cancellationToken: TestContext.Current.CancellationToken);
         var claimedIds = await store.ClaimAsync(ownerToken, leaseSeconds: 30, batchSize: 10, CancellationToken.None);
         Assert.Single(claimedIds);
 
@@ -159,7 +161,7 @@ public class InboxWorkStoreTests : PostgresTestBase
 
         var result = await connection.QuerySingleAsync(
             $"SELECT \"Status\", \"OwnerToken\", \"ProcessedUtc\" FROM {qualifiedInboxTableName} WHERE \"MessageId\" = @MessageId",
-            new { MessageId = "msg-1" });
+            new { MessageId = messageId.Value });
 
         Assert.Equal("Done", result.Status);
         Assert.Null(result.OwnerToken);
@@ -185,7 +187,8 @@ public class InboxWorkStoreTests : PostgresTestBase
         var store = CreateInboxWorkStore();
         var ownerToken = OwnerToken.GenerateNew();
 
-        await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload", cancellationToken: TestContext.Current.CancellationToken);
+        var messageId = InboxMessageIdentifier.From("msg-1");
+        await inbox.EnqueueAsync("test-topic", "test-source", messageId, "test payload", cancellationToken: TestContext.Current.CancellationToken);
         var claimedIds = await store.ClaimAsync(ownerToken, leaseSeconds: 30, batchSize: 10, CancellationToken.None);
         Assert.Single(claimedIds);
 
@@ -196,7 +199,7 @@ public class InboxWorkStoreTests : PostgresTestBase
 
         var result = await connection.QuerySingleAsync(
             $"SELECT \"Status\", \"OwnerToken\" FROM {qualifiedInboxTableName} WHERE \"MessageId\" = @MessageId",
-            new { MessageId = "msg-1" });
+            new { MessageId = messageId.Value });
 
         Assert.Equal("Seen", result.Status);
         Assert.Null(result.OwnerToken);
@@ -221,7 +224,8 @@ public class InboxWorkStoreTests : PostgresTestBase
         var store = CreateInboxWorkStore();
         var ownerToken = OwnerToken.GenerateNew();
 
-        await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload", cancellationToken: TestContext.Current.CancellationToken);
+        var messageId = InboxMessageIdentifier.From("msg-1");
+        await inbox.EnqueueAsync("test-topic", "test-source", messageId, "test payload", cancellationToken: TestContext.Current.CancellationToken);
         var claimedIds = await store.ClaimAsync(ownerToken, leaseSeconds: 30, batchSize: 10, CancellationToken.None);
         Assert.Single(claimedIds);
 
@@ -232,7 +236,7 @@ public class InboxWorkStoreTests : PostgresTestBase
 
         var result = await connection.QuerySingleAsync(
             $"SELECT \"Status\", \"OwnerToken\" FROM {qualifiedInboxTableName} WHERE \"MessageId\" = @MessageId",
-            new { MessageId = "msg-1" });
+            new { MessageId = messageId.Value });
 
         Assert.Equal("Dead", result.Status);
         Assert.Null(result.OwnerToken);
@@ -258,7 +262,8 @@ public class InboxWorkStoreTests : PostgresTestBase
         var rightOwner = OwnerToken.GenerateNew();
         var wrongOwner = OwnerToken.GenerateNew();
 
-        await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload", cancellationToken: TestContext.Current.CancellationToken);
+        var messageId = InboxMessageIdentifier.From("msg-1");
+        await inbox.EnqueueAsync("test-topic", "test-source", messageId, "test payload", cancellationToken: TestContext.Current.CancellationToken);
         var claimedIds = await store.ClaimAsync(rightOwner, leaseSeconds: 30, batchSize: 10, CancellationToken.None);
         Assert.Single(claimedIds);
 
@@ -269,7 +274,7 @@ public class InboxWorkStoreTests : PostgresTestBase
 
         var result = await connection.QuerySingleAsync(
             $"SELECT \"Status\", \"OwnerToken\" FROM {qualifiedInboxTableName} WHERE \"MessageId\" = @MessageId",
-            new { MessageId = "msg-1" });
+            new { MessageId = messageId.Value });
 
         Assert.Equal("Processing", result.Status);
         Assert.Equal(rightOwner.Value, (Guid)result.OwnerToken);
@@ -293,12 +298,13 @@ public class InboxWorkStoreTests : PostgresTestBase
         var inbox = CreateInboxService();
         var store = CreateInboxWorkStore();
 
-        await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload", cancellationToken: TestContext.Current.CancellationToken);
+        var messageId = InboxMessageIdentifier.From("msg-1");
+        await inbox.EnqueueAsync("test-topic", "test-source", messageId, "test payload", cancellationToken: TestContext.Current.CancellationToken);
 
-        var message = await store.GetAsync("msg-1", CancellationToken.None);
+        var message = await store.GetAsync(messageId, CancellationToken.None);
 
         Assert.NotNull(message);
-        Assert.Equal("msg-1", message.MessageId);
+        Assert.Equal(messageId, message.MessageId);
         Assert.Equal("test-source", message.Source);
         Assert.Equal("test-topic", message.Topic);
         Assert.Equal("test payload", message.Payload);
@@ -323,7 +329,7 @@ public class InboxWorkStoreTests : PostgresTestBase
         var store = CreateInboxWorkStore();
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => store.GetAsync("non-existent", CancellationToken.None));
+            () => store.GetAsync(InboxMessageIdentifier.From("non-existent"), CancellationToken.None));
     }
 
     private PostgresInboxService CreateInboxService()

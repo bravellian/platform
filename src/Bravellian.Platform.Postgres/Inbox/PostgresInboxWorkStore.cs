@@ -51,7 +51,7 @@ internal sealed class PostgresInboxWorkStore : IInboxWorkStore
         (serverName, databaseName) = ParseConnectionInfo(connectionString);
     }
 
-    public async Task<IReadOnlyList<string>> ClaimAsync(
+    public async Task<IReadOnlyList<InboxMessageIdentifier>> ClaimAsync(
         OwnerToken ownerToken,
         int leaseSeconds,
         int batchSize,
@@ -71,7 +71,7 @@ internal sealed class PostgresInboxWorkStore : IInboxWorkStore
                 FROM {qualifiedTableName}
                 WHERE "Status" IN ('Seen', 'Processing')
                     AND ("LockedUntil" IS NULL OR "LockedUntil" <= CURRENT_TIMESTAMP)
-                    AND ("DueTimeUtc" IS NULL OR "DueTimeUtc" <= CURRENT_TIMESTAMP)
+                    AND (COALESCE("DueOn", "DueTimeUtc") IS NULL OR COALESCE("DueOn", "DueTimeUtc") <= CURRENT_TIMESTAMP)
                 ORDER BY "LastSeenUtc"
                 FOR UPDATE SKIP LOCKED
                 LIMIT @BatchSize
@@ -100,7 +100,7 @@ internal sealed class PostgresInboxWorkStore : IInboxWorkStore
                     BatchSize = batchSize,
                 }).ConfigureAwait(false);
 
-            var result = messageIds.ToList();
+            var result = messageIds.Select(InboxMessageIdentifier.From).ToList();
             logger.LogDebug(
                 "Successfully claimed {ClaimedCount} inbox messages for owner {OwnerToken}",
                 result.Count,
@@ -141,10 +141,10 @@ internal sealed class PostgresInboxWorkStore : IInboxWorkStore
 
     public async Task AckAsync(
         OwnerToken ownerToken,
-        IEnumerable<string> messageIds,
+        IEnumerable<InboxMessageIdentifier> messageIds,
         CancellationToken cancellationToken)
     {
-        var messageIdList = messageIds.ToArray();
+        var messageIdList = messageIds.Select(id => id.Value).ToArray();
         if (messageIdList.Length == 0)
         {
             return;
@@ -162,6 +162,7 @@ internal sealed class PostgresInboxWorkStore : IInboxWorkStore
             SET "Status" = 'Done',
                 "OwnerToken" = NULL,
                 "LockedUntil" = NULL,
+                "ProcessedOn" = CURRENT_TIMESTAMP,
                 "ProcessedUtc" = CURRENT_TIMESTAMP,
                 "LastSeenUtc" = CURRENT_TIMESTAMP
             WHERE "OwnerToken" = @OwnerToken
@@ -216,12 +217,12 @@ internal sealed class PostgresInboxWorkStore : IInboxWorkStore
 
     public async Task AbandonAsync(
         OwnerToken ownerToken,
-        IEnumerable<string> messageIds,
+        IEnumerable<InboxMessageIdentifier> messageIds,
         string? lastError = null,
         TimeSpan? delay = null,
         CancellationToken cancellationToken = default)
     {
-        var messageIdList = messageIds.ToArray();
+        var messageIdList = messageIds.Select(id => id.Value).ToArray();
         if (messageIdList.Length == 0)
         {
             return;
@@ -248,8 +249,10 @@ internal sealed class PostgresInboxWorkStore : IInboxWorkStore
                 "LockedUntil" = NULL,
                 "LastSeenUtc" = CURRENT_TIMESTAMP,
                 "Attempts" = "Attempts" + 1,
+                "AttemptCount" = "AttemptCount" + 1,
                 "LastError" = COALESCE(@LastError, "LastError"),
-                "DueTimeUtc" = COALESCE(@DueTimeUtc, "DueTimeUtc")
+                "DueTimeUtc" = COALESCE(@DueTimeUtc, "DueTimeUtc"),
+                "DueOn" = COALESCE(@DueTimeUtc, "DueOn")
             WHERE "OwnerToken" = @OwnerToken
                 AND "Status" = 'Processing'
                 AND "MessageId" = ANY(@Ids);
@@ -308,11 +311,11 @@ internal sealed class PostgresInboxWorkStore : IInboxWorkStore
 
     public async Task FailAsync(
         OwnerToken ownerToken,
-        IEnumerable<string> messageIds,
+        IEnumerable<InboxMessageIdentifier> messageIds,
         string error,
         CancellationToken cancellationToken)
     {
-        var messageIdList = messageIds.ToArray();
+        var messageIdList = messageIds.Select(id => id.Value).ToArray();
         if (messageIdList.Length == 0)
         {
             return;
@@ -385,12 +388,12 @@ internal sealed class PostgresInboxWorkStore : IInboxWorkStore
     }
 
     public async Task ReviveAsync(
-        IEnumerable<string> messageIds,
+        IEnumerable<InboxMessageIdentifier> messageIds,
         string? reason = null,
         TimeSpan? delay = null,
         CancellationToken cancellationToken = default)
     {
-        var messageIdList = messageIds.ToArray();
+        var messageIdList = messageIds.Select(id => id.Value).ToArray();
         if (messageIdList.Length == 0)
         {
             return;
@@ -416,7 +419,8 @@ internal sealed class PostgresInboxWorkStore : IInboxWorkStore
                 "LockedUntil" = NULL,
                 "LastSeenUtc" = CURRENT_TIMESTAMP,
                 "LastError" = @Reason,
-                "DueTimeUtc" = @DueTimeUtc
+                "DueTimeUtc" = @DueTimeUtc,
+                "DueOn" = @DueTimeUtc
             WHERE "Status" = 'Dead'
                 AND "MessageId" = ANY(@Ids);
             """;
@@ -535,9 +539,9 @@ internal sealed class PostgresInboxWorkStore : IInboxWorkStore
         }
     }
 
-    public async Task<InboxMessage> GetAsync(string messageId, CancellationToken cancellationToken)
+    public async Task<InboxMessage> GetAsync(InboxMessageIdentifier messageId, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrEmpty(messageId))
+        if (string.IsNullOrEmpty(messageId.Value))
         {
             throw new ArgumentException("MessageId cannot be null or empty", nameof(messageId));
         }
@@ -545,7 +549,19 @@ internal sealed class PostgresInboxWorkStore : IInboxWorkStore
         logger.LogDebug("Getting inbox message {MessageId}", messageId);
 
         var sql = $"""
-            SELECT "MessageId", "Source", "Topic", "Payload", "Hash", "Attempts", "FirstSeenUtc", "LastSeenUtc", "DueTimeUtc", "LastError"
+            SELECT "MessageId",
+                "Source",
+                "Topic",
+                "Payload",
+                "Hash",
+                COALESCE("AttemptCount", "Attempts") AS "Attempts",
+                COALESCE("CreatedOn", "FirstSeenUtc") AS "FirstSeenUtc",
+                "LastSeenUtc",
+                COALESCE("ProcessedOn", "ProcessedUtc") AS "ProcessedUtc",
+                COALESCE("DueOn", "DueTimeUtc") AS "DueTimeUtc",
+                "CorrelationId",
+                "ProcessedBy",
+                "LastError"
             FROM {qualifiedTableName}
             WHERE "MessageId" = @MessageId;
             """;
@@ -555,7 +571,7 @@ internal sealed class PostgresInboxWorkStore : IInboxWorkStore
             using var connection = new NpgsqlConnection(connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-            var row = await connection.QuerySingleOrDefaultAsync(sql, new { MessageId = messageId }).ConfigureAwait(false);
+            var row = await connection.QuerySingleOrDefaultAsync(sql, new { MessageId = messageId.Value }).ConfigureAwait(false);
 
             if (row == null)
             {
@@ -564,7 +580,7 @@ internal sealed class PostgresInboxWorkStore : IInboxWorkStore
 
             return new InboxMessage
             {
-                MessageId = row.MessageId,
+                MessageId = InboxMessageIdentifier.From((string)row.MessageId),
                 Source = row.Source ?? string.Empty,
                 Topic = row.Topic ?? string.Empty,
                 Payload = row.Payload ?? string.Empty,
@@ -572,7 +588,10 @@ internal sealed class PostgresInboxWorkStore : IInboxWorkStore
                 Attempt = row.Attempts,
                 FirstSeenUtc = row.FirstSeenUtc,
                 LastSeenUtc = row.LastSeenUtc,
+                ProcessedUtc = row.ProcessedUtc,
                 DueTimeUtc = row.DueTimeUtc,
+                CorrelationId = row.CorrelationId,
+                ProcessedBy = row.ProcessedBy,
                 LastError = row.LastError,
             };
         }

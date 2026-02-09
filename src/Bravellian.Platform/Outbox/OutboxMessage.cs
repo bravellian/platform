@@ -42,6 +42,11 @@ public sealed record OutboxMessage
     public DateTimeOffset CreatedAt { get; internal init; }
 
     /// <summary>
+    /// Gets the creation timestamp (canonical name).
+    /// </summary>
+    public DateTimeOffset CreatedOn => CreatedAt;
+
+    /// <summary>
     /// Gets a value indicating whether the message has been processed.
     /// </summary>
     public bool IsProcessed { get; internal init; }
@@ -52,6 +57,11 @@ public sealed record OutboxMessage
     public DateTimeOffset? ProcessedAt { get; internal init; }
 
     /// <summary>
+    /// Gets the processed timestamp (canonical name).
+    /// </summary>
+    public DateTimeOffset? ProcessedOn => ProcessedAt;
+
+    /// <summary>
     /// Gets the processor identifier, if any.
     /// </summary>
     public string? ProcessedBy { get; internal init; }
@@ -60,6 +70,11 @@ public sealed record OutboxMessage
     /// Gets the retry count.
     /// </summary>
     public int RetryCount { get; internal init; }
+
+    /// <summary>
+    /// Gets the retry count (canonical name).
+    /// </summary>
+    public int AttemptCount => RetryCount;
 
     /// <summary>
     /// Gets the last error message, if any.
@@ -80,4 +95,9 @@ public sealed record OutboxMessage
     /// Gets the due time in UTC, when scheduled.
     /// </summary>
     public DateTimeOffset? DueTimeUtc { get; internal init; }
+
+    /// <summary>
+    /// Gets the due time (canonical name).
+    /// </summary>
+    public DateTimeOffset? DueOn => DueTimeUtc;
 }

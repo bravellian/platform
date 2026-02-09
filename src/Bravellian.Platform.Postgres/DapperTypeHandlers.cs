@@ -15,7 +15,6 @@
 #pragma warning disable MA0048 // File name must match type name - intentionally grouping all type handlers
 
 using System.Data;
-using Bravellian.Platform.Inbox;
 using Bravellian.Platform.Metrics;
 using Bravellian.Platform.Outbox;
 using Dapper;
@@ -68,33 +67,33 @@ internal sealed class NullableOwnerTokenTypeHandler : SqlMapper.TypeHandler<Owne
 }
 
 /// <summary>
-/// Dapper type handler for InboxMessageIdentifier to convert between Guid and InboxMessageIdentifier.
+/// Dapper type handler for InboxMessageIdentifier to convert between string and InboxMessageIdentifier.
 /// </summary>
 internal sealed class InboxMessageIdentifierTypeHandler : SqlMapper.TypeHandler<InboxMessageIdentifier>
 {
     /// <inheritdoc/>
     public override InboxMessageIdentifier Parse(object value)
     {
-        return value is Guid guid ? InboxMessageIdentifier.From(guid) : default;
+        return value is string text ? InboxMessageIdentifier.From(text) : default;
     }
 
     /// <inheritdoc/>
     public override void SetValue(IDbDataParameter parameter, InboxMessageIdentifier value)
     {
         parameter.Value = value.Value;
-        parameter.DbType = DbType.Guid;
+        parameter.DbType = DbType.String;
     }
 }
 
 /// <summary>
-/// Dapper type handler for nullable InboxMessageIdentifier to convert between Guid? and InboxMessageIdentifier?.
+/// Dapper type handler for nullable InboxMessageIdentifier to convert between string and InboxMessageIdentifier?.
 /// </summary>
 internal sealed class NullableInboxMessageIdentifierTypeHandler : SqlMapper.TypeHandler<InboxMessageIdentifier?>
 {
     /// <inheritdoc/>
     public override InboxMessageIdentifier? Parse(object value)
     {
-        return value is Guid guid ? InboxMessageIdentifier.From(guid) : null;
+        return value is string text ? InboxMessageIdentifier.From(text) : null;
     }
 
     /// <inheritdoc/>
@@ -103,7 +102,7 @@ internal sealed class NullableInboxMessageIdentifierTypeHandler : SqlMapper.Type
         if (value.HasValue)
         {
             parameter.Value = value.Value.Value;
-            parameter.DbType = DbType.Guid;
+            parameter.DbType = DbType.String;
         }
         else
         {

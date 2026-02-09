@@ -23,14 +23,14 @@ internal sealed class InMemoryInboxService : IInbox
         this.state = state ?? throw new ArgumentNullException(nameof(state));
     }
 
-    public Task<bool> AlreadyProcessedAsync(string messageId, string source, CancellationToken cancellationToken)
+    public Task<bool> AlreadyProcessedAsync(InboxMessageIdentifier messageId, string source, CancellationToken cancellationToken)
     {
         return AlreadyProcessedAsync(messageId, source, null, cancellationToken);
     }
 
-    public Task<bool> AlreadyProcessedAsync(string messageId, string source, byte[]? hash, CancellationToken cancellationToken)
+    public Task<bool> AlreadyProcessedAsync(InboxMessageIdentifier messageId, string source, byte[]? hash, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(messageId))
+        if (string.IsNullOrWhiteSpace(messageId.Value))
         {
             throw new ArgumentException("MessageId cannot be null or empty", nameof(messageId));
         }
@@ -40,54 +40,54 @@ internal sealed class InMemoryInboxService : IInbox
             throw new ArgumentException("Source cannot be null or empty", nameof(source));
         }
 
-        var result = state.AlreadyProcessed(messageId, source, hash);
+        var result = state.AlreadyProcessed(messageId.Value, source, hash);
         return Task.FromResult(result);
     }
 
-    public Task MarkProcessedAsync(string messageId, CancellationToken cancellationToken)
+    public Task MarkProcessedAsync(InboxMessageIdentifier messageId, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(messageId))
+        if (string.IsNullOrWhiteSpace(messageId.Value))
         {
             throw new ArgumentException("MessageId cannot be null or empty", nameof(messageId));
         }
 
-        state.MarkProcessed(messageId);
+        state.MarkProcessed(messageId.Value);
         return Task.CompletedTask;
     }
 
-    public Task MarkProcessingAsync(string messageId, CancellationToken cancellationToken)
+    public Task MarkProcessingAsync(InboxMessageIdentifier messageId, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(messageId))
+        if (string.IsNullOrWhiteSpace(messageId.Value))
         {
             throw new ArgumentException("MessageId cannot be null or empty", nameof(messageId));
         }
 
-        state.MarkProcessing(messageId);
+        state.MarkProcessing(messageId.Value);
         return Task.CompletedTask;
     }
 
-    public Task MarkDeadAsync(string messageId, CancellationToken cancellationToken)
+    public Task MarkDeadAsync(InboxMessageIdentifier messageId, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(messageId))
+        if (string.IsNullOrWhiteSpace(messageId.Value))
         {
             throw new ArgumentException("MessageId cannot be null or empty", nameof(messageId));
         }
 
-        state.MarkDead(messageId);
+        state.MarkDead(messageId.Value);
         return Task.CompletedTask;
     }
 
-    public Task EnqueueAsync(string topic, string source, string messageId, string payload, CancellationToken cancellationToken)
+    public Task EnqueueAsync(string topic, string source, InboxMessageIdentifier messageId, string payload, CancellationToken cancellationToken)
     {
         return EnqueueAsync(topic, source, messageId, payload, null, null, cancellationToken);
     }
 
-    public Task EnqueueAsync(string topic, string source, string messageId, string payload, byte[]? hash, CancellationToken cancellationToken)
+    public Task EnqueueAsync(string topic, string source, InboxMessageIdentifier messageId, string payload, byte[]? hash, CancellationToken cancellationToken)
     {
         return EnqueueAsync(topic, source, messageId, payload, hash, null, cancellationToken);
     }
 
-    public Task EnqueueAsync(string topic, string source, string messageId, string payload, byte[]? hash, DateTimeOffset? dueTimeUtc, CancellationToken cancellationToken)
+    public Task EnqueueAsync(string topic, string source, InboxMessageIdentifier messageId, string payload, byte[]? hash, DateTimeOffset? dueTimeUtc, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(topic))
         {
@@ -99,7 +99,7 @@ internal sealed class InMemoryInboxService : IInbox
             throw new ArgumentException("Source cannot be null or empty", nameof(source));
         }
 
-        if (string.IsNullOrWhiteSpace(messageId))
+        if (string.IsNullOrWhiteSpace(messageId.Value))
         {
             throw new ArgumentException("MessageId cannot be null or empty", nameof(messageId));
         }
@@ -109,7 +109,7 @@ internal sealed class InMemoryInboxService : IInbox
             throw new ArgumentException("Payload cannot be null or empty", nameof(payload));
         }
 
-        state.Enqueue(topic, source, messageId, payload, hash, dueTimeUtc);
+        state.Enqueue(topic, source, messageId.Value, payload, hash, dueTimeUtc);
         return Task.CompletedTask;
     }
 }

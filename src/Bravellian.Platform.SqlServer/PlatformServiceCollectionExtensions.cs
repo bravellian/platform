@@ -36,11 +36,13 @@ internal static class PlatformServiceCollectionExtensions
     /// <param name="services">The service collection.</param>
     /// <param name="databases">The list of application databases.</param>
     /// <param name="enableSchemaDeployment">Whether to automatically create platform tables and procedures at startup.</param>
+    /// <param name="enableSchemaVerification">Whether to verify platform schema at startup.</param>
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddPlatformMultiDatabaseWithList(
         this IServiceCollection services,
         IEnumerable<PlatformDatabase> databases,
-        bool enableSchemaDeployment = false)
+        bool enableSchemaDeployment = false,
+        bool enableSchemaVerification = false)
     {
         ArgumentNullException.ThrowIfNull(databases);
 
@@ -59,6 +61,7 @@ internal static class PlatformServiceCollectionExtensions
             EnvironmentStyle = PlatformEnvironmentStyle.MultiDatabaseNoControl,
             UsesDiscovery = false,
             EnableSchemaDeployment = enableSchemaDeployment,
+            EnableSchemaVerification = enableSchemaVerification,
             RequiresDatabaseAtStartup = true, // List-based: must have at least one database
         };
 
@@ -72,7 +75,7 @@ internal static class PlatformServiceCollectionExtensions
         services.AddSingleton<IHostedService, PlatformLifecycleService>();
 
         // Register core abstractions
-        RegisterCoreServices(services, enableSchemaDeployment);
+        RegisterCoreServices(services, enableSchemaDeployment, enableSchemaVerification);
 
 
         return services;
@@ -84,13 +87,15 @@ internal static class PlatformServiceCollectionExtensions
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="enableSchemaDeployment">Whether to automatically create platform tables and procedures at startup.</param>
+    /// <param name="enableSchemaVerification">Whether to verify platform schema at startup.</param>
     /// <returns>The service collection for chaining.</returns>
     /// <remarks>
     /// Requires an implementation of <see cref="IPlatformDatabaseDiscovery"/> to be registered in the service collection.
     /// </remarks>
     public static IServiceCollection AddPlatformMultiDatabaseWithDiscovery(
         this IServiceCollection services,
-        bool enableSchemaDeployment = false)
+        bool enableSchemaDeployment = false,
+        bool enableSchemaVerification = false)
     {
         // Prevent multiple registrations
         EnsureNotAlreadyRegistered(services);
@@ -101,6 +106,7 @@ internal static class PlatformServiceCollectionExtensions
             EnvironmentStyle = PlatformEnvironmentStyle.MultiDatabaseNoControl,
             UsesDiscovery = true,
             EnableSchemaDeployment = enableSchemaDeployment,
+            EnableSchemaVerification = enableSchemaVerification,
             RequiresDatabaseAtStartup = false, // Dynamic discovery: can start with zero databases
         };
 
@@ -113,7 +119,7 @@ internal static class PlatformServiceCollectionExtensions
         services.AddSingleton<IHostedService, PlatformLifecycleService>();
 
         // Register core abstractions
-        RegisterCoreServices(services, enableSchemaDeployment);
+        RegisterCoreServices(services, enableSchemaDeployment, enableSchemaVerification);
 
 
         return services;
@@ -161,6 +167,7 @@ internal static class PlatformServiceCollectionExtensions
             ControlPlaneConnectionString = controlPlaneOptions.ConnectionString,
             ControlPlaneSchemaName = controlPlaneOptions.SchemaName,
             EnableSchemaDeployment = controlPlaneOptions.EnableSchemaDeployment,
+            EnableSchemaVerification = controlPlaneOptions.EnableSchemaVerification,
             RequiresDatabaseAtStartup = true, // List-based: must have at least one database
         };
 
@@ -174,7 +181,7 @@ internal static class PlatformServiceCollectionExtensions
         services.AddSingleton<IHostedService, PlatformLifecycleService>();
 
         // Register core abstractions
-        RegisterCoreServices(services, controlPlaneOptions.EnableSchemaDeployment);
+        RegisterCoreServices(services, controlPlaneOptions.EnableSchemaDeployment, controlPlaneOptions.EnableSchemaVerification);
 
         // Register semaphore services for control plane
 
@@ -217,6 +224,7 @@ internal static class PlatformServiceCollectionExtensions
             ControlPlaneConnectionString = controlPlaneOptions.ConnectionString,
             ControlPlaneSchemaName = controlPlaneOptions.SchemaName,
             EnableSchemaDeployment = controlPlaneOptions.EnableSchemaDeployment,
+            EnableSchemaVerification = controlPlaneOptions.EnableSchemaVerification,
             RequiresDatabaseAtStartup = false, // Dynamic discovery: can start with zero databases
         };
 
@@ -229,7 +237,7 @@ internal static class PlatformServiceCollectionExtensions
         services.AddSingleton<IHostedService, PlatformLifecycleService>();
 
         // Register core abstractions
-        RegisterCoreServices(services, controlPlaneOptions.EnableSchemaDeployment);
+        RegisterCoreServices(services, controlPlaneOptions.EnableSchemaDeployment, controlPlaneOptions.EnableSchemaVerification);
 
         // Register semaphore services for control plane
 
@@ -400,7 +408,10 @@ internal static class PlatformServiceCollectionExtensions
             $"{message} Remove the following registrations and use {recommendedService} instead: {details}.");
     }
 
-    private static void RegisterCoreServices(IServiceCollection services, bool enableSchemaDeployment)
+    private static void RegisterCoreServices(
+        IServiceCollection services,
+        bool enableSchemaDeployment,
+        bool enableSchemaVerification)
     {
         // Register Dapper type handlers for strongly-typed IDs
         DapperTypeHandlerRegistration.RegisterTypeHandlers();
@@ -415,6 +426,11 @@ internal static class PlatformServiceCollectionExtensions
             services.TryAddSingleton<DatabaseSchemaCompletion>();
             services.TryAddSingleton<IDatabaseSchemaCompletion>(provider => provider.GetRequiredService<DatabaseSchemaCompletion>());
             services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, DatabaseSchemaBackgroundService>());
+        }
+
+        if (enableSchemaVerification)
+        {
+            services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, DatabaseSchemaVerificationService>());
         }
 
         // Register all platform features automatically

@@ -90,7 +90,8 @@ public class InboxDispatcherTests : PostgresTestBase
         var dispatcher = CreateDispatcher(store, resolver);
 
         // Enqueue a test message
-        await inbox.EnqueueAsync("test-topic", "test-source", "msg-1", "test payload", cancellationToken: TestContext.Current.CancellationToken);
+        var messageId = InboxMessageIdentifier.From("msg-1");
+        await inbox.EnqueueAsync("test-topic", "test-source", messageId, "test payload", cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
         var processedCount = await dispatcher.RunOnceAsync(batchSize: 10, CancellationToken.None);
@@ -104,7 +105,7 @@ public class InboxDispatcherTests : PostgresTestBase
 
         var status = await connection.QuerySingleAsync<string>(
             $"SELECT \"Status\" FROM {qualifiedInboxTableName} WHERE \"MessageId\" = @MessageId",
-            new { MessageId = "msg-1" });
+            new { MessageId = messageId.Value });
 
         Assert.Equal("Done", status);
     }
@@ -131,7 +132,8 @@ public class InboxDispatcherTests : PostgresTestBase
         var dispatcher = CreateDispatcher(store, resolver);
 
         // Enqueue a test message with unknown topic
-        await inbox.EnqueueAsync("unknown-topic", "test-source", "msg-2", "test payload", cancellationToken: TestContext.Current.CancellationToken);
+        var messageId = InboxMessageIdentifier.From("msg-2");
+        await inbox.EnqueueAsync("unknown-topic", "test-source", messageId, "test payload", cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
         var processedCount = await dispatcher.RunOnceAsync(batchSize: 10, CancellationToken.None);
@@ -145,7 +147,7 @@ public class InboxDispatcherTests : PostgresTestBase
 
         var status = await connection.QuerySingleAsync<string>(
             $"SELECT \"Status\" FROM {qualifiedInboxTableName} WHERE \"MessageId\" = @MessageId",
-            new { MessageId = "msg-2" });
+            new { MessageId = messageId.Value });
 
         Assert.Equal("Dead", status);
     }
@@ -173,7 +175,8 @@ public class InboxDispatcherTests : PostgresTestBase
         var dispatcher = CreateDispatcher(store, resolver);
 
         // Enqueue a test message
-        await inbox.EnqueueAsync("failing-topic", "test-source", "msg-3", "test payload", cancellationToken: TestContext.Current.CancellationToken);
+        var messageId = InboxMessageIdentifier.From("msg-3");
+        await inbox.EnqueueAsync("failing-topic", "test-source", messageId, "test payload", cancellationToken: TestContext.Current.CancellationToken);
 
         // Act - First attempt should fail and abandon
         var processedCount = await dispatcher.RunOnceAsync(batchSize: 10, CancellationToken.None);
@@ -187,7 +190,7 @@ public class InboxDispatcherTests : PostgresTestBase
 
         var status = await connection.QuerySingleAsync<string>(
             $"SELECT \"Status\" FROM {qualifiedInboxTableName} WHERE \"MessageId\" = @MessageId",
-            new { MessageId = "msg-3" });
+            new { MessageId = messageId.Value });
 
         Assert.Equal("Seen", status);
     }
@@ -212,7 +215,7 @@ public class InboxDispatcherTests : PostgresTestBase
         var failingHandler = new FailingInboxHandler("failing-topic", shouldFail: true);
         var resolver = CreateHandlerResolver(failingHandler);
         var store = new StubInboxWorkStore();
-        store.AddMessage("msg-stub-1", attempt: 0, topic: "failing-topic");
+        store.AddMessage(InboxMessageIdentifier.From("msg-stub-1"), attempt: 0, topic: "failing-topic");
 
         var dispatcher = new MultiInboxDispatcher(
             new StubInboxWorkStoreProvider(store),
@@ -254,7 +257,7 @@ public class InboxDispatcherTests : PostgresTestBase
         // Attempt is the number of previous processing attempts. The dispatcher calculates the next
         // attempt as (attempt + 1) and compares it to maxAttempts. With attempt = 5 and maxAttempts = 5,
         // the condition (attempt + 1 > maxAttempts) is true (6 > 5), so this message should be marked as failed.
-        store.AddMessage("msg-stub-2", attempt: 5, topic: "failing-topic");
+        store.AddMessage(InboxMessageIdentifier.From("msg-stub-2"), attempt: 5, topic: "failing-topic");
 
         var dispatcher = new MultiInboxDispatcher(
             new StubInboxWorkStoreProvider(store),
@@ -268,7 +271,7 @@ public class InboxDispatcherTests : PostgresTestBase
 
         // Assert
         processed.ShouldBe(1);
-        store.FailedMessages.ShouldContain("msg-stub-2");
+        store.FailedMessages.ShouldContain(InboxMessageIdentifier.From("msg-stub-2"));
         store.AbandonedMessages.ShouldBeEmpty();
     }
 
@@ -291,8 +294,8 @@ public class InboxDispatcherTests : PostgresTestBase
         var handler = new TestInboxHandler("test-topic");
         var resolver = CreateHandlerResolver(handler);
         var store = new StubInboxWorkStore();
-        store.AddMessage("msg-stub-3", attempt: 0, topic: "test-topic");
-        store.AddMessage("msg-stub-4", attempt: 0, topic: "test-topic");
+        store.AddMessage(InboxMessageIdentifier.From("msg-stub-3"), attempt: 0, topic: "test-topic");
+        store.AddMessage(InboxMessageIdentifier.From("msg-stub-4"), attempt: 0, topic: "test-topic");
 
         var dispatcher = new MultiInboxDispatcher(
             new StubInboxWorkStoreProvider(store),
@@ -414,22 +417,22 @@ public class InboxDispatcherTests : PostgresTestBase
 
     private sealed class StubInboxWorkStore : IInboxWorkStore
     {
-        private readonly Dictionary<string, (int Attempt, string Topic)> messages = new(StringComparer.Ordinal);
-        private readonly Queue<string> claimQueue = new();
+        private readonly Dictionary<InboxMessageIdentifier, (int Attempt, string Topic)> messages = new();
+        private readonly Queue<InboxMessageIdentifier> claimQueue = new();
 
-        public List<string> FailedMessages { get; } = new();
+        public List<InboxMessageIdentifier> FailedMessages { get; } = new();
 
-        public List<(IEnumerable<string> MessageIds, string? Error, TimeSpan? Delay)> AbandonedMessages { get; } = new();
+        public List<(IEnumerable<InboxMessageIdentifier> MessageIds, string? Error, TimeSpan? Delay)> AbandonedMessages { get; } = new();
 
         public List<Guid> OwnerTokens { get; } = new();
 
-        public void AddMessage(string id, int attempt, string topic)
+        public void AddMessage(InboxMessageIdentifier id, int attempt, string topic)
         {
             messages[id] = (attempt, topic);
             claimQueue.Enqueue(id);
         }
 
-        public Task AckAsync(OwnerToken ownerToken, IEnumerable<string> messageIds, CancellationToken cancellationToken)
+        public Task AckAsync(OwnerToken ownerToken, IEnumerable<InboxMessageIdentifier> messageIds, CancellationToken cancellationToken)
         {
             foreach (var id in messageIds)
             {
@@ -441,7 +444,7 @@ public class InboxDispatcherTests : PostgresTestBase
 
         public Task AbandonAsync(
             OwnerToken ownerToken,
-            IEnumerable<string> messageIds,
+            IEnumerable<InboxMessageIdentifier> messageIds,
             string? lastError = null,
             TimeSpan? delay = null,
             CancellationToken cancellationToken = default)
@@ -450,19 +453,19 @@ public class InboxDispatcherTests : PostgresTestBase
             return Task.CompletedTask;
         }
 
-        public Task<IReadOnlyList<string>> ClaimAsync(OwnerToken ownerToken, int leaseSeconds, int batchSize, CancellationToken cancellationToken)
+        public Task<IReadOnlyList<InboxMessageIdentifier>> ClaimAsync(OwnerToken ownerToken, int leaseSeconds, int batchSize, CancellationToken cancellationToken)
         {
             OwnerTokens.Add(ownerToken.Value);
-            var claimed = new List<string>();
+            var claimed = new List<InboxMessageIdentifier>();
             while (claimed.Count < batchSize && claimQueue.Count > 0)
             {
                 claimed.Add(claimQueue.Dequeue());
             }
 
-            return Task.FromResult<IReadOnlyList<string>>(claimed);
+            return Task.FromResult<IReadOnlyList<InboxMessageIdentifier>>(claimed);
         }
 
-        public Task FailAsync(OwnerToken ownerToken, IEnumerable<string> messageIds, string error, CancellationToken cancellationToken)
+        public Task FailAsync(OwnerToken ownerToken, IEnumerable<InboxMessageIdentifier> messageIds, string error, CancellationToken cancellationToken)
         {
             foreach (var id in messageIds)
             {
@@ -473,12 +476,12 @@ public class InboxDispatcherTests : PostgresTestBase
             return Task.CompletedTask;
         }
 
-        public Task ReviveAsync(IEnumerable<string> messageIds, string? reason = null, TimeSpan? delay = null, CancellationToken cancellationToken = default)
+        public Task ReviveAsync(IEnumerable<InboxMessageIdentifier> messageIds, string? reason = null, TimeSpan? delay = null, CancellationToken cancellationToken = default)
         {
             return Task.CompletedTask;
         }
 
-        public Task<InboxMessage> GetAsync(string messageId, CancellationToken cancellationToken)
+        public Task<InboxMessage> GetAsync(InboxMessageIdentifier messageId, CancellationToken cancellationToken)
         {
             var (attempt, topic) = messages[messageId];
             return Task.FromResult(new InboxMessage
